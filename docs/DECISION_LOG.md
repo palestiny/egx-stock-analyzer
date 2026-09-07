@@ -681,6 +681,50 @@ Future scoring and signal-generation designs must preserve this distinction.
 
 ---
 
+# 20.5 DEC-018 — GitHub Is the Project Source of Truth
+
+**Status:** Accepted
+
+### Context
+
+The project is developed across multiple sessions and may involve
+AI-assisted development.
+
+Relying only on conversation history creates a risk of losing the actual
+project state, architectural decisions, or the latest implementation status.
+
+### Decision
+
+GitHub is the source of truth for the project's current development state.
+
+Project documentation and stable implementation changes must be synchronized
+with the GitHub repository.
+
+At the beginning of a development session, the repository documentation
+should be reviewed before implementing significant new work.
+
+### Synchronization Cycle
+
+````text
+Design
+  ↓
+Test
+  ↓
+Implement
+  ↓
+Review
+  ↓
+Refactor
+  ↓
+Document
+  ↓
+Commit
+  ↓
+Push
+  ↓
+GitHub
+---
+
 # 21. Open Decisions
 
 The following decisions are intentionally **not finalized**.
@@ -726,7 +770,7 @@ If two providers report different values:
 ```text
 Provider A → 100
 Provider B → 102
-```
+````
 
 Questions:
 

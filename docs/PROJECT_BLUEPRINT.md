@@ -13,6 +13,62 @@ Build a reliable, explainable, and extensible system that automatically collects
 
 ---
 
+## Project State & GitHub Synchronization
+
+GitHub is the source of truth for the project's current state.
+
+At the beginning of every development session, the project documentation
+must be reviewed to understand:
+
+- What the system is
+- Why it is being built
+- How it is being built
+- Current architectural decisions
+- Current milestone
+- Completed work
+- Open decisions
+- Known risks
+- Lessons learned
+
+The primary documents to review are:
+
+- PROJECT_BLUEPRINT.md
+- PROJECT_RULES.md
+- ENGINEERING_RULES.md
+- ROADMAP.md
+- DECISION_LOG.md
+- LESSONS_LEARNED.md
+
+### Synchronization Rule
+
+Whenever a meaningful piece of work is completed and reaches a stable state,
+it should be committed and pushed to GitHub.
+
+The expected development cycle is:
+
+Design
+→ Test
+→ Implement
+→ Review
+→ Refactor
+→ Document
+→ Commit
+→ Push
+→ Update Project State
+
+GitHub should remain synchronized with the actual project state throughout
+development rather than being updated only at major releases.
+
+### Session Start Rule
+
+Every new development session should begin by checking the project state
+from GitHub before implementing new work.
+
+The goal is to ensure that development continues from the documented state
+rather than relying only on memory or previous conversation history.
+
+---
+
 # 2. Vision
 
 The system is intended to become an automated decision-support platform for analyzing Egyptian Exchange stocks.
