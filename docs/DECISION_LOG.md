@@ -681,6 +681,207 @@ Future scoring and signal-generation designs must preserve this distinction.
 
 ---
 
+## DEC-019 — PriceBar Is an Immutable Market Observation Value Object
+
+**Status:** Accepted
+
+### Context
+
+The system needs a domain representation for one OHLCV market observation associated with a Stock, timeframe, and timestamp.
+
+The concept must remain independent from:
+
+- external market-data providers
+- data-quality assessment
+- technical-analysis rules
+- database persistence
+- API models
+- trading strategy
+
+### Decision
+
+`PriceBar` is modeled as an immutable Value Object representing one OHLCV market observation.
+
+Its conceptual structure is:
+
+```text
+PriceBar
+├── stock_id
+├── timeframe
+├── timestamp
+├── open: Price
+├── high: Price
+├── low: Price
+├── close: Price
+└── volume: Volume
+```
+
+`PriceBar` composes the existing:
+
+```text
+Price
+Volume
+```
+
+Value Objects.
+
+### Identity / Logical Key
+
+A PriceBar is logically identified by:
+
+```text
+Stock
++
+Timeframe
++
+Timestamp
+```
+
+The exact persistence identity is not yet decided.
+
+The exact semantics of the timestamp, including EGX trading-session and timezone rules, remain an open decision.
+
+### Responsibility
+
+`PriceBar` is responsible for representing the structure of one OHLCV observation.
+
+It owns:
+
+- the associated Stock identity
+- timeframe
+- timestamp
+- OHLC prices
+- volume
+
+### Non-Responsibility
+
+`PriceBar` does NOT own:
+
+- external data-provider behavior
+- provider reliability
+- data-quality assessment
+- analysis eligibility
+- technical indicators
+- support/resistance detection
+- trading signals
+- scoring
+- trading strategy
+- persistence
+- API behavior
+
+### OHLC Relationship Validation
+
+The following relationships are intentionally NOT treated as `PriceBar` domain invariants at this stage:
+
+```text
+High >= Open
+High >= Close
+Low <= Open
+Low <= Close
+```
+
+These relationships may be relevant to external data quality, but their ownership belongs to the future Data Quality design unless later evidence establishes that they are true domain invariants.
+
+In particular:
+
+```text
+High < Open
+```
+
+must not automatically cause the observation to be rejected by `PriceBar`.
+
+This is consistent with:
+
+```text
+External Observation
+        ↓
+Data Quality Assessment
+        ↓
+Analysis Eligibility
+```
+
+### Timeframe
+
+The initial project use case is Daily market data.
+
+However, `PriceBar` is designed to represent a bar for a timeframe without making Daily the only possible timeframe.
+
+The exact Timeframe model is a separate design decision.
+
+### Immutability
+
+`PriceBar` is immutable because it represents a completed observation.
+
+Changes to market observations should produce new observations rather than mutate an existing `PriceBar`.
+
+### Alternatives Considered
+
+#### Mutable Entity
+
+Rejected for the current design because a completed market observation is better represented as a stable value.
+
+#### Entity With Its Own Identity
+
+Not selected for the current domain model because the current conceptual identity is the logical combination:
+
+```text
+Stock + Timeframe + Timestamp
+```
+
+Whether persistence requires a separate technical identity remains open.
+
+#### Primitive OHLCV Fields
+
+Rejected because the project already establishes domain Value Objects for:
+
+```text
+Price
+Volume
+```
+
+Using them preserves explicit domain semantics and prevents primitive values from carrying hidden meaning.
+
+#### Put OHLC Validation Inside PriceBar
+
+Rejected for now because the question is primarily about external data quality rather than the meaning of a valid market observation.
+
+### Trade-offs
+
+Advantages:
+
+- clear domain meaning
+- immutable representation
+- composition of existing Value Objects
+- independent from infrastructure
+- easier testing
+- preserves the distinction between observation and quality
+
+Trade-offs:
+
+- data-quality validation must exist elsewhere
+- additional domain types are required
+- timestamp and timeframe semantics still need future decisions
+
+### Consequences
+
+Future market-data acquisition should map external provider responses into `PriceBar` without allowing provider-specific behavior to leak into the domain.
+
+Future Data Quality logic should evaluate whether a PriceBar is reliable or usable for analysis.
+
+Future technical-analysis logic should consume PriceBars rather than own their structural representation.
+
+### Revisit Conditions
+
+Revisit this decision if:
+
+- timestamp semantics require a different model
+- timeframe semantics require a different representation
+- persistence requirements introduce meaningful domain identity
+- market-data requirements reveal missing domain concepts
+- new evidence shows that structural OHLC relationships are actual domain invariants
+
+---
+
 # 20.5 DEC-018 — GitHub Is the Project Source of Truth
 
 **Status:** Accepted

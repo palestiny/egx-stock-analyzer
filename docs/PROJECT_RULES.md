@@ -635,9 +635,42 @@ Does that decision need an ADR?
 
 If the answer indicates a significant change, stop implementation and update the design first.
 
----
+# 30. Design Patterns Are a Learning Objective
 
-# 30. Definition of "Done"
+Design Patterns are an explicit learning objective of this project.
+
+We will actively learn and apply Design Patterns when a real design problem in the system justifies their use.
+
+The rule is:
+
+> **Use a Design Pattern when a real design problem justifies it — never use a pattern merely to increase the number of patterns in the project.**
+
+Whenever a pattern is considered, the design process should identify:
+
+1. The actual problem being solved.
+2. The candidate pattern or patterns.
+3. Why the selected pattern fits the problem.
+4. Alternative designs that were considered.
+5. Trade-offs introduced by the pattern.
+6. The consequences for maintainability, flexibility, complexity, and testability.
+7. What was learned from the implementation.
+
+Patterns should therefore be treated as engineering tools and learning opportunities, not decorations or architectural goals by themselves.
+
+Examples of patterns that may become relevant include:
+
+- Strategy
+- Factory
+- Adapter
+- Observer
+- State
+- Repository
+- Facade
+- Pipeline / Chain of Responsibility
+
+## These are examples only. No pattern is considered required until a real problem justifies it.
+
+# 31. Definition of "Done"
 
 A feature is not considered complete merely because:
 
@@ -667,7 +700,7 @@ Commit
 
 ---
 
-# 31. Git Rule
+# 32. Git Rule
 
 The repository is part of the engineering workflow.
 
@@ -695,7 +728,7 @@ Avoid commits that mix unrelated changes.
 
 ---
 
-# 32. Current Project State
+# 33. Current Project State
 
 At the time of establishing these rules:
 
@@ -710,7 +743,7 @@ At the time of establishing these rules:
 
 ---
 
-# 33. Rule for Uncertainty
+# 34. Rule for Uncertainty
 
 When we do not know something:
 
@@ -736,7 +769,7 @@ Implement
 
 ---
 
-# 34. Rule for AI-Assisted Development
+# 35. Rule for AI-Assisted Development
 
 AI may propose:
 
@@ -761,7 +794,7 @@ Understand
 
 ---
 
-# 35. Final Principle
+# 36. Final Principle
 
 The project should be built deliberately.
 
@@ -792,3 +825,27 @@ Hidden Assumptions
 The objective is not merely to finish the application.
 
 The objective is to build a system whose architecture, decisions, and behavior can be understood and defended by its engineering team.
+
+# 37. Design Decisions Must Be Recorded Before Implementation
+
+For any significant architectural, domain, ownership, boundary, or responsibility decision:
+
+```text
+Decision
+  ↓
+Record
+  ↓
+Test
+  ↓
+Implement
+```
+
+The implementation must not be the first permanent record of the decision.
+
+If a decision is significant enough to affect future architecture or domain behavior, it belongs in the project documentation.
+
+A conversation may be used to explore and discuss a decision, but the repository documentation is the durable record.
+
+Therefore:
+
+> **No significant undocumented design decision may silently become code.**

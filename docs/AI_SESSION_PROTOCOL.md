@@ -1097,7 +1097,185 @@ NEXT STEP
 
 ---
 
-# 29. The Goal
+# 29. Mandatory Design-to-Code Gate
+
+A significant design decision must NOT move directly from discussion into implementation.
+
+Before writing or changing code for a significant architectural, domain, ownership, boundary, or responsibility decision, the AI must verify:
+
+```text
+Design Question
+      ↓
+Alternatives
+      ↓
+Trade-offs
+      ↓
+Recommendation
+      ↓
+Decision
+      ↓
+Decision Recorded
+      ↓
+TDD
+      ↓
+Implementation
+```
+
+The AI must not treat a conversation decision as sufficiently documented.
+
+If the decision affects:
+
+- domain meaning
+- ownership
+- responsibility
+- boundaries
+- dependency direction
+- identity
+- data semantics
+- validation responsibility
+- architecture
+- extensibility
+- external integration boundaries
+
+then the decision must be recorded in the appropriate project documentation before implementation.
+
+## No Silent Design Decisions
+
+The AI must NOT silently convert an unresolved design question into an implementation decision.
+
+If the repository contains:
+
+```text
+OPEN
+```
+
+or:
+
+```text
+UNDER REVIEW
+```
+
+for a relevant topic, the AI must not implement a final interpretation of that topic unless the decision is explicitly resolved and documented.
+
+## Pre-Implementation Compliance Check
+
+Before starting TDD or implementation for a significant feature, the AI must explicitly verify:
+
+```text
+[ ] The concept is understood.
+[ ] Responsibility is defined.
+[ ] Non-responsibility is defined.
+[ ] Ownership is defined.
+[ ] Boundaries are defined.
+[ ] Alternatives were considered.
+[ ] Trade-offs were considered.
+[ ] Assumptions are identified.
+[ ] Open decisions are identified.
+[ ] Committed decisions are identified.
+[ ] Significant decisions are documented.
+[ ] The implementation does not silently resolve an open decision.
+```
+
+If any significant item is unresolved:
+
+```text
+⛔ BLOCKED — DESIGN DECISION REQUIRED
+```
+
+The AI must explain the ambiguity and stop implementation until the decision is resolved.
+
+## Documentation Is Part of the Design Process
+
+Documentation is not a final administrative step.
+
+For significant decisions:
+
+```text
+Design
+  ↓
+Decision
+  ↓
+Documentation
+  ↓
+Test
+  ↓
+Implementation
+```
+
+not:
+
+```text
+Design
+  ↓
+Implementation
+  ↓
+Documentation
+```
+
+The second workflow is considered a process violation.
+
+## Session Compliance
+
+At the beginning of every significant session, the AI must determine:
+
+```text
+Current Milestone
+Current Objective
+Relevant Committed Decisions
+Relevant Under Review Decisions
+Relevant Open Decisions
+Current Implementation State
+Next Design Gate
+```
+
+At the end of every significant session, the AI must verify:
+
+```text
+Implementation ↔ Documentation
+Tests ↔ Intended Behavior
+Decisions ↔ Decision Log
+Current State ↔ Roadmap
+```
+
+Any mismatch must be explicitly reported.
+
+## Design Patterns Learning Objective
+
+Design Patterns are an explicit learning objective of this project.
+
+The AI should actively identify and explain Design Patterns when a real engineering problem justifies their use.
+
+The rule is:
+
+> Use a Design Pattern when a real design problem justifies it — never use a pattern merely to increase the number of patterns in the project.
+
+When considering a pattern, the AI should explain:
+
+1. The actual problem.
+2. Candidate patterns or alternative designs.
+3. Why the selected approach fits.
+4. Trade-offs introduced.
+5. Impact on complexity.
+6. Impact on maintainability.
+7. Impact on testability.
+8. What was learned.
+
+Possible patterns may include:
+
+- Strategy
+- Factory
+- Adapter
+- Observer
+- State
+- Repository
+- Facade
+- Pipeline / Chain of Responsibility
+
+These are examples only.
+
+No pattern is mandatory unless a real problem justifies it.
+
+# 30. The Goal
 
 The project is not simply an application that analyzes stocks.
 
