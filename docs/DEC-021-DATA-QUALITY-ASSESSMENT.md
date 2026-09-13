@@ -37,6 +37,10 @@ UNKNOWN  -> not eligible
 
 Therefore, **only `VALID` data is currently eligible for analysis**.
 
+The assessment will also carry **structured quality issues/evidence** rather than a free-form reason string. This gives future rules a stable machine-readable way to explain why an observation received a quality status.
+
+The exact issue vocabulary and structure will be designed separately before implementation.
+
 ## TDD Progress
 
 The behavior was developed incrementally using RED -> GREEN.
@@ -60,13 +64,12 @@ It does not yet contain:
 
 - provider-specific validation rules
 - OHLC validation rules
-- reason/error collections
 - quality scores
 - confidence values
 - automatic assessment of `PriceBar`
 - persistence concerns
 
-Those are separate design questions and must not be introduced without a design decision.
+Structured quality issues/evidence are an accepted direction, but their exact model is intentionally not implemented yet.
 
 ## Relationship to PriceBar
 
@@ -95,24 +98,27 @@ Analysis Eligibility
 - Prevents `PriceBar` from becoming a validation object.
 - Makes analysis eligibility explicit and testable.
 - Provides a small stable vocabulary for future data-quality rules.
+- Allows quality decisions to be explained in a structured, machine-readable form.
 
 ### Trade-offs
 
-- The current assessment cannot explain the reason behind a status.
-- The actual rules that produce each status are still undefined.
+- The issue vocabulary adds another domain concept.
+- The exact issue/evidence model must be designed before implementation.
 - Future provider/data-quality logic will require additional design work.
 
 ## Next Design Question
 
-Before adding more behavior, decide whether `DataQualityAssessment` needs to carry the **reason/evidence** behind a quality status.
+Design the structured **quality issue/evidence** model before writing its implementation tests.
 
-Possible directions include:
+Questions to resolve include:
 
-1. Keep status-only for now.
-2. Add a simple reason.
-3. Add structured quality issues/evidence.
+1. Is an issue an enum, value object, or another domain concept?
+2. Does an issue contain only a code, or also contextual values?
+3. Can one assessment contain multiple issues?
+4. Should `VALID` explicitly contain no issues?
+5. Which issues belong to generic data quality versus provider-specific concerns?
 
-No option is implemented yet.
+No issue model is implemented yet.
 
 ## Revisit Conditions
 
