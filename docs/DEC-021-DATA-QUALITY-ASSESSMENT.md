@@ -37,9 +37,27 @@ UNKNOWN  -> not eligible
 
 Therefore, **only `VALID` data is currently eligible for analysis**.
 
-The assessment will also carry **structured quality issues/evidence** rather than a free-form reason string. This gives future rules a stable machine-readable way to explain why an observation received a quality status.
+The assessment will also carry **structured quality issues/evidence** rather than a free-form reason string.
 
-The exact issue vocabulary and structure will be designed separately before implementation.
+### Structured Quality Issues
+
+`DataQualityIssue` is an immutable Value Object representing one piece of structured evidence associated with an assessment.
+
+The accepted initial shape is:
+
+```text
+DataQualityAssessment
+├── status
+└── issues: zero or more DataQualityIssue values
+```
+
+Each issue uses a **structured code** rather than free-form text. The exact issue-code vocabulary is a separate design decision and will be resolved before implementation.
+
+An issue does **not** determine or infer the assessment status. The assessment remains the authoritative classification; issues provide the structured evidence explaining that classification.
+
+`VALID` assessments will normally contain no issues. The domain does not currently require an explicit invariant enforcing that relationship.
+
+Optional contextual details may be introduced later if actual data-quality rules demonstrate a need for them. They are intentionally not part of the initial issue model.
 
 ## TDD Progress
 
@@ -69,7 +87,7 @@ It does not yet contain:
 - automatic assessment of `PriceBar`
 - persistence concerns
 
-Structured quality issues/evidence are an accepted direction, but their exact model is intentionally not implemented yet.
+`DataQualityIssue` is evidence only. It does not know about `PriceBar`, providers, or validation algorithms.
 
 ## Relationship to PriceBar
 
@@ -99,26 +117,26 @@ Analysis Eligibility
 - Makes analysis eligibility explicit and testable.
 - Provides a small stable vocabulary for future data-quality rules.
 - Allows quality decisions to be explained in a structured, machine-readable form.
+- Allows multiple independent quality findings to be attached to one assessment.
 
 ### Trade-offs
 
 - The issue vocabulary adds another domain concept.
-- The exact issue/evidence model must be designed before implementation.
+- The exact issue-code vocabulary must be designed before implementation.
+- Contextual issue details are deferred until a concrete rule demonstrates their need.
 - Future provider/data-quality logic will require additional design work.
 
 ## Next Design Question
 
-Design the structured **quality issue/evidence** model before writing its implementation tests.
+Before implementing `DataQualityIssue`, decide the exact representation of its structured code.
 
-Questions to resolve include:
+Primary alternatives:
 
-1. Is an issue an enum, value object, or another domain concept?
-2. Does an issue contain only a code, or also contextual values?
-3. Can one assessment contain multiple issues?
-4. Should `VALID` explicitly contain no issues?
-5. Which issues belong to generic data quality versus provider-specific concerns?
+1. **Enum** — bounded vocabulary and typo-safe, recommended for the initial domain model.
+2. **String** — flexible, but allows inconsistent or invalid codes.
+3. **Separate Code Value Object** — strongest abstraction, but unnecessary complexity for the current vocabulary size.
 
-No issue model is implemented yet.
+No issue-code implementation should begin until this design choice is accepted.
 
 ## Revisit Conditions
 
