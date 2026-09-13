@@ -51,7 +51,11 @@ DataQualityAssessment
 └── issues: zero or more DataQualityIssue values
 ```
 
-Each issue uses a **structured code** rather than free-form text. The exact issue-code vocabulary is a separate design decision and will be resolved before implementation.
+Each issue uses a **structured code** rather than free-form text.
+
+The initial representation of `DataQualityIssue.code` is a **dedicated Enum (`DataQualityIssueCode`)**. This provides a bounded, typo-safe vocabulary without introducing unnecessary abstraction at the current domain size.
+
+The code dependency will be kept localized to the issue model. If future requirements demonstrate that a richer Value Object is justified, the Enum can be replaced with a Value Object with limited impact on the surrounding domain model. We explicitly do **not** introduce an abstraction layer now solely to anticipate that possible change.
 
 An issue does **not** determine or infer the assessment status. The assessment remains the authoritative classification; issues provide the structured evidence explaining that classification.
 
@@ -118,6 +122,7 @@ Analysis Eligibility
 - Provides a small stable vocabulary for future data-quality rules.
 - Allows quality decisions to be explained in a structured, machine-readable form.
 - Allows multiple independent quality findings to be attached to one assessment.
+- Keeps the initial code representation simple while preserving a low-impact migration path to a richer Value Object if needed.
 
 ### Trade-offs
 
@@ -125,18 +130,17 @@ Analysis Eligibility
 - The exact issue-code vocabulary must be designed before implementation.
 - Contextual issue details are deferred until a concrete rule demonstrates their need.
 - Future provider/data-quality logic will require additional design work.
+- A future migration from Enum to Value Object would require a controlled domain change if richer requirements emerge.
 
 ## Next Design Question
 
-Before implementing `DataQualityIssue`, decide the exact representation of its structured code.
+Before implementing `DataQualityIssue`, decide the exact issue-code vocabulary represented by `DataQualityIssueCode`.
 
-Primary alternatives:
+The representation decision is now accepted as:
 
-1. **Enum** — bounded vocabulary and typo-safe, recommended for the initial domain model.
-2. **String** — flexible, but allows inconsistent or invalid codes.
-3. **Separate Code Value Object** — strongest abstraction, but unnecessary complexity for the current vocabulary size.
+> **Use an Enum for `DataQualityIssueCode` initially, keeping the dependency localized so a future migration to a Value Object remains low-impact if justified by real requirements.**
 
-No issue-code implementation should begin until this design choice is accepted.
+The actual issue codes themselves remain a separate design decision.
 
 ## Revisit Conditions
 
