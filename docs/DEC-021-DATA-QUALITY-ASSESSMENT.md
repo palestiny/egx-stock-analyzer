@@ -55,6 +55,18 @@ Each issue uses a **structured code** rather than free-form text.
 
 The initial representation of `DataQualityIssue.code` is a **dedicated Enum (`DataQualityIssueCode`)**. This provides a bounded, typo-safe vocabulary without introducing unnecessary abstraction at the current domain size.
 
+The initial issue-code vocabulary is intentionally small and limited to currently meaningful generic data-quality findings:
+
+```text
+MISSING_VALUE
+INVALID_VALUE
+INVALID_TIMESTAMP
+DUPLICATE_OBSERVATION
+OHLC_INCONSISTENCY
+```
+
+These codes describe the type of quality finding only. They do **not** determine or infer whether the assessment is `VALID`, `INVALID`, `SUSPECT`, or `UNKNOWN`.
+
 The code dependency will be kept localized to the issue model. If future requirements demonstrate that a richer Value Object is justified, the Enum can be replaced with a Value Object with limited impact on the surrounding domain model. We explicitly do **not** introduce an abstraction layer now solely to anticipate that possible change.
 
 An issue does **not** determine or infer the assessment status. The assessment remains the authoritative classification; issues provide the structured evidence explaining that classification.
@@ -127,20 +139,28 @@ Analysis Eligibility
 ### Trade-offs
 
 - The issue vocabulary adds another domain concept.
-- The exact issue-code vocabulary must be designed before implementation.
+- The initial vocabulary is intentionally limited and may grow as real rules are introduced.
 - Contextual issue details are deferred until a concrete rule demonstrates their need.
 - Future provider/data-quality logic will require additional design work.
 - A future migration from Enum to Value Object would require a controlled domain change if richer requirements emerge.
 
 ## Next Design Question
 
-Before implementing `DataQualityIssue`, decide the exact issue-code vocabulary represented by `DataQualityIssueCode`.
+The initial issue-code vocabulary is now accepted as:
 
-The representation decision is now accepted as:
+```text
+MISSING_VALUE
+INVALID_VALUE
+INVALID_TIMESTAMP
+DUPLICATE_OBSERVATION
+OHLC_INCONSISTENCY
+```
+
+The representation decision remains:
 
 > **Use an Enum for `DataQualityIssueCode` initially, keeping the dependency localized so a future migration to a Value Object remains low-impact if justified by real requirements.**
 
-The actual issue codes themselves remain a separate design decision.
+Implementation can now proceed with RED tests for `DataQualityIssue` and `DataQualityIssueCode`.
 
 ## Revisit Conditions
 
