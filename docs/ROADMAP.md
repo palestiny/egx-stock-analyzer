@@ -1,393 +1,317 @@
 # EGX Stock Analyzer — Roadmap
 
-**Project:** EGX Stock Analyzer
-**Status:** Active
-**Current Phase:** M0 — Vision & Project Blueprint
+**Project:** EGX Stock Analyzer  
+**Status:** Active  
+**Master Plan:** This document is the project roadmap and the primary place to track planned execution order and current position.
 
 ---
 
 # 1. Purpose
 
-This roadmap defines the planned evolution of the EGX Stock Analyzer from its initial domain foundation into an automated stock-analysis platform.
+This roadmap defines the planned evolution of the EGX Stock Analyzer from its domain foundation into an automated, explainable stock-analysis platform.
 
-The roadmap is intentionally milestone-driven.
+A milestone is complete only when its design, tests, implementation, review/refactor, documentation, Git commit, and acceptance criteria are satisfied.
 
-A milestone is considered complete when its design, implementation, tests, documentation, and acceptance criteria are satisfied.
-
-The roadmap may change when new evidence or requirements justify a change.
+The roadmap may change when new evidence or requirements justify a deliberate design decision.
 
 ---
 
 # 2. Development Strategy
 
-The project follows this progression:
+The project is intentionally developed in two broad tracks:
 
 ```text
-Vision
+CORE ANALYTICAL TRACK
+Market Observation
   ↓
-Domain
+Technical Analysis
   ↓
-Market Data
-  ↓
-Analysis
+Fundamental Analysis
   ↓
 Scoring
   ↓
-Signals
+Signal / Opportunity Detection
   ↓
 Backtesting
   ↓
+Reporting / Alerts
+
+RELIABILITY / OPERATIONS TRACK
+Raw Provider Data
+  ↓
+Data Acquisition
+  ↓
+Data Quality Assessment
+  ↓
 Automation
   ↓
-Reporting
-  ↓
-API / Dashboard
-  ↓
-Production
+Production Reliability
 ```
+
+The current priority is the **Core Analytical Track**.
+
+Data Quality is an important domain boundary and its basic Value Objects are already defined, but detailed assessment logic is intentionally deferred until the analytical core is understood end-to-end. See `docs/DEC-022-CORE-ANALYSIS-BEFORE-DATA-QUALITY.md`.
+
+This does **not** mean Data Quality is optional. It means its implementation is sequenced after the core analytical path.
 
 We intentionally avoid starting with:
 
 - UI
 - database-heavy architecture
-- AI
+- AI-first architecture
 - microservices
 - complex infrastructure
+- authentication
+- production deployment concerns
 
-The core analytical model must become reliable first.
+The core analytical model must become understandable, deterministic, explainable, and testable first.
 
 ---
 
 # 3. Milestone Overview
 
-| Milestone | Name                   | Primary Goal                        | Status         |
-| --------- | ---------------------- | ----------------------------------- | -------------- |
-| M0        | Vision & Blueprint     | Define what we are building         | 🟡 In Progress |
-| M1        | Domain Foundation      | Establish core domain model         | 🟡 In Progress |
-| M2        | Market Data Foundation | Define market observations          | 🔴 Not Started |
-| M3        | Data Acquisition       | Connect external data sources       | 🔴 Not Started |
-| M4        | Data Quality           | Assess and manage data reliability  | 🔴 Not Started |
-| M5        | Technical Analysis     | Build technical indicators          | 🔴 Not Started |
-| M6        | Fundamental Analysis   | Build fundamental analysis          | 🔴 Not Started |
-| M7        | Scoring Engine         | Combine evidence into scores        | 🔴 Not Started |
-| M8        | Signal Generation      | Produce explainable signals         | 🔴 Not Started |
-| M9        | Backtesting            | Test strategies historically        | 🔴 Not Started |
-| M10       | Automation             | Run analysis automatically          | 🔴 Not Started |
-| M11       | Reporting & Alerts     | Deliver results                     | 🔴 Not Started |
-| M12       | API & Dashboard        | Expose system to users              | 🔴 Not Started |
-| M13       | Production Hardening   | Prepare for reliable production use | 🔴 Not Started |
+| Milestone | Name | Status | Current Intent |
+|---|---|---|---|
+| M0 | Vision & Blueprint | 🟡 In Progress | Keep project direction and engineering method explicit |
+| M1 | Domain Foundation | 🟡 In Progress | Establish stable core domain concepts |
+| M2 | Market Data Foundation | 🟡 In Progress | Establish market observation semantics |
+| M3 | Data Acquisition | 🔴 Deferred | External providers after core behavior is understood |
+| M4 | Technical Analysis | 🟡 Next | Build the first core analytical capability |
+| M5 | Fundamental Analysis | 🔴 Not Started | Build company-quality analysis |
+| M6 | Scoring Engine | 🔴 Not Started | Combine analytical evidence into explainable scores |
+| M7 | Signal Generation | 🔴 Not Started | Produce explainable opportunity classifications |
+| M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
+| M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
+| M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
+| M11 | Reporting & Alerts | 🔴 Not Started | Deliver analytical results |
+| M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
+| M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
+
+The milestone numbering is retained to preserve project history. The **execution order has been deliberately adjusted** so the core analytical path is built before the detailed Data Quality implementation.
 
 ---
 
-# 4. M0 — Vision & Project Blueprint
+# 4. Current Position — IMPORTANT
+
+## Where We Stopped
+
+The project has completed the current Data Quality model foundation:
+
+- `DataQualityStatus`
+- `DataQualityAssessment`
+- `DataQualityIssue`
+- `DataQualityIssueCode`
+- Initial issue vocabulary
+- Analysis eligibility behavior
+- Immutability tests
+
+The implementation and tests were committed and pushed to GitHub.
+
+The full test suite was passing at the end of this milestone.
+
+## What Is Frozen For Now
+
+Do **not** continue implementing:
+
+- `DataQualityAssessor`
+- detailed validation rules
+- provider-specific quality rules
+- status-mapping policies
+- advanced data-quality infrastructure
+
+Those are deliberately deferred.
+
+## Next Step
+
+**Begin the Core Analytical Track at M4 — Technical Analysis.**
+
+The immediate design gate is therefore **not Data Quality**. It is the first technical-analysis domain capability: what the system means by technical evidence and what the first analysis capability should be.
+
+---
+
+# 5. M0 — Vision & Project Blueprint
 
 ## Objective
 
-Define the purpose, boundaries, philosophy, architecture direction, and success criteria of the system.
+Define the purpose, boundaries, philosophy, architecture direction, and success criteria.
 
-## Deliverables
+## State
 
-- Project blueprint
-- Project rules
-- Engineering rules
-- Roadmap
-- Decision log
-- Lessons learned structure
-- Initial architecture direction
-
-## Acceptance Criteria
-
-M0 is complete when:
-
-- Project vision is documented.
-- Scope is defined.
-- Non-goals are defined.
-- Architecture direction is documented.
-- Development methodology is documented.
-- Major open decisions are known.
-- Initial roadmap exists.
-
-## Current State
-
-**In Progress**
+Foundation exists and continues to evolve as important sequencing and architecture decisions are made.
 
 ---
 
-# 5. M1 — Domain Foundation
+# 6. M1 — Domain Foundation
 
 ## Objective
 
 Build the smallest stable domain model required by the system.
 
-## Initial Concepts
+## Established Concepts
 
-Potential concepts include:
+Current committed domain concepts include:
 
 ```text
 Stock
-MarketData
-DataQuality
-Analysis
-Score
-Signal
-Strategy
+Price
+Volume
+Timeframe
+PriceBar
+DataQualityAssessment
+DataQualityIssue
+DataQualityIssueCode
 ```
 
-Only concepts justified by requirements should be implemented.
+The project uses Domain-First design and TDD. Concepts are added only when justified by a real domain responsibility.
 
-## Focus
+## Rules
 
-- Entities
-- Value objects
-- Domain invariants
-- Identity
-- Ownership
-- Domain behavior
-- Equality semantics
-- Domain tests
+Domain logic remains independent from:
 
-## Explicit Non-Goals
-
-Do not introduce yet:
-
-- database repositories
-- HTTP endpoints
+- database
+- HTTP
 - external providers
 - UI
 - AI
-- background workers
-
-## Acceptance Criteria
-
-- Core domain concepts have clear meanings.
-- Responsibilities are explicit.
-- Tests describe important behavior.
-- Domain is independent from infrastructure.
-- Important decisions are documented.
-
-## Current State
-
-**In Progress**
+- infrastructure
 
 ---
 
-# 6. M2 — Market Data Foundation
+# 7. M2 — Market Data Foundation
 
 ## Objective
 
 Define how the system represents market observations.
 
-## Questions To Resolve
+## Established Direction
 
-- What exactly is a market observation?
-- What timeframe does it represent?
-- How is timestamp interpreted?
-- What timezone is used?
-- Is data raw or normalized?
-- Does MarketData own quality information?
-- How are missing observations represented?
-- How are duplicates handled?
-- How are conflicting observations handled?
-
-## Potential Data
+`PriceBar` represents an immutable market observation containing:
 
 ```text
+Stock
+Timeframe
 Timestamp
 Open
 High
 Low
 Close
 Volume
-Stock
-Timeframe
-Source
 ```
 
-The final model will be decided through the Design Gate.
+The logical observation identity is:
 
-## Acceptance Criteria
+```text
+Stock + Timeframe + Timestamp
+```
 
-- Market observation semantics are documented.
-- Time semantics are explicit.
-- Ownership is clear.
-- Data-quality responsibility is separated appropriately.
-- Domain tests cover agreed behavior.
+`PriceBar` does not own provider rules, data-quality rules, trading-calendar rules, indicators, strategy, or alerts.
+
+Daily timeframe is the MVP timeframe.
+
+Detailed time/session semantics are documented separately in `docs/DEC-020-PRICEBAR-TIME-SEMANTICS.md`.
 
 ---
 
-# 7. M3 — Data Acquisition
+# 8. M3 — Data Acquisition
 
 ## Objective
 
-Introduce external market-data providers.
+Connect external market-data providers.
 
-## Architecture Direction
+## Deferred Until
+
+The analytical domain has enough shape to define exactly what data the analysis requires.
+
+## Future Direction
 
 ```text
 External Provider
        ↓
 Provider Adapter
        ↓
-Application
+Raw Observation
        ↓
-Domain
+Data Quality
+       ↓
+Analysis
 ```
 
-The provider itself must not become part of the core domain model.
-
-## Goals
-
-- Provider abstraction
-- Data fetching
-- Provider mapping
-- Error handling
-- Retry strategy
-- Rate-limit handling
-- Provider observability
-
-## Acceptance Criteria
-
-The system can retrieve market data without coupling the domain to a specific provider.
+Provider-specific behavior must remain outside the core domain.
 
 ---
 
-# 8. M4 — Data Quality
+# 9. M4 — Technical Analysis
 
 ## Objective
 
-Determine whether received market observations are usable for analysis.
+Transform market observations into deterministic, explainable technical evidence.
 
-## Possible Quality States
+## First Design Gate
 
-```text
-VALID
-SUSPECT
-INVALID
-UNKNOWN
-```
+Before implementation, decide:
 
-The exact model is not yet committed.
+- What is a technical analysis result?
+- What is its relationship to `PriceBar`?
+- What is the smallest useful first capability?
+- Which calculations belong in the domain?
+- Which configuration belongs outside the result?
+- How are historical windows represented?
+- How are insufficient observations handled?
+- What makes the result deterministic and reproducible?
 
-## Responsibilities
+## Candidate Capabilities
 
-Potential checks:
+Potential future capabilities include:
 
-- missing values
-- impossible relationships
-- duplicate observations
-- abnormal values
-- stale data
-- provider conflicts
-- timestamp problems
-- volume anomalies
+- trend detection
+- support detection
+- resistance detection
+- moving averages
+- momentum indicators
+- volatility
+- breakouts
+- gaps
+- volume analysis
 
-## Important Principle
+The final indicator set is not yet committed.
 
-Data quality should not automatically mean data deletion.
+## Principle
 
-Where possible:
-
-```text
-Receive
- ↓
-Preserve
- ↓
-Assess
- ↓
-Classify
- ↓
-Decide whether analysis may use it
-```
-
-## Acceptance Criteria
-
-The system can explain why a data point was considered reliable or unreliable.
+Start with the smallest capability that advances the analytical core. Do not build a complete indicator library before the domain meaning is clear.
 
 ---
 
-# 9. M5 — Technical Analysis
-
-## Objective
-
-Transform market data into technical evidence.
-
-## Potential Indicators
-
-Examples:
-
-- Moving averages
-- RSI
-- MACD
-- Bollinger Bands
-- ATR
-- Support
-- Resistance
-- Volume analysis
-- Trend detection
-
-The final indicator set will be selected based on strategy requirements.
-
-## Design Principle
-
-Indicators should be:
-
-- deterministic
-- independently testable
-- composable
-- explainable
-
-## Acceptance Criteria
-
-Given the same historical data and configuration, the same technical calculations produce the same results.
-
----
-
-# 10. M6 — Fundamental Analysis
+# 10. M5 — Fundamental Analysis
 
 ## Objective
 
 Evaluate the financial quality of companies.
 
-## Potential Evidence
+Potential evidence:
 
-Examples:
-
-- Revenue growth
-- Earnings growth
-- Profitability
-- Debt
-- Cash flow
-- Valuation
+- revenue growth
+- earnings growth
+- profitability
+- debt
+- cash flow
+- valuation
 - ROE
-- Margins
-- Dividend information
+- margins
+- dividends
 
-The final metrics will depend on reliable EGX data availability.
+The exact metrics will be selected based on strategy requirements and reliable data availability.
 
-## Important Constraint
-
-Fundamental analysis must account for:
-
-- reporting periods
-- missing data
-- restatements
-- different accounting periods
-- corporate actions
-- data freshness
-
-## Acceptance Criteria
-
-Fundamental metrics are traceable to their source data and calculation rules.
+Fundamental analysis must eventually account for reporting periods, missing data, restatements, accounting periods, corporate actions, and freshness.
 
 ---
 
-# 11. M7 — Scoring Engine
+# 11. M6 — Scoring Engine
 
 ## Objective
 
-Combine analytical evidence into a consistent scoring model.
+Combine analytical evidence into consistent, explainable scores.
 
-## Initial Working Proposal
+The working proposal remains:
 
 ```text
 Technical       30
@@ -400,23 +324,13 @@ Risk             5
 Total           100
 ```
 
-These values are **not final**.
+These weights are **not final business rules**.
 
-They are a working hypothesis.
+The scoring system must eventually be deterministic, explainable, testable, configurable, and versioned.
 
-## Requirements
+### Important Separation
 
-The scoring system must be:
-
-- deterministic
-- explainable
-- testable
-- configurable
-- versioned
-
-## Important Separation
-
-The system should distinguish:
+The project explicitly distinguishes:
 
 ```text
 Stock Quality
@@ -428,26 +342,17 @@ from:
 Entry Quality
 ```
 
-## Acceptance Criteria
-
-The system can explain:
-
-- total score
-- component scores
-- contribution of each component
-- strategy version
-- missing evidence
-- major risks
+This is a committed design decision.
 
 ---
 
-# 12. M8 — Signal Generation
+# 12. M7 — Signal Generation
 
 ## Objective
 
 Transform analytical evidence into actionable classifications.
 
-## Initial Signal Set
+Initial working labels:
 
 ```text
 BUY
@@ -456,11 +361,7 @@ HOLD
 AVOID
 ```
 
-These labels are provisional.
-
-## Future Output
-
-A signal may eventually contain:
+Future signals may include:
 
 ```text
 Signal
@@ -477,58 +378,27 @@ Strategy Version
 Generated At
 ```
 
-## Important Principle
+The exact rules remain to be designed.
 
-A signal must be explainable.
-
-The system should answer:
-
-> Why did we generate this signal?
+Signals must be explainable.
 
 ---
 
-# 13. M9 — Backtesting
+# 13. M8 — Backtesting
 
 ## Objective
 
 Determine whether strategies would have worked historically.
 
-## Requirements
-
-Backtesting must avoid:
+Backtesting must eventually address:
 
 - look-ahead bias
 - data leakage
 - survivorship bias where relevant
-- future information leakage
-- unrealistic execution assumptions
+- future-information leakage
+- realistic execution assumptions
 
-## Potential Metrics
-
-- Total return
-- Win rate
-- Maximum drawdown
-- Sharpe ratio
-- Profit factor
-- Average trade
-- Risk/reward
-- Number of trades
-
-## Strategy Versioning
-
-Every backtest must identify the strategy version used.
-
-Example:
-
-```text
-Strategy v1.0
-Strategy v1.1
-Strategy v2.0
-```
-
-## Acceptance Criteria
-
-A historical strategy can be reproduced using the same:
+Results must be reproducible from:
 
 ```text
 Historical Data
@@ -540,13 +410,61 @@ Configuration
 
 ---
 
-# 14. M10 — Automation
+# 14. M9 — Data Quality
 
 ## Objective
 
-Run the analysis pipeline automatically.
+Assess whether observations are usable for analysis.
 
-## Target Pipeline
+## Foundation Already Defined
+
+```text
+DataQualityAssessment
+├── status
+└── issues
+```
+
+Statuses:
+
+```text
+VALID
+SUSPECT
+INVALID
+UNKNOWN
+```
+
+Initial issue codes:
+
+```text
+MISSING_VALUE
+INVALID_VALUE
+INVALID_TIMESTAMP
+DUPLICATE_OBSERVATION
+OHLC_INCONSISTENCY
+```
+
+## Current State
+
+**Foundation defined; implementation of assessment rules intentionally deferred.**
+
+When resumed, the next design gate must decide:
+
+1. Raw input to the assessor.
+2. Quality rules.
+3. Multiple-issue status mapping.
+4. Effect of quality status on each analysis capability.
+
+See `docs/DEC-021-DATA-QUALITY-ASSESSMENT.md` and `docs/DEC-022-CORE-ANALYSIS-BEFORE-DATA-QUALITY.md`.
+
+---
+
+# 15. M10 — Automation
+
+## Objective
+
+Run the analytical pipeline automatically.
+
+Target flow:
 
 ```text
 Collect
@@ -564,70 +482,37 @@ Detect Opportunities
 Generate Report
 ```
 
-## Potential Scheduling
-
-Examples:
-
-- daily
-- weekly
-- event-driven
-- market-session based
-
-The exact scheduling model will be decided later.
-
-## Acceptance Criteria
-
-The complete analytical pipeline can execute without manual intervention.
+Scheduling may eventually be daily, event-driven, or market-session based.
 
 ---
 
-# 15. M11 — Reporting & Alerts
+# 16. M11 — Reporting & Alerts
 
 ## Objective
 
-Deliver useful results to the user.
+Deliver useful results.
 
-## Possible Outputs
+Potential outputs:
 
-- Daily market report
-- Top opportunities
-- Watchlist changes
-- New signals
-- Risk alerts
-- Data-quality alerts
-- Strategy-performance reports
+- daily market report
+- top opportunities
+- watchlist changes
+- new signals
+- risk alerts
+- data-quality alerts
+- strategy-performance reports
 
-## Potential Channels
-
-Future possibilities:
-
-- Email
-- Telegram
-- Web notifications
-- Dashboard notifications
-
-Provider choices are not yet committed.
-
-## Acceptance Criteria
-
-Reports are:
-
-- understandable
-- explainable
-- traceable
-- generated from reproducible analysis
+Potential channels include email, Telegram, web notifications, and dashboard notifications. Provider choices are not committed.
 
 ---
 
-# 16. M12 — API & Dashboard
+# 17. M12 — API & Dashboard
 
 ## Objective
 
-Expose the system through a user-facing interface.
+Expose application capabilities to users.
 
-## API Responsibilities
-
-Potentially:
+Potential capabilities:
 
 - stock search
 - stock details
@@ -637,78 +522,43 @@ Potentially:
 - signals
 - reports
 - strategy results
+- backtests
+- alerts
 
-## Dashboard Responsibilities
-
-Potentially:
-
-```text
-Market Overview
-Stock Details
-Technical Analysis
-Fundamental Analysis
-Score
-Signals
-Historical Performance
-Backtests
-Alerts
-```
-
-## Important Rule
-
-The API and UI must consume domain/application capabilities.
-
-They must not become owners of business rules.
+API/UI must consume application/domain capabilities and must not own business rules.
 
 ---
 
-# 17. M13 — Production Hardening
+# 18. M13 — Production Hardening
 
 ## Objective
 
 Prepare the system for reliable long-term operation.
 
-## Areas
+Areas include:
 
-### Reliability
-
+- reliability
 - retries
 - failure recovery
 - idempotency
 - monitoring
-
-### Security
-
 - secrets management
-- authentication
-- authorization
-- secure configuration
-
-### Performance
-
+- authentication/authorization
+- performance
 - caching
-- efficient calculations
-- database optimization
-
-### Observability
-
-- structured logging
-- metrics
-- tracing where justified
-- pipeline execution history
-
-### Operations
-
+- observability
 - deployment
 - backups
 - migrations
-- rollback strategy
+- rollback
+
+These concerns are intentionally later-stage concerns.
 
 ---
 
-# 18. Cross-Cutting Requirements
+# 19. Cross-Cutting Requirements
 
-These requirements apply across milestones.
+These apply across milestones.
 
 ## Correctness
 
@@ -728,23 +578,21 @@ Important behavior must be independently testable.
 
 ## Replaceability
 
-External providers must be replaceable.
+External providers and AI implementations must remain replaceable.
 
 ## Extensibility
 
-New strategies and indicators should not require rewriting the entire system.
+New strategies and indicators should not require rewriting unrelated modules.
 
 ## Observability
 
-Failures and important system decisions must be visible.
+Important failures and system decisions must eventually be visible.
 
 ---
 
-# 19. Milestone Completion Rule
+# 20. Milestone Completion Rule
 
-A milestone is not complete simply because the code exists.
-
-A milestone requires:
+Every milestone follows:
 
 ```text
 Design
@@ -764,53 +612,61 @@ Git Commit
 Milestone Complete
 ```
 
+No milestone is considered complete merely because code exists.
+
 ---
 
-# 20. Changing the Roadmap
+# 21. Current Execution Plan
+
+This is the sequence to follow from the current project state:
+
+```text
+[CURRENT]
+M1/M2 — Domain + Market Observation Foundation
+        ↓
+M4 — Technical Analysis
+        ↓
+M5 — Fundamental Analysis
+        ↓
+M6 — Scoring
+        ↓
+M7 — Signal / Opportunity Detection
+        ↓
+M8 — Backtesting
+        ↓
+M11 — Reporting / Alerts
+        ↓
+RETURN TO M9 — Data Quality Rules
+        ↓
+M3 — Real Data Acquisition Integration
+        ↓
+M10 — Automation
+        ↓
+M12 — API / Dashboard
+        ↓
+M13 — Production Hardening
+```
+
+This sequence is deliberate. It is designed to reach the project's core business value before investing heavily in external-data reliability and operational infrastructure.
+
+The exact order after the core analytical vertical may change after the core reveals new requirements. Such changes must be documented rather than made implicitly.
+
+---
+
+# 22. Changing the Roadmap
 
 The roadmap may change when:
 
-- a requirement changes
+- requirements change
 - an architectural assumption proves incorrect
 - new evidence becomes available
 - a dependency becomes unavailable
 - a milestone reveals a better sequence
 
-Changes should be intentional.
-
-If a roadmap change affects architecture or important domain decisions, record the decision in:
-
-```text
-docs/DECISION_LOG.md
-```
+Changes affecting architecture or important domain decisions must be recorded in `docs/DECISION_LOG.md` or a dedicated DEC document.
 
 ---
 
-# 21. Current Position
+# 23. Guiding Principle
 
-```text
-M0  █████████░  Vision & Blueprint
-M1  ████░░░░░░  Domain Foundation
-M2  ░░░░░░░░░░  Market Data Foundation
-M3  ░░░░░░░░░░  Data Acquisition
-M4  ░░░░░░░░░░  Data Quality
-M5  ░░░░░░░░░░  Technical Analysis
-M6  ░░░░░░░░░░  Fundamental Analysis
-M7  ░░░░░░░░░░  Scoring
-M8  ░░░░░░░░░░  Signals
-M9  ░░░░░░░░░░  Backtesting
-M10 ░░░░░░░░░░  Automation
-M11 ░░░░░░░░░░  Reporting
-M12 ░░░░░░░░░░  API / Dashboard
-M13 ░░░░░░░░░░  Production
-```
-
-Current focus:
-
-> **Finish M0 and establish the domain design before continuing implementation.**
-
----
-
-# 22. Guiding Principle
-
-> **We are not racing toward a dashboard. We are building a reliable analytical engine that a dashboard can eventually depend on.**
+> **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
