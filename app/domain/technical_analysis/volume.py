@@ -29,4 +29,36 @@ class VolumeAnalyzer:
         price_bars: list[PriceBar],
         lookback: int,
     ) -> VolumeEvidence:
-        raise NotImplementedError
+        if len(price_bars) < lookback + 1:
+            return VolumeEvidence(
+                status=VolumeStatus.INSUFFICIENT_DATA,
+            )
+
+        current_volume = price_bars[-1].volume.value
+        previous_volumes = [
+            bar.volume.value
+            for bar in price_bars[-(lookback + 1):-1]
+        ]
+
+        average_previous_volume = (
+            Decimal(sum(previous_volumes)) / Decimal(lookback)
+        )
+
+        if average_previous_volume == 0:
+            return VolumeEvidence(
+                status=VolumeStatus.UNDEFINED,
+            )
+
+        volume_ratio = Decimal(current_volume) / average_previous_volume
+
+        if volume_ratio > 1:
+            status = VolumeStatus.ABOVE_AVERAGE
+        elif volume_ratio < 1:
+            status = VolumeStatus.BELOW_AVERAGE
+        else:
+            status = VolumeStatus.EQUAL_TO_AVERAGE
+
+        return VolumeEvidence(
+            status=status,
+            volume_ratio=volume_ratio,
+        )
