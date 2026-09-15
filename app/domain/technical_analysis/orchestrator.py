@@ -18,4 +18,37 @@ class TechnicalAnalysisOrchestrator:
         momentum_lookback: int,
         volume_lookback: int,
     ) -> TechnicalAnalysisResult:
-        raise NotImplementedError
+        trend = TrendAnalyzer.analyze(
+            stock_id,
+            timeframe,
+            price_bars,
+        )
+
+        support_resistance = SupportResistanceAnalyzer.analyze(
+            stock_id,
+            timeframe,
+            price_bars,
+        )
+
+        momentum = MomentumAnalyzer.analyze(
+            stock_id,
+            timeframe,
+            price_bars,
+            momentum_lookback,
+        )
+
+        volume = VolumeAnalyzer.analyze(
+            stock_id,
+            timeframe,
+            price_bars,
+            volume_lookback,
+        )
+
+        return TechnicalAnalysisResult(
+            stock_id=stock_id,
+            timeframe=timeframe,
+            trend=trend,
+            support_resistance=support_resistance,
+            momentum=momentum,
+            volume=volume,
+        )
