@@ -66,7 +66,7 @@ The first profitability analyzer does **not**:
 
 ## Rationale
 
-Financial analysis commonly considers profitability, liquidity, solvency, efficiency, cash flow, and valuation together rather than relying on one ratio. citeturn0search1turn0search0
+Fundamental analysis normally combines multiple areas such as profitability, liquidity, solvency, cash flow, efficiency, and valuation rather than relying on one ratio.
 
 Starting with one deterministic profitability evidence keeps the MVP small while preserving the composition model needed for the broader Fundamental Analysis result.
 
