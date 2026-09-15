@@ -10,6 +10,9 @@ from app.domain.market_data.volume import Volume
 from app.domain.stocks.stock import Stock
 
 
+# Tests that PriceBar represents the complete OHLCV market observation with its analysis context.
+# This exists to protect the meaning and composition of the PriceBar Value Object.
+# Its function is to verify that all supplied fields are preserved correctly.
 def test_price_bar_represents_an_ohlcv_observation():
     stock = Stock.create(
         symbol="COMI",
@@ -38,6 +41,9 @@ def test_price_bar_represents_an_ohlcv_observation():
     assert price_bar.volume == Volume(1_000_000)
 
 
+# Tests that PriceBar requires an explicit timezone-aware timestamp.
+# This exists because market observations must have an unambiguous point in time.
+# Its function is to reject naive datetimes that could be interpreted differently by different systems.
 def test_price_bar_requires_timezone_aware_timestamp():
     stock = Stock.create(
         symbol="COMI",
@@ -57,6 +63,9 @@ def test_price_bar_requires_timezone_aware_timestamp():
         )
 
 
+# Tests that PriceBar does not enforce provider/external OHLC relationships itself.
+# This exists because external observations are data that must later be assessed by Data Quality, not silently rewritten or rejected here.
+# Its function is to protect the boundary that PriceBar represents an observation without owning data-quality rules.
 def test_price_bar_does_not_reject_external_ohlc_relationships():
     stock = Stock.create(
         symbol="COMI",
@@ -77,6 +86,9 @@ def test_price_bar_does_not_reject_external_ohlc_relationships():
     assert price_bar.high == Price(Decimal("90"))
 
 
+# Tests that PriceBar is immutable after creation.
+# This exists because PriceBar is a Value Object representing a historical observation that should not mutate.
+# Its function is to protect the frozen Value Object contract.
 def test_price_bar_is_immutable():
     stock = Stock.create(
         symbol="COMI",
