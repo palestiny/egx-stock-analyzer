@@ -76,7 +76,19 @@ Do not introduce a `TechnicalAnalysisContext` or similar abstraction yet. Add su
 
 `TrendAnalyzer` should produce trend evidence rather than directly produce a final BUY/WATCH/HOLD/AVOID decision.
 
-The exact `TrendEvidence` shape and the minimum historical observations required for each trend conclusion will be finalized through TDD.
+### TrendEvidence shape
+
+The first TDD implementation establishes `TrendEvidence` as an immutable Value Object containing only the trend conclusion:
+
+```python
+@dataclass(frozen=True)
+class TrendEvidence:
+    status: TrendStatus
+```
+
+`TrendAnalyzer.analyze(...)` returns `TrendEvidence` rather than a generic `TrendResult`.
+
+The evidence object intentionally does not yet include confidence, swing points, explanation text, score, or other metadata. Those concerns will only be added if later analytical requirements justify them.
 
 ## Consequence
 
@@ -86,4 +98,4 @@ The first TDD API is:
 TrendAnalyzer.analyze(stock_id, timeframe, price_bars)
 ```
 
-The test suite will establish deterministic behavior for rising, falling, sideways, and insufficient-history observations before implementation.
+The test suite establishes deterministic behavior for rising, falling, sideways, and insufficient-history observations. The current implementation represents the trend conclusion as `TrendEvidence`.
