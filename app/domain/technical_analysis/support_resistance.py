@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID
 
 from app.domain.market_data.price import Price
