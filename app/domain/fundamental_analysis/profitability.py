@@ -21,4 +21,21 @@ class ProfitabilityEvidence:
 class NetProfitMarginAnalyzer:
     @staticmethod
     def analyze(period: FinancialPeriod) -> ProfitabilityEvidence:
-        raise NotImplementedError
+        if period.revenue == 0:
+            return ProfitabilityEvidence(
+                status=ProfitabilityStatus.UNDEFINED,
+            )
+
+        net_profit_margin = period.net_income / period.revenue
+
+        if net_profit_margin > 0:
+            status = ProfitabilityStatus.PROFITABLE
+        elif net_profit_margin < 0:
+            status = ProfitabilityStatus.UNPROFITABLE
+        else:
+            status = ProfitabilityStatus.NEUTRAL
+
+        return ProfitabilityEvidence(
+            status=status,
+            net_profit_margin=net_profit_margin,
+        )
