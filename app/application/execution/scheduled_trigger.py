@@ -4,6 +4,7 @@ from app.application.analysis.daily_market_analysis import (
     DailyMarketAnalysis,
     StockAnalysisInput,
 )
+from app.application.execution.scheduler import Scheduler
 from app.domain.execution import Execution
 
 
@@ -11,7 +12,7 @@ class ScheduledAnalysisTrigger:
     def __init__(
         self,
         analysis: DailyMarketAnalysis,
-        scheduler: object,
+        scheduler: Scheduler,
     ) -> None:
         self._analysis = analysis
         self._scheduler = scheduler
