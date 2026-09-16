@@ -2,12 +2,12 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
+from app.domain.backtesting.evaluator import BacktestEvaluator
 from app.domain.market_data.price import Price
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
 from app.domain.market_data.volume import Volume
 from app.domain.opportunity.classification import OpportunityClassification
-from app.domain.backtesting.evaluator import BacktestEvaluator
 
 
 STOCK_ID = uuid4()
@@ -36,12 +36,10 @@ def test_signal_generation_receives_only_data_available_at_signal_timestamp():
         price_bar(2, "120"),
         price_bar(3, "130"),
     ]
-    observed_history_lengths: list[int] = []
+    observed_histories: list[tuple[datetime, ...]] = []
 
     def strategy(history: list[PriceBar]) -> OpportunityClassification:
-        observed_history_lengths.append(len(history))
-        assert history
-        assert history[-1].timestamp <= START + timedelta(days=len(history) - 1)
+        observed_histories.append(tuple(bar.timestamp for bar in history))
         return OpportunityClassification.BUY
 
     BacktestEvaluator.evaluate(
@@ -50,7 +48,21 @@ def test_signal_generation_receives_only_data_available_at_signal_timestamp():
         forward_window=2,
     )
 
-    assert observed_history_lengths == [1, 2, 3, 4]
+    assert observed_histories == [
+        (price_bars[0].timestamp,),
+        (price_bars[0].timestamp, price_bars[1].timestamp),
+        (
+            price_bars[0].timestamp,
+            price_bars[1].timestamp,
+            price_bars[2].timestamp,
+        ),
+        (
+            price_bars[0].timestamp,
+            price_bars[1].timestamp,
+            price_bars[2].timestamp,
+            price_bars[3].timestamp,
+        ),
+    ]
 
 
 def test_buy_signal_uses_next_available_bar_not_signal_close():
