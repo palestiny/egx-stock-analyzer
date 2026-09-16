@@ -31,10 +31,16 @@ Completed reliability/acquisition foundations include:
 - Provider-neutral market-data acquisition boundary
 - Yahoo Finance development adapter
 - Live COMI acquisition-to-PriceBar smoke validation
+- Execution orchestration
+- Manual analysis trigger
+- Scheduled analysis trigger
+- In-process one-shot scheduler
 
 The live smoke validation also confirmed that external observations are not automatically trusted: invalid OHLC observations were rejected by Data Quality rather than being passed into the analytical domain.
 
-The next planned milestone is **M10 — Automation**.
+M10 Automation is now in progress. The execution, retry, idempotency, daily-analysis, manual-trigger, scheduled-trigger, and scheduler mechanics have been implemented as MVP slices.
+
+The next M10 step is the application-level scheduling use case that determines which daily analysis should be scheduled and at what business time.
 
 The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -102,7 +108,7 @@ The project still avoids premature UI, database-heavy architecture, AI-first arc
 | M7 | Opportunity Detection | 🟢 Complete | Establish entry context, entry quality, and opportunity classification |
 | M8 | Backtesting | 🟢 Complete | Evaluate current classification historically |
 | M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
-| M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
+| M10 | Automation | 🟡 In Progress | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
@@ -248,9 +254,50 @@ Generate Report
 Send Alerts
 ```
 
-M10 has not started.
+## Current Implementation
 
-Before implementation, define the automation boundary, scheduling model, orchestration ownership, failure/retry behavior, idempotency expectations, and execution/report lifecycle.
+The M10 MVP currently includes:
+
+- whole-market `Execution` lifecycle
+- partial-failure handling with `COMPLETED_WITH_ERRORS`
+- limited retry for explicitly retryable errors
+- execution idempotency and recovery semantics
+- stock-analysis pipeline integration
+- daily-market analysis orchestration
+- manual trigger
+- scheduled trigger
+- `Scheduler` protocol
+- `InProcessScheduler`
+- one-shot `run_at` timing
+- due/not-due timing tests
+- scheduled-trigger integration with the in-process scheduler
+
+The scheduler boundary is:
+
+```text
+Scheduler
+   │ WHEN
+   ▼
+ScheduledAnalysisTrigger
+   │ WHAT
+   ▼
+DailyMarketAnalysis
+   ▼
+Execution
+```
+
+See `docs/DEC-048-M10-AUTOMATION-MVP.md`, `docs/DEC-049-SCHEDULING-SEMANTICS-MVP.md`, and `docs/M10-SCHEDULER-MVP-COMPLETION.md`.
+
+## Remaining M10 Work
+
+Define the application-level scheduling use case that determines:
+
+- which analysis should be scheduled
+- which stocks are in scope
+- the business date
+- the intended execution time
+
+Recurring schedules, cron expressions, persistent schedules, distributed scheduling, queues/workers, concurrency/scaling, and monitoring remain deferred until separate design gates justify them.
 
 ---
 
