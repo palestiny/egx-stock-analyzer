@@ -25,24 +25,27 @@ The model must remain extensible to consider, where relevant:
 
 These are analytical areas, not a commitment to implement all of them immediately.
 
-## First Vertical Slice
+## Evidence Slices
 
-The first implementation will be **Net Profit Margin evidence**.
-
-Formula:
+### Net Profit Margin
 
 `Net Profit Margin = Net Income / Revenue`
 
-The purpose is to establish the fundamental-analysis pattern with a small deterministic calculation before introducing a larger financial-statement model or many ratios.
+Zero revenue produces `UNDEFINED`. Zero or negative net income remains a valid observation.
 
-## Evidence Shape
+### Current Ratio
 
-Initial evidence will contain:
+The second independent evidence capability is **Current Ratio**, representing a simple liquidity observation.
 
-- status
-- net profit margin when calculable
+`Current Ratio = Current Assets / Current Liabilities`
 
-It will be immutable and deterministic.
+The MVP classifies the arithmetic result relative to `1` as above, below, or equal to one. This classification is evidence, not a trading decision or a universal liquidity judgment.
+
+Zero current liabilities produce `UNDEFINED`. Missing current-assets or current-liabilities observations produce `INSUFFICIENT_DATA`.
+
+## Financial Period
+
+`FinancialPeriod` remains an immutable Value Object. Revenue and net income are required for the profitability slice. Current assets and current liabilities are optional so profitability analysis does not require liquidity data.
 
 ## Fundamental Analysis Result
 
@@ -52,7 +55,7 @@ It contains:
 
 - `stock_id`
 - `period_end`
-- independent fundamental evidence, initially `profitability`
+- independent fundamental evidence, currently `profitability` and `liquidity`
 
 The result does not calculate ratios or make trading decisions.
 
@@ -64,15 +67,9 @@ The orchestrator does not implement financial calculations, scoring, BUY/SELL de
 
 As additional fundamental evidence areas are implemented, they can be composed into the result without changing the responsibility of individual analyzers.
 
-## Insufficient / Undefined Data
-
-- Missing required observations → `INSUFFICIENT_DATA` when an analyzer requires them.
-- Revenue equal to zero → `UNDEFINED` for Net Profit Margin.
-- A zero or negative net income is a valid observation; it is not automatically invalid data.
-
 ## Boundaries
 
-The first profitability analyzer does **not**:
+Fundamental evidence analyzers do **not**:
 
 - score stocks
 - decide BUY/SELL
@@ -84,14 +81,10 @@ The first profitability analyzer does **not**:
 - perform valuation
 - interpret business quality
 
-The Fundamental Analysis Result and Orchestrator also do **not** add those responsibilities.
-
 ## Rationale
 
-Fundamental analysis normally combines multiple areas such as profitability, liquidity, solvency, cash flow, efficiency, and valuation rather than relying on one ratio.
-
-Starting with one deterministic profitability evidence keeps the MVP small while preserving the composition model needed for the broader Fundamental Analysis result.
+The second slice deliberately adds a different evidence area—liquidity—without introducing scoring or a large financial-statement abstraction. This tests whether the composition model can accommodate independent evidence from different fundamental areas.
 
 ## Next TDD Step
 
-Add the next independent fundamental evidence capability only after its design gate is defined. Do not add speculative financial metrics or scoring before that.
+Add another independent fundamental evidence capability only after its design gate is defined. Do not add speculative financial metrics or scoring before that.
