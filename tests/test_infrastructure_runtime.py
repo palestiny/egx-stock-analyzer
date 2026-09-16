@@ -3,6 +3,7 @@ from app.application.analysis.runtime import StockAnalysisRuntime
 from app.application.execution.retry import RetryPolicy
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.stocks.stock import Stock
+from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.fundamental_data.finnhub import FinnhubFundamentalDataProvider
 from app.infrastructure.market_data.yahoo_finance import YahooFinanceAdapter
 from app.infrastructure.runtime import InfrastructureRuntime, create_infrastructure_runtime
@@ -18,7 +19,7 @@ def test_create_infrastructure_runtime_composes_real_adapters() -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        finnhub_api_key="test-key",
+        config=InfrastructureConfig(finnhub_api_key="test-key"),
         result_store=InMemoryAnalysisResultStore(),
         retry_policy=RetryPolicy(1),
     )
@@ -38,7 +39,7 @@ def test_infrastructure_runtime_owns_shared_result_store() -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        finnhub_api_key="test-key",
+        config=InfrastructureConfig(finnhub_api_key="test-key"),
         result_store=result_store,
         retry_policy=RetryPolicy(1),
     )
