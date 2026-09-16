@@ -1,5 +1,4 @@
 from collections import Counter
-from datetime import datetime
 from decimal import Decimal
 
 from app.domain.market_data.data_quality import (
@@ -92,16 +91,14 @@ class DataQualityAssessor:
                     DataQualityIssue(DataQualityIssueCode.DUPLICATE_OBSERVATION)
                 )
 
-            if any(
-                issue.code
-                in {
-                    DataQualityIssueCode.MISSING_VALUE,
-                    DataQualityIssueCode.INVALID_VALUE,
-                    DataQualityIssueCode.INVALID_TIMESTAMP,
-                    DataQualityIssueCode.OHLC_INCONSISTENCY,
-                }
-                for issue in issues
-            ):
+            invalid_issue_codes = {
+                DataQualityIssueCode.MISSING_VALUE,
+                DataQualityIssueCode.INVALID_VALUE,
+                DataQualityIssueCode.INVALID_TIMESTAMP,
+                DataQualityIssueCode.OHLC_INCONSISTENCY,
+            }
+
+            if any(issue.code in invalid_issue_codes for issue in issues):
                 status = DataQualityStatus.INVALID
             elif any(
                 issue.code is DataQualityIssueCode.DUPLICATE_OBSERVATION
