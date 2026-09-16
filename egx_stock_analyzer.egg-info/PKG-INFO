@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: egx-stock-analyzer
+Version: 0.1.0
+Summary: An automated analysis system for Egyptian Exchange stocks
+Requires-Python: >=3.13
+Requires-Dist: yfinance<0.3,>=0.2.66
