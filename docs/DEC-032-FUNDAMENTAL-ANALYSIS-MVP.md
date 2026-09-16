@@ -43,25 +43,49 @@ The MVP classifies the arithmetic result relative to `1` as above, below, or equ
 
 Zero current liabilities produce `UNDEFINED`. Missing current-assets or current-liabilities observations produce `INSUFFICIENT_DATA`.
 
+### Revenue Growth
+
+The third independent evidence capability is **Revenue Growth**, representing a growth observation across two financial periods.
+
+`Revenue Growth = (Current Revenue - Previous Revenue) / Previous Revenue`
+
+The analyzer receives the current and previous `FinancialPeriod` explicitly. It classifies the calculated result as positive, negative, or neutral.
+
+A previous-period revenue of zero produces `UNDEFINED` because the growth rate cannot be calculated deterministically.
+
+The MVP does not interpret a positive growth rate as automatically good or a negative rate as automatically bad. Interpretation, thresholds, comparison, weighting, and scoring remain outside the evidence analyzer.
+
 ## Financial Period
 
-`FinancialPeriod` remains an immutable Value Object. Revenue and net income are required for the profitability slice. Current assets and current liabilities are optional so profitability analysis does not require liquidity data.
+`FinancialPeriod` remains an immutable Value Object. It contains the financial observations required by the current evidence slices:
+
+- `period_end`
+- `revenue`
+- `net_income`
+- optional `current_assets`
+- optional `current_liabilities`
+
+Liquidity observations are optional so profitability analysis does not require them.
+
+Revenue growth uses two `FinancialPeriod` instances rather than embedding historical periods into a single period object. This keeps period identity simple and makes historical comparison explicit at the analyzer boundary.
 
 ## Fundamental Analysis Result
 
-`FundamentalAnalysisResult` is an immutable composition object for one stock and one financial period.
+`FundamentalAnalysisResult` is an immutable composition object for one stock and one current financial period.
 
 It contains:
 
 - `stock_id`
 - `period_end`
-- independent fundamental evidence, currently `profitability` and `liquidity`
+- independent fundamental evidence, currently `profitability`, `liquidity`, and `growth`
 
 The result does not calculate ratios or make trading decisions.
 
 ## Fundamental Analysis Orchestration
 
 `FundamentalAnalysisOrchestrator` coordinates the existing analyzers and composes their evidence into `FundamentalAnalysisResult`.
+
+The orchestrator receives the current period and previous period because revenue growth requires historical context.
 
 The orchestrator does not implement financial calculations, scoring, BUY/SELL decisions, weighting, or data-quality validation.
 
@@ -83,8 +107,10 @@ Fundamental evidence analyzers do **not**:
 
 ## Rationale
 
-The second slice deliberately adds a different evidence area—liquidity—without introducing scoring or a large financial-statement abstraction. This tests whether the composition model can accommodate independent evidence from different fundamental areas.
+The evidence slices deliberately cover three different fundamental areas—profitability, liquidity, and growth—without introducing scoring or a large financial-statement abstraction.
+
+Revenue growth also verifies that the composition model can handle evidence requiring more than one financial period while keeping historical context explicit.
 
 ## Next TDD Step
 
-Add another independent fundamental evidence capability only after its design gate is defined. Do not add speculative financial metrics or scoring before that.
+After the current tests are green, review whether another independent fundamental evidence area is needed before M6 Scoring. Do not add speculative financial metrics or scoring before that decision.
