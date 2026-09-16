@@ -54,6 +54,22 @@ def test_non_buy_classification_produces_no_alert():
     assert candidate is None
 
 
+def test_alert_candidate_is_immutable():
+    candidate = AlertGenerator.generate(
+        stock_id=STOCK_ID,
+        stock_quality=stock_quality(5),
+        entry_quality=EntryQualityScore(1, 1, 2),
+        classification=OpportunityClassification.BUY,
+    )
+
+    try:
+        candidate.stock_quality_score = 1
+    except Exception:
+        pass
+    else:
+        raise AssertionError("AlertCandidate must be immutable")
+
+
 def test_alert_generation_is_deterministic():
     first = AlertGenerator.generate(
         stock_id=STOCK_ID,
