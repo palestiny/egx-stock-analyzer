@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
@@ -9,6 +9,7 @@ from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
 from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
 from app.domain.fundamental_analysis.profitability import ProfitabilityEvidence, ProfitabilityStatus
 from app.domain.fundamental_analysis.result import FundamentalAnalysisResult
+from app.domain.fundamental_analysis.scoring import FundamentalScore, ScoreContribution
 from app.domain.market_data.price import Price
 from app.domain.market_data.timeframe import Timeframe
 from app.domain.opportunity.classification import (
@@ -59,9 +60,24 @@ def build_technical_result() -> TechnicalAnalysisResult:
 
 
 def build_stock_quality() -> StockQualityScore:
+    fundamental_score = FundamentalScore(
+        total=3,
+        contributions=(
+            ScoreContribution("profitability", 1),
+            ScoreContribution("liquidity", 1),
+            ScoreContribution("growth", 1),
+        ),
+    )
+    technical_score = TechnicalScore(
+        trend_points=1,
+        momentum_points=1,
+        volume_points=0,
+        total_score=2,
+    )
+
     return StockQualityScore(
-        fundamental_score=None,
-        technical_score=None,
+        fundamental_score=fundamental_score,
+        technical_score=technical_score,
         total_score=5,
     )
 
