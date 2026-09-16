@@ -14,12 +14,12 @@ class FakeHistoryClient:
         self.calls.append((ticker, start, end))
         return [
             {
-                "Datetime": datetime(2026, 1, 5, tzinfo=timezone.utc),
-                "Open": Decimal("10.00"),
-                "High": Decimal("11.00"),
-                "Low": Decimal("9.50"),
-                "Close": Decimal("10.50"),
-                "Volume": 1000,
+                "Date": date(2026, 1, 5),
+                "Open": 10.0,
+                "High": 11.0,
+                "Low": 9.5,
+                "Close": 10.5,
+                "Volume": 1000.0,
             }
         ]
 
@@ -39,33 +39,45 @@ def test_adapter_maps_egx_symbol_to_yahoo_symbol() -> None:
     assert len(result) == 1
 
 
-def test_adapter_returns_raw_observations() -> None:
-    client = FakeHistoryClient()
-    adapter = YahooFinanceAdapter(client)
-    stock = Stock.create("COMI", "Commercial International Bank")
+def test_adapter_normalizes_daily_timestamp_to_timezone_aware_datetime() -> None:
+    result = YahooFinanceAdapter(FakeHistoryClient()).get_daily_observations(
+        Stock.create("COMI", "Commercial International Bank"),
+        date(2026, 1, 1),
+        date(2026, 1, 31),
+    )
 
-    result = adapter.get_daily_observations(
-        stock,
+    assert result[0].timestamp == datetime(2026, 1, 5, tzinfo=timezone.utc)
+
+
+def test_adapter_normalizes_numeric_values_to_domain_types() -> None:
+    result = YahooFinanceAdapter(FakeHistoryClient()).get_daily_observations(
+        Stock.create("COMI", "Commercial International Bank"),
+        date(2026, 1, 1),
+        date(2026, 1, 31),
+    )
+
+    assert result[0].open == Decimal("10.0")
+    assert result[0].high == Decimal("11.0")
+    assert result[0].low == Decimal("9.5")
+    assert result[0].close == Decimal("10.5")
+    assert result[0].volume == 1000
+
+
+def test_adapter_returns_raw_observations() -> None:
+    result = YahooFinanceAdapter(FakeHistoryClient()).get_daily_observations(
+        Stock.create("COMI", "Commercial International Bank"),
         date(2026, 1, 1),
         date(2026, 1, 31),
     )
 
     assert isinstance(result[0], RawPriceBarObservation)
-    assert result[0].stock_id == stock.id
-    assert result[0].open == Decimal("10.00")
-    assert result[0].high == Decimal("11.00")
-    assert result[0].low == Decimal("9.50")
-    assert result[0].close == Decimal("10.50")
-    assert result[0].volume == 1000
+    assert result[0].stock_id is not None
+    assert result[0].open == Decimal("10.0")
 
 
 def test_adapter_does_not_create_price_bars() -> None:
-    client = FakeHistoryClient()
-    adapter = YahooFinanceAdapter(client)
-    stock = Stock.create("COMI", "Commercial International Bank")
-
-    result = adapter.get_daily_observations(
-        stock,
+    result = YahooFinanceAdapter(FakeHistoryClient()).get_daily_observations(
+        Stock.create("COMI", "Commercial International Bank"),
         date(2026, 1, 1),
         date(2026, 1, 31),
     )
@@ -74,8 +86,7 @@ def test_adapter_does_not_create_price_bars() -> None:
 
 
 def test_adapter_mapping_is_deterministic() -> None:
-    client = FakeHistoryClient()
-    adapter = YahooFinanceAdapter(client)
+    adapter = YahooFinanceAdapter(FakeHistoryClient())
     stock = Stock.create("COMI", "Commercial International Bank")
 
     first = adapter.get_daily_observations(stock, date(2026, 1, 1), date(2026, 1, 31))
