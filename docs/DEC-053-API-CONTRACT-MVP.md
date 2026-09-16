@@ -26,17 +26,16 @@ For an available result, the API response contains:
 }
 ```
 
-For a missing result, the MVP returns HTTP 200 with:
+For a missing result, the MVP returns HTTP 404 with:
 
 ```json
 {
-  "symbol": "EGAL",
-  "status": "not_found"
+  "detail": "Analysis result not found for EGAL"
 }
 ```
 
-## Why HTTP 200 for missing results in MVP
-The first API slice is intentionally focused on exposing the read capability without introducing an HTTP error policy as a separate domain/application concern. A future API contract can change missing-resource semantics to HTTP 404 through an explicit decision.
+## HTTP missing-resource policy
+The API boundary uses HTTP 404 when the requested analysis result does not exist. This is an HTTP adapter concern and does not introduce missing-resource semantics into the domain or application layer.
 
 ## Response boundary
 `AnalysisResultResponse` is an API DTO. The API maps the application result into this DTO before serialization. Domain/application models are not returned directly from the HTTP boundary.
@@ -56,7 +55,6 @@ Detailed technical/fundamental evidence is intentionally deferred until a concre
 - historical analysis endpoints
 - database-backed queries
 - authentication/authorization
-- HTTP 404 policy
 - filtering/sorting
 - detailed analysis evidence DTOs
 - dashboard-specific aggregation endpoints
