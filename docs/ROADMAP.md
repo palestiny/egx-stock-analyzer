@@ -18,15 +18,16 @@ Completed analytical foundations include:
 - Fundamental revenue-growth evidence
 - Fundamental analysis result/orchestration
 
-Current M6 slice:
+Current M6 progress:
 
-- Fundamental scoring only
-- Equal MVP contribution of `+1 / 0 / -1` per evidence area
+- Fundamental scoring MVP implemented
+- Technical scoring MVP implemented
+- Equal MVP contribution of `+1 / 0 / -1` per selected evidence area
 - Explainable score contributions
 - No BUY/SELL decisions
 - No Entry Quality scoring
 
-The detailed scoring policy is documented in `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`.
+Technical scoring is documented in `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.
 
 The project has not claimed a green full-suite test run in this session; test execution remains a local verification step.
 
@@ -153,11 +154,9 @@ This sequence is deliberate. Changes to it require documentation rather than imp
 
 Combine analytical evidence into consistent, explainable scores.
 
-## Current Vertical Slice
+## Current Vertical Slices
 
-The first scoring implementation operates on Fundamental Analysis only.
-
-Current MVP policy:
+### Fundamental Score
 
 ```text
 Profitability   +1 / 0 / -1
@@ -167,13 +166,28 @@ Revenue Growth  +1 / 0 / -1
 
 Undefined or insufficient evidence contributes zero.
 
-The resulting Fundamental Score ranges from `-3` to `+3` and preserves component contributions for explainability.
+The Fundamental Score ranges from `-3` to `+3` and preserves component contributions for explainability.
 
 See `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`.
 
+### Technical Score
+
+```text
+Trend       +1 / 0 / -1
+Momentum    +1 / 0 / -1
+Volume      +1 / 0 / -1
+```
+
+Undefined or insufficient evidence contributes zero.
+
+The Technical Score ranges from `-3` to `+3` and preserves component contributions for explainability.
+
+Support / Resistance is intentionally excluded from this score and reserved for the future Entry Quality concern.
+
+See `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.
+
 ## Deferred
 
-- Technical scoring
 - configurable weighting
 - normalized 0–100 opportunity score
 - Entry Quality scoring
