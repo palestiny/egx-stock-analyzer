@@ -37,9 +37,21 @@ def make_input(symbol: str) -> StockAnalysisInput:
 def test_daily_market_analysis_runs_all_stocks_and_collects_results():
     inputs = [make_input("EGAL"), make_input("IEEC")]
     expected_results = {"EGAL": object(), "IEEC": object()}
+    results_by_stock_id = {
+        inputs[0].stock_id: expected_results["EGAL"],
+        inputs[1].stock_id: expected_results["IEEC"],
+    }
 
-    def analyze(request: StockAnalysisInput):
-        return expected_results[request.symbol]
+    def analyze(
+        stock_id,
+        timeframe,
+        price_bars,
+        current_period,
+        previous_period,
+        momentum_lookback,
+        volume_lookback,
+    ):
+        return results_by_stock_id[stock_id]
 
     with patch(
         "app.application.analysis.daily_market_analysis.StockAnalysisPipeline.analyze",
@@ -58,8 +70,16 @@ def test_daily_market_analysis_continues_after_one_stock_fails():
     inputs = [make_input("EGAL"), make_input("IEEC")]
     expected_egal_result = object()
 
-    def analyze(request: StockAnalysisInput):
-        if request.symbol == "IEEC":
+    def analyze(
+        stock_id,
+        timeframe,
+        price_bars,
+        current_period,
+        previous_period,
+        momentum_lookback,
+        volume_lookback,
+    ):
+        if stock_id == inputs[1].stock_id:
             raise ValueError("analysis failed")
         return expected_egal_result
 
