@@ -14,7 +14,7 @@ class FakeHistoryClient:
         self.calls.append((ticker, start, end))
         return [
             {
-                "timestamp": datetime(2026, 1, 5, tzinfo=timezone.utc),
+                "Datetime": datetime(2026, 1, 5, tzinfo=timezone.utc),
                 "Open": Decimal("10.00"),
                 "High": Decimal("11.00"),
                 "Low": Decimal("9.50"),
