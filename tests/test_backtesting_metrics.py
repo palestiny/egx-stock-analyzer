@@ -53,7 +53,7 @@ def test_backtest_metrics_summarize_evaluable_buy_outcomes():
     assert result.positive_outcome_count == 1
     assert result.negative_outcome_count == 1
     assert result.win_rate == Decimal("0.5")
-    assert result.average_forward_return == Decimal("0.1166666666666666666666666667")
-    assert result.median_forward_return == Decimal("0.1166666666666666666666666667")
+    assert result.average_forward_return == Decimal("0.1166666666666666666666666666")
+    assert result.median_forward_return == Decimal("0.1166666666666666666666666666")
     assert result.minimum_forward_return == Decimal("-0.1")
     assert result.maximum_forward_return == Decimal("0.3333333333333333333333333333")
