@@ -2,10 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAnalysis } from "../src/api/analysisApi";
+
+const { mockGetAnalysis } = vi.hoisted(() => ({
+  mockGetAnalysis: vi.fn(),
+}));
 
 vi.mock("../src/api/analysisApi", () => ({
-  getAnalysis: vi.fn(),
+  getAnalysis: mockGetAnalysis,
 }));
 
 const analysis = {
@@ -30,7 +33,7 @@ describe("Dashboard", () => {
   });
 
   it("renders a successful analysis result", async () => {
-    getAnalysis.mockResolvedValue(analysis);
+    mockGetAnalysis.mockResolvedValue(analysis);
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
@@ -38,18 +41,19 @@ describe("Dashboard", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
 
-    expect(await screen.findByText("EGAL")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
     expect(screen.getByText("Technical Score")).toBeInTheDocument();
     expect(screen.getByText("Fundamental Score")).toBeInTheDocument();
     expect(screen.getByText("Stock Quality")).toBeInTheDocument();
     expect(screen.getByText("Entry Quality")).toBeInTheDocument();
     expect(screen.getByText("Opportunity")).toBeInTheDocument();
     expect(screen.getByText("buy")).toBeInTheDocument();
+    expect(mockGetAnalysis).toHaveBeenCalledWith("EGAL");
   });
 
   it("shows a loading state while the request is pending", async () => {
     let resolveRequest;
-    getAnalysis.mockReturnValue(new Promise((resolve) => {
+    mockGetAnalysis.mockReturnValue(new Promise((resolve) => {
       resolveRequest = resolve;
     }));
 
@@ -69,7 +73,7 @@ describe("Dashboard", () => {
   });
 
   it("shows an API error", async () => {
-    getAnalysis.mockRejectedValue(new Error("Network error"));
+    mockGetAnalysis.mockRejectedValue(new Error("Network error"));
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
@@ -83,7 +87,7 @@ describe("Dashboard", () => {
   it("shows a not-found message for a 404 result", async () => {
     const error = new Error("Analysis request failed with status 404");
     error.status = 404;
-    getAnalysis.mockRejectedValue(error);
+    mockGetAnalysis.mockRejectedValue(error);
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
