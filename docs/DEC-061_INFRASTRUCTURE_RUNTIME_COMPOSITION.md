@@ -13,7 +13,7 @@ It is responsible for creating and wiring:
 - `AnalysisInputAssembler`
 - the existing application `StockAnalysisRuntime`
 
-The factory receives the `StockCatalog` explicitly and receives the `yfinance` module explicitly. The Finnhub API key is passed explicitly to the factory; environment-variable lookup remains inside the existing Finnhub HTTP client.
+The factory receives the `StockCatalog` explicitly and receives the `yfinance` module explicitly. The Finnhub API key is passed explicitly to the factory.
 
 ## Resource ownership
 
@@ -39,13 +39,15 @@ The application runtime defined by DEC-060 remains infrastructure-agnostic. Infr
 
 Implemented.
 
-FastAPI lifecycle integration is now implemented in `app/main.py`: the application created by `create_application()` uses a lifespan context that calls `InfrastructureRuntime.close()` during application shutdown. This keeps infrastructure resource ownership in the infrastructure runtime while allowing the composition root to manage its lifecycle.
+FastAPI lifecycle integration is implemented in `app/main.py`: the application created by `create_application()` uses a lifespan context that calls `InfrastructureRuntime.close()` during application shutdown. This keeps infrastructure resource ownership in the infrastructure runtime while allowing the composition root to manage its lifecycle.
 
-The lifecycle behavior is covered by `tests/test_app_composition.py` and the full test suite currently passes.
+Environment lookup is now isolated in `app/infrastructure/config.py`. `InfrastructureConfig.from_environment()` reads `FINNHUB_API_KEY`, while `HttpxFinnhubFinancialsClient` requires the API key explicitly. This keeps environment access at the infrastructure configuration boundary rather than inside the HTTP client.
+
+The lifecycle and configuration behavior are covered by tests and the full test suite currently passes.
 
 ## Deferred
 
-- environment/configuration object;
+- wiring `InfrastructureConfig` into the final application composition root;
 - production stock master/catalog;
 - persistent result store;
 - scheduled trigger wiring;
