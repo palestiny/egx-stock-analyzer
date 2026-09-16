@@ -35,9 +35,16 @@ The infrastructure runtime may construct infrastructure adapters and application
 
 The application runtime defined by DEC-060 remains infrastructure-agnostic. Infrastructure composition is kept outside `app/application` so external clients and resource lifecycle do not leak inward.
 
+## Implementation Status
+
+Implemented.
+
+FastAPI lifecycle integration is now implemented in `app/main.py`: the application created by `create_application()` uses a lifespan context that calls `InfrastructureRuntime.close()` during application shutdown. This keeps infrastructure resource ownership in the infrastructure runtime while allowing the composition root to manage its lifecycle.
+
+The lifecycle behavior is covered by `tests/test_app_composition.py` and the full test suite currently passes.
+
 ## Deferred
 
-- FastAPI lifespan integration;
 - environment/configuration object;
 - production stock master/catalog;
 - persistent result store;
