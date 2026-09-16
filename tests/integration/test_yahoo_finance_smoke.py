@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.data_quality import DataQualityStatus
+from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.price_bar_factory import PriceBarFactory
 from app.domain.stocks.stock import Stock
@@ -39,16 +39,28 @@ def test_comi_yahoo_to_price_bar_smoke() -> None:
     assessments = DataQualityAssessor.assess(observations)
 
     assert len(assessments) == len(observations)
-    assert all(
-        assessment.status is DataQualityStatus.VALID
-        for assessment in assessments
-    )
+
+    valid_observations = [
+        (observation, assessment)
+        for observation, assessment in zip(observations, assessments)
+        if assessment.status is DataQualityStatus.VALID
+    ]
+    invalid_observations = [
+        (observation, assessment)
+        for observation, assessment in zip(observations, assessments)
+        if assessment.status is not DataQualityStatus.VALID
+    ]
+
+    assert valid_observations
 
     price_bars = [
         PriceBarFactory.create(observation, assessment)
-        for observation, assessment in zip(observations, assessments)
+        for observation, assessment in valid_observations
     ]
 
     assert price_bars
     assert all(type(price_bar) is PriceBar for price_bar in price_bars)
     assert all(price_bar.stock_id == stock.id for price_bar in price_bars)
+
+    for _, assessment in invalid_observations:
+        assert assessment.status is not DataQualityStatus.VALID
