@@ -35,12 +35,12 @@ Completed reliability/acquisition foundations include:
 - Manual analysis trigger
 - Scheduled analysis trigger
 - In-process one-shot scheduler
+- Daily analysis scheduling use case
+- End-to-end scheduled analysis integration
 
-The live smoke validation also confirmed that external observations are not automatically trusted: invalid OHLC observations were rejected by Data Quality rather than being passed into the analytical domain.
+M10 Automation is complete for its MVP scope. The execution, retry, idempotency, analysis integration, trigger, scheduler, and daily scheduling mechanics are implemented and documented.
 
-M10 Automation is now in progress. The execution, retry, idempotency, daily-analysis, manual-trigger, scheduled-trigger, and scheduler mechanics have been implemented as MVP slices.
-
-The next M10 step is the application-level scheduling use case that determines which daily analysis should be scheduled and at what business time.
+The next milestone is M12 API & Dashboard.
 
 The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -108,7 +108,7 @@ The project still avoids premature UI, database-heavy architecture, AI-first arc
 | M7 | Opportunity Detection | 🟢 Complete | Establish entry context, entry quality, and opportunity classification |
 | M8 | Backtesting | 🟢 Complete | Evaluate current classification historically |
 | M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
-| M10 | Automation | 🟡 In Progress | Execute the analytical pipeline automatically |
+| M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
@@ -254,9 +254,9 @@ Generate Report
 Send Alerts
 ```
 
-## Current Implementation
+## Completed MVP
 
-The M10 MVP currently includes:
+The M10 MVP includes:
 
 - whole-market `Execution` lifecycle
 - partial-failure handling with `COMPLETED_WITH_ERRORS`
@@ -271,6 +271,8 @@ The M10 MVP currently includes:
 - one-shot `run_at` timing
 - due/not-due timing tests
 - scheduled-trigger integration with the in-process scheduler
+- `DailyAnalysisSchedule` application use case
+- end-to-end daily scheduling integration
 
 The scheduler boundary is:
 
@@ -286,18 +288,32 @@ DailyMarketAnalysis
 Execution
 ```
 
-See `docs/DEC-048-M10-AUTOMATION-MVP.md`, `docs/DEC-049-SCHEDULING-SEMANTICS-MVP.md`, and `docs/M10-SCHEDULER-MVP-COMPLETION.md`.
+`DailyAnalysisSchedule` registers the existing analysis with a caller-provided `run_at`. It does not calculate market-calendar times.
 
-## Remaining M10 Work
+See:
 
-Define the application-level scheduling use case that determines:
+- `docs/DEC-048-M10-AUTOMATION-MVP.md`
+- `docs/DEC-049-SCHEDULING-SEMANTICS-MVP.md`
+- `docs/DEC-050-DAILY-ANALYSIS-SCHEDULE-MVP.md`
+- `docs/DEC-051-DAILY-SCHEDULE-TIME-OWNERSHIP.md`
+- `docs/M10-AUTOMATION-MVP-COMPLETION.md`
 
-- which analysis should be scheduled
-- which stocks are in scope
-- the business date
-- the intended execution time
+M10 is complete.
 
-Recurring schedules, cron expressions, persistent schedules, distributed scheduling, queues/workers, concurrency/scaling, and monitoring remain deferred until separate design gates justify them.
+## Deferred
+
+- recurring schedules
+- cron expressions
+- EGX trading calendar
+- market-close calculation
+- persistent schedules
+- restart recovery
+- distributed workers/queues
+- Celery/Redis/RabbitMQ/Kubernetes
+- advanced concurrency/scaling
+- scheduler monitoring/dashboard
+
+These require separate design gates.
 
 ---
 
