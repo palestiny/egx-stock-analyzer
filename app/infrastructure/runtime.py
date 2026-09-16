@@ -11,6 +11,7 @@ from app.application.analysis.runtime import (
 )
 from app.application.execution.retry import RetryPolicy
 from app.application.stocks.catalog import StockCatalog
+from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.fundamental_data.finnhub import (
     FinnhubFundamentalDataProvider,
     HttpxFinnhubFinancialsClient,
@@ -35,7 +36,7 @@ class InfrastructureRuntime:
 def create_infrastructure_runtime(
     stock_catalog: StockCatalog,
     yfinance_module,
-    finnhub_api_key: str,
+    config: InfrastructureConfig,
     result_store: AnalysisResultStore | None = None,
     retry_policy: RetryPolicy | None = None,
 ) -> InfrastructureRuntime:
@@ -45,7 +46,7 @@ def create_infrastructure_runtime(
     yahoo_history_client = YahooFinanceHistoryClient(yfinance_module)
     market_data_provider = YahooFinanceAdapter(yahoo_history_client)
 
-    finnhub_client = HttpxFinnhubFinancialsClient(api_key=finnhub_api_key)
+    finnhub_client = HttpxFinnhubFinancialsClient(api_key=config.finnhub_api_key)
     fundamental_data_provider = FinnhubFundamentalDataProvider(finnhub_client)
 
     input_assembler = AnalysisInputAssembler(
