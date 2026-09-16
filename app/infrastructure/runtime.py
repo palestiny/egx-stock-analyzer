@@ -1,0 +1,68 @@
+from dataclasses import dataclass
+
+from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.analysis.result_store import (
+    AnalysisResultStore,
+    InMemoryAnalysisResultStore,
+)
+from app.application.analysis.runtime import (
+    StockAnalysisRuntime,
+    create_stock_analysis_runtime,
+)
+from app.application.execution.retry import RetryPolicy
+from app.application.stocks.catalog import StockCatalog
+from app.infrastructure.fundamental_data.finnhub import (
+    FinnhubFundamentalDataProvider,
+    HttpxFinnhubFinancialsClient,
+)
+from app.infrastructure.market_data.yahoo_finance import (
+    YahooFinanceAdapter,
+    YahooFinanceHistoryClient,
+)
+
+
+@dataclass
+class InfrastructureRuntime:
+    application_runtime: StockAnalysisRuntime
+    market_data_provider: YahooFinanceAdapter
+    fundamental_data_provider: FinnhubFundamentalDataProvider
+    _finnhub_client: HttpxFinnhubFinancialsClient
+
+    def close(self) -> None:
+        self._finnhub_client.close()
+
+
+def create_infrastructure_runtime(
+    stock_catalog: StockCatalog,
+    yfinance_module,
+    finnhub_api_key: str,
+    result_store: AnalysisResultStore | None = None,
+    retry_policy: RetryPolicy | None = None,
+) -> InfrastructureRuntime:
+    result_store = result_store or InMemoryAnalysisResultStore()
+    retry_policy = retry_policy or RetryPolicy(1)
+
+    yahoo_history_client = YahooFinanceHistoryClient(yfinance_module)
+    market_data_provider = YahooFinanceAdapter(yahoo_history_client)
+
+    finnhub_client = HttpxFinnhubFinancialsClient(api_key=finnhub_api_key)
+    fundamental_data_provider = FinnhubFundamentalDataProvider(finnhub_client)
+
+    input_assembler = AnalysisInputAssembler(
+        market_data_provider=market_data_provider,
+        fundamental_data_provider=fundamental_data_provider,
+    )
+
+    application_runtime = create_stock_analysis_runtime(
+        stock_catalog=stock_catalog,
+        input_assembler=input_assembler,
+        result_store=result_store,
+        retry_policy=retry_policy,
+    )
+
+    return InfrastructureRuntime(
+        application_runtime=application_runtime,
+        market_data_provider=market_data_provider,
+        fundamental_data_provider=fundamental_data_provider,
+        _finnhub_client=finnhub_client,
+    )
