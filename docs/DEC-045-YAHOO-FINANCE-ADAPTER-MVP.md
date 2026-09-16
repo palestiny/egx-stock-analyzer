@@ -6,7 +6,7 @@ Accepted as a development/data-source adapter, not as the final production provi
 
 ## Context
 
-M3 needs a real provider adapter behind the provider-neutral `MarketDataProvider` port. Yahoo Finance has documented EGX usage in current open-source projects through symbols such as `COMI.CA`, but coverage is not guaranteed for every EGX symbol. Yahoo/yfinance access is also unofficial and subject to its applicable terms. citeturn1search0turn1search1
+M3 needs a real provider adapter behind the provider-neutral `MarketDataProvider` port. Yahoo Finance has documented EGX usage in current open-source projects through symbols such as `COMI.CA`, but coverage is not guaranteed for every EGX symbol. Yahoo/yfinance access is also unofficial and subject to its applicable terms.
 
 ## Decision
 
