@@ -6,6 +6,32 @@
 
 ---
 
+# Current Position
+
+The project has completed the current M5 Fundamental Analysis vertical slice and has entered M6 Scoring.
+
+Completed analytical foundations include:
+
+- Technical evidence composition
+- Fundamental profitability evidence
+- Fundamental liquidity evidence
+- Fundamental revenue-growth evidence
+- Fundamental analysis result/orchestration
+
+Current M6 slice:
+
+- Fundamental scoring only
+- Equal MVP contribution of `+1 / 0 / -1` per evidence area
+- Explainable score contributions
+- No BUY/SELL decisions
+- No Entry Quality scoring
+
+The detailed scoring policy is documented in `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`.
+
+The project has not claimed a green full-suite test run in this session; test execution remains a local verification step.
+
+---
+
 # 1. Purpose
 
 This roadmap defines the planned evolution of the EGX Stock Analyzer from its domain foundation into an automated, explainable stock-analysis platform.
@@ -76,9 +102,9 @@ The core analytical model must become understandable, deterministic, explainable
 | M1 | Domain Foundation | 🟡 In Progress | Establish stable core domain concepts |
 | M2 | Market Data Foundation | 🟡 In Progress | Establish market observation semantics |
 | M3 | Data Acquisition | 🔴 Deferred | External providers after core behavior is understood |
-| M4 | Technical Analysis | 🟡 Next | Build the first core analytical capability |
-| M5 | Fundamental Analysis | 🔴 Not Started | Build company-quality analysis |
-| M6 | Scoring Engine | 🔴 Not Started | Combine analytical evidence into explainable scores |
+| M4 | Technical Analysis | 🟢 Core Slice Built | Build deterministic technical evidence |
+| M5 | Fundamental Analysis | 🟢 Core Slice Built | Build independent fundamental evidence |
+| M6 | Scoring Engine | 🟡 In Progress | Combine evidence into explainable scores |
 | M7 | Signal Generation | 🔴 Not Started | Produce explainable opportunity classifications |
 | M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
 | M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
@@ -87,270 +113,83 @@ The core analytical model must become understandable, deterministic, explainable
 | M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
 
-The milestone numbering is retained to preserve project history. The **execution order has been deliberately adjusted** so the core analytical path is built before the detailed Data Quality implementation.
+The milestone numbering is retained to preserve project history. The execution order deliberately builds the core analytical path before detailed Data Quality implementation.
 
 ---
 
-# 4. Current Position — IMPORTANT
-
-## Where We Stopped
-
-The project has completed the current Data Quality model foundation:
-
-- `DataQualityStatus`
-- `DataQualityAssessment`
-- `DataQualityIssue`
-- `DataQualityIssueCode`
-- Initial issue vocabulary
-- Analysis eligibility behavior
-- Immutability tests
-
-The implementation and tests were committed and pushed to GitHub.
-
-The full test suite was passing at the end of this milestone.
-
-## What Is Frozen For Now
-
-Do **not** continue implementing:
-
-- `DataQualityAssessor`
-- detailed validation rules
-- provider-specific quality rules
-- status-mapping policies
-- advanced data-quality infrastructure
-
-Those are deliberately deferred.
-
-## Next Step
-
-**Begin the Core Analytical Track at M4 — Technical Analysis.**
-
-The immediate design gate is therefore **not Data Quality**. It is the first technical-analysis domain capability: what the system means by technical evidence and what the first analysis capability should be.
-
----
-
-# 5. M0 — Vision & Project Blueprint
-
-## Objective
-
-Define the purpose, boundaries, philosophy, architecture direction, and success criteria.
-
-## State
-
-Foundation exists and continues to evolve as important sequencing and architecture decisions are made.
-
----
-
-# 6. M1 — Domain Foundation
-
-## Objective
-
-Build the smallest stable domain model required by the system.
-
-## Established Concepts
-
-Current committed domain concepts include:
+# 4. Core Analytical Sequence
 
 ```text
-Stock
-Price
-Volume
-Timeframe
-PriceBar
-DataQualityAssessment
-DataQualityIssue
-DataQualityIssueCode
+M4 — Technical Analysis
+        ↓
+M5 — Fundamental Analysis
+        ↓
+M6 — Scoring
+        ↓
+M7 — Signal / Opportunity Detection
+        ↓
+M8 — Backtesting
+        ↓
+M11 — Reporting / Alerts
+        ↓
+M9 — Data Quality Rules
+        ↓
+M3 — Real Data Acquisition Integration
+        ↓
+M10 — Automation
+        ↓
+M12 — API / Dashboard
+        ↓
+M13 — Production Hardening
 ```
 
-The project uses Domain-First design and TDD. Concepts are added only when justified by a real domain responsibility.
-
-## Rules
-
-Domain logic remains independent from:
-
-- database
-- HTTP
-- external providers
-- UI
-- AI
-- infrastructure
+This sequence is deliberate. Changes to it require documentation rather than implicit route changes.
 
 ---
 
-# 7. M2 — Market Data Foundation
-
-## Objective
-
-Define how the system represents market observations.
-
-## Established Direction
-
-`PriceBar` represents an immutable market observation containing:
-
-```text
-Stock
-Timeframe
-Timestamp
-Open
-High
-Low
-Close
-Volume
-```
-
-The logical observation identity is:
-
-```text
-Stock + Timeframe + Timestamp
-```
-
-`PriceBar` does not own provider rules, data-quality rules, trading-calendar rules, indicators, strategy, or alerts.
-
-Daily timeframe is the MVP timeframe.
-
-Detailed time/session semantics are documented separately in `docs/DEC-020-PRICEBAR-TIME-SEMANTICS.md`.
-
----
-
-# 8. M3 — Data Acquisition
-
-## Objective
-
-Connect external market-data providers.
-
-## Deferred Until
-
-The analytical domain has enough shape to define exactly what data the analysis requires.
-
-## Future Direction
-
-```text
-External Provider
-       ↓
-Provider Adapter
-       ↓
-Raw Observation
-       ↓
-Data Quality
-       ↓
-Analysis
-```
-
-Provider-specific behavior must remain outside the core domain.
-
----
-
-# 9. M4 — Technical Analysis
-
-## Objective
-
-Transform market observations into deterministic, explainable technical evidence.
-
-## First Design Gate
-
-Before implementation, decide:
-
-- What is a technical analysis result?
-- What is its relationship to `PriceBar`?
-- What is the smallest useful first capability?
-- Which calculations belong in the domain?
-- Which configuration belongs outside the result?
-- How are historical windows represented?
-- How are insufficient observations handled?
-- What makes the result deterministic and reproducible?
-
-## Candidate Capabilities
-
-Potential future capabilities include:
-
-- trend detection
-- support detection
-- resistance detection
-- moving averages
-- momentum indicators
-- volatility
-- breakouts
-- gaps
-- volume analysis
-
-The final indicator set is not yet committed.
-
-## Principle
-
-Start with the smallest capability that advances the analytical core. Do not build a complete indicator library before the domain meaning is clear.
-
----
-
-# 10. M5 — Fundamental Analysis
-
-## Objective
-
-Evaluate the financial quality of companies.
-
-Potential evidence:
-
-- revenue growth
-- earnings growth
-- profitability
-- debt
-- cash flow
-- valuation
-- ROE
-- margins
-- dividends
-
-The exact metrics will be selected based on strategy requirements and reliable data availability.
-
-Fundamental analysis must eventually account for reporting periods, missing data, restatements, accounting periods, corporate actions, and freshness.
-
----
-
-# 11. M6 — Scoring Engine
+# 5. M6 — Scoring Engine
 
 ## Objective
 
 Combine analytical evidence into consistent, explainable scores.
 
-The working proposal remains:
+## Current Vertical Slice
+
+The first scoring implementation operates on Fundamental Analysis only.
+
+Current MVP policy:
 
 ```text
-Technical       30
-Fundamental     25
-Momentum        15
-Liquidity       15
-Catalysts       10
-Risk             5
-------------------
-Total           100
+Profitability   +1 / 0 / -1
+Liquidity       +1 / 0 / -1
+Revenue Growth  +1 / 0 / -1
 ```
 
-These weights are **not final business rules**.
+Undefined or insufficient evidence contributes zero.
 
-The scoring system must eventually be deterministic, explainable, testable, configurable, and versioned.
+The resulting Fundamental Score ranges from `-3` to `+3` and preserves component contributions for explainability.
 
-### Important Separation
+See `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`.
 
-The project explicitly distinguishes:
+## Deferred
 
-```text
-Stock Quality
-```
+- Technical scoring
+- configurable weighting
+- normalized 0–100 opportunity score
+- Entry Quality scoring
+- BUY/SELL decisions
+- ranking
+- strategy-specific scoring policies
 
-from:
-
-```text
-Entry Quality
-```
-
-This is a committed design decision.
+These require later design decisions and are not silently introduced into the MVP.
 
 ---
 
-# 12. M7 — Signal Generation
+# 6. M7 — Signal Generation
 
 ## Objective
 
-Transform analytical evidence into actionable classifications.
+Transform analytical evidence and scores into actionable classifications.
 
 Initial working labels:
 
@@ -384,7 +223,7 @@ Signals must be explainable.
 
 ---
 
-# 13. M8 — Backtesting
+# 7. M8 — Backtesting
 
 ## Objective
 
@@ -410,7 +249,7 @@ Configuration
 
 ---
 
-# 14. M9 — Data Quality
+# 8. M9 — Data Quality
 
 ## Objective
 
@@ -458,7 +297,35 @@ See `docs/DEC-021-DATA-QUALITY-ASSESSMENT.md` and `docs/DEC-022-CORE-ANALYSIS-BE
 
 ---
 
-# 15. M10 — Automation
+# 9. M3 — Data Acquisition
+
+## Objective
+
+Connect external market-data providers.
+
+## Deferred Until
+
+The analytical domain has enough shape to define exactly what data the analysis requires.
+
+## Future Direction
+
+```text
+External Provider
+       ↓
+Provider Adapter
+       ↓
+Raw Observation
+       ↓
+Data Quality
+       ↓
+Analysis
+```
+
+Provider-specific behavior must remain outside the core domain.
+
+---
+
+# 10. M10 — Automation
 
 ## Objective
 
@@ -482,11 +349,9 @@ Detect Opportunities
 Generate Report
 ```
 
-Scheduling may eventually be daily, event-driven, or market-session based.
-
 ---
 
-# 16. M11 — Reporting & Alerts
+# 11. M11 — Reporting & Alerts
 
 ## Objective
 
@@ -502,61 +367,29 @@ Potential outputs:
 - data-quality alerts
 - strategy-performance reports
 
-Potential channels include email, Telegram, web notifications, and dashboard notifications. Provider choices are not committed.
-
 ---
 
-# 17. M12 — API & Dashboard
+# 12. M12 — API & Dashboard
 
 ## Objective
 
 Expose application capabilities to users.
 
-Potential capabilities:
-
-- stock search
-- stock details
-- historical data
-- analysis
-- scores
-- signals
-- reports
-- strategy results
-- backtests
-- alerts
-
 API/UI must consume application/domain capabilities and must not own business rules.
 
 ---
 
-# 18. M13 — Production Hardening
+# 13. M13 — Production Hardening
 
 ## Objective
 
 Prepare the system for reliable long-term operation.
 
-Areas include:
-
-- reliability
-- retries
-- failure recovery
-- idempotency
-- monitoring
-- secrets management
-- authentication/authorization
-- performance
-- caching
-- observability
-- deployment
-- backups
-- migrations
-- rollback
-
-These concerns are intentionally later-stage concerns.
+Areas include reliability, retries, failure recovery, idempotency, monitoring, secrets management, authentication/authorization, performance, caching, observability, deployment, backups, migrations, and rollback.
 
 ---
 
-# 19. Cross-Cutting Requirements
+# 14. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -590,7 +423,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 20. Milestone Completion Rule
+# 15. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -616,57 +449,14 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 21. Current Execution Plan
+# 16. Changing the Roadmap
 
-This is the sequence to follow from the current project state:
-
-```text
-[CURRENT]
-M1/M2 — Domain + Market Observation Foundation
-        ↓
-M4 — Technical Analysis
-        ↓
-M5 — Fundamental Analysis
-        ↓
-M6 — Scoring
-        ↓
-M7 — Signal / Opportunity Detection
-        ↓
-M8 — Backtesting
-        ↓
-M11 — Reporting / Alerts
-        ↓
-RETURN TO M9 — Data Quality Rules
-        ↓
-M3 — Real Data Acquisition Integration
-        ↓
-M10 — Automation
-        ↓
-M12 — API / Dashboard
-        ↓
-M13 — Production Hardening
-```
-
-This sequence is deliberate. It is designed to reach the project's core business value before investing heavily in external-data reliability and operational infrastructure.
-
-The exact order after the core analytical vertical may change after the core reveals new requirements. Such changes must be documented rather than made implicitly.
-
----
-
-# 22. Changing the Roadmap
-
-The roadmap may change when:
-
-- requirements change
-- an architectural assumption proves incorrect
-- new evidence becomes available
-- a dependency becomes unavailable
-- a milestone reveals a better sequence
+The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
 Changes affecting architecture or important domain decisions must be recorded in `docs/DECISION_LOG.md` or a dedicated DEC document.
 
 ---
 
-# 23. Guiding Principle
+# 17. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
