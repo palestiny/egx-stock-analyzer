@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -22,7 +23,12 @@ def test_stock_analysis_pipeline_composes_existing_analysis_capabilities():
         net_income=Decimal("8"),
     )
 
-    technical = object()
+    technical = SimpleNamespace(
+        trend=object(),
+        momentum=object(),
+        volume=object(),
+        support_resistance=object(),
+    )
     fundamental = object()
     technical_score = object()
     fundamental_score = object()
