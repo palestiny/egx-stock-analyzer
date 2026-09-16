@@ -22,12 +22,18 @@ Current M6 progress:
 
 - Fundamental scoring MVP implemented
 - Technical scoring MVP implemented
+- Stock Quality Score MVP implemented
 - Equal MVP contribution of `+1 / 0 / -1` per selected evidence area
-- Explainable score contributions
+- Explainable component scores
 - No BUY/SELL decisions
 - No Entry Quality scoring
 
-Technical scoring is documented in `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.
+Technical scoring is documented in `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.  
+Stock Quality scoring is documented in `docs/DEC-035-STOCK-QUALITY-SCORE-MVP.md`.
+
+M7 has now started with the Entry Context MVP. Entry Context identifies the latest price and the nearest discovered structural support/resistance around it, without assigning a trading decision.
+
+Entry Context is documented in `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.
 
 The project has not claimed a green full-suite test run in this session; test execution remains a local verification step.
 
@@ -106,7 +112,7 @@ The core analytical model must become understandable, deterministic, explainable
 | M4 | Technical Analysis | 🟢 Core Slice Built | Build deterministic technical evidence |
 | M5 | Fundamental Analysis | 🟢 Core Slice Built | Build independent fundamental evidence |
 | M6 | Scoring Engine | 🟡 In Progress | Combine evidence into explainable scores |
-| M7 | Signal Generation | 🔴 Not Started | Produce explainable opportunity classifications |
+| M7 | Signal Generation | 🟡 In Progress | Establish entry context before opportunity rules |
 | M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
 | M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
 | M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
@@ -186,6 +192,20 @@ Support / Resistance is intentionally excluded from this score and reserved for 
 
 See `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.
 
+### Stock Quality Score
+
+```text
+Fundamental Score  -3..+3
+        +
+Technical Score    -3..+3
+        ↓
+Stock Quality      -6..+6
+```
+
+The combined score preserves both component scores and performs no additional weighting or normalization.
+
+See `docs/DEC-035-STOCK-QUALITY-SCORE-MVP.md`.
+
 ## Deferred
 
 - configurable weighting
@@ -205,7 +225,35 @@ These require later design decisions and are not silently introduced into the MV
 
 Transform analytical evidence and scores into actionable classifications.
 
-Initial working labels:
+### Current Vertical Slice — Entry Context
+
+The first M7 slice establishes structural context around the latest market price.
+
+```text
+Latest Close
+    ↓
+Current Price
+    ↓
+Nearest Support Below
+Nearest Resistance Above
+```
+
+This is context only. It does not assign an Entry Quality score or a trading signal.
+
+See `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.
+
+## Next Design Gate
+
+The next M7 decision must define Entry Quality interpretation using the available context without silently introducing:
+
+- arbitrary proximity thresholds
+- level strength assumptions
+- BUY/SELL rules
+- stop-loss or target rules
+
+After Entry Quality is explicitly designed, the project can define the final opportunity classification.
+
+Initial working labels remain:
 
 ```text
 BUY
