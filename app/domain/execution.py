@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -16,6 +16,8 @@ class ExecutionState(Enum):
 class Execution:
     id: UUID
     state: ExecutionState
+    successful_stock_ids: set[str] = field(default_factory=set)
+    failed_stock_ids: set[str] = field(default_factory=set)
 
     @classmethod
     def create(cls):
@@ -25,6 +27,29 @@ class Execution:
         if self.state != ExecutionState.CREATED:
             raise ValueError("Execution can only start from CREATED")
         self.state = ExecutionState.RUNNING
+
+    def record_stock_success(self, stock_id: str):
+        if self.state != ExecutionState.RUNNING:
+            raise ValueError("Stock results can only be recorded when RUNNING")
+        self.successful_stock_ids.add(stock_id)
+        self.failed_stock_ids.discard(stock_id)
+
+    def record_stock_failure(self, stock_id: str):
+        if self.state != ExecutionState.RUNNING:
+            raise ValueError("Stock results can only be recorded when RUNNING")
+        self.failed_stock_ids.add(stock_id)
+        self.successful_stock_ids.discard(stock_id)
+
+    def finish(self):
+        if self.state != ExecutionState.RUNNING:
+            raise ValueError("Execution can only be finished when RUNNING")
+
+        if self.successful_stock_ids and not self.failed_stock_ids:
+            self.state = ExecutionState.COMPLETED
+        elif self.successful_stock_ids and self.failed_stock_ids:
+            self.state = ExecutionState.COMPLETED_WITH_ERRORS
+        else:
+            self.state = ExecutionState.FAILED
 
     def complete(self):
         if self.state != ExecutionState.RUNNING:
