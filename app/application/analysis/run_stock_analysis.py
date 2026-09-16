@@ -4,6 +4,7 @@ from app.application.analysis.daily_market_analysis import DailyMarketAnalysis, 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.execution.retry import RetryPolicy
+from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
 
 
@@ -21,7 +22,7 @@ class RunStockAnalysis:
         analysis_input: StockAnalysisInput = self._input_assembler.assemble(stock, as_of)
         result = self._daily_analysis.run([analysis_input])
 
-        if result.execution.state.name not in {"COMPLETED"}:
+        if result.execution.state is not ExecutionState.COMPLETED:
             raise RuntimeError(
                 f"Stock analysis did not complete successfully: {result.execution.state}"
             )
