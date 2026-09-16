@@ -44,10 +44,30 @@ Initial evidence will contain:
 
 It will be immutable and deterministic.
 
+## Fundamental Analysis Result
+
+`FundamentalAnalysisResult` is an immutable composition object for one stock and one financial period.
+
+It contains:
+
+- `stock_id`
+- `period_end`
+- independent fundamental evidence, initially `profitability`
+
+The result does not calculate ratios or make trading decisions.
+
+## Fundamental Analysis Orchestration
+
+`FundamentalAnalysisOrchestrator` coordinates the existing analyzers and composes their evidence into `FundamentalAnalysisResult`.
+
+The orchestrator does not implement financial calculations, scoring, BUY/SELL decisions, weighting, or data-quality validation.
+
+As additional fundamental evidence areas are implemented, they can be composed into the result without changing the responsibility of individual analyzers.
+
 ## Insufficient / Undefined Data
 
-- Missing required observations → `INSUFFICIENT_DATA`.
-- Revenue equal to zero → `UNDEFINED`.
+- Missing required observations → `INSUFFICIENT_DATA` when an analyzer requires them.
+- Revenue equal to zero → `UNDEFINED` for Net Profit Margin.
 - A zero or negative net income is a valid observation; it is not automatically invalid data.
 
 ## Boundaries
@@ -64,6 +84,8 @@ The first profitability analyzer does **not**:
 - perform valuation
 - interpret business quality
 
+The Fundamental Analysis Result and Orchestrator also do **not** add those responsibilities.
+
 ## Rationale
 
 Fundamental analysis normally combines multiple areas such as profitability, liquidity, solvency, cash flow, efficiency, and valuation rather than relying on one ratio.
@@ -72,4 +94,4 @@ Starting with one deterministic profitability evidence keeps the MVP small while
 
 ## Next TDD Step
 
-Create RED tests for the smallest financial input needed by Net Profit Margin, then implement the analyzer.
+Add the next independent fundamental evidence capability only after its design gate is defined. Do not add speculative financial metrics or scoring before that.
