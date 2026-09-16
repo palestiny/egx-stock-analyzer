@@ -1,5 +1,8 @@
+from dataclasses import asdict
+
 from fastapi import FastAPI
 
+from app.api.analysis_response import AnalysisResultResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.result_store import AnalysisResultStore
 
@@ -9,12 +12,13 @@ def create_app(result_store: AnalysisResultStore) -> FastAPI:
     get_analysis_result = GetAnalysisResult(result_store)
 
     @app.get("/api/v1/analysis/{symbol}")
-    def get_analysis(symbol: str) -> dict[str, str]:
+    def get_analysis(symbol: str) -> dict[str, object]:
         result = get_analysis_result.execute(symbol)
 
         if result is None:
             return {"symbol": symbol, "status": "not_found"}
 
-        return {"symbol": symbol, "status": "available"}
+        response = AnalysisResultResponse.from_result(symbol, result)
+        return asdict(response)
 
     return app
