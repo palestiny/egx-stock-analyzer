@@ -9,7 +9,6 @@ class GrowthStatus(Enum):
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
-    INSUFFICIENT_DATA = "insufficient_data"
     UNDEFINED = "undefined"
 
 
