@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime, timezone
+from decimal import Decimal
 
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 from app.domain.market_data.timeframe import Timeframe
@@ -26,6 +27,24 @@ class YahooFinanceAdapter:
     def _provider_symbol(stock: Stock) -> str:
         return f"{stock.symbol}.CA"
 
+    @staticmethod
+    def _timestamp(value) -> datetime:
+        if isinstance(value, datetime):
+            timestamp = value
+        else:
+            timestamp = datetime.combine(value, datetime.min.time())
+
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            return timestamp.replace(tzinfo=timezone.utc)
+
+        return timestamp
+
+    @staticmethod
+    def _decimal(value) -> Decimal | None:
+        if value is None:
+            return None
+        return Decimal(str(value))
+
     def get_daily_observations(
         self,
         stock: Stock,
@@ -42,12 +61,12 @@ class YahooFinanceAdapter:
             RawPriceBarObservation(
                 stock_id=stock.id,
                 timeframe=Timeframe.DAILY,
-                timestamp=row["Datetime"],
-                open=row["Open"],
-                high=row["High"],
-                low=row["Low"],
-                close=row["Close"],
-                volume=row["Volume"],
+                timestamp=self._timestamp(row["Date"]),
+                open=self._decimal(row["Open"]),
+                high=self._decimal(row["High"]),
+                low=self._decimal(row["Low"]),
+                close=self._decimal(row["Close"]),
+                volume=None if row["Volume"] is None else int(row["Volume"]),
             )
             for row in rows
         ]
