@@ -13,23 +13,30 @@ class FakeApplicationRuntime:
     result_store: InMemoryAnalysisResultStore
 
 
+class FakeRuntime:
+    def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
+        self.application_runtime = FakeApplicationRuntime(result_store)
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
 def test_create_application_uses_runtime_result_store() -> None:
     result_store = InMemoryAnalysisResultStore()
-    runtime = InfrastructureRuntime(
-        application_runtime=FakeApplicationRuntime(result_store),
-        market_data_provider=None,
-        fundamental_data_provider=None,
-        _finnhub_client=None,
-    )
+    runtime = FakeRuntime(result_store)
 
     app = create_application(runtime)
 
     assert app is not None
-    assert TestClient(app).get("/api/v1/analysis/UNKNOWN").status_code == 404
+    with TestClient(app) as client:
+        assert client.get("/api/v1/analysis/UNKNOWN").status_code == 404
+    assert runtime.closed is True
 
 
 def test_existing_create_app_contract_remains_unchanged() -> None:
     result_store = InMemoryAnalysisResultStore()
     app = create_app(result_store)
 
-    assert TestClient(app).get("/api/v1/analysis/UNKNOWN").status_code == 404
+    with TestClient(app) as client:
+        assert client.get("/api/v1/analysis/UNKNOWN").status_code == 404
