@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
-from app.application.execution.scheduler import Scheduler
+from app.application.execution.scheduler import InProcessScheduler
 
 
 def test_scheduler_runs_operation_when_due():
     operation = Mock()
-    scheduler = Scheduler()
+    scheduler = InProcessScheduler()
     run_at = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
 
     scheduler.schedule(operation, run_at)
