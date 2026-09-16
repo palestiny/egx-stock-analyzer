@@ -17,7 +17,6 @@ class GrowthStatus(Enum):
 class GrowthEvidence:
     status: GrowthStatus
     revenue_growth: Decimal | None = None
-    net_income_growth: Decimal | None = None
 
 
 class RevenueGrowthAnalyzer:
@@ -46,33 +45,4 @@ class RevenueGrowthAnalyzer:
         return GrowthEvidence(
             status=status,
             revenue_growth=revenue_growth,
-        )
-
-
-class NetIncomeGrowthAnalyzer:
-    @staticmethod
-    def analyze(
-        current_period: FinancialPeriod,
-        previous_period: FinancialPeriod,
-    ) -> GrowthEvidence:
-        previous_net_income = previous_period.net_income
-
-        if previous_net_income == 0:
-            return GrowthEvidence(GrowthStatus.UNDEFINED)
-
-        net_income_growth = (
-            (current_period.net_income - previous_net_income)
-            / previous_net_income
-        )
-
-        if net_income_growth > 0:
-            status = GrowthStatus.POSITIVE
-        elif net_income_growth < 0:
-            status = GrowthStatus.NEGATIVE
-        else:
-            status = GrowthStatus.NEUTRAL
-
-        return GrowthEvidence(
-            status=status,
-            net_income_growth=net_income_growth,
         )
