@@ -8,3 +8,5 @@ class FinancialPeriod:
     period_end: date
     revenue: Decimal
     net_income: Decimal
+    current_assets: Decimal | None = None
+    current_liabilities: Decimal | None = None
