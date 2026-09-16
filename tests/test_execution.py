@@ -72,3 +72,54 @@ def test_execution_cannot_start_twice():
         pass
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_execution_records_successful_stock():
+    execution = Execution.create()
+    execution.start()
+
+    execution.record_stock_success("EGAL")
+
+    assert execution.successful_stock_ids == {"EGAL"}
+
+
+def test_execution_records_failed_stock():
+    execution = Execution.create()
+    execution.start()
+
+    execution.record_stock_failure("IEEC")
+
+    assert execution.failed_stock_ids == {"IEEC"}
+
+
+def test_execution_completes_when_all_stocks_succeed():
+    execution = Execution.create()
+    execution.start()
+    execution.record_stock_success("EGAL")
+    execution.record_stock_success("IEEC")
+
+    execution.finish()
+
+    assert execution.state == ExecutionState.COMPLETED
+
+
+def test_execution_completes_with_errors_when_some_stocks_fail():
+    execution = Execution.create()
+    execution.start()
+    execution.record_stock_success("EGAL")
+    execution.record_stock_failure("IEEC")
+
+    execution.finish()
+
+    assert execution.state == ExecutionState.COMPLETED_WITH_ERRORS
+
+
+def test_execution_fails_when_all_stocks_fail():
+    execution = Execution.create()
+    execution.start()
+    execution.record_stock_failure("EGAL")
+    execution.record_stock_failure("IEEC")
+
+    execution.finish()
+
+    assert execution.state == ExecutionState.FAILED
