@@ -1,6 +1,6 @@
 from dataclasses import asdict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.api.analysis_response import AnalysisResultResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
@@ -16,7 +16,10 @@ def create_app(result_store: AnalysisResultStore) -> FastAPI:
         result = get_analysis_result.execute(symbol)
 
         if result is None:
-            return {"symbol": symbol, "status": "not_found"}
+            raise HTTPException(
+                status_code=404,
+                detail=f"Analysis result not found for {symbol}",
+            )
 
         response = AnalysisResultResponse.from_result(symbol, result)
         return asdict(response)
