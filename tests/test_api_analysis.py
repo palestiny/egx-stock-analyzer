@@ -47,7 +47,7 @@ def test_get_analysis_returns_response_dto_for_symbol():
     store.get.assert_called_once_with("EGAL")
 
 
-def test_get_analysis_returns_not_found_when_result_is_missing():
+def test_get_analysis_returns_404_when_result_is_missing():
     store = Mock()
     store.get.return_value = None
 
@@ -56,5 +56,5 @@ def test_get_analysis_returns_not_found_when_result_is_missing():
 
     response = client.get("/api/v1/analysis/EGAL")
 
-    assert response.status_code == 200
-    assert response.json() == {"symbol": "EGAL", "status": "not_found"}
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Analysis result not found for EGAL"}
