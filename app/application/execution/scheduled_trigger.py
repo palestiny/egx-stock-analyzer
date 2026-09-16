@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import datetime
 
 from app.application.analysis.daily_market_analysis import (
     DailyMarketAnalysis,
@@ -17,6 +18,10 @@ class ScheduledAnalysisTrigger:
         self._analysis = analysis
         self._scheduler = scheduler
 
-    def schedule(self, inputs: list[StockAnalysisInput]) -> None:
+    def schedule(
+        self,
+        inputs: list[StockAnalysisInput],
+        run_at: datetime,
+    ) -> None:
         operation: Callable[[], Execution] = lambda: self._analysis.run(inputs).execution
-        self._scheduler.schedule(operation)
+        self._scheduler.schedule(operation, run_at)
