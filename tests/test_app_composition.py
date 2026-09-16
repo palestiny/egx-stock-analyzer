@@ -4,8 +4,11 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.stocks.stock import Stock
+from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.runtime import InfrastructureRuntime
-from app.main import create_application
+from app.main import create_application, create_application_from_environment
 
 
 @dataclass
@@ -40,3 +43,31 @@ def test_existing_create_app_contract_remains_unchanged() -> None:
 
     with TestClient(app) as client:
         assert client.get("/api/v1/analysis/UNKNOWN").status_code == 404
+
+
+def test_create_application_from_environment_loads_config_at_composition_root(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    captured: dict[str, object] = {}
+    runtime = FakeRuntime(InMemoryAnalysisResultStore())
+
+    def fake_create_infrastructure_runtime(**kwargs):
+        captured.update(kwargs)
+        return runtime
+
+    monkeypatch.setattr("app.main.create_infrastructure_runtime", fake_create_infrastructure_runtime)
+
+    stock_catalog = InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")])
+    app = create_application_from_environment(stock_catalog)
+
+    assert app is not None
+    assert captured["stock_catalog"] is stock_catalog
+    assert isinstance(captured["config"], InfrastructureConfig)
+    assert captured["config"].finnhub_api_key == "test-key"
+    assert captured["yfinance_module"].__name__ == "yfinance"
+
+    with TestClient(app):
+        pass
+
+    assert runtime.closed is True
