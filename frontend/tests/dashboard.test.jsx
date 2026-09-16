@@ -3,14 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
 
-const { mockGetAnalysis } = vi.hoisted(() => ({
-  mockGetAnalysis: vi.fn(),
-}));
-
-vi.mock("../src/api/analysisApi", () => ({
-  getAnalysis: mockGetAnalysis,
-}));
-
 const analysis = {
   symbol: "EGAL",
   technical_score: 1,
@@ -22,7 +14,7 @@ const analysis = {
 
 describe("Dashboard", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("renders the analysis symbol input and action", () => {
@@ -33,11 +25,16 @@ describe("Dashboard", () => {
   });
 
   it("renders a successful analysis result", async () => {
-    mockGetAnalysis.mockResolvedValue(analysis);
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({
+        ok: true,
+        json: async () => analysis,
+      });
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
-      target: { value: "EGAL" },
+      target: { value: "egal" },
     });
     fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
 
@@ -48,14 +45,16 @@ describe("Dashboard", () => {
     expect(screen.getByText("Entry Quality")).toBeInTheDocument();
     expect(screen.getByText("Opportunity")).toBeInTheDocument();
     expect(screen.getByText("buy")).toBeInTheDocument();
-    expect(mockGetAnalysis).toHaveBeenCalledWith("EGAL");
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/analysis/EGAL");
   });
 
   it("shows a loading state while the request is pending", async () => {
     let resolveRequest;
-    mockGetAnalysis.mockReturnValue(new Promise((resolve) => {
-      resolveRequest = resolve;
-    }));
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
@@ -65,15 +64,20 @@ describe("Dashboard", () => {
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /analyze/i })).toBeDisabled();
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/analysis/EGAL");
 
-    resolveRequest(analysis);
+    resolveRequest({
+      ok: true,
+      json: async () => analysis,
+    });
+
     await waitFor(() => {
       expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
     });
   });
 
   it("shows an API error", async () => {
-    mockGetAnalysis.mockRejectedValue(new Error("Network error"));
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
@@ -85,9 +89,10 @@ describe("Dashboard", () => {
   });
 
   it("shows a not-found message for a 404 result", async () => {
-    const error = new Error("Analysis request failed with status 404");
-    error.status = 404;
-    mockGetAnalysis.mockRejectedValue(error);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 404,
+    });
 
     render(<App />);
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
