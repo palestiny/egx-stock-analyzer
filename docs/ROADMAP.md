@@ -27,19 +27,26 @@ Current M6 progress:
 - Explainable component scores
 - No BUY/SELL decisions inside the scoring components
 
-M7 has now progressed through:
+M7 — Opportunity Detection is now complete.
+
+Completed M7 slices:
 
 - Entry Context MVP
 - Entry Quality Score MVP
 - Opportunity Classification MVP
+- TDD verification for Opportunity Classification
+- Review completed with no production-code refactor required
+- Documentation completed
 
-Entry Context identifies the latest price and the nearest discovered structural support/resistance around it. Entry Quality measures the available structural context around the current price. Opportunity Classification now combines Stock Quality and Entry Quality using explicit MVP rules to produce BUY/WATCH/HOLD/AVOID.
+Entry Context identifies the latest price and the nearest discovered structural support/resistance around it. Entry Quality measures the available structural context around the current price. Opportunity Classification combines Stock Quality and Entry Quality using explicit MVP rules to produce BUY/WATCH/HOLD/AVOID.
 
 Entry Context is documented in `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.  
 Entry Quality is documented in `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.  
 Opportunity Classification is documented in `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`.
 
-The project has not claimed a green full-suite test run in this session; test execution remains a local verification step.
+The focused M7 Opportunity Classification test suite has been locally verified as passing. A green full-suite test run is not claimed here unless separately verified.
+
+The next major milestone is M8 Backtesting.
 
 ---
 
@@ -116,7 +123,7 @@ The core analytical model must become understandable, deterministic, explainable
 | M4 | Technical Analysis | 🟢 Core Slice Built | Build deterministic technical evidence |
 | M5 | Fundamental Analysis | 🟢 Core Slice Built | Build independent fundamental evidence |
 | M6 | Scoring Engine | 🟡 In Progress | Combine evidence into explainable scores |
-| M7 | Signal Generation | 🟡 In Progress | Establish entry context, entry quality, and opportunity classification |
+| M7 | Signal Generation | 🟢 Complete | Establish entry context, entry quality, and opportunity classification |
 | M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
 | M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
 | M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
@@ -278,9 +285,9 @@ This classification is an analytical state, not a probability, expected return, 
 
 ## M7 Completion Gate
 
-M7 remains pending final local verification and review/refactor acceptance.
+M7 is complete. The Opportunity Classification tests were locally verified as passing, the implementation was reviewed against DEC-038, no production-code refactor was required, and the roadmap/documentation were updated.
 
-The next major milestone after M7 is M8 Backtesting.
+The next milestone is M8 Backtesting.
 
 ---
 
