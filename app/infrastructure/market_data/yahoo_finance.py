@@ -10,13 +10,18 @@ class YahooFinanceHistoryClient:
     def __init__(self, yfinance_module) -> None:
         self._yfinance = yfinance_module
 
-    def history(self, ticker: str, start: date, end: date):
-        return self._yfinance.Ticker(ticker).history(
-            start=start,
-            end=end,
-            interval="1d",
-            auto_adjust=False,
-        ).reset_index()
+    def history(self, ticker: str, start: date, end: date) -> list[dict]:
+        return (
+            self._yfinance.Ticker(ticker)
+            .history(
+                start=start,
+                end=end,
+                interval="1d",
+                auto_adjust=False,
+            )
+            .reset_index()
+            .to_dict("records")
+        )
 
 
 class YahooFinanceAdapter:
