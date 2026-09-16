@@ -10,7 +10,12 @@ from app.domain.technical_analysis.scoring import TechnicalScore
 
 def stock_quality(total: int) -> StockQualityScore:
     fundamental = FundamentalScore(total=0, contributions=())
-    technical = TechnicalScore(total_score=0, contributions=())
+    technical = TechnicalScore(
+        trend_points=0,
+        momentum_points=0,
+        volume_points=0,
+        total_score=0,
+    )
     return StockQualityScore(
         fundamental_score=fundamental,
         technical_score=technical,
