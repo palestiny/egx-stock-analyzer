@@ -1,7 +1,13 @@
 from collections.abc import Callable
+from typing import Protocol
 
 
-class Scheduler:
+class Scheduler(Protocol):
+    def schedule(self, operation: Callable[[], object]) -> None:
+        ...
+
+
+class InProcessScheduler:
     def __init__(self) -> None:
         self._pending_operations: list[Callable[[], object]] = []
 
