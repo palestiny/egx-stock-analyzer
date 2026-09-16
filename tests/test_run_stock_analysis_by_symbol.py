@@ -1,5 +1,4 @@
 from datetime import date
-from uuid import uuid4
 
 import pytest
 
@@ -22,7 +21,9 @@ class FakeStockCatalog:
 
     def get(self, symbol: str) -> Stock | None:
         self.calls.append(symbol)
-        return self.stock if symbol.strip().upper() == self.stock.symbol else None if self.stock else None
+        if self.stock is None:
+            return None
+        return self.stock if symbol.strip().upper() == self.stock.symbol else None
 
 
 def test_runs_analysis_for_cataloged_symbol() -> None:
