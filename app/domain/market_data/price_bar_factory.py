@@ -12,7 +12,7 @@ class PriceBarFactory:
         assessment: DataQualityAssessment,
     ) -> PriceBar:
         if assessment.status is not DataQualityStatus.VALID:
-            raise ValueError("PriceBar can only be created when data quality is VALID")
+            raise ValueError("Data quality must be VALID before creating a PriceBar")
 
         if any(
             value is None
