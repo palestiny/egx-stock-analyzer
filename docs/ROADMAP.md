@@ -8,45 +8,35 @@
 
 # Current Position
 
-The project has completed the current M5 Fundamental Analysis vertical slice and has entered M6 Scoring.
+The project has completed the core analytical path through M8 and the reliability/acquisition slices needed to validate real market data through the domain boundary.
 
 Completed analytical foundations include:
 
 - Technical evidence composition
-- Fundamental profitability evidence
-- Fundamental liquidity evidence
-- Fundamental revenue-growth evidence
-- Fundamental analysis result/orchestration
+- Fundamental analysis and orchestration
+- Fundamental scoring
+- Technical scoring
+- Stock Quality Score
+- Entry Context
+- Entry Quality Score
+- Opportunity Classification
+- Backtesting MVP
+- Reporting & Alerts MVP
 
-Current M6 progress:
+Completed reliability/acquisition foundations include:
 
-- Fundamental scoring MVP implemented
-- Technical scoring MVP implemented
-- Stock Quality Score MVP implemented
-- Equal MVP contribution of `+1 / 0 / -1` per selected evidence area
-- Explainable component scores
-- No BUY/SELL decisions inside the scoring components
+- Raw market observations
+- Data Quality Assessment
+- Raw observation → validated PriceBar conversion
+- Provider-neutral market-data acquisition boundary
+- Yahoo Finance development adapter
+- Live COMI acquisition-to-PriceBar smoke validation
 
-M7 — Opportunity Detection is now complete.
+The live smoke validation also confirmed that external observations are not automatically trusted: invalid OHLC observations were rejected by Data Quality rather than being passed into the analytical domain.
 
-Completed M7 slices:
+The next planned milestone is **M10 — Automation**.
 
-- Entry Context MVP
-- Entry Quality Score MVP
-- Opportunity Classification MVP
-- TDD verification for Opportunity Classification
-- Review completed with no production-code refactor required
-- Documentation completed
-
-Entry Context identifies the latest price and the nearest discovered structural support/resistance around it. Entry Quality measures the available structural context around the current price. Opportunity Classification combines Stock Quality and Entry Quality using explicit MVP rules to produce BUY/WATCH/HOLD/AVOID.
-
-Entry Context is documented in `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.  
-Entry Quality is documented in `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.  
-Opportunity Classification is documented in `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`.
-
-The focused M7 Opportunity Classification test suite has been locally verified as passing. A green full-suite test run is not claimed here unless separately verified.
-
-The next major milestone is M8 Backtesting.
+The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
 ---
 
@@ -62,7 +52,7 @@ The roadmap may change when new evidence or requirements justify a deliberate de
 
 # 2. Development Strategy
 
-The project is intentionally developed in two broad tracks:
+The project is developed through two connected tracks:
 
 ```text
 CORE ANALYTICAL TRACK
@@ -92,23 +82,9 @@ Automation
 Production Reliability
 ```
 
-The current priority is the **Core Analytical Track**.
+The analytical core was intentionally built before detailed data-quality and provider integration. Those reliability boundaries have now been implemented around the understood core.
 
-Data Quality is an important domain boundary and its basic Value Objects are already defined, but detailed assessment logic is intentionally deferred until the analytical core is understood end-to-end. See `docs/DEC-022-CORE-ANALYSIS-BEFORE-DATA-QUALITY.md`.
-
-This does **not** mean Data Quality is optional. It means its implementation is sequenced after the core analytical path.
-
-We intentionally avoid starting with:
-
-- UI
-- database-heavy architecture
-- AI-first architecture
-- microservices
-- complex infrastructure
-- authentication
-- production deployment concerns
-
-The core analytical model must become understandable, deterministic, explainable, and testable first.
+The project still avoids premature UI, database-heavy architecture, AI-first architecture, microservices, and production-hardening concerns before their design gates are needed.
 
 ---
 
@@ -117,25 +93,25 @@ The core analytical model must become understandable, deterministic, explainable
 | Milestone | Name | Status | Current Intent |
 |---|---|---|---|
 | M0 | Vision & Blueprint | 🟡 In Progress | Keep project direction and engineering method explicit |
-| M1 | Domain Foundation | 🟡 In Progress | Establish stable core domain concepts |
-| M2 | Market Data Foundation | 🟡 In Progress | Establish market observation semantics |
-| M3 | Data Acquisition | 🔴 Deferred | External providers after core behavior is understood |
+| M1 | Domain Foundation | 🟢 Foundation Built | Establish stable core domain concepts |
+| M2 | Market Data Foundation | 🟢 Foundation Built | Establish market observation semantics |
+| M3 | Data Acquisition | 🟢 Complete | Acquire external observations through a replaceable provider boundary |
 | M4 | Technical Analysis | 🟢 Core Slice Built | Build deterministic technical evidence |
 | M5 | Fundamental Analysis | 🟢 Core Slice Built | Build independent fundamental evidence |
-| M6 | Scoring Engine | 🟡 In Progress | Combine evidence into explainable scores |
-| M7 | Signal Generation | 🟢 Complete | Establish entry context, entry quality, and opportunity classification |
-| M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
-| M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
+| M6 | Scoring Engine | 🟢 Core Slice Built | Combine evidence into explainable scores |
+| M7 | Opportunity Detection | 🟢 Complete | Establish entry context, entry quality, and opportunity classification |
+| M8 | Backtesting | 🟢 Complete | Evaluate current classification historically |
+| M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
 | M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
-| M11 | Reporting & Alerts | 🔴 Not Started | Deliver analytical results |
+| M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
 
-The milestone numbering is retained to preserve project history. The execution order deliberately builds the core analytical path before detailed Data Quality implementation.
+The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
 ---
 
-# 4. Core Analytical Sequence
+# 4. Current Execution Sequence
 
 ```text
 M4 — Technical Analysis
@@ -144,15 +120,15 @@ M5 — Fundamental Analysis
         ↓
 M6 — Scoring
         ↓
-M7 — Signal / Opportunity Detection
+M7 — Opportunity Detection
         ↓
 M8 — Backtesting
         ↓
 M11 — Reporting / Alerts
         ↓
-M9 — Data Quality Rules
+M9 — Data Quality
         ↓
-M3 — Real Data Acquisition Integration
+M3 — Data Acquisition
         ↓
 M10 — Automation
         ↓
@@ -161,241 +137,94 @@ M12 — API / Dashboard
 M13 — Production Hardening
 ```
 
-This sequence is deliberate. Changes to it require documentation rather than implicit route changes.
+This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
 ---
 
-# 5. M6 — Scoring Engine
+# 5. Completed Core Analytical Milestones
+
+M4 through M8 established deterministic, explainable analytical behavior, including technical and fundamental evidence, scoring, opportunity classification, and historical evaluation.
+
+The accepted design documents remain the source of truth for the individual MVP contracts:
+
+- `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`
+- `docs/DEC-034-TECHNICAL-SCORING-MVP.md`
+- `docs/DEC-035-STOCK-QUALITY-SCORE-MVP.md`
+- `docs/DEC-036-ENTRY-CONTEXT-MVP.md`
+- `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`
+- `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`
+- `docs/DEC-039-BACKTESTING-MVP.md`
+- `docs/DEC-041-REPORTING-ALERTS-MVP.md`
+
+---
+
+# 6. M9 — Data Quality
 
 ## Objective
 
-Combine analytical evidence into consistent, explainable scores.
+Assess whether raw external observations are usable for analysis.
 
-## Current Vertical Slices
-
-### Fundamental Score
+## Implemented Boundary
 
 ```text
-Profitability   +1 / 0 / -1
-Liquidity       +1 / 0 / -1
-Revenue Growth  +1 / 0 / -1
-```
-
-Undefined or insufficient evidence contributes zero.
-
-The Fundamental Score ranges from `-3` to `+3` and preserves component contributions for explainability.
-
-See `docs/DEC-033-FUNDAMENTAL-SCORING-MVP.md`.
-
-### Technical Score
-
-```text
-Trend       +1 / 0 / -1
-Momentum    +1 / 0 / -1
-Volume      +1 / 0 / -1
-```
-
-Undefined or insufficient evidence contributes zero.
-
-The Technical Score ranges from `-3` to `+3` and preserves component contributions for explainability.
-
-Support / Resistance is intentionally excluded from this score and reserved for the future Entry Quality concern.
-
-See `docs/DEC-034-TECHNICAL-SCORING-MVP.md`.
-
-### Stock Quality Score
-
-```text
-Fundamental Score  -3..+3
-        +
-Technical Score    -3..+3
+RawPriceBarObservation
         ↓
-Stock Quality      -6..+6
-```
-
-The combined score preserves both component scores and performs no additional weighting or normalization.
-
-See `docs/DEC-035-STOCK-QUALITY-SCORE-MVP.md`.
-
-## Deferred
-
-- configurable weighting
-- normalized 0–100 opportunity score
-- Entry Quality scoring
-- BUY/SELL decisions
-- ranking
-- strategy-specific scoring policies
-
-These require later design decisions and are not silently introduced into the MVP.
-
----
-
-# 6. M7 — Signal Generation
-
-## Objective
-
-Transform analytical evidence and scores into actionable classifications.
-
-### Entry Context
-
-The first M7 slice establishes structural context around the latest market price.
-
-```text
-Latest Close
-    ↓
-Current Price
-    ↓
-Nearest Support Below
-Nearest Resistance Above
-```
-
-This is context only. It does not assign a trading decision.
-
-See `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.
-
-### Entry Quality Score
-
-The current MVP evaluates the availability of nearest structural support and resistance around the current price.
-
-```text
-Support Context      +1 / 0
-Resistance Context   +1 / 0
+DataQualityAssessor
         ↓
-Entry Quality        0..+2
-```
-
-The score is intentionally not a probability, expected return, or BUY/SELL signal. It does not use arbitrary proximity thresholds or level-strength assumptions.
-
-See `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.
-
-### Opportunity Classification
-
-The MVP combines Stock Quality and Entry Quality through explicit rules:
-
-```text
-Strong negative quality  → AVOID
-Strong quality + entry   → BUY
-Positive quality         → WATCH
-Other combinations       → HOLD
-```
-
-The exact thresholds and precedence are recorded in `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`.
-
-This classification is an analytical state, not a probability, expected return, or guarantee of future price movement.
-
-## M7 Completion Gate
-
-M7 is complete. The Opportunity Classification tests were locally verified as passing, the implementation was reviewed against DEC-038, no production-code refactor was required, and the roadmap/documentation were updated.
-
-The next milestone is M8 Backtesting.
-
----
-
-# 7. M8 — Backtesting
-
-## Objective
-
-Determine whether strategies would have worked historically.
-
-Backtesting must eventually address:
-
-- look-ahead bias
-- data leakage
-- survivorship bias where relevant
-- future-information leakage
-- realistic execution assumptions
-
-Results must be reproducible from:
-
-```text
-Historical Data
-+
-Strategy Version
-+
-Configuration
-```
-
-The M8 design gate must explicitly define the backtest model before implementation, including signal timing, execution timing, position lifecycle, transaction costs, and evaluation metrics.
-
----
-
-# 8. M9 — Data Quality
-
-## Objective
-
-Assess whether observations are usable for analysis.
-
-## Foundation Already Defined
-
-```text
 DataQualityAssessment
-├── status
-└── issues
+        ↓
+VALID → PriceBarFactory → PriceBar
+INVALID / SUSPECT / UNKNOWN → not converted
 ```
 
-Statuses:
+The MVP preserves raw observations and does not silently repair invalid external data.
 
-```text
-VALID
-SUSPECT
-INVALID
-UNKNOWN
-```
+See `docs/DEC-042-DATA-QUALITY-ASSESSOR-MVP.md` and `docs/DEC-043-RAW-OBSERVATION-TO-PRICE-BAR.md`.
 
-Initial issue codes:
-
-```text
-MISSING_VALUE
-INVALID_VALUE
-INVALID_TIMESTAMP
-DUPLICATE_OBSERVATION
-OHLC_INCONSISTENCY
-```
-
-## Current State
-
-**Foundation defined; implementation of assessment rules intentionally deferred.**
-
-When resumed, the next design gate must decide:
-
-1. Raw input to the assessor.
-2. Quality rules.
-3. Multiple-issue status mapping.
-4. Effect of quality status on each analysis capability.
-
-See `docs/DEC-021-DATA-QUALITY-ASSESSMENT.md` and `docs/DEC-022-CORE-ANALYSIS-BEFORE-DATA-QUALITY.md`.
+M9 is complete.
 
 ---
 
-# 9. M3 — Data Acquisition
+# 7. M3 — Data Acquisition
 
 ## Objective
 
-Connect external market-data providers.
+Connect external market-data providers without leaking provider-specific behavior into the core domain.
 
-## Deferred Until
-
-The analytical domain has enough shape to define exactly what data the analysis requires.
-
-## Future Direction
+## Implemented
 
 ```text
-External Provider
-       ↓
+Application
+    ↓
+MarketDataProvider
+    ↓
 Provider Adapter
-       ↓
-Raw Observation
-       ↓
+    ↓
+RawPriceBarObservation
+    ↓
 Data Quality
-       ↓
+    ↓
+PriceBar
+    ↓
 Analysis
 ```
 
-Provider-specific behavior must remain outside the core domain.
+Yahoo Finance is currently implemented as a development adapter behind the provider boundary.
+
+The live COMI smoke test validates the real acquisition path. It intentionally allows external observations to be invalid; Data Quality must identify and reject them rather than weakening the domain rules.
+
+See:
+
+- `docs/DEC-044-DATA-ACQUISITION-BOUNDARY-MVP.md`
+- `docs/DEC-045-YAHOO-FINANCE-ADAPTER-MVP.md`
+- `docs/DEC-046-YAHOO-DAILY-TIMESTAMP-NORMALIZATION.md`
+- `docs/M3-DATA-ACQUISITION-MVP-COMPLETION.md`
+
+M3 is complete.
 
 ---
 
-# 10. M10 — Automation
+# 8. M10 — Automation
 
 ## Objective
 
@@ -412,34 +241,20 @@ Analyze
   ↓
 Score
   ↓
-Rank
-  ↓
 Detect Opportunities
   ↓
 Generate Report
+  ↓
+Send Alerts
 ```
 
----
+M10 has not started.
 
-# 11. M11 — Reporting & Alerts
-
-## Objective
-
-Deliver useful results.
-
-Potential outputs:
-
-- daily market report
-- top opportunities
-- watchlist changes
-- new signals
-- risk alerts
-- data-quality alerts
-- strategy-performance reports
+Before implementation, define the automation boundary, scheduling model, orchestration ownership, failure/retry behavior, idempotency expectations, and execution/report lifecycle.
 
 ---
 
-# 12. M12 — API & Dashboard
+# 9. M12 — API & Dashboard
 
 ## Objective
 
@@ -449,7 +264,7 @@ API/UI must consume application/domain capabilities and must not own business ru
 
 ---
 
-# 13. M13 — Production Hardening
+# 10. M13 — Production Hardening
 
 ## Objective
 
@@ -459,7 +274,7 @@ Areas include reliability, retries, failure recovery, idempotency, monitoring, s
 
 ---
 
-# 14. Cross-Cutting Requirements
+# 11. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -493,7 +308,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 15. Milestone Completion Rule
+# 12. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -519,14 +334,16 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 16. Changing the Roadmap
+# 13. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
 Changes affecting architecture or important domain decisions must be recorded in `docs/DECISION_LOG.md` or a dedicated DEC document.
 
+The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
+
 ---
 
-# 17. Guiding Principle
+# 14. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
