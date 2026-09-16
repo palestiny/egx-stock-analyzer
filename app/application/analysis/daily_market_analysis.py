@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.stock_analysis import StockAnalysisPipeline, StockAnalysisResult
 from app.application.execution.orchestrator import ExecutionOrchestrator
 from app.application.execution.retry import RetryPolicy
@@ -29,8 +30,13 @@ class DailyMarketAnalysisResult:
 
 
 class DailyMarketAnalysis:
-    def __init__(self, retry_policy: RetryPolicy) -> None:
+    def __init__(
+        self,
+        retry_policy: RetryPolicy,
+        result_store: AnalysisResultStore | None = None,
+    ) -> None:
         self._orchestrator = ExecutionOrchestrator(retry_policy)
+        self._result_store = result_store
 
     def run(self, inputs: list[StockAnalysisInput]) -> DailyMarketAnalysisResult:
         stock_results: dict[str, StockAnalysisResult] = {}
@@ -48,6 +54,8 @@ class DailyMarketAnalysis:
                 request.volume_lookback,
             )
             stock_results[symbol] = result
+            if self._result_store is not None:
+                self._result_store.save(symbol, result)
 
         execution = self._orchestrator.run(
             [item.symbol for item in inputs],
