@@ -13,7 +13,7 @@ It is responsible for creating and wiring:
 - `AnalysisInputAssembler`
 - the existing application `StockAnalysisRuntime`
 
-The factory receives the `StockCatalog` explicitly and receives the `yfinance` module explicitly. The Finnhub API key is passed explicitly to the factory.
+The factory receives the `StockCatalog` explicitly and receives the `yfinance` module explicitly. Infrastructure configuration is represented by `InfrastructureConfig` and is passed explicitly to the factory.
 
 ## Resource ownership
 
@@ -41,13 +41,12 @@ Implemented.
 
 FastAPI lifecycle integration is implemented in `app/main.py`: the application created by `create_application()` uses a lifespan context that calls `InfrastructureRuntime.close()` during application shutdown. This keeps infrastructure resource ownership in the infrastructure runtime while allowing the composition root to manage its lifecycle.
 
-Environment lookup is now isolated in `app/infrastructure/config.py`. `InfrastructureConfig.from_environment()` reads `FINNHUB_API_KEY`, while `HttpxFinnhubFinancialsClient` requires the API key explicitly. This keeps environment access at the infrastructure configuration boundary rather than inside the HTTP client.
+Environment lookup is isolated in `app/infrastructure/config.py`. `InfrastructureConfig.from_environment()` reads `FINNHUB_API_KEY`, while `HttpxFinnhubFinancialsClient` requires the API key explicitly. The application composition root now exposes `create_application_from_environment()`, which loads `InfrastructureConfig` and passes it explicitly into `create_infrastructure_runtime()`. Environment access therefore remains outside the application and domain layers, and infrastructure dependencies are still not constructed at module import time.
 
-The lifecycle and configuration behavior are covered by tests and the full test suite currently passes.
+The lifecycle, configuration, and composition behavior are covered by tests.
 
 ## Deferred
 
-- wiring `InfrastructureConfig` into the final application composition root;
 - production stock master/catalog;
 - persistent result store;
 - scheduled trigger wiring;
