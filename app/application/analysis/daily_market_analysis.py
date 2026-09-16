@@ -4,6 +4,7 @@ from uuid import UUID
 from app.application.analysis.stock_analysis import StockAnalysisPipeline, StockAnalysisResult
 from app.application.execution.orchestrator import ExecutionOrchestrator
 from app.application.execution.retry import RetryPolicy
+from app.domain.execution import Execution
 from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
@@ -23,7 +24,7 @@ class StockAnalysisInput:
 
 @dataclass(frozen=True)
 class DailyMarketAnalysisResult:
-    execution: object
+    execution: Execution
     stock_results: dict[str, StockAnalysisResult]
 
 
@@ -33,9 +34,10 @@ class DailyMarketAnalysis:
 
     def run(self, inputs: list[StockAnalysisInput]) -> DailyMarketAnalysisResult:
         stock_results: dict[str, StockAnalysisResult] = {}
+        inputs_by_symbol = {item.symbol: item for item in inputs}
 
         def analyze_stock(symbol: str) -> None:
-            request = next(item for item in inputs if item.symbol == symbol)
+            request = inputs_by_symbol[symbol]
             result = StockAnalysisPipeline.analyze(
                 request.stock_id,
                 request.timeframe,
