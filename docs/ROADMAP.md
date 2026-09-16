@@ -25,17 +25,19 @@ Current M6 progress:
 - Stock Quality Score MVP implemented
 - Equal MVP contribution of `+1 / 0 / -1` per selected evidence area
 - Explainable component scores
-- No BUY/SELL decisions
+- No BUY/SELL decisions inside the scoring components
 
 M7 has now progressed through:
 
 - Entry Context MVP
 - Entry Quality Score MVP
+- Opportunity Classification MVP
 
-Entry Context identifies the latest price and the nearest discovered structural support/resistance around it. Entry Quality currently measures only whether structural support/resistance context is available around the current price; it does not generate a trading decision.
+Entry Context identifies the latest price and the nearest discovered structural support/resistance around it. Entry Quality measures the available structural context around the current price. Opportunity Classification now combines Stock Quality and Entry Quality using explicit MVP rules to produce BUY/WATCH/HOLD/AVOID.
 
 Entry Context is documented in `docs/DEC-036-ENTRY-CONTEXT-MVP.md`.  
-Entry Quality is documented in `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.
+Entry Quality is documented in `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.  
+Opportunity Classification is documented in `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`.
 
 The project has not claimed a green full-suite test run in this session; test execution remains a local verification step.
 
@@ -114,7 +116,7 @@ The core analytical model must become understandable, deterministic, explainable
 | M4 | Technical Analysis | 🟢 Core Slice Built | Build deterministic technical evidence |
 | M5 | Fundamental Analysis | 🟢 Core Slice Built | Build independent fundamental evidence |
 | M6 | Scoring Engine | 🟡 In Progress | Combine evidence into explainable scores |
-| M7 | Signal Generation | 🟡 In Progress | Establish entry context and entry-quality interpretation before opportunity rules |
+| M7 | Signal Generation | 🟡 In Progress | Establish entry context, entry quality, and opportunity classification |
 | M8 | Backtesting | 🔴 Not Started | Validate analytical strategies historically |
 | M9 | Data Quality | 🟡 Foundation Defined / Implementation Deferred | Implement real quality rules after the core analytical flow |
 | M10 | Automation | 🔴 Not Started | Execute the analytical pipeline automatically |
@@ -259,49 +261,26 @@ The score is intentionally not a probability, expected return, or BUY/SELL signa
 
 See `docs/DEC-037-ENTRY-QUALITY-SCORE-MVP.md`.
 
-## Next Design Gate
+### Opportunity Classification
 
-The next M7 decision must define how Stock Quality and Entry Quality are interpreted together to produce an opportunity classification.
-
-The design must explicitly address:
-
-- how the two scores relate
-- whether they remain separate or are combined
-- what constitutes an actionable opportunity
-- how insufficient/undefined evidence affects classification
-- how explanations and risks are preserved
-
-No BUY/SELL rule or overall opportunity score should be introduced implicitly.
-
-Initial working labels remain:
+The MVP combines Stock Quality and Entry Quality through explicit rules:
 
 ```text
-BUY
-WATCH
-HOLD
-AVOID
+Strong negative quality  → AVOID
+Strong quality + entry   → BUY
+Positive quality         → WATCH
+Other combinations       → HOLD
 ```
 
-Future signals may include:
+The exact thresholds and precedence are recorded in `docs/DEC-038-OPPORTUNITY-CLASSIFICATION-MVP.md`.
 
-```text
-Signal
-Score
-Entry Zone
-Stop Loss
-Target 1
-Target 2
-Risk / Reward
-Confidence
-Reasons
-Risks
-Strategy Version
-Generated At
-```
+This classification is an analytical state, not a probability, expected return, or guarantee of future price movement.
 
-The exact rules remain to be designed.
+## M7 Completion Gate
 
-Signals must be explainable.
+M7 remains pending final local verification and review/refactor acceptance.
+
+The next major milestone after M7 is M8 Backtesting.
 
 ---
 
@@ -328,6 +307,8 @@ Strategy Version
 +
 Configuration
 ```
+
+The M8 design gate must explicitly define the backtest model before implementation, including signal timing, execution timing, position lifecycle, transaction costs, and evaluation metrics.
 
 ---
 
