@@ -56,7 +56,8 @@ def test_nearest_support_below_current_price_is_selected():
         SupportResistanceEvidence(support, ()),
     )
 
-    assert result.nearest_support == level("9")
+    assert result.nearest_support is not None
+    assert result.nearest_support.price == Price(Decimal("9"))
 
 
 def test_nearest_resistance_above_current_price_is_selected():
@@ -68,7 +69,8 @@ def test_nearest_resistance_above_current_price_is_selected():
         SupportResistanceEvidence((), resistance),
     )
 
-    assert result.nearest_resistance == level("11")
+    assert result.nearest_resistance is not None
+    assert result.nearest_resistance.price == Price(Decimal("11"))
 
 
 def test_levels_on_wrong_side_are_ignored():
