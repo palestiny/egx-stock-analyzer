@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.domain.entry_analysis.context import EntryContext
+from app.domain.entry_analysis.context import EntryContext, EntryContextAnalyzer
 from app.domain.entry_analysis.scoring import EntryQualityScore, EntryQualityScorer
 from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.fundamental_analysis.orchestrator import FundamentalAnalysisOrchestrator
@@ -66,10 +66,7 @@ class StockAnalysisPipeline:
             technical_score,
         )
 
-        entry_context = __import__(
-            "app.domain.entry_analysis.context",
-            fromlist=["EntryContextAnalyzer"],
-        ).EntryContextAnalyzer.analyze(
+        entry_context = EntryContextAnalyzer.analyze(
             price_bars,
             technical_analysis.support_resistance,
         )
