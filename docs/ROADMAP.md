@@ -119,7 +119,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
-| M19 | Recurring Market Scheduling | 🟡 Design Accepted | Define deterministic recurring full-market execution without moving business policy into the scheduler |
+| M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -553,11 +553,15 @@ M18 is a one-shot scheduling adapter. The configured universe is resolved at exe
 
 ## Status
 
-The M19 design gate is **accepted** in `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`. Implementation is now authorized for the accepted MVP.
+The M19 design gate is **accepted** in docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md, and the implementation is complete through PR #22.
 
 M19 uses daily-at-local-time recurrence, Africa/Cairo as the default timezone, Monday-Friday as the temporary calendar policy, skipped missed occurrences, no concurrent market-analysis execution, process-local occurrence idempotency, process-local schedules, an injected clock, and continuation after failed occurrences.
 
-The existing `RunConfiguredMarketAnalysis` capability remains the business-execution boundary. The scheduler remains timing-only.
+GitHub Actions Run #404 validated implementation head a9ab32752bc03f6564cd47e820c96c9cad522185: Python unit tests and frontend tests/build all passed.
+
+The existing RunConfiguredMarketAnalysis capability remains the business-execution boundary. The scheduler remains timing-only.
+
+Completion record: docs/M19-RECURRING-MARKET-SCHEDULING-MVP-COMPLETION.md.
 
 ---
 
