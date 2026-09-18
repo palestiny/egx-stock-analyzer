@@ -386,6 +386,17 @@ The gate should cover:
 
 No additional API surface should be treated as committed until this gate is documented.
 
+## Current M12 Validation
+
+The reporting and alert read-side API slice has now been locally validated:
+
+- Focused API/application contract suite: **17 passed, 2 warnings**.
+- Report endpoint preserves analysis date and Decimal transport serialization as strings.
+- Alert endpoint preserves BUY-only domain semantics.
+- Remaining warnings are dependency deprecations from Starlette/httpx and AnyIO; they are separate cleanup work and do not change the M12 business contract.
+
+M12 remains **in progress**. The next Design Gate is the dashboard/presentation boundary; no dashboard implementation is committed until that gate defines the presentation responsibilities and API consumption boundary.
+
 # 10. M13 — Production Hardening
 
 ## Objective
