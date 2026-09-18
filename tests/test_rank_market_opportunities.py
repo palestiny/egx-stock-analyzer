@@ -167,6 +167,29 @@ def test_technical_then_fundamental_then_symbol_break_ties():
     ]
 
 
+def test_fundamental_score_breaks_technical_tie_before_symbol():
+    fundamental_high = analysis_result(
+        OpportunityClassification.BUY,
+        stock_quality=5,
+        entry_quality=1,
+        technical=2,
+        fundamental=4,
+    )
+    fundamental_low = analysis_result(
+        OpportunityClassification.BUY,
+        stock_quality=5,
+        entry_quality=1,
+        technical=2,
+        fundamental=3,
+    )
+
+    result = RankMarketOpportunities().execute(
+        [item("A-LOW", fundamental_low), item("Z-HIGH", fundamental_high)]
+    )
+
+    assert [entry.symbol for entry in result.items] == ["Z-HIGH", "A-LOW"]
+
+
 def test_duplicate_normalized_symbols_are_rejected():
     result = RankMarketOpportunities()
     analysis = analysis_result(
