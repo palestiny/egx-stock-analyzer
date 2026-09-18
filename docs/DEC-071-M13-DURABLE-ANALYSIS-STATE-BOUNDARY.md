@@ -5,11 +5,9 @@
 
 ## Context
 
-The first API/dashboard slice currently stores analysis results in `InMemoryAnalysisResultStore`.
+The first API/dashboard slice initially stored analysis results in `InMemoryAnalysisResultStore`.
 
-This is appropriate for controlled development and vertical-slice validation, but it means analysis results disappear when the process stops. The dashboard therefore cannot provide durable latest analysis across application restarts.
-
-M13 needs a persistence boundary before durable operation can be considered.
+That implementation was appropriate for controlled development and vertical-slice validation, but it lost analysis results when the process stopped. M13 therefore established a persistence boundary before durable operation could be considered.
 
 ## Decision
 
@@ -115,3 +113,8 @@ Revisit this decision if:
 - analysis results are intentionally made ephemeral;
 - a different durable storage requirement replaces the current result-store model;
 - the system moves to a service architecture with an external persistence contract.
+
+
+## Implementation Status
+
+DEC-072 implements this boundary with `SQLiteAnalysisResultStore` behind `AnalysisResultStore`. The default infrastructure composition now uses the SQLite implementation, while the in-memory implementation remains available for isolated tests and explicit composition. Persistence acceptance and integration validation are recorded in DEC-072.
