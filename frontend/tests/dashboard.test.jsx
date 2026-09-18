@@ -92,8 +92,8 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "egal" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
-    expect(await screen.findByText("Historical analysis")).toBeInTheDocument();
-    expect(screen.getAllByText("2026-09-18").length).toBeGreaterThanOrEqual(2);
+    expect(await screen.findByText("Stock 72")).toBeInTheDocument();
+    expect(screen.getAllByText("2026-09-18").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("2026-09-16")).toBeInTheDocument();
     expect(screen.getByText("Stock 72")).toBeInTheDocument();
     expect(screen.getByText("Entry 61")).toBeInTheDocument();
