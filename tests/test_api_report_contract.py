@@ -91,7 +91,7 @@ def test_get_report_returns_transport_projection_with_analysis_date():
         "stock_quality": 47,
         "entry_quality": 2,
         "opportunity": "buy",
-        "current_price": 350.5,
+        "current_price": "350.5",
         "nearest_support": "340.0",
         "nearest_resistance": "365.0",
         "trend": "uptrend",
