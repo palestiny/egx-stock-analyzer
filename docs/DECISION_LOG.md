@@ -1754,3 +1754,26 @@ M19 opens a design gate for recurring full-market analysis after the one-shot M1
 The current direction is to keep `RunConfiguredMarketAnalysis` as the business-execution boundary and keep the generic scheduler focused on timing mechanics. No implementation decision is committed until the M19 gate is accepted.
 
 See `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`.
+
+
+---
+
+## DEC-078 — M19 Recurring Market Scheduling
+
+**Status:** Accepted
+
+### Decision
+
+M19 introduces recurring full-market scheduling as an application capability around the existing one-shot scheduler. Recurrence is daily at a configured local time, with Africa/Cairo as the default timezone and Monday-Friday as the temporary calendar policy.
+
+Missed occurrences are skipped. Concurrent market-analysis execution is not introduced. Each occurrence has a deterministic identity based on schedule identity plus scheduled local date/time, with process-local idempotency. Schedules remain process-local and do not survive restart. Time is injected through a clock abstraction. Failed occurrences do not disable future recurrence.
+
+The recurring capability owns recurrence policy and next-run calculation. Scheduler owns timestamp timing mechanics. RunConfiguredMarketAnalysis remains responsible for business execution.
+
+### Trade-offs
+
+This keeps the scheduler generic and the market-analysis policy explicit, at the cost of deferring cron/fixed-interval recurrence, authoritative EGX holiday handling, durable schedules, restart recovery, and distributed coordination.
+
+### Revisit Conditions
+
+Revisit when durable user-managed schedules, an authoritative EGX trading calendar, multiple recurrence rule types, distributed scheduling, or multi-process coordination become required.
