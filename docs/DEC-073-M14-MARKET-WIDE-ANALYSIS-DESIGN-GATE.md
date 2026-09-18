@@ -1,6 +1,6 @@
 # DEC-073 — Market-Wide Analysis Capability Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M14
 
@@ -211,11 +211,87 @@ Before implementation, tests should establish behavior for at least:
 - reuse of existing single-stock analysis behavior;
 - aggregate execution result semantics.
 
+## Accepted Decisions
+
+### 1. Universe Source
+
+The M14 MVP accepts an explicit ordered list of stock symbols as its input universe.
+
+The market-wide use case resolves each symbol through the existing StockCatalog. A separate StockUniverse abstraction is not introduced yet because the current problem is orchestration, not reusable universe-management behavior.
+
+### 2. Aggregate Failure Semantics
+
+The aggregate result uses states distinct from the existing per-stock ExecutionState:
+
+- COMPLETED — all requested stocks completed successfully, including the empty-universe no-op case.
+- PARTIALLY_COMPLETED — at least one stock completed and at least one stock failed.
+- FAILED — all requested stocks failed.
+
+Individual stock outcomes remain available. An unknown symbol is an individual stock failure rather than an abort of the entire run.
+
+### 3. Deterministic Ordering
+
+Execution is sequential and follows the caller-provided symbol order. The use case does not sort implicitly.
+
+Duplicate normalized symbols are rejected before execution to prevent ambiguous repeated work.
+
+### 4. Empty Universe
+
+An empty universe is a valid no-op and returns COMPLETED with zero successes and zero failures.
+
+### 5. Persistence Timing
+
+Successful per-stock analysis is persisted by the existing RunStockAnalysis capability immediately when that stock completes. The market-wide use case does not introduce aggregate persistence.
+
+Therefore, earlier successful results remain available when a later stock fails.
+
+### 6. Retry Ownership
+
+Per-stock retry behavior remains owned by RunStockAnalysis and its existing retry boundary. RunMarketAnalysis does not duplicate retry policy, backoff, or provider-specific failure classification.
+
+A stock is failed for the aggregate result only after the existing single-stock capability has exhausted its retry semantics and reports failure.
+
+### 7. Execution Identity
+
+The market-wide run has its own aggregate execution identity, separate from individual stock execution identities.
+
+M14 does not persist aggregate execution history; the identity exists to distinguish one market-wide invocation and support future observability.
+
+### 8. Concurrency
+
+The M14 MVP remains sequential. Concurrency is deferred because the current requirement is deterministic orchestration, not throughput optimization, and concurrency would introduce additional decisions around ordering, provider limits, failure isolation, and observability.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M14 MVP defined here.**
 
-The next action is to resolve the open questions and record the accepted decision before writing the M14 implementation.
+The implementation boundary is:
+
+```
+RunMarketAnalysis
+      ↓
+StockCatalog
+      ↓
+RunStockAnalysis
+      ↓
+AnalysisResultStore
+```
+
+RunMarketAnalysis owns only market-wide orchestration and aggregate result semantics. It must not calculate analytical scores, classification, support/resistance, or provider-specific behavior.
+
+## TDD Acceptance Criteria
+
+- empty universe returns COMPLETED with zero outcomes;
+- one-stock success returns COMPLETED;
+- multiple stocks execute in the exact supplied order;
+- one failure with other successes returns PARTIALLY_COMPLETED;
+- all stocks failing returns FAILED;
+- unknown symbols become individual failures without aborting later symbols;
+- duplicate normalized symbols are rejected before execution;
+- successful stocks remain persisted when a later stock fails;
+- existing per-stock retry behavior is reused;
+- the aggregate run receives a distinct execution identity;
+- no analytical calculation is introduced into the market-wide orchestration layer.
 
 ## Consequences if Accepted
 
