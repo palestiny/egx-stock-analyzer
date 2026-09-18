@@ -6,6 +6,7 @@ from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
@@ -25,6 +26,7 @@ class StockAnalysisRuntime:
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
+    compare_analysis_snapshots: CompareAnalysisSnapshots
     get_alert_candidate: GetAlertCandidate
     result_store: AnalysisResultStore
 
@@ -61,6 +63,10 @@ def create_stock_analysis_runtime(
         stock_catalog=stock_catalog,
         result_store=result_store,
     )
+    compare_analysis_snapshots = CompareAnalysisSnapshots(
+        stock_catalog=stock_catalog,
+        result_store=result_store,
+    )
     get_analysis_report = GetAnalysisReport(
         stock_catalog=stock_catalog,
         result_store=result_store,
@@ -79,6 +85,7 @@ def create_stock_analysis_runtime(
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,
+        compare_analysis_snapshots=compare_analysis_snapshots,
         get_alert_candidate=get_alert_candidate,
         result_store=result_store,
     )
