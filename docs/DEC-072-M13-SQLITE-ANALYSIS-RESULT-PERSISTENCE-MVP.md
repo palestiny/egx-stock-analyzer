@@ -1,6 +1,6 @@
 # DEC-072 — SQLite Analysis Result Persistence MVP
 
-**Status:** Accepted  
+**Status:** Accepted — Persistence MVP Complete  
 **Date:** 2026-09-18
 
 ## Context
