@@ -188,9 +188,13 @@ The ranking capability owns only cross-stock ordering and eligibility selection.
 
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M15 MVP defined here.**
 
-The next action is to resolve the open questions and record the accepted ranking contract before writing M15 production code.
+Application boundary:
+
+Market Analysis → Completed Results → RankMarketOpportunities → Ordered Opportunity Set
+
+The ranking capability owns only cross-stock ordering and eligibility selection. It does not own analysis, scoring, persistence, API transport, dashboard rendering, notifications, or trading decisions.
 
 ## Revisit Conditions
 
