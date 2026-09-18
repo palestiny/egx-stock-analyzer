@@ -810,9 +810,9 @@ Deferred capabilities remain subject to separate design gates.
 
 ## Status
 
-M26 design is **proposed** in `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`. No provider-specific implementation is authorized yet.
+M26 design is **accepted** in `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
 
-The gate defines the boundary for connecting one concrete notification provider behind the existing M25 `NotificationProvider` abstraction. Provider selection, credential handling, timeout/retry semantics, payload mapping, and integration-test boundaries must be accepted before implementation.
+The accepted provider is Telegram Bot API behind the existing M25 `NotificationProvider` boundary. Configuration is infrastructure-only, the synchronous request timeout is 10 seconds, automatic provider retry is deferred, and deterministic CI remains independent of live Telegram delivery.
 
 Deferred from M26: multiple providers, user preferences, notification analytics, queues/workers, distributed delivery, scheduling policy, alert-generation changes, trading execution, and AI notification decisions.
 
