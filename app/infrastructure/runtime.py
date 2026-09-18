@@ -10,6 +10,9 @@ from app.application.analysis.runtime import (
 )
 from app.application.execution.retry import RetryPolicy
 from app.application.notifications.automatic_alert_delivery import AutomaticAlertDelivery
+from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
+    RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+)
 from app.application.notifications.deliver_alert import DeliverAlert
 from app.application.notifications.deliver_alert_by_symbol import DeliverAlertBySymbol
 from app.application.stocks.catalog import StockCatalog
@@ -36,6 +39,7 @@ class InfrastructureRuntime:
     deliver_alert: DeliverAlert | None = None
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None
     automatic_alert_delivery: AutomaticAlertDelivery | None = None
+    run_configured_market_analysis_with_automatic_alert_delivery: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -89,6 +93,7 @@ def create_infrastructure_runtime(
     deliver_alert = None
     deliver_alert_by_symbol = None
     automatic_alert_delivery = None
+    run_configured_market_analysis_with_automatic_alert_delivery = None
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -108,6 +113,13 @@ def create_infrastructure_runtime(
             get_alert_candidate=application_runtime.get_alert_candidate,
             deliver_alert=deliver_alert,
             default_channel=config.automatic_alert_delivery_channel,
+        )
+        run_configured_market_analysis_with_automatic_alert_delivery = (
+            RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(
+                run_configured_market_analysis=application_runtime.run_configured_market_analysis,
+                automatic_alert_delivery=automatic_alert_delivery,
+        run_configured_market_analysis_with_automatic_alert_delivery=run_configured_market_analysis_with_automatic_alert_delivery,
+            )
         )
 
     return InfrastructureRuntime(
