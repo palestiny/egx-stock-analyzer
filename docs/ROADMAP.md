@@ -114,7 +114,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
 | M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
-| M14 | Market-Wide Analysis | 🟡 Implementation Merged — CI Verification Not Observable | Market-wide orchestration is merged; milestone remains open until repository validation is independently observable |
+| M14 | Market-Wide Analysis | 🟢 Complete | Sequential market-wide orchestration merged and validated by GitHub Actions Run #200 on implementation head |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -389,7 +389,7 @@ M13's first Operational Runtime Baseline is complete under DEC-070: health expos
 
 ## Status
 
-The M14 design gate is **accepted** in `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`. The implementation was merged through PR #3. The available GitHub workflow-run integration does not currently expose a workflow run for merge commit `e71ca64b88ad7acad447fe8317d6f4168c350174`, so M14 remains open until CI verification is independently observable.
+The M14 design gate is **accepted** in `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`. The implementation was merged through PR #3. GitHub Actions Run #200 completed successfully for implementation head `df6f0b93d51639e49c65a46a6d39ffac35850294`, providing the repository-level CI validation for the M14 implementation.
 
 ### Accepted application boundary
 
