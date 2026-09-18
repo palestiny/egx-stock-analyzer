@@ -95,7 +95,7 @@ M28 remains authoritative. The workflow passes the returned analysis Execution u
 
 If configured-market analysis raises before returning an Execution, automatic delivery is not invoked.
 
-If analysis returns FAILED or COMPLETED_WITH_ERRORS, the workflow still invokes M28 for successful symbols recorded in the returned execution. This preserves M28 partial-success behavior.
+If analysis returns COMPLETED_WITH_ERRORS, the workflow still invokes M28 for successful symbols recorded in the returned execution. If analysis returns FAILED, the workflow does not invoke M28 because there are no successful analysis outcomes eligible for scheduled delivery.
 
 ### 4. Independent Outcomes
 
@@ -131,7 +131,7 @@ The workflow remains synchronous and sequential. No queue, worker, or parallel d
 
 - successful configured-market analysis invokes automatic delivery exactly once with the same returned Execution;
 - partial market-analysis execution still invokes automatic delivery for its successful symbols;
-- failed market-analysis execution with a returned Execution still invokes automatic delivery, which becomes a no-op when there are no successful symbols;
+- failed market-analysis execution does not invoke automatic delivery;
 - analysis exception before an Execution exists prevents automatic delivery;
 - analysis execution state is unchanged by delivery outcome;
 - delivery failure is visible in the workflow result without becoming analysis failure;

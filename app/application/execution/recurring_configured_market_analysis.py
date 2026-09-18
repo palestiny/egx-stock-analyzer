@@ -7,8 +7,8 @@ from typing import Protocol
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from app.application.analysis.run_configured_market_analysis import (
-    RunConfiguredMarketAnalysis,
+from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
+    RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
 )
 from app.application.execution.scheduler import Scheduler
 
@@ -33,13 +33,13 @@ class RecurringConfiguredMarketAnalysis:
 
     def __init__(
         self,
-        run_configured_market_analysis: RunConfiguredMarketAnalysis,
+        scheduled_operation: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
         scheduler: Scheduler,
         clock: Clock,
         schedule_time: time,
         timezone: ZoneInfo = CAIRO_TIMEZONE,
     ) -> None:
-        self._run_configured_market_analysis = run_configured_market_analysis
+        self._scheduled_operation = scheduled_operation
         self._scheduler = scheduler
         self._clock = clock
         self._schedule_time = schedule_time.replace(tzinfo=None)
@@ -115,7 +115,7 @@ class RecurringConfiguredMarketAnalysis:
 
         self._running = True
         try:
-            self._run_configured_market_analysis.execute(occurrence.date())
+            self._scheduled_operation.execute(occurrence.date())
         finally:
             self._running = False
             self._schedule_occurrence(self._next_occurrence(occurrence + timedelta(seconds=1)))
