@@ -11,6 +11,7 @@ class AnalysisResultRecord:
     result: StockAnalysisResult
     analysis_date: date | None
     snapshot_id: UUID = field(default_factory=uuid4)
+    symbol: str | None = None
 
 
 class AnalysisResultStore(Protocol):
@@ -55,6 +56,7 @@ class InMemoryAnalysisResultStore:
             AnalysisResultRecord(
                 result=result,
                 analysis_date=analysis_date,
+                symbol=symbol,
             )
         )
 
