@@ -127,6 +127,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
+| M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -842,6 +843,38 @@ The gate preserves these constraints:
 - M27 MVP is single-alert, synchronous, and sequential.
 
 The accepted command is `POST /api/v1/alerts/{symbol}/deliver?channel=telegram`. It resolves the existing alert candidate, delegates to `DeliverAlert`, preserves M25 idempotency, and does not execute fresh analysis.
+
+---
+
+# 27. M27 — Alert Delivery Trigger & Transport Boundary
+
+## Status
+
+M27 is **complete**. The accepted design is documented in `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`, and the implementation was merged through PR #43.
+
+### Accepted boundary
+
+```
+POST /api/v1/alerts/{symbol}/deliver
+          ↓
+DeliverAlertBySymbol
+          ↓
+GetAlertCandidate + DeliverAlert
+          ↓
+NotificationProvider
+          ↓
+TelegramNotificationProvider
+```
+
+The command resolves an existing alert candidate, delegates delivery to M25, preserves idempotency and durable delivery state, and never executes fresh analysis.
+
+Transport semantics are explicit: missing candidate → 404; delivery not configured → 503; delivered or persisted failed delivery → 200 with the delivery state.
+
+GitHub Actions Run #730 completed successfully for implementation head `396383e9cd3857459f0f6249f688d279c8cca264`, validating Python unit tests plus frontend tests and build.
+
+Completion record: `docs/M27-ALERT-DELIVERY-TRIGGER-MVP-COMPLETION.md`.
+
+Deferred: automatic delivery after analysis, bulk delivery, multi-channel fan-out, failed-delivery retry, queues/workers, scheduled delivery, user preferences, delivery analytics, trading execution, and AI notification decisions.
 
 ---
 
