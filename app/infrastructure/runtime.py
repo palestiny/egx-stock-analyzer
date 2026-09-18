@@ -16,6 +16,9 @@ from app.infrastructure.market_data.yahoo_finance import (
     YahooFinanceAdapter,
     YahooFinanceFundamentalDataSource,
     YahooFinanceHistoryClient,
+ )
+from app.infrastructure.persistence.sqlite_analysis_result_store import (
+    SQLiteAnalysisResultStore,
 )
 
 
@@ -44,7 +47,7 @@ def create_infrastructure_runtime(
     result_store: AnalysisResultStore | None = None,
     retry_policy: RetryPolicy | None = None,
 ) -> InfrastructureRuntime:
-    result_store = result_store or InMemoryAnalysisResultStore()
+    result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
     retry_policy = retry_policy or RetryPolicy(1)
 
     yahoo_history_client = YahooFinanceHistoryClient(yfinance_module)
