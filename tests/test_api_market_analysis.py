@@ -69,3 +69,51 @@ def test_post_market_analysis_does_not_accept_symbol_list():
 
     assert response.status_code == 200
     capability.execute.assert_called_once()
+
+
+def test_post_market_analysis_exposes_automatic_delivery_outcome():
+    from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import (
+        ConfiguredMarketAnalysisResult,
+    )
+    from app.application.notifications.automatic_alert_delivery import (
+        AutomaticAlertDeliveryResult,
+        AutomaticAlertDeliveryState,
+    )
+
+    execution = Execution.create()
+    execution.start()
+    execution.record_stock_success("EGAL")
+    execution.complete()
+    delivery = AutomaticAlertDeliveryResult(
+        state=AutomaticAlertDeliveryState.COMPLETED,
+        attempted_count=1,
+        delivered_count=1,
+        skipped_count=0,
+        failed_count=0,
+        failure_reasons={},
+    )
+
+    capability = Mock()
+    capability.execute.return_value = ConfiguredMarketAnalysisResult(
+        execution=execution,
+        automatic_alert_delivery=delivery,
+    )
+
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        run_configured_market_analysis_with_automatic_alerts=capability,
+    )
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/market-analysis")
+
+    assert response.status_code == 200
+    assert response.json()["automatic_alert_delivery"] == {
+        "state": "completed",
+        "attempted_count": 1,
+        "delivered_count": 1,
+        "skipped_count": 0,
+        "failed_count": 0,
+        "failure_reasons": {},
+    }
+    capability.execute.assert_called_once()
