@@ -113,7 +113,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
-| M13 | Production Hardening | 🟢 Operational Baseline Complete | Establish production boundaries; further hardening requires separate design gates |
+| M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -378,7 +378,7 @@ Prepare the system for reliable long-term operation.
 
 Areas include reliability, retries, failure recovery, idempotency, monitoring, secrets management, authentication/authorization, performance, caching, observability, deployment, backups, migrations, and rollback.
 
-M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. DEC-071 established the durable analysis-state boundary, and DEC-072 accepted SQLite plus an explicit versioned serializer as the first persistence MVP. The next implementation slice is durable analysis-result persistence behind `AnalysisResultStore`.
+M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. DEC-071 established the durable analysis-state boundary, and DEC-072 accepted SQLite plus an explicit versioned serializer as the first persistence MVP. The persistence implementation is now validated through store-level and API-level tests, including analysis → SQLite → store recreation → report/alert projections. The API/report/dashboard contracts remain unchanged.
 
 ---
 
