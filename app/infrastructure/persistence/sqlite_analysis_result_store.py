@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 from pathlib import Path
+from uuid import UUID, uuid4
 
 from app.application.analysis.result_store import AnalysisResultRecord
 from app.application.analysis.stock_analysis import StockAnalysisResult
@@ -22,15 +23,78 @@ class SQLiteAnalysisResultStore:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
+            columns = [
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(analysis_results)"
+                ).fetchall()
+            ]
+
+            if not columns:
+                self._create_history_table(connection)
+            elif "snapshot_id" not in columns:
+                self._migrate_latest_only_table(connection)
+
             connection.execute(
                 """
-                CREATE TABLE IF NOT EXISTS analysis_results (
-                    symbol TEXT PRIMARY KEY,
-                    analysis_date TEXT NULL,
-                    payload TEXT NOT NULL
-                )
+                CREATE INDEX IF NOT EXISTS idx_analysis_results_symbol_date
+                ON analysis_results (symbol, analysis_date)
                 """
             )
+
+    @staticmethod
+    def _create_history_table(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analysis_results (
+                snapshot_id TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL,
+                analysis_date TEXT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+
+    @staticmethod
+    def _migrate_latest_only_table(connection: sqlite3.Connection) -> None:
+        rows = connection.execute(
+            """
+            SELECT symbol, analysis_date, payload
+            FROM analysis_results
+            """
+        ).fetchall()
+
+        connection.execute(
+            """
+            CREATE TABLE analysis_results_v2 (
+                snapshot_id TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL,
+                analysis_date TEXT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+
+        connection.executemany(
+            """
+            INSERT INTO analysis_results_v2 (
+                snapshot_id,
+                symbol,
+                analysis_date,
+                payload
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            [
+                (str(uuid4()), symbol, analysis_date, payload)
+                for symbol, analysis_date, payload in rows
+            ],
+        )
+
+        connection.execute("DROP TABLE analysis_results")
+        connection.execute(
+            "ALTER TABLE analysis_results_v2 RENAME TO analysis_results"
+        )
 
     def save(
         self,
@@ -46,13 +110,20 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO analysis_results (symbol, analysis_date, payload)
-                VALUES (?, ?, ?)
-                ON CONFLICT(symbol) DO UPDATE SET
-                    analysis_date = excluded.analysis_date,
-                    payload = excluded.payload
+                INSERT INTO analysis_results (
+                    snapshot_id,
+                    symbol,
+                    analysis_date,
+                    payload
+                )
+                VALUES (?, ?, ?, ?)
                 """,
-                (symbol, analysis_date_value, payload),
+                (
+                    str(uuid4()),
+                    symbol,
+                    analysis_date_value,
+                    payload,
+                ),
             )
 
     def get(self, symbol: str) -> StockAnalysisResult | None:
@@ -63,9 +134,14 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT analysis_date, payload
+                SELECT snapshot_id, analysis_date, payload
                 FROM analysis_results
                 WHERE symbol = ?
+                ORDER BY
+                    analysis_date IS NULL ASC,
+                    analysis_date DESC,
+                    snapshot_id ASC
+                LIMIT 1
                 """,
                 (symbol,),
             ).fetchone()
@@ -73,10 +149,53 @@ class SQLiteAnalysisResultStore:
         if row is None:
             return None
 
-        analysis_date = (
-            date.fromisoformat(row[0]) if row[0] is not None else None
-        )
+        return self._to_record(row)
+
+    def get_history(
+        self,
+        symbol: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ) -> tuple[AnalysisResultRecord, ...]:
+        if start_date is not None and end_date is not None and start_date > end_date:
+            raise ValueError("start_date cannot be after end_date")
+
+        query = """
+            SELECT snapshot_id, analysis_date, payload
+            FROM analysis_results
+            WHERE symbol = ?
+        """
+        parameters: list[str] = [symbol]
+
+        if start_date is not None:
+            query += " AND analysis_date >= ?"
+            parameters.append(start_date.isoformat())
+
+        if end_date is not None:
+            query += " AND analysis_date <= ?"
+            parameters.append(end_date.isoformat())
+
+        query += """
+            ORDER BY
+                analysis_date IS NULL ASC,
+                analysis_date DESC,
+                snapshot_id ASC
+        """
+
+        with self._connect() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+
+        return tuple(self._to_record(row) for row in rows)
+
+    @staticmethod
+    def _to_record(row: tuple[str, str | None, str]) -> AnalysisResultRecord:
+        snapshot_id, analysis_date_value, payload = row
         return AnalysisResultRecord(
-            result=deserialize_analysis_result(row[1]),
-            analysis_date=analysis_date,
+            result=deserialize_analysis_result(payload),
+            analysis_date=(
+                date.fromisoformat(analysis_date_value)
+                if analysis_date_value is not None
+                else None
+            ),
+            snapshot_id=UUID(snapshot_id),
         )

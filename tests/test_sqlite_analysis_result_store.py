@@ -155,3 +155,113 @@ def test_sqlite_store_returns_none_for_missing_symbol(tmp_path):
     store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
 
     assert store.get_record("UNKNOWN") is None
+
+
+def test_sqlite_store_preserves_multiple_historical_snapshots(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    first = make_result()
+    second = make_result()
+
+    store.save("EGAL", first, date(2026, 9, 17))
+    store.save("EGAL", second, date(2026, 9, 18))
+
+    history = store.get_history("EGAL")
+
+    assert len(history) == 2
+    assert history[0].result == second
+    assert history[0].analysis_date == date(2026, 9, 18)
+    assert history[1].result == first
+    assert history[1].analysis_date == date(2026, 9, 17)
+    assert history[0].snapshot_id != history[1].snapshot_id
+
+
+def test_sqlite_store_allows_multiple_snapshots_on_same_date(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    first = make_result()
+    second = make_result()
+
+    analysis_date = date(2026, 9, 18)
+    store.save("EGAL", first, analysis_date)
+    store.save("EGAL", second, analysis_date)
+
+    history = store.get_history("EGAL")
+
+    assert len(history) == 2
+    assert {record.analysis_date for record in history} == {analysis_date}
+    assert history[0].snapshot_id < history[1].snapshot_id
+
+
+def test_sqlite_store_history_supports_inclusive_date_bounds(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    store.save("EGAL", make_result(), date(2026, 9, 16))
+    store.save("EGAL", make_result(), date(2026, 9, 17))
+    store.save("EGAL", make_result(), date(2026, 9, 18))
+
+    history = store.get_history(
+        "EGAL",
+        start_date=date(2026, 9, 17),
+        end_date=date(2026, 9, 18),
+    )
+
+    assert [record.analysis_date for record in history] == [
+        date(2026, 9, 18),
+        date(2026, 9, 17),
+    ]
+
+
+def test_sqlite_store_latest_result_is_derived_from_history(tmp_path):
+    database_path = tmp_path / "analysis.db"
+    store = SQLiteAnalysisResultStore(database_path)
+
+    store.save("EGAL", make_result(), date(2026, 9, 17))
+    store.save("EGAL", make_result(), date(2026, 9, 18))
+
+    latest = store.get_record("EGAL")
+    history = store.get_history("EGAL")
+
+    assert latest == history[0]
+
+
+def test_sqlite_store_migrates_existing_latest_only_row(tmp_path):
+    import sqlite3
+
+    database_path = tmp_path / "analysis.db"
+    result = make_result()
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE analysis_results (
+                symbol TEXT PRIMARY KEY,
+                analysis_date TEXT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO analysis_results (symbol, analysis_date, payload)
+            VALUES (?, ?, ?)
+            """,
+            ("EGAL", date(2026, 9, 18).isoformat(), serialize_analysis_result(result)),
+        )
+
+    store = SQLiteAnalysisResultStore(database_path)
+
+    history = store.get_history("EGAL")
+
+    assert len(history) == 1
+    assert history[0].result == result
+    assert history[0].analysis_date == date(2026, 9, 18)
+    assert history[0].snapshot_id is not None
+
+
+def test_sqlite_store_history_survives_store_recreation(tmp_path):
+    database_path = tmp_path / "analysis.db"
+    store = SQLiteAnalysisResultStore(database_path)
+    store.save("EGAL", make_result(), date(2026, 9, 17))
+    store.save("EGAL", make_result(), date(2026, 9, 18))
+
+    restored = SQLiteAnalysisResultStore(database_path)
+
+    assert len(restored.get_history("EGAL")) == 2
