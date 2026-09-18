@@ -134,7 +134,7 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
-    expect(await screen.findByText("Stock 70")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
 
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "snapshot-1" } });
