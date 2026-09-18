@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 
@@ -12,6 +13,13 @@ class InfrastructureConfig:
     data source for both market and fundamental data.
     """
 
+    analysis_database_path: str = "storage/analysis.db"
+
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
-        return cls()
+        return cls(
+            analysis_database_path=os.getenv(
+                "EGX_ANALYSIS_DATABASE_PATH",
+                "storage/analysis.db",
+            )
+        )
