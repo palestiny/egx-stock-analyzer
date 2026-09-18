@@ -1821,3 +1821,37 @@ The proposed direction is a read-only application capability over `AnalysisResul
 The gate must resolve snapshot selection, before/after direction, same-date snapshot handling, derived comparison fields, missing/cross-symbol behavior, API shape, and dashboard presentation before implementation.
 
 See `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`.
+
+
+## DEC-081 — Historical Analysis Comparison
+
+**Status:** Accepted
+**Date:** 2026-09-18
+
+### Decision
+
+M22 compares two persisted analysis snapshots for the same stock using explicit UUID selection through a dedicated read-only comparison endpoint. The response preserves explicit before/after snapshots and exposes deterministic deltas only for directly comparable numeric persisted values.
+
+### Boundary
+
+```
+Dashboard
+    ↓
+HTTP
+    ↓
+CompareAnalysisSnapshots
+    ↓
+AnalysisResultStore
+    ↓
+Persisted Historical Snapshots
+```
+
+The comparison capability never executes fresh analysis and introduces no persistence schema change.
+
+### Trade-offs
+
+UUID selection is unambiguous even when multiple snapshots share a date, but clients must already know the snapshot IDs. A dedicated endpoint keeps comparison semantics separate from generic history retrieval, at the cost of one additional API resource.
+
+### Consequences
+
+The API returns before/after values and deterministic numeric deltas. Classification is represented as before/after plus a changed flag. Missing snapshots map to 404; cross-symbol selections and identical snapshot IDs are invalid requests. Dashboard presentation consumes the comparison read model and does not calculate deltas.
