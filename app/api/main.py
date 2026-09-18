@@ -51,11 +51,11 @@ def create_app(
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
-    run_configured_market_analysis_with_automatic_alerts: RunConfiguredMarketAnalysisWithAutomaticAlerts | None = None,
     get_analysis_history: GetAnalysisHistory | None = None,
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
     calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
+    run_configured_market_analysis_with_automatic_alerts: RunConfiguredMarketAnalysisWithAutomaticAlerts | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
