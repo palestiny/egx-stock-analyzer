@@ -88,3 +88,22 @@ it("requests an explicit historical comparison by snapshot UUID", async () => {
     "/api/v1/comparisons/EGAL?before=before-id&after=after-id",
   );
 });
+
+
+it("requests historical performance by snapshot UUID", async () => {
+  const performance = { symbol: "EGAL", metrics: { price_change: 25, price_change_percent: 25 } };
+
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue(performance),
+  });
+
+  const { getSnapshotPerformance } = await import("../src/api/analysisApi");
+  await expect(
+    getSnapshotPerformance("EGAL", "before-id", "after-id"),
+  ).resolves.toEqual(performance);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/performance/EGAL?before=before-id&after=after-id",
+  );
+});

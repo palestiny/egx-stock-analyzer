@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getSnapshotPerformance } from "./api/analysisApi";
 
 function Metric({ label, value }) {
   return (
@@ -37,6 +37,8 @@ function App() {
   const [comparison, setComparison] = useState(null);
   const [comparisonError, setComparisonError] = useState(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [performance, setPerformance] = useState(null);
+  const [performanceError, setPerformanceError] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
@@ -97,12 +99,21 @@ function App() {
 
     setComparisonLoading(true);
     setComparisonError(null);
+    setPerformance(null);
+    setPerformanceError(null);
 
     try {
-      setComparison(await getAnalysisComparison(symbol, beforeSnapshotId, afterSnapshotId));
+      const [comparisonResult, performanceResult] = await Promise.all([
+        getAnalysisComparison(symbol, beforeSnapshotId, afterSnapshotId),
+        getSnapshotPerformance(symbol, beforeSnapshotId, afterSnapshotId),
+      ]);
+      setComparison(comparisonResult);
+      setPerformance(performanceResult);
     } catch (requestError) {
       setComparison(null);
+      setPerformance(null);
       setComparisonError(requestError);
+      setPerformanceError(requestError);
     } finally {
       setComparisonLoading(false);
     }
@@ -393,6 +404,15 @@ function App() {
                   <Metric label="Resistance Δ" value={comparison.deltas.nearest_resistance} />
                   <Metric label="Classification Changed" value={comparison.classification_changed ? "Yes" : "No"} />
                 </div>
+                {performanceError && (
+                  <p className="state-card error" role="alert">{performanceError.message}</p>
+                )}
+                {performance && (
+                  <div className="metrics-grid" aria-label="historical performance">
+                    <Metric label="Price Change" value={performance.metrics.price_change} />
+                    <Metric label="Price Change %" value={performance.metrics.price_change_percent} />
+                  </div>
+                )}
               </section>
             )}
           </section>

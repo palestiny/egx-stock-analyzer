@@ -2,11 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getSnapshotPerformance } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
   getAnalysisHistory: vi.fn(),
+  getAnalysisComparison: vi.fn(),
+  getSnapshotPerformance: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
 }));
@@ -98,6 +100,51 @@ describe("Dashboard", () => {
     expect(screen.getByText("Stock 72")).toBeInTheDocument();
     expect(screen.getByText("Entry 61")).toBeInTheDocument();
     expect(getAnalysisHistory).toHaveBeenCalledWith("EGAL");
+  });
+
+  it("loads and renders historical price performance for a selected comparison", async () => {
+    getReport.mockResolvedValue(report);
+    getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
+    getAnalysisHistory.mockResolvedValue({
+      symbol: "EGAL",
+      items: [
+        { snapshot_id: "snapshot-2", report: { ...report, analysis_date: "2026-09-18", current_price: 125 } },
+        { snapshot_id: "snapshot-1", report: { ...report, analysis_date: "2026-09-16", current_price: 100 } },
+      ],
+    });
+    getAnalysisComparison.mockResolvedValue({
+      symbol: "EGAL",
+      deltas: {
+        technical_score: 1,
+        fundamental_score: 1,
+        stock_quality: 2,
+        entry_quality: 1,
+        current_price: 25,
+        nearest_support: null,
+        nearest_resistance: null,
+      },
+      classification_changed: false,
+    });
+    getSnapshotPerformance.mockResolvedValue({
+      symbol: "EGAL",
+      metrics: { price_change: 25, price_change_percent: 25 },
+    });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
+
+    expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
+
+    const selects = screen.getAllByRole("combobox");
+    fireEvent.change(selects[0], { target: { value: "snapshot-1" } });
+    fireEvent.change(selects[1], { target: { value: "snapshot-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+
+    const performancePanel = await screen.findByLabelText("historical performance");
+    expect(performancePanel).toHaveTextContent("Price Change");
+    expect(performancePanel).toHaveTextContent("25");
+    expect(getSnapshotPerformance).toHaveBeenCalledWith("EGAL", "snapshot-1", "snapshot-2");
   });
 
   it("shows a historical-analysis error without hiding the latest report", async () => {
