@@ -19,10 +19,10 @@ class AlertGenerator:
     @staticmethod
     def generate(
         stock_id: UUID,
-        snapshot_id: UUID | None = None,
         stock_quality: StockQualityScore,
         entry_quality: EntryQualityScore,
         classification: OpportunityClassification,
+        snapshot_id: UUID | None = None,
     ) -> AlertCandidate | None:
         if classification is not OpportunityClassification.BUY:
             return None
