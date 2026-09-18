@@ -1781,14 +1781,14 @@ Revisit when durable user-managed schedules, an authoritative EGX trading calend
 
 ## DEC-079 — M20 Historical Analysis Result History
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18
 
 M20 proposes a history-aware persistence boundary for completed analytical snapshots. The immediate problem is that recurring full-market analysis now runs repeatedly, while the current `AnalysisResultStore` keeps only the latest result per symbol.
 
 The proposed MVP would preserve immutable completed analysis snapshots, support deterministic historical retrieval, and keep the current latest-result contract compatible. Historical reads would never trigger fresh analysis.
 
-The design gate must resolve snapshot identity, same-day runs, latest-result semantics, retrieval contract, SQLite migration, corrupt/unsupported historical payload behavior, failed-analysis persistence, time semantics, and whether/when API exposure is appropriate.
+The accepted MVP assigns each persisted snapshot a UUID, allows multiple same-day snapshots, keeps `get(symbol)` as the latest-result compatibility query, adds deterministic newest-first history retrieval, migrates the existing latest-only row into history, and treats corrupt/unsupported payloads as explicit persistence errors. Failed analysis does not create a successful snapshot. Historical HTTP/dashboard exposure requires a separate gate.
 
 Historical market-data warehousing, historical ranking, performance analytics, change detection, notifications, watchlists, portfolio/trading behavior, AI analysis, and API expansion are explicitly deferred until separately designed.
 
