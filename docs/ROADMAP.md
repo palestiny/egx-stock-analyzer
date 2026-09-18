@@ -116,6 +116,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
 | M14 | Market-Wide Analysis | 🟢 Complete | Sequential market-wide orchestration merged and validated by GitHub Actions Run #200 on implementation head |
 | M15 | Market Opportunity Ranking | 🟢 Complete | Deterministic BUY/WATCH ranking over completed stock-analysis results |
+| M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -147,6 +148,10 @@ M12 — API / Dashboard
 M13 — Production Hardening
         ↓
 M14 — Market-Wide Analysis
+        ↓
+M15 — Market Opportunity Ranking
+        ↓
+M16 — Market Opportunity View
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -448,7 +453,40 @@ Deferred from M15: API/dashboard integration, historical ranking persistence, pe
 
 ---
 
-# 13. Cross-Cutting Requirements
+
+# 13. M16 — Market Opportunity View
+
+## Status
+
+M16 is **complete**. The accepted contract is documented in `docs/DEC-075-M16-MARKET-OPPORTUNITY-VIEW-DESIGN-GATE.md`, and the implementation was merged through PR #12.
+
+### Accepted application boundary
+
+```
+HTTP
+  ↓
+GetMarketOpportunityRanking
+  ↓
+AnalysisResultStore
+  ↓
+RankMarketOpportunities
+  ↓
+Ordered Opportunity Read Model
+  ↓
+HTTP / Dashboard
+```
+
+The capability accepts an explicit ordered symbol list, normalizes and validates it, reads the latest stored result for each symbol, reports missing symbols explicitly, and delegates ordering to the existing M15 ranking capability. It never executes fresh analysis and introduces no persistence schema.
+
+The API exposes `GET /api/v1/opportunities?symbols=...`, while the React dashboard renders the ordered opportunity rows and missing-result state without duplicating ranking or analytical logic.
+
+GitHub Actions Run #281 completed successfully for implementation head `ac3d0dff1348952c55e129dc03d8fcc4962579ea` before PR #12 was merged.
+
+Deferred from M16: watchlist persistence, historical ranking, personalized ranking, portfolio allocation, position sizing, automated trading, real-time streaming, analysis-on-demand from the opportunity endpoint, and AI ranking.
+
+---
+
+# 14. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -482,7 +520,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 14. Milestone Completion Rule
+# 15. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -508,7 +546,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 15. Changing the Roadmap
+# 16. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -518,6 +556,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 16. Guiding Principle
+# 17. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
