@@ -9,6 +9,7 @@ from app.application.analysis.runtime import (
     create_stock_analysis_runtime,
 )
 from app.application.execution.retry import RetryPolicy
+from app.application.notifications.automatic_alert_delivery import AutomaticAlertDelivery
 from app.application.notifications.deliver_alert import DeliverAlert
 from app.application.notifications.deliver_alert_by_symbol import DeliverAlertBySymbol
 from app.application.stocks.catalog import StockCatalog
@@ -34,6 +35,7 @@ class InfrastructureRuntime:
     fundamental_data_provider: YahooFinanceFundamentalDataSource
     deliver_alert: DeliverAlert | None = None
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None
+    automatic_alert_delivery: AutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -86,6 +88,7 @@ def create_infrastructure_runtime(
     telegram_notification_provider = None
     deliver_alert = None
     deliver_alert_by_symbol = None
+    automatic_alert_delivery = None
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -101,6 +104,11 @@ def create_infrastructure_runtime(
             get_alert_candidate=application_runtime.get_alert_candidate,
             deliver_alert=deliver_alert,
         )
+        automatic_alert_delivery = AutomaticAlertDelivery(
+            get_alert_candidate=application_runtime.get_alert_candidate,
+            deliver_alert=deliver_alert,
+            default_channel="telegram",
+        )
 
     return InfrastructureRuntime(
         application_runtime=application_runtime,
@@ -108,5 +116,6 @@ def create_infrastructure_runtime(
         fundamental_data_provider=fundamental_data_provider,
         deliver_alert=deliver_alert,
         deliver_alert_by_symbol=deliver_alert_by_symbol,
+        automatic_alert_delivery=automatic_alert_delivery,
         telegram_notification_provider=telegram_notification_provider,
     )
