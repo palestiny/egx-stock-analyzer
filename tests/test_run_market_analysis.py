@@ -8,7 +8,6 @@ from app.application.analysis.run_market_analysis import (
     RunMarketAnalysis,
 )
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
-from app.application.execution.retry import RetryPolicy
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
@@ -17,11 +16,11 @@ from app.domain.stocks.stock import Stock
 AS_OF = date(2026, 9, 18)
 
 
-def make_runner(stocks: list[Stock], max_attempts: int = 1):
+def make_runner(stocks: list[Stock]):
     catalog = InMemoryStockCatalog(stocks)
     run_stock_analysis = Mock()
     by_symbol = RunStockAnalysisBySymbol(catalog, run_stock_analysis)
-    runner = RunMarketAnalysis(by_symbol, RetryPolicy(max_attempts=max_attempts))
+    runner = RunMarketAnalysis(by_symbol)
     return runner, run_stock_analysis
 
 
@@ -34,6 +33,18 @@ def test_empty_universe_completes_without_running_stock_analysis():
     assert result.execution.successful_stock_ids == set()
     assert result.execution.failed_stock_ids == set()
     run_stock_analysis.execute.assert_not_called()
+
+
+def test_one_stock_success_completes():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
+
+    result = runner.execute(["egal"], AS_OF)
+
+    assert result.execution.state is ExecutionState.COMPLETED
+    assert result.execution.successful_stock_ids == {"EGAL"}
+    assert result.execution.failed_stock_ids == set()
+    run_stock_analysis.execute.assert_called_once()
 
 
 def test_runs_multiple_stocks_in_supplied_order():
