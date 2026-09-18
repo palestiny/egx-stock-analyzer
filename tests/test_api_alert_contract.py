@@ -16,7 +16,7 @@ def make_result(classification: str):
         "stock_quality": type("Quality", (), {"total_score": 47})(),
         "entry_quality": type("Entry", (), {"total_score": 2})(),
         "opportunity": type("Opportunity", (), {
-            "classification": type("Classification", (), {"value": classification})(),
+            "classification": OpportunityClassification(classification),
         })(),
     })()
 
