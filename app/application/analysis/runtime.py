@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
+from app.application.analysis.get_analysis_history import GetAnalysisHistory
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
@@ -23,6 +24,7 @@ class StockAnalysisRuntime:
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
+    get_analysis_history: GetAnalysisHistory
     get_alert_candidate: GetAlertCandidate
     result_store: AnalysisResultStore
 
@@ -55,6 +57,10 @@ def create_stock_analysis_runtime(
         stock_catalog=stock_catalog,
         run_stock_analysis=run_stock_analysis,
     )
+    get_analysis_history = GetAnalysisHistory(
+        stock_catalog=stock_catalog,
+        result_store=result_store,
+    )
     get_analysis_report = GetAnalysisReport(
         stock_catalog=stock_catalog,
         result_store=result_store,
@@ -72,6 +78,7 @@ def create_stock_analysis_runtime(
         get_market_opportunity_ranking=get_market_opportunity_ranking,
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
+        get_analysis_history=get_analysis_history,
         get_alert_candidate=get_alert_candidate,
         result_store=result_store,
     )
