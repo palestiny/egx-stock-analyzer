@@ -23,6 +23,7 @@ class FakeApplicationRuntime:
     get_alert_candidate: object | None = None
     get_market_opportunity_ranking: object | None = None
     run_configured_market_analysis: object | None = None
+    run_configured_market_analysis: object | None = None
 
 
 class FakeRuntime:
@@ -33,6 +34,7 @@ class FakeRuntime:
             get_analysis_report=object(),
             get_alert_candidate=object(),
             get_market_opportunity_ranking=object(),
+            run_configured_market_analysis=object(),
             run_configured_market_analysis=object(),
         )
         self.closed = False
