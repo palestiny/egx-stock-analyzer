@@ -1985,7 +1985,7 @@ Revisit when automatic delivery needs asynchronous processing, user-specific pre
 
 M29 connects recurring configured-market analysis to the existing M28 automatic alert-delivery capability through a dedicated application workflow. The workflow runs configured-market analysis first, then passes the returned analysis Execution unchanged to M28.
 
-If analysis returns COMPLETED, COMPLETED_WITH_ERRORS, or FAILED, delivery is still invoked so M28 can process any successful symbols recorded in the execution. If analysis raises before returning an Execution, delivery is not invoked.
+If analysis returns COMPLETED or COMPLETED_WITH_ERRORS, delivery is invoked so M28 can process successful symbols recorded in the execution. If analysis returns FAILED, delivery is not invoked because there are no successful analysis outcomes eligible for scheduled delivery. If analysis raises before returning an Execution, delivery is also not invoked.
 
 The workflow returns independent analysis and delivery outcomes. Delivery failure never changes analysis execution state. The scheduler remains responsible only for timing and recurrence; it does not inspect alert candidates, delivery state, or provider behavior.
 
