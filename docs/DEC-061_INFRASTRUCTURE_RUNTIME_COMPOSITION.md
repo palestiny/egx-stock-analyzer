@@ -43,7 +43,7 @@ FastAPI lifecycle integration is implemented in \`app/main.py\`: the application
 
 Environment lookup is isolated in \`app/infrastructure/config.py\`. \`InfrastructureConfig.from_environment()\` reads \`FINNHUB_API_KEY\`, while \`HttpxFinnhubFinancialsClient\` requires the API key explicitly. The application composition root now exposes \`create_application_from_environment()\`, which loads \`InfrastructureConfig\` and passes it explicitly into \`create_infrastructure_runtime()\`. Environment access therefore remains outside the application and domain layers, and infrastructure dependencies are still not constructed at module import time.
 
-The API now supports an explicit analysis trigger through \`POST /api/v1/analysis/{symbol}\`. The composition root passes \`RunStockAnalysisBySymbol\` into the API while preserving the existing result-query endpoint.
+The API now supports an explicit analysis trigger through \`POST /api/v1/analysis/{symbol}\`. The composition root passes \`RunStockAnalysisBySymbol\` into the API while preserving the existing result-query endpoint.\n\nA development composition entry point, \`create_development_application_from_environment()\`, now creates the development stock catalog at the composition boundary and delegates to the environment-based application composition. This keeps development seed data out of the API and application layers.
 
 A development stock catalog is now available at \`app/infrastructure/stocks/development_catalog.py\`. It is intentionally limited to a small development seed and exists only to exercise composition and the first real-data vertical slice. It is not treated as the production EGX stock master.
 
