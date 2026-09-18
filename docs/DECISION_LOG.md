@@ -1887,10 +1887,10 @@ See `docs/DEC-083-M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-DESIGN-GATE.md`.
 
 ## DEC-084 — M25 Alert Delivery & Notification Boundary
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
-M25 opens a design gate for delivering existing AlertCandidate objects through a provider-neutral notification boundary. The proposed direction is a dedicated DeliverAlert application capability with delivery-state persistence and idempotency based on the existing analysis snapshot identity.
+M25 accepted the design gate for delivering existing AlertCandidate objects through a provider-neutral notification boundary. The proposed direction is a dedicated DeliverAlert application capability with delivery-state persistence and idempotency based on the existing analysis snapshot identity.
 
 AnalysisResultRecord already exposes snapshot_id, but AlertCandidate must carry that identity before delivery implementation. Notification delivery must not recalculate analytical scores or classification and must not make analytical success depend on provider availability.
 
