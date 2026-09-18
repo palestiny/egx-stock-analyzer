@@ -1,7 +1,7 @@
-# DEC-066 — M12 Dashboard / Presentation Boundary
+# DEC-068 — M12 Dashboard / Presentation Boundary
 
 **Status:** Accepted  
-**Date:** 2026-09-17
+**Date:** 2026-09-18
 
 ## 1. Design Question
 
@@ -162,17 +162,17 @@ It must not infer missing business semantics from presentation values.
 
 ## 6. Decimal Transport
 
-The API currently serializes Decimal values as JSON strings, for example:
+The API currently serializes Decimal values as JSON numbers, for example:
 
 ```json
 {
-  "current_price": "350.5",
-  "nearest_support": "340.0",
-  "nearest_resistance": "365.0"
+  "current_price": 350.5,
+  "nearest_support": 340.0,
+  "nearest_resistance": 365.0
 }
 ```
 
-The dashboard should preserve the received decimal value for display and must not silently introduce floating-point calculations for business decisions.
+The dashboard should treat these values as API numbers for presentation. The frontend must not silently turn them into a second implementation of business rules or analytical calculations.
 
 If future UI requirements need numeric charting, that is a separate API-contract decision rather than an implicit frontend conversion.
 
@@ -267,7 +267,7 @@ These are intentionally not implementation blockers yet:
 
 ## 12. Committed vs Proposed
 
-The dashboard presentation boundary is accepted by DEC-067. The frontend technology is React + Vite.
+The dashboard presentation boundary is accepted by DEC-068. The frontend technology is React + Vite under DEC-067.
 
 The following boundary is committed:
 

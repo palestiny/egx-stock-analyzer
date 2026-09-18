@@ -344,8 +344,9 @@ Dependency deprecation warnings remain a separate compatibility cleanup concern 
 - `DEC-064` — reporting/alerts API boundary
 - `DEC-066` — API price values are JSON numbers
 - `DEC-067` — React + Vite frontend technology
+- `DEC-068` — dashboard presentation boundary
 
-The dashboard presentation boundary is documented in `docs/DEC-066-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`.
+The dashboard presentation boundary is documented in `docs/DEC-068-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`.
 
 ### Remaining M12 work
 
