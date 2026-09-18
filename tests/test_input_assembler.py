@@ -47,6 +47,23 @@ def test_invalid_observation_is_excluded_when_enough_valid_data_remains():
     assert all(bar.timestamp.day != 2 for bar in result)
 
 
+def test_suspect_duplicate_observations_are_excluded():
+    observations = [
+        observation(1),
+        observation(1),
+        observation(2),
+        observation(3),
+    ]
+
+    result = AnalysisInputAssembler._build_price_bars(
+        observations,
+        minimum_price_bars=3,
+    )
+
+    assert len(result) == 2
+    assert [bar.timestamp.day for bar in result] == [2, 3]
+
+
 def test_insufficient_valid_observations_fail_with_data_sufficiency_error():
     observations = [
         observation(1),
@@ -65,6 +82,15 @@ def test_minimum_price_bars_supports_the_largest_technical_lookback():
     policy = AnalysisInputAssemblyPolicy(
         momentum_lookback=10,
         volume_lookback=5,
+    )
+
+    assert policy.minimum_price_bars == 11
+
+
+def test_minimum_price_bars_uses_volume_lookback_when_larger():
+    policy = AnalysisInputAssemblyPolicy(
+        momentum_lookback=5,
+        volume_lookback=10,
     )
 
     assert policy.minimum_price_bars == 11
