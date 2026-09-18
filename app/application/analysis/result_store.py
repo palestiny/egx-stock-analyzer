@@ -72,12 +72,16 @@ class InMemoryAnalysisResultStore:
         if start_date is not None and end_date is not None and start_date > end_date:
             raise ValueError("start_date cannot be after end_date")
 
-        records = [
-            record
-            for record in self._results.get(symbol, [])
-            if (start_date is None or record.analysis_date is None or record.analysis_date >= start_date)
-            and (end_date is None or record.analysis_date is None or record.analysis_date <= end_date)
-        ]
+        records = []
+        for record in self._results.get(symbol, []):
+            if start_date is not None or end_date is not None:
+                if record.analysis_date is None:
+                    continue
+                if start_date is not None and record.analysis_date < start_date:
+                    continue
+                if end_date is not None and record.analysis_date > end_date:
+                    continue
+            records.append(record)
 
         return tuple(
             sorted(
