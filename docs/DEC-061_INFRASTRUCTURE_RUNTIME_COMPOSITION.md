@@ -47,3 +47,14 @@ For the current vertical-slice goal, the Finnhub dependency is removed from the 
 - final long-term data-source/provider architecture;
 - reconciliation between multiple data sources;
 - real EGX vertical-slice verification using the Yahoo Finance fundamental dataset.
+
+
+## Validation
+
+The current real EGAL vertical slice has now been exercised successfully against Yahoo Finance data. The integration test completed with:
+
+```
+1 passed, 5 warnings in 4.82s
+```
+
+The warnings are non-blocking and are tracked separately from the successful integration result.
