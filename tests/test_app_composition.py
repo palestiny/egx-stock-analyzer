@@ -49,6 +49,20 @@ def test_create_application_uses_runtime_result_store() -> None:
     assert runtime.closed is True
 
 
+
+def test_create_application_exposes_health_endpoint_and_closes_runtime() -> None:
+    result_store = InMemoryAnalysisResultStore()
+    runtime = FakeRuntime(result_store)
+
+    app = create_application(runtime)
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert runtime.closed is True
+
 def test_existing_create_app_contract_remains_unchanged() -> None:
     result_store = InMemoryAnalysisResultStore()
     app = create_app(result_store)
