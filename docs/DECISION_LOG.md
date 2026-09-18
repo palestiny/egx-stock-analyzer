@@ -1930,3 +1930,15 @@ The accepted MVP uses `POST /api/v1/alerts/{symbol}/deliver?channel=telegram`. T
 No candidate maps to 404; unconfigured delivery maps to 503; persisted delivery failures are returned as explicit FAILED outcomes with HTTP 200; repeated successful delivery remains idempotent. Delivery never executes fresh analysis or recalculates alert eligibility.
 
 See `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`.
+
+
+## DEC-087 — M28 Automatic Alert Delivery Policy
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M28 opens a design gate for automatically delivering existing alert candidates after completed analysis. The capability must remain separate from stock-analysis execution and must delegate delivery to the existing M25 `DeliverAlert` boundary.
+
+The gate must resolve trigger input, candidate eligibility, channel configuration, deterministic ordering, failure isolation, aggregate delivery semantics, persistence scope, retry behavior, trigger coupling, and idempotency before implementation.
+
+See `docs/DEC-087-M28-AUTOMATIC-ALERT-DELIVERY-POLICY-DESIGN-GATE.md`.
