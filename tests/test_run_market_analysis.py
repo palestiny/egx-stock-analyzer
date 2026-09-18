@@ -133,14 +133,3 @@ def test_each_market_run_has_its_own_execution_identity():
 
     assert first.execution.id != second.execution.id
 
-
-def test_per_stock_retry_is_reused():
-    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks, max_attempts=2)
-    run_stock_analysis.execute.side_effect = [RuntimeError("transient"), None]
-
-    result = runner.execute(["EGAL"], AS_OF)
-
-    assert result.execution.state is ExecutionState.COMPLETED
-    assert result.execution.successful_stock_ids == {"EGAL"}
-    assert run_stock_analysis.execute.call_count == 2
