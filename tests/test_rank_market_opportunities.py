@@ -71,6 +71,15 @@ def test_technical_then_fundamental_then_symbol_break_remaining_ties():
     assert [x.symbol for x in result.opportunities] == ["TECH_HIGH", "A", "FUND_HIGH"]
 
 
+def test_fundamental_score_breaks_technical_tie():
+    result = RankMarketOpportunities().execute([
+        item("LOW_FUND", OpportunityClassification.BUY, 5, 1, 2, 1),
+        item("HIGH_FUND", OpportunityClassification.BUY, 5, 1, 2, 2),
+    ])
+
+    assert [x.symbol for x in result.opportunities] == ["HIGH_FUND", "LOW_FUND"]
+
+
 def test_symbols_are_normalized_and_duplicates_are_rejected():
     first = item("egal", OpportunityClassification.BUY, 5, 1, 1, 1)
     second = item(" EGAL ", OpportunityClassification.BUY, 4, 1, 1, 1)
