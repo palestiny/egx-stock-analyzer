@@ -1117,6 +1117,6 @@ rather than relying on memory or conversation history.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M13 — Operational Runtime Baseline + SQLite Persistence MVP
+**Current Implementation:** M19 — Recurring Full-Market Scheduling complete
 
-**Next Step:** Open a new Design Gate only when a concrete deferred capability is selected.
+**Next Step:** Resolve the proposed M20 Historical Analysis Result History design gate before implementation.
