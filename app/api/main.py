@@ -1,3 +1,4 @@
+import logging
 from dataclasses import asdict
 from datetime import date
 
@@ -15,6 +16,8 @@ from app.application.analysis.run_stock_analysis_by_symbol import (
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 
+logger = logging.getLogger(__name__)
+
 
 def create_app(
     result_store: AnalysisResultStore,
@@ -24,6 +27,10 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
 
     @app.get("/api/v1/analysis/{symbol}")
     def get_analysis(symbol: str) -> dict[str, object]:
@@ -51,7 +58,11 @@ def create_app(
         except UnknownStockSymbolError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except RuntimeError as error:
-            raise HTTPException(status_code=500, detail=str(error)) from error
+            logger.exception("Analysis execution failed for symbol %s", symbol, exc_info=error)
+            raise HTTPException(
+                status_code=500,
+                detail="Analysis execution failed",
+            ) from error
 
         result = get_analysis_result.execute(symbol)
         if result is None:
