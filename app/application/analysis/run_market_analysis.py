@@ -1,52 +1,53 @@
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date
 
-from app.application.stocks.catalog import StockCatalog
-from app.application.analysis.run_stock_analysis import RunStockAnalysis
+from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.execution.orchestrator import ExecutionOrchestrator
+from app.application.execution.retry import RetryPolicy
 from app.domain.execution import Execution
-from app.domain.stocks.stock import Stock
+
+
+class DuplicateMarketAnalysisSymbolError(ValueError):
+    """Raised when a market analysis universe contains duplicate symbols."""
+
+
+@dataclass(frozen=True)
+class MarketAnalysisResult:
+    execution: Execution
 
 
 class RunMarketAnalysis:
-    """Execute the existing single-stock analysis capability across a requested universe."""
-
     def __init__(
         self,
-        stock_catalog: StockCatalog,
-        run_stock_analysis: RunStockAnalysis,
+        run_stock_analysis_by_symbol: RunStockAnalysisBySymbol,
+        retry_policy: RetryPolicy,
     ) -> None:
-        self._stock_catalog = stock_catalog
-        self._run_stock_analysis = run_stock_analysis
+        self._run_stock_analysis_by_symbol = run_stock_analysis_by_symbol
+        self._orchestrator = ExecutionOrchestrator(retry_policy)
 
-    def execute(self, symbols: list[str], as_of: date) -> Execution:
+    def execute(
+        self,
+        symbols: Sequence[str],
+        as_of: date,
+    ) -> MarketAnalysisResult:
+        normalized_symbols = self._normalize_symbols(symbols)
+        execution = self._orchestrator.run(
+            normalized_symbols,
+            lambda symbol: self._run_stock_analysis_by_symbol.execute(symbol, as_of),
+        )
+        return MarketAnalysisResult(execution=execution)
+
+    @staticmethod
+    def _normalize_symbols(symbols: Sequence[str]) -> list[str]:
         normalized_symbols = [symbol.strip().upper() for symbol in symbols]
-
-        if len(normalized_symbols) != len(set(normalized_symbols)):
-            raise ValueError("Duplicate stock symbol in market analysis universe")
-
-        execution = Execution.create()
-        execution.start()
-
-        if not normalized_symbols:
-            execution.complete()
-            return execution
+        seen: set[str] = set()
 
         for symbol in normalized_symbols:
-            stock = self._stock_catalog.get(symbol)
-
-            if stock is None:
-                execution.record_stock_failure(
-                    symbol,
-                    f"Unknown stock symbol: {symbol}",
+            if symbol in seen:
+                raise DuplicateMarketAnalysisSymbolError(
+                    f"Duplicate stock symbol: {symbol}"
                 )
-                continue
+            seen.add(symbol)
 
-            try:
-                self._run_stock_analysis.execute(stock, as_of)
-            except Exception as exc:
-                reason = str(exc) or exc.__class__.__name__
-                execution.record_stock_failure(stock.symbol, reason)
-            else:
-                execution.record_stock_success(stock.symbol)
-
-        execution.finish()
-        return execution
+        return normalized_symbols
