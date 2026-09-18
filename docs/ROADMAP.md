@@ -123,6 +123,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
+| M23 | Historical Performance Analytics | 🟡 Design Accepted | Calculate descriptive price-change metrics between two persisted snapshots without predicting future performance |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -170,6 +171,8 @@ M20 — Historical Analysis Result History
 M21 — Historical Analysis View
         ↓
 M22 — Historical Analysis Comparison
+        ↓
+M23 — Historical Performance Analytics
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -688,7 +691,35 @@ Performance analytics, return calculations, predictive analysis, ranking, charti
 
 ---
 
-# 22. Cross-Cutting Requirements
+# 23. M23 — Historical Performance Analytics
+
+## Status
+
+The M23 design gate is **accepted** in `docs/DEC-082-M23-HISTORICAL-PERFORMANCE-ANALYTICS-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted boundary
+
+```
+Historical Snapshot A
+        +
+Historical Snapshot B
+        ↓
+CalculateSnapshotPerformance
+        ↓
+Descriptive Performance Metrics
+        ↓
+HTTP / Dashboard consumers
+```
+
+M23 calculates absolute price change and percentage price change between two explicitly selected persisted snapshots for the same stock. It uses Decimal arithmetic and preserves caller-selected before/after direction.
+
+Missing prices and a zero baseline produce explicit unavailable metrics rather than fabricated values or division-by-zero behavior.
+
+M23 is descriptive only. It does not evaluate trading strategies, predict future returns, include dividends/costs/benchmarks, manage portfolios, or introduce persistence schema changes.
+
+---
+
+# 24. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -722,7 +753,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 23. Milestone Completion Rule
+# 25. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -748,7 +779,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 24. Changing the Roadmap
+# 26. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -758,6 +789,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 25. Guiding Principle
+# 27. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
