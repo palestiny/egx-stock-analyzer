@@ -14,6 +14,7 @@ from app.infrastructure.runtime import (
     InfrastructureRuntime,
     create_infrastructure_runtime,
 )
+from app.infrastructure.stocks.development_catalog import create_development_stock_catalog
 
 
 def create_application(runtime: InfrastructureRuntime) -> FastAPI:
@@ -47,6 +48,18 @@ def create_application_from_environment(
         retry_policy=retry_policy,
     )
     return create_application(runtime)
+
+
+def create_development_application_from_environment(
+    result_store: AnalysisResultStore | None = None,
+    retry_policy: RetryPolicy | None = None,
+) -> FastAPI:
+    stock_catalog = create_development_stock_catalog()
+    return create_application_from_environment(
+        stock_catalog=stock_catalog,
+        result_store=result_store,
+        retry_policy=retry_policy,
+    )
 
 
 # Temporary safe composition for the API-only development entry point.
