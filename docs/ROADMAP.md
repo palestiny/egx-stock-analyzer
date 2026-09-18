@@ -395,7 +395,7 @@ The reporting and alert read-side API slice has now been locally validated:
 - Alert endpoint preserves BUY-only domain semantics.
 - Remaining warnings are dependency deprecations from Starlette/httpx and AnyIO; they are separate cleanup work and do not change the M12 business contract.
 
-M12 remains **in progress**. Dashboard presentation boundary is now documented as a proposal in `docs/DEC-066-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`. Dashboard presentation boundary is accepted, React + Vite is selected, and the first analysis-view frontend slice is now implemented. Local frontend build validation remains to be run.
+M12 remains **in progress**. Dashboard presentation boundary is now documented as a proposal in `docs/DEC-066-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`. Dashboard presentation boundary is accepted, React + Vite is selected, and the first analysis-view frontend slice is now implemented. The first React + Vite vertical slice now consumes report/alert read models, includes Vitest component coverage, and uses a Vite development proxy to the FastAPI API. Local npm build/test validation remains to be run.
 
 # 10. M13 — Production Hardening
 
