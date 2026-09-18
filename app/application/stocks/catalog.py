@@ -11,9 +11,6 @@ class StockCatalog(Protocol):
     def symbols(self) -> tuple[str, ...]:
         ...
 
-    def symbols(self) -> tuple[str, ...]:
-        ...
-
 
 class InMemoryStockCatalog:
     def __init__(self, stocks: list[Stock]) -> None:
@@ -28,9 +25,6 @@ class InMemoryStockCatalog:
 
     def get(self, symbol: str) -> Stock | None:
         return self._stocks.get(symbol.strip().upper())
-
-    def symbols(self) -> tuple[str, ...]:
-        return tuple(self._stocks.keys())
 
     def symbols(self) -> tuple[str, ...]:
         return tuple(self._stocks)
