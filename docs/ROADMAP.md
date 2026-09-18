@@ -124,6 +124,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
+| M24 | Historical Analysis Change Detection | 🟡 Design Accepted | Detect which defined analytical dimensions changed between two persisted snapshots without significance or notification policy |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -725,7 +726,35 @@ M23 is descriptive only. It does not evaluate trading strategies, predict future
 
 ---
 
-# 24. Cross-Cutting Requirements
+# 24. M24 — Historical Analysis Change Detection
+
+## Status
+
+The M24 design gate is **accepted** in `docs/DEC-083-M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted boundary
+
+```
+Persisted Snapshot A
+        +
+Persisted Snapshot B
+        ↓
+CompareAnalysisSnapshots
+        ↓
+DetectAnalysisChanges
+        ↓
+Immutable Change Set
+        ↓
+API / Dashboard / Future Alert Consumers
+```
+
+M24 detects descriptive changes in opportunity classification, technical/fundamental/stock-quality/entry-quality scores, current price, nearest support, and nearest resistance. Optional price availability transitions are changes; both-missing values are unchanged.
+
+The capability reuses M22 comparison semantics, introduces no persistence, no significance thresholds, no notification delivery, and no predictive interpretation.
+
+---
+
+# 25. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -759,7 +788,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 25. Milestone Completion Rule
+# 26. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -785,7 +814,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 26. Changing the Roadmap
+# 27. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -795,6 +824,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 27. Guiding Principle
+# 28. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
