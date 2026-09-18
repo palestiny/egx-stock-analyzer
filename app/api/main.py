@@ -7,11 +7,10 @@ from fastapi import FastAPI, HTTPException
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
-from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
+from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
-from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import (
@@ -79,49 +78,6 @@ def create_app(
             )
 
         response = AnalysisResultResponse.from_result(symbol, result)
-        return asdict(response)
-
-    @app.post("/api/v1/market-analysis")
-    def run_market_analysis() -> dict[str, object]:
-        if run_configured_market_analysis is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Market analysis execution is not configured",
-            )
-
-        try:
-            execution = run_configured_market_analysis.execute(date.today())
-        except Exception as error:
-            logger.exception("Market-wide analysis execution failed", exc_info=error)
-            raise HTTPException(
-                status_code=500,
-                detail="Market-wide analysis execution failed",
-            ) from error
-
-        return {
-            "execution_id": str(execution.id),
-            "state": execution.state.value,
-            "successful_stock_ids": sorted(execution.successful_stock_ids),
-            "failed_stock_ids": sorted(execution.failed_stock_ids),
-            "failure_reasons": dict(sorted(execution.failure_reasons.items())),
-        }
-
-    @app.get("/api/v1/reports/{symbol}")
-    def get_report(symbol: str) -> dict[str, object]:
-        if get_analysis_report is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Analysis reporting is not configured",
-            )
-
-        report = get_analysis_report.execute(symbol)
-        if report is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Analysis report not found for {symbol}",
-            )
-
-        response = AnalysisReportResponse.from_report(report)
         return asdict(response)
 
     @app.post("/api/v1/market-analysis")
