@@ -124,7 +124,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
-| M24 | Historical Analysis Change Detection | 🟡 Design Accepted | Detect which defined analytical dimensions changed between two persisted snapshots without significance or notification policy |
+| M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -754,7 +754,39 @@ The capability reuses M22 comparison semantics, introduces no persistence, no si
 
 ---
 
-# 25. Cross-Cutting Requirements
+# 25. M24 — Historical Analysis Change Detection
+
+## Status
+
+M24 is **complete**. The accepted design is documented in `docs/DEC-083-M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-DESIGN-GATE.md`, and the implementation was merged through PR #37.
+
+GitHub Actions Run #626 completed successfully for implementation head `bbb56c089d2582b6aeb8c131067d55c92708e652`, validating the Python unit tests and frontend tests/build workflow.
+
+### Accepted boundary
+
+```
+Persisted Snapshot A
+        +
+Persisted Snapshot B
+        ↓
+CompareAnalysisSnapshots
+        ↓
+DetectAnalysisChanges
+        ↓
+Immutable Change Set
+```
+
+The capability detects descriptive changes in classification, technical/fundamental/stock-quality/entry-quality scores, current price, nearest support, and nearest resistance. Optional-value availability transitions are detected explicitly.
+
+M24 reuses M22 snapshot validation, persists no derived change state, introduces no significance thresholds, and performs no notification delivery or predictive interpretation.
+
+Completion record: `docs/M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-MVP-COMPLETION.md`.
+
+Deferred capabilities remain subject to separate design gates.
+
+---
+
+# 26. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -788,7 +820,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 26. Milestone Completion Rule
+# 27. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -814,7 +846,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 27. Changing the Roadmap
+# 28. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -824,6 +856,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 28. Guiding Principle
+# 29. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
