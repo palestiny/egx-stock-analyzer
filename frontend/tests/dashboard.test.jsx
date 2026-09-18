@@ -2,10 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getReport } from "../src/api/analysisApi";
+import { getAlert, getMarketOpportunities, getReport } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
+  getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
 }));
 
@@ -53,6 +54,29 @@ describe("Dashboard", () => {
     expect(getAlert).toHaveBeenCalledWith("EGAL");
     expect(screen.getByText("350.5")).toBeInTheDocument();
     expect(screen.getByText("BUY")).toBeInTheDocument();
+  });
+
+  it("loads and renders the market opportunity view", async () => {
+    getMarketOpportunities.mockResolvedValue({
+      opportunities: [
+        {
+          symbol: "EGAL",
+          classification: "buy",
+          stock_quality: 6,
+          entry_quality: 2,
+          technical_score: 4,
+          fundamental_score: 2,
+        },
+      ],
+      missing_symbols: ["IEEC"],
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Load Opportunities" }));
+
+    expect(await screen.findByText(/EGAL.*buy.*Stock 6.*Entry 2.*Technical 4.*Fundamental 2/)).toBeInTheDocument();
+    expect(screen.getByText("Missing stored results: IEEC")).toBeInTheDocument();
+    expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
   it("shows a loading state while the report request is pending", async () => {
