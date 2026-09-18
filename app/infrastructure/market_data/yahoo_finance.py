@@ -150,7 +150,8 @@ class YahooFinanceFundamentalDataSource:
     def _decimal(value) -> Decimal | None:
         if value is None:
             return None
-        return Decimal(str(value))
+        decimal_value = Decimal(str(value))
+        return decimal_value if decimal_value.is_finite() else None
 
     def close(self) -> None:
         return None
