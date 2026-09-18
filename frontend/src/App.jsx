@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAlert, getMarketOpportunities, getReport } from "./api/analysisApi";
+import { getAlert, getAnalysisHistory, getMarketOpportunities, getReport } from "./api/analysisApi";
 
 function Metric({ label, value }) {
   return (
@@ -29,6 +29,9 @@ function App() {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [history, setHistory] = useState(null);
+  const [historyError, setHistoryError] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
@@ -48,6 +51,9 @@ function App() {
     setLoading(true);
     setReport(null);
     setAlert(null);
+    setHistory(null);
+    setHistoryError(null);
+    setHistoryLoading(true);
     setError(null);
 
     try {
@@ -61,8 +67,17 @@ function App() {
           throw alertError;
         }
       }
+
+      try {
+        setHistory(await getAnalysisHistory(normalizedSymbol));
+      } catch (historyRequestError) {
+        setHistoryError(historyRequestError);
+      } finally {
+        setHistoryLoading(false);
+      }
     } catch (requestError) {
       setError(requestError);
+      setHistoryLoading(false);
     } finally {
       setLoading(false);
     }
@@ -255,6 +270,41 @@ function App() {
               </div>
             ) : (
               <p className="muted">No alert candidate for the latest analysis.</p>
+            )}
+          </section>
+
+          <section className="panel history-panel" aria-label="analysis history">
+            <div>
+              <p className="eyebrow">HISTORY</p>
+              <h3>Historical analysis</h3>
+            </div>
+
+            {historyLoading && (
+              <p className="muted" role="status">Loading historical analysis...</p>
+            )}
+
+            {historyError && (
+              <p className="state-card error" role="alert">
+                {historyError.message}
+              </p>
+            )}
+
+            {!historyLoading && !historyError && history && history.items.length === 0 && (
+              <p className="muted">No historical analysis snapshots were found.</p>
+            )}
+
+            {!historyLoading && !historyError && history && history.items.length > 0 && (
+              <div className="history-list">
+                {history.items.map((item) => (
+                  <div className="history-row" key={item.snapshot_id}>
+                    <strong>{item.report.analysis_date}</strong>
+                    <span>{item.report.opportunity}</span>
+                    <span>Stock {item.report.stock_quality}</span>
+                    <span>Entry {item.report.entry_quality}</span>
+                    <span>Price {item.report.current_price}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </section>
         </>
