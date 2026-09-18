@@ -63,6 +63,9 @@ def test_run_stock_analysis_assembles_runs_and_stores_result():
 
     assert assembler.calls == [(stock, date(2026, 9, 16))]
     assert store.get("EGAL") is expected_result
+    record = store.get_record("EGAL")
+    assert record is not None
+    assert record.analysis_date == date(2026, 9, 16)
 
 
 def test_run_stock_analysis_includes_failure_reason():
