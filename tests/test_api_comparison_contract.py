@@ -71,16 +71,17 @@ def test_comparison_returns_404_for_missing_snapshot():
 
 
 def test_comparison_returns_400_for_cross_symbol_snapshot():
-    app, before, _ = make_app()
     egal = Stock.create("EGAL", "Egypt Aluminum")
     other_stock = Stock.create("IEEC", "Ismailia Engineering")
     store = InMemoryAnalysisResultStore()
+    store.save("EGAL", make_result(20, "350"), date(2026, 9, 16))
     store.save("IEEC", make_result(10, "5"), date(2026, 9, 18))
+    egal_snapshot = store.get_history("EGAL")[0]
     other_snapshot = store.get_history("IEEC")[0]
     capability = CompareAnalysisSnapshots(InMemoryStockCatalog([egal, other_stock]), store)
     app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
 
     with TestClient(app) as client:
-        response = client.get(f"/api/v1/comparisons/EGAL?before={before.snapshot_id}&after={other_snapshot.snapshot_id}")
+        response = client.get(f"/api/v1/comparisons/EGAL?before={egal_snapshot.snapshot_id}&after={other_snapshot.snapshot_id}")
 
     assert response.status_code == 400
