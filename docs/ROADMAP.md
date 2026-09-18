@@ -126,6 +126,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
+| M26 | External Notification Provider Integration | 🟡 Design Proposed | Select and integrate the first concrete notification provider behind the M25 provider boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -179,6 +180,8 @@ M23 — Historical Performance Analytics
 M24 — Historical Analysis Change Detection
         ↓
 M25 — Alert Delivery & Notification Boundary
+        ↓
+M26 — External Notification Provider Integration
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -803,7 +806,19 @@ Deferred capabilities remain subject to separate design gates.
 
 ---
 
-# 26. Cross-Cutting Requirements
+# 26. M26 — External Notification Provider Integration
+
+## Status
+
+M26 design is **proposed** in `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`. No provider-specific implementation is authorized yet.
+
+The gate defines the boundary for connecting one concrete notification provider behind the existing M25 `NotificationProvider` abstraction. Provider selection, credential handling, timeout/retry semantics, payload mapping, and integration-test boundaries must be accepted before implementation.
+
+Deferred from M26: multiple providers, user preferences, notification analytics, queues/workers, distributed delivery, scheduling policy, alert-generation changes, trading execution, and AI notification decisions.
+
+---
+
+# 27. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -837,7 +852,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 27. Milestone Completion Rule
+# 28. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -863,7 +878,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 28. Changing the Roadmap
+# 29. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -873,6 +888,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 29. Guiding Principle
+# 30. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
