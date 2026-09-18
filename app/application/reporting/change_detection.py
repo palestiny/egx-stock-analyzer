@@ -5,9 +5,6 @@ from app.application.reporting.compare_analysis_snapshots import (
     AnalysisSnapshotComparison,
     CompareAnalysisSnapshots,
 )
-from app.domain.stocks.stock import Stock
-
-
 class AnalysisChangeType(Enum):
     CLASSIFICATION = "classification"
     TECHNICAL_SCORE = "technical_score"
