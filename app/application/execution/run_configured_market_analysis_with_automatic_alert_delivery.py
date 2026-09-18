@@ -8,7 +8,7 @@ from app.application.notifications.automatic_alert_delivery import (
     AutomaticAlertDelivery,
     AutomaticAlertDeliveryResult,
 )
-from app.domain.execution import Execution
+from app.domain.execution import Execution, ExecutionState
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class RunConfiguredMarketAnalysisWithAutomaticAlertDelivery:
     def execute(self, as_of: date) -> ConfiguredMarketAnalysisDeliveryResult:
         analysis_execution = self._run_configured_market_analysis.execute(as_of)
 
-        if analysis_execution.state.value == "failed":
+        if analysis_execution.state is ExecutionState.FAILED:
             return ConfiguredMarketAnalysisDeliveryResult(
                 analysis_execution=analysis_execution,
                 delivery_result=None,
