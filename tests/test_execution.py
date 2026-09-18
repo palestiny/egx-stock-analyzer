@@ -142,3 +142,12 @@ def test_execution_success_clears_previous_failure_reason():
     execution.record_stock_success("IEEC")
 
     assert execution.failure_reasons == {}
+
+
+def test_execution_completes_when_no_stocks_are_requested():
+    execution = Execution.create()
+    execution.start()
+
+    execution.finish()
+
+    assert execution.state == ExecutionState.COMPLETED
