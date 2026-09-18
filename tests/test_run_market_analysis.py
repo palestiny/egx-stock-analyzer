@@ -1,135 +1,143 @@
 from datetime import date
+from unittest.mock import Mock
 
 import pytest
 
-from app.application.analysis.run_market_analysis import RunMarketAnalysis
+from app.application.analysis.run_market_analysis import (
+    DuplicateMarketAnalysisSymbolError,
+    RunMarketAnalysis,
+)
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
 
 
-class FakeRunStockAnalysis:
-    def __init__(self, failures: dict[str, Exception] | None = None) -> None:
-        self.failures = failures or {}
-        self.calls: list[str] = []
-
-    def execute(self, stock: Stock, as_of: date) -> None:
-        self.calls.append(stock.symbol)
-        failure = self.failures.get(stock.symbol)
-        if failure is not None:
-            raise failure
+AS_OF = date(2026, 9, 18)
 
 
-def make_catalog(*symbols: str) -> InMemoryStockCatalog:
-    return InMemoryStockCatalog(
-        [Stock.create(symbol, f"{symbol} Company") for symbol in symbols]
-    )
+def make_runner(stocks: list[Stock]):
+    catalog = InMemoryStockCatalog(stocks)
+    run_stock_analysis = Mock()
+    runner = RunMarketAnalysis(catalog, run_stock_analysis)
+    return runner, run_stock_analysis
 
 
-def test_empty_universe_completes_without_stock_execution():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("EGAL"), runner)
+def test_empty_universe_completes_without_running_stock_analysis():
+    runner, run_stock_analysis = make_runner([])
 
-    result = use_case.execute([], date(2026, 9, 18))
+    result = runner.execute([], AS_OF)
 
-    assert result.state is ExecutionState.COMPLETED
-    assert result.successful_stock_ids == set()
-    assert result.failed_stock_ids == set()
-    assert runner.calls == []
+    assert result.execution.state is ExecutionState.COMPLETED
+    assert result.execution.successful_stock_ids == set()
+    assert result.execution.failed_stock_ids == set()
+    run_stock_analysis.execute.assert_not_called()
 
 
 def test_one_stock_success_completes():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("EGAL"), runner)
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
 
-    result = use_case.execute(["EGAL"], date(2026, 9, 18))
+    result = runner.execute(["egal"], AS_OF)
 
-    assert result.state is ExecutionState.COMPLETED
-    assert result.successful_stock_ids == {"EGAL"}
-    assert result.failed_stock_ids == set()
-
-
-def test_multiple_stocks_execute_in_supplied_order():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("EGAL", "COMI", "IEEC"), runner)
-
-    result = use_case.execute(["ieec", "EGAL", "comi"], date(2026, 9, 18))
-
-    assert result.state is ExecutionState.COMPLETED
-    assert runner.calls == ["IEEC", "EGAL", "COMI"]
+    assert result.execution.state is ExecutionState.COMPLETED
+    assert result.execution.successful_stock_ids == {"EGAL"}
+    assert result.execution.failed_stock_ids == set()
+    run_stock_analysis.execute.assert_called_once()
 
 
-def test_one_failure_does_not_stop_later_stocks():
-    runner = FakeRunStockAnalysis(
-        failures={"EGAL": RuntimeError("market data unavailable")}
-    )
-    use_case = RunMarketAnalysis(make_catalog("COMI", "EGAL", "IEEC"), runner)
+def test_runs_multiple_stocks_in_supplied_order():
+    stocks = [
+        Stock.create("EGAL", "Egypt Aluminum"),
+        Stock.create("IEEC", "Egyptian Electrical"),
+    ]
+    runner, run_stock_analysis = make_runner(stocks)
+    calls = []
+    run_stock_analysis.execute.side_effect = lambda stock, as_of: calls.append(stock.symbol)
 
-    result = use_case.execute(["COMI", "EGAL", "IEEC"], date(2026, 9, 18))
+    result = runner.execute(["IEEC", "EGAL"], AS_OF)
 
-    assert result.state is ExecutionState.COMPLETED_WITH_ERRORS
-    assert result.successful_stock_ids == {"COMI", "IEEC"}
-    assert result.failed_stock_ids == {"EGAL"}
-    assert result.failure_reasons["EGAL"] == "market data unavailable"
-    assert runner.calls == ["COMI", "EGAL", "IEEC"]
-
-
-def test_all_stocks_failing_returns_failed():
-    runner = FakeRunStockAnalysis(
-        failures={
-            "EGAL": RuntimeError("EGAL failed"),
-            "IEEC": RuntimeError("IEEC failed"),
-        }
-    )
-    use_case = RunMarketAnalysis(make_catalog("EGAL", "IEEC"), runner)
-
-    result = use_case.execute(["EGAL", "IEEC"], date(2026, 9, 18))
-
-    assert result.state is ExecutionState.FAILED
-    assert result.successful_stock_ids == set()
-    assert result.failed_stock_ids == {"EGAL", "IEEC"}
+    assert result.execution.state is ExecutionState.COMPLETED
+    assert calls == ["IEEC", "EGAL"]
 
 
-def test_unknown_symbol_is_recorded_as_failure_and_later_stocks_continue():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("IEEC"), runner)
+def test_unknown_symbol_is_recorded_as_failure_and_later_stock_still_runs():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
 
-    result = use_case.execute(["UNKNOWN", "IEEC"], date(2026, 9, 18))
+    result = runner.execute(["UNKNOWN", "EGAL"], AS_OF)
 
-    assert result.state is ExecutionState.COMPLETED_WITH_ERRORS
-    assert result.failed_stock_ids == {"UNKNOWN"}
-    assert "Unknown stock symbol: UNKNOWN" == result.failure_reasons["UNKNOWN"]
-    assert result.successful_stock_ids == {"IEEC"}
-    assert runner.calls == ["IEEC"]
+    assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
+    assert result.execution.failed_stock_ids == {"UNKNOWN"}
+    assert result.execution.successful_stock_ids == {"EGAL"}
+    assert result.execution.failure_reasons["UNKNOWN"] == "Unknown stock symbol: UNKNOWN"
+    run_stock_analysis.execute.assert_called_once()
+
+
+def test_stock_failure_does_not_erase_previous_success():
+    stocks = [
+        Stock.create("EGAL", "Egypt Aluminum"),
+        Stock.create("IEEC", "Egyptian Electrical"),
+    ]
+    runner, run_stock_analysis = make_runner(stocks)
+
+    def execute(stock, as_of):
+        if stock.symbol == "IEEC":
+            raise RuntimeError("provider unavailable")
+
+    run_stock_analysis.execute.side_effect = execute
+
+    result = runner.execute(["EGAL", "IEEC"], AS_OF)
+
+    assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
+    assert result.execution.successful_stock_ids == {"EGAL"}
+    assert result.execution.failed_stock_ids == {"IEEC"}
+    assert result.execution.failure_reasons == {"IEEC": "provider unavailable"}
+
+
+def test_all_stock_failures_return_failed():
+    stocks = [
+        Stock.create("EGAL", "Egypt Aluminum"),
+        Stock.create("IEEC", "Egyptian Electrical"),
+    ]
+    runner, run_stock_analysis = make_runner(stocks)
+    run_stock_analysis.execute.side_effect = RuntimeError("analysis failed")
+
+    result = runner.execute(["EGAL", "IEEC"], AS_OF)
+
+    assert result.execution.state is ExecutionState.FAILED
+    assert result.execution.successful_stock_ids == set()
+    assert result.execution.failed_stock_ids == {"EGAL", "IEEC"}
 
 
 def test_duplicate_normalized_symbols_are_rejected_before_execution():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("EGAL"), runner)
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
 
-    with pytest.raises(ValueError, match="Duplicate stock symbol"):
-        use_case.execute(["EGAL", " egal "], date(2026, 9, 18))
+    with pytest.raises(
+        DuplicateMarketAnalysisSymbolError,
+        match="Duplicate stock symbol: EGAL",
+    ):
+        runner.execute(["EGAL", " egal "], AS_OF)
 
-    assert runner.calls == []
-
-
-def test_successful_stocks_are_not_lost_when_a_later_stock_fails():
-    runner = FakeRunStockAnalysis(
-        failures={"IEEC": RuntimeError("IEEC failed")}
-    )
-    use_case = RunMarketAnalysis(make_catalog("EGAL", "IEEC"), runner)
-
-    result = use_case.execute(["EGAL", "IEEC"], date(2026, 9, 18))
-
-    assert result.successful_stock_ids == {"EGAL"}
-    assert result.failed_stock_ids == {"IEEC"}
+    run_stock_analysis.execute.assert_not_called()
 
 
 def test_each_market_run_has_its_own_execution_identity():
-    runner = FakeRunStockAnalysis()
-    use_case = RunMarketAnalysis(make_catalog("EGAL"), runner)
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, _ = make_runner(stocks)
 
-    first = use_case.execute(["EGAL"], date(2026, 9, 18))
-    second = use_case.execute(["EGAL"], date(2026, 9, 18))
+    first = runner.execute(["EGAL"], AS_OF)
+    second = runner.execute(["EGAL"], AS_OF)
 
-    assert first.id != second.id
+    assert first.execution.id != second.execution.id
+
+
+def test_market_orchestrator_does_not_duplicate_per_stock_retries():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
+    run_stock_analysis.execute.side_effect = RuntimeError("transient")
+
+    result = runner.execute(["EGAL"], AS_OF)
+
+    assert result.execution.state is ExecutionState.FAILED
+    assert run_stock_analysis.execute.call_count == 1
