@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -8,9 +6,6 @@ from app.main import create_development_application_from_environment
 
 @pytest.mark.integration
 def test_egal_real_data_vertical_slice() -> None:
-    if not os.getenv("FINNHUB_API_KEY"):
-        pytest.skip("FINNHUB_API_KEY is required for the real-data vertical slice")
-
     app = create_development_application_from_environment()
 
     with TestClient(app) as client:
