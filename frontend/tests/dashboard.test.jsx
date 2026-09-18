@@ -141,7 +141,9 @@ describe("Dashboard", () => {
     fireEvent.change(selects[1], { target: { value: "snapshot-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Compare" }));
 
-    expect(await screen.findByText("25", { selector: "strong" })).toBeInTheDocument();
+    const performancePanel = await screen.findByLabelText("historical performance");
+    expect(performancePanel).toHaveTextContent("Price Change");
+    expect(performancePanel).toHaveTextContent("25");
     expect(getSnapshotPerformance).toHaveBeenCalledWith("EGAL", "snapshot-1", "snapshot-2");
   });
 
