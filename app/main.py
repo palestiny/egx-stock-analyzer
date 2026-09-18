@@ -33,6 +33,7 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.application_runtime.compare_analysis_snapshots,
         runtime.application_runtime.calculate_snapshot_performance,
         runtime.deliver_alert_by_symbol,
+        runtime.run_configured_market_analysis_with_automatic_alerts,
     )
     app.router.lifespan_context = lifespan
     return app
