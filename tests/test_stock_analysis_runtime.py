@@ -5,6 +5,7 @@ from uuid import uuid4
 from app.application.analysis.daily_market_analysis import StockAnalysisInput, StockAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.calculate_snapshot_performance import CalculateSnapshotPerformance
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
@@ -61,6 +62,7 @@ def test_create_stock_analysis_runtime_wires_symbol_use_case_and_store() -> None
     assert isinstance(runtime.get_market_opportunity_ranking, GetMarketOpportunityRanking)
     assert isinstance(runtime.run_stock_analysis, RunStockAnalysis)
     assert isinstance(runtime.get_analysis_history, GetAnalysisHistory)
+    assert isinstance(runtime.calculate_snapshot_performance, CalculateSnapshotPerformance)
     assert runtime.result_store is store
 
 
@@ -81,3 +83,4 @@ def test_runtime_exposes_shared_analysis_dependencies() -> None:
     assert runtime.rank_market_opportunities is not None
     assert runtime.get_market_opportunity_ranking is not None
     assert runtime.run_stock_analysis is not None
+    assert runtime.calculate_snapshot_performance is not None
