@@ -127,5 +127,5 @@ def test_api_report_and_alert_read_persisted_result_after_store_recreation(tmp_p
         "stock_id": str(stock.id),
         "classification": "buy",
         "stock_quality_score": 6,
-        "entry_quality_score": 4,
+        "entry_quality_score": 2,
     }
