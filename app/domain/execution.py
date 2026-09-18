@@ -75,4 +75,3 @@ class Execution:
     def cancel(self):
         if self.state != ExecutionState.RUNNING:
             raise ValueError("Execution can only be cancelled when RUNNING")
-        self.state = ExecutionState.CANCELLED
