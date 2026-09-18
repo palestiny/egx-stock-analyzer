@@ -403,7 +403,7 @@ RunStockAnalysis
 AnalysisResultStore
 ```
 
-The MVP accepts an explicit ordered symbol list, executes sequentially, preserves successful per-stock persistence, and returns an aggregate state of `COMPLETED`, `PARTIALLY_COMPLETED`, or `FAILED`. An empty universe is a completed no-op. Unknown symbols are individual failures, while duplicate normalized symbols are invalid input.
+The MVP accepts an explicit ordered symbol list, executes sequentially, preserves successful per-stock persistence, and returns an aggregate state of `COMPLETED`, `COMPLETED_WITH_ERRORS`, or `FAILED`. An empty universe is a completed no-op. Unknown symbols are individual failures, while duplicate normalized symbols are invalid input.
 
 The aggregate run has its own execution identity, but M14 does not add aggregate persistence. Per-stock retry remains inside the existing single-stock capability.
 
