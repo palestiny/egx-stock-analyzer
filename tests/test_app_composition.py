@@ -25,6 +25,7 @@ class FakeApplicationRuntime:
     run_configured_market_analysis: object | None = None
     get_analysis_history: object | None = None
     compare_analysis_snapshots: object | None = None
+    calculate_snapshot_performance: object | None = None
 
 
 class FakeRuntime:
@@ -38,6 +39,7 @@ class FakeRuntime:
             run_configured_market_analysis=object(),
             get_analysis_history=object(),
             compare_analysis_snapshots=object(),
+            calculate_snapshot_performance=object(),
         )
         self.closed = False
 
