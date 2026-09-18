@@ -129,6 +129,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
+| M29 | Scheduled Automatic Alert Delivery | 🟡 Design Accepted | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -189,6 +190,8 @@ M26 — External Notification Provider Integration
 M27 — Alert Delivery Trigger & Transport Boundary
         ↓
 M28 — Automatic Alert Delivery Policy
+        ↓
+M29 — Scheduled Automatic Alert Delivery
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -908,7 +911,41 @@ The next capability requires a separate design gate.
 
 ---
 
-# 28. Cross-Cutting Requirements
+# 29. M29 — Scheduled Automatic Alert Delivery
+
+## Status
+
+The M29 design gate is **accepted** in `docs/DEC-088-M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted boundary
+
+```
+Recurring Scheduler
+        ↓
+Scheduled Analysis + Delivery Workflow
+        ↓
+RunConfiguredMarketAnalysis
+        ↓
+Analysis Execution
+        ↓
+AutomaticAlertDelivery
+        ↓
+DeliverAlert
+        ↓
+NotificationProvider
+```
+
+The workflow composes existing analysis and delivery capabilities. The scheduler remains responsible for timing and recurrence only. Analysis and delivery retain independent outcomes.
+
+M29 will invoke automatic delivery after a returned market-analysis Execution, including partial or failed aggregate executions that contain successful stock symbols. An analysis exception before an Execution exists prevents delivery.
+
+Manual market analysis remains analysis-only.
+
+Deferred: independent delivery schedules, asynchronous delivery, queues/workers, provider retry, multiple channels, user-specific schedules, durable workflow state, and distributed coordination.
+
+---
+
+# 30. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -942,7 +979,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 29. Milestone Completion Rule
+# 31. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -968,7 +1005,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 30. Changing the Roadmap
+# 32. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -978,6 +1015,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 31. Guiding Principle
+# 33. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
