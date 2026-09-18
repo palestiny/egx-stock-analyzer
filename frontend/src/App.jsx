@@ -1,8 +1,28 @@
 import { useState } from "react";
 
-import { getAlert, getReport } from "./api/analysisApi";
+import { getAlert, getMarketOpportunities, getReport } from "./api/analysisApi";
 
 function Metric({ label, value }) {
+  async function handleMarketOpportunities(event) {
+    event.preventDefault();
+    const symbols = marketSymbols
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+
+    setMarketLoading(true);
+    setMarketError(null);
+
+    try {
+      setMarketView(await getMarketOpportunities(symbols));
+    } catch (requestError) {
+      setMarketError(requestError);
+      setMarketView(null);
+    } finally {
+      setMarketLoading(false);
+    }
+  }
+
   return (
     <div className="metric">
       <span className="metric-label">{label}</span>
@@ -31,6 +51,10 @@ function App() {
   const [alert, setAlert] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
+  const [marketView, setMarketView] = useState(null);
+  const [marketError, setMarketError] = useState(null);
+  const [marketLoading, setMarketLoading] = useState(false);
 
   async function handleAnalyze(event) {
     event.preventDefault();
@@ -111,6 +135,61 @@ function App() {
           {error.message}
         </section>
       )}
+
+      <section className="panel market-opportunities-panel" aria-label="market opportunities">
+        <div>
+          <p className="eyebrow">MARKET VIEW</p>
+          <h3>Market opportunities</h3>
+        </div>
+
+        <form className="symbol-form" onSubmit={handleMarketOpportunities}>
+          <label className="sr-only" htmlFor="market-symbols">
+            Market symbols
+          </label>
+          <input
+            id="market-symbols"
+            name="market-symbols"
+            type="text"
+            value={marketSymbols}
+            onChange={(event) => setMarketSymbols(event.target.value)}
+            placeholder="EGAL,IEEC,COMI"
+            autoComplete="off"
+          />
+          <button type="submit" disabled={marketLoading}>
+            {marketLoading ? "Loading..." : "Load Opportunities"}
+          </button>
+        </form>
+
+        {marketError && (
+          <p className="state-card error" role="alert">
+            {marketError.message}
+          </p>
+        )}
+
+        {marketView && marketView.opportunities.length === 0 && marketView.missing_symbols.length === 0 && (
+          <p className="muted">No opportunities in the requested universe.</p>
+        )}
+
+        {marketView && marketView.opportunities.length > 0 && (
+          <div className="opportunity-list">
+            {marketView.opportunities.map((item) => (
+              <div className="detail-row" key={item.symbol}>
+                <strong>{item.symbol}</strong>
+                <span>
+                  {item.classification} · Stock {item.stock_quality} · Entry {item.entry_quality}
+                  {" "}· Technical {item.technical_score} · Fundamental {item.fundamental_score}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {marketView && marketView.missing_symbols.length > 0 && (
+          <p className="muted">
+            Missing stored results: {marketView.missing_symbols.join(", ")}
+          </p>
+        )}
+      </section>
 
       {report && (
         <>
