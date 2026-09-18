@@ -1777,3 +1777,19 @@ This keeps the scheduler generic and the market-analysis policy explicit, at the
 ### Revisit Conditions
 
 Revisit when durable user-managed schedules, an authoritative EGX trading calendar, multiple recurrence rule types, distributed scheduling, or multi-process coordination become required.
+
+
+## DEC-079 — M20 Historical Analysis Result History
+
+**Status:** Proposed  
+**Date:** 2026-09-18
+
+M20 proposes a history-aware persistence boundary for completed analytical snapshots. The immediate problem is that recurring full-market analysis now runs repeatedly, while the current `AnalysisResultStore` keeps only the latest result per symbol.
+
+The proposed MVP would preserve immutable completed analysis snapshots, support deterministic historical retrieval, and keep the current latest-result contract compatible. Historical reads would never trigger fresh analysis.
+
+The design gate must resolve snapshot identity, same-day runs, latest-result semantics, retrieval contract, SQLite migration, corrupt/unsupported historical payload behavior, failed-analysis persistence, time semantics, and whether/when API exposure is appropriate.
+
+Historical market-data warehousing, historical ranking, performance analytics, change detection, notifications, watchlists, portfolio/trading behavior, AI analysis, and API expansion are explicitly deferred until separately designed.
+
+See `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`.
