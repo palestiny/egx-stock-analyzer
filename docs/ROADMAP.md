@@ -664,7 +664,7 @@ Completion record: `docs/M21-HISTORICAL-ANALYSIS-VIEW-MVP-COMPLETION.md`.
 
 ## Status
 
-M22 design gate is **proposed** in `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`. Implementation is not authorized until the comparison contract is accepted.
+M22 design gate is **accepted** in `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`. Implementation is authorized for the defined comparison MVP.
 
 The proposed capability compares two persisted snapshots for the same stock without recalculating historical analysis. Open questions cover snapshot selection, before/after direction, derived deltas, same-date snapshots, missing/cross-symbol selections, API shape, and dashboard presentation.
 

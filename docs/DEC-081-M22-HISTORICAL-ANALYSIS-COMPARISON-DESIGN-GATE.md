@@ -1,6 +1,6 @@
 # DEC-081 — M22 Historical Analysis Comparison Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M22 — Historical Analysis Comparison
 
@@ -67,74 +67,140 @@ Persisted Historical Snapshots
 
 The comparison use case owns only selection validation and deterministic comparison of persisted snapshots. The store remains responsible for retrieving persisted records.
 
-## 6. Open Design Questions
+## 6. Accepted Design Decisions
 
-Before implementation, the following questions must be explicitly accepted:
+### 1. Selection Contract
 
-1. **Selection contract:** should snapshots be selected by UUID, analysis date, or both?
-2. **Same-date snapshots:** if multiple snapshots exist on the same date, should UUID be mandatory for unambiguous selection?
-3. **Comparison direction:** should the response define an explicit `before` and `after` snapshot?
-4. **Derived fields:** which deltas should be exposed (scores, price, support/resistance), and which should remain as raw before/after values only?
-5. **Classification changes:** should a classification change be represented as a boolean/change descriptor or simply as before/after values?
-6. **Missing snapshot:** should a missing snapshot return a domain/application not-found result that maps to HTTP 404?
-7. **Cross-symbol selection:** should different-stock snapshot IDs be rejected explicitly?
-8. **Dashboard presentation:** side-by-side table, change rows, or another presentation?
-9. **API shape:** dedicated comparison endpoint versus extending the history endpoint.
-10. **No analytical recalculation:** which invariants should prove that comparison is purely read-side?
+Snapshots are selected by UUID. The API requires both `before` and `after` snapshot IDs.
 
-## 7. Alternatives
+Dates remain part of the returned snapshot data for human-readable context, but dates are not selection identifiers.
 
-### A. Extend the history endpoint
+This keeps selection unambiguous when multiple snapshots exist on the same analysis date.
 
-Example: `GET /api/v1/history/{symbol}/compare?before=...&after=...`
+### 2. Same-Date Snapshots
 
-**Benefit:** keeps comparison under the historical resource.
+Same-date snapshots are valid and are distinguishable by UUID. UUID is therefore the canonical selection key.
 
-**Trade-off:** history retrieval and comparison become more tightly coupled.
+The comparison must reject the same UUID supplied for both sides.
 
-### B. Dedicated comparison endpoint
+### 3. Comparison Direction
 
-Example: `GET /api/v1/comparisons/{symbol}?before=...&after=...`
+The response has explicit `before` and `after` snapshots.
 
-**Benefit:** gives comparison its own explicit read-side contract.
+The `before` snapshot is the earlier selected reference conceptually, but the API does not silently reorder caller selections. The client explicitly chooses which snapshot is `before` and which is `after`.
 
-**Trade-off:** introduces another resource boundary.
+The response preserves the selected dates so a client can see if its direction is chronological.
 
-### C. Dashboard-only comparison
+### 4. Derived Fields
 
-**Benefit:** no new backend endpoint.
+M22 exposes deltas only for numeric values that are already persisted in the analysis result and have a clear direct subtraction meaning:
 
-**Trade-off:** pushes comparison semantics into the presentation layer and makes the behavior difficult to reuse or test independently.
+- technical score;
+- fundamental score;
+- stock quality score;
+- entry quality score;
+- current price when present in both snapshots;
+- nearest support when present in both snapshots;
+- nearest resistance when present in both snapshots.
 
-## 8. Proposed Invariants
+For optional numeric values, the delta is `null` when either side is missing.
 
-1. Both selected snapshots belong to the requested stock.
-2. The two selected snapshots are distinct.
-3. The comparison does not execute fresh analysis.
-4. The comparison does not mutate persisted snapshots.
-5. Before/after direction is explicit and deterministic.
-6. Any derived delta is calculated from persisted values only.
-7. Existing history/latest-result/report/alert contracts remain unchanged.
-8. Persistence schema is unchanged.
+Enum/status fields and fundamental period dates remain before/after values only; no artificial numeric encoding is introduced for them.
 
-## 9. TDD Acceptance Shape
+### 5. Classification Changes
 
-The accepted implementation should test:
+Opportunity classification is represented as explicit before/after values plus a boolean `changed`.
 
-- comparison of two existing snapshots;
-- explicit before/after direction;
-- same-date snapshots selected by UUID;
-- missing snapshot;
-- cross-symbol snapshot rejection;
-- identical snapshot rejection;
-- deterministic derived deltas;
-- unchanged persisted values;
-- no fresh analysis execution;
-- API response contract;
-- dashboard comparison presentation;
-- existing history/report/alert behavior remains unchanged.
+No ranking, severity, or interpretation is derived from the classification transition.
 
-## 10. Design Gate Decision
+### 6. Missing Snapshot
+
+A selected snapshot that does not exist returns an application-level not-found result and maps to HTTP 404.
+
+The endpoint does not fall back to latest history or silently choose another snapshot.
+
+### 7. Cross-Symbol Selection
+
+Both snapshots must belong to the requested symbol.
+
+A mismatch is rejected explicitly as an invalid comparison selection and maps to HTTP 400.
+
+### 8. Dashboard Presentation
+
+The dashboard presents the comparison as a before/after view with:
+
+- snapshot date;
+- opportunity classification;
+- technical score;
+- fundamental score;
+- stock quality;
+- entry quality;
+- current price;
+- nearest support;
+- nearest resistance;
+- derived numeric deltas;
+- classification-changed indicator.
+
+The dashboard does not calculate deltas itself.
+
+### 9. API Shape
+
+Use a dedicated read-only endpoint:
+
+`GET /api/v1/comparisons/{symbol}?before={uuid}&after={uuid}`
+
+Comparison is its own application resource boundary. This avoids making the history endpoint responsible for two different read behaviors.
+
+### 10. No Analytical Recalculation
+
+The comparison capability receives only persisted `AnalysisResultRecord` values from `AnalysisResultStore.get_history` (or an equivalent store-level snapshot lookup added without changing persistence schema).
+
+It never invokes `RunStockAnalysis`, `DailyMarketAnalysis`, market-data providers, scoring services, or classification services.
+
+Tests must use a store double and prove no analysis execution is triggered.
+
+## 7. Accepted Boundary
+
+```
+Dashboard
+    ↓
+HTTP
+    ↓
+CompareAnalysisSnapshots
+    ↓
+AnalysisResultStore
+    ↓
+Persisted Historical Snapshots
+```
+
+The comparison use case owns selection validation and deterministic comparison. The store owns persistence retrieval. The API owns transport mapping. The dashboard owns presentation only.
+
+## 8. TDD Acceptance Criteria
+
+The implementation must test:
+
+- two existing snapshots compare successfully;
+- caller-selected before/after direction is preserved;
+- same-date snapshots can be selected by UUID;
+- identical snapshot IDs are rejected;
+- missing snapshot IDs return a not-found application result;
+- cross-symbol snapshots are rejected;
+- numeric deltas are deterministic;
+- optional numeric values produce null deltas when either side is missing;
+- classification exposes before/after and changed;
+- persisted records are not mutated;
+- no fresh analysis is executed;
+- API 200/400/404 contracts;
+- dashboard renders comparison data without calculating deltas;
+- existing history/report/alert contracts remain unchanged.
+
+## 9. Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M22 MVP defined here.**
+
+The implementation must not introduce persistence schema changes, new analytical rules, ranking, prediction, or cross-stock comparison.
+
+## 10. Revisit Conditions
 
 **Status: Proposed — implementation is not authorized until the open questions are resolved and this gate is accepted.**
 
