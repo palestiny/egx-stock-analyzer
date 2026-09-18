@@ -1635,3 +1635,15 @@ No new analytical logic belongs in the frontend.
 ### Revisit Conditions
 
 Revisit when a concrete next dashboard capability is selected and its API/domain impact can be designed explicitly.
+
+
+## DEC-070 — M13 Production Hardening Boundary and First Slice
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M13 begins with an Operational Runtime Baseline rather than a broad production rewrite.
+
+The first slice covers configuration validation, runtime lifecycle/health semantics, safe API error boundaries, operational diagnostics, and tests. Persistence, authentication/authorization, deployment topology, metrics/tracing, provider failover, durable scheduling, and other production capabilities require separate design gates.
+
+See `docs/DEC-070-M13-PRODUCTION-HARDENING-BOUNDARY.md`.
