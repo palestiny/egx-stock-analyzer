@@ -845,6 +845,38 @@ The accepted command is `POST /api/v1/alerts/{symbol}/deliver?channel=telegram`.
 
 ---
 
+# 27. M27 — Alert Delivery Trigger & Transport Boundary
+
+## Status
+
+M27 is **complete**. The accepted design is documented in `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`, and the implementation was merged through PR #43.
+
+### Accepted boundary
+
+```
+POST /api/v1/alerts/{symbol}/deliver
+          ↓
+DeliverAlertBySymbol
+          ↓
+GetAlertCandidate + DeliverAlert
+          ↓
+NotificationProvider
+          ↓
+TelegramNotificationProvider
+```
+
+The command resolves an existing alert candidate, delegates delivery to M25, preserves idempotency and durable delivery state, and never executes fresh analysis.
+
+Transport semantics are explicit: missing candidate → 404; delivery not configured → 503; delivered or persisted failed delivery → 200 with the delivery state.
+
+GitHub Actions Run #730 completed successfully for implementation head `396383e9cd3857459f0f6249f688d279c8cca264`, validating Python unit tests plus frontend tests and build.
+
+Completion record: `docs/M27-ALERT-DELIVERY-TRIGGER-MVP-COMPLETION.md`.
+
+Deferred: automatic delivery after analysis, bulk delivery, multi-channel fan-out, failed-delivery retry, queues/workers, scheduled delivery, user preferences, delivery analytics, trading execution, and AI notification decisions.
+
+---
+
 # 28. Cross-Cutting Requirements
 
 These apply across milestones.
