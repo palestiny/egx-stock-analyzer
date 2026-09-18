@@ -127,6 +127,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
+| M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
