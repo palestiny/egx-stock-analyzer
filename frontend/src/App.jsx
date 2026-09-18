@@ -31,7 +31,12 @@ function App() {
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
-  const [historyLoading, setHistoryLoading] = useState(false);\n  const [beforeSnapshotId, setBeforeSnapshotId] = useState("");\n  const [afterSnapshotId, setAfterSnapshotId] = useState("");\n  const [comparison, setComparison] = useState(null);\n  const [comparisonError, setComparisonError] = useState(null);\n  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [beforeSnapshotId, setBeforeSnapshotId] = useState("");
+  const [afterSnapshotId, setAfterSnapshotId] = useState("");
+  const [comparison, setComparison] = useState(null);
+  const [comparisonError, setComparisonError] = useState(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
