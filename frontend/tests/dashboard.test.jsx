@@ -74,12 +74,14 @@ describe("Dashboard", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Load Opportunities" }));
 
-    expect(await screen.findByText("EGAL")).toBeInTheDocument();
-    expect(screen.getByText("buy")).toBeInTheDocument();
-    expect(screen.getByText(/Stock 6/)).toBeInTheDocument();
-    expect(screen.getByText(/Entry 2/)).toBeInTheDocument();
-    expect(screen.getByText(/Technical 4/)).toBeInTheDocument();
-    expect(screen.getByText(/Fundamental 2/)).toBeInTheDocument();
+    const symbol = await screen.findByText("EGAL");
+    const row = symbol.closest(".detail-row");
+    expect(row).not.toBeNull();
+    expect(row).toHaveTextContent("buy");
+    expect(row).toHaveTextContent("Stock 6");
+    expect(row).toHaveTextContent("Entry 2");
+    expect(row).toHaveTextContent("Technical 4");
+    expect(row).toHaveTextContent("Fundamental 2");
     expect(screen.getByText("Missing stored results: IEEC")).toBeInTheDocument();
     expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
