@@ -1897,3 +1897,14 @@ AnalysisResultRecord already exposes snapshot_id, but AlertCandidate must carry 
 The first implementation is proposed to be synchronous and sequential, with provider-specific integrations behind infrastructure adapters. Provider retry/backoff and queue-based delivery are deferred.
 
 See docs/DEC-084-M25-ALERT-DELIVERY-DESIGN-GATE.md.
+
+## DEC-085 — M26 External Notification Provider Integration
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M26 opens the next design gate after the provider-neutral M25 alert-delivery boundary. The goal is to introduce one concrete external notification provider without moving provider concerns into `DeliverAlert`, alert generation, or analytical code.
+
+The gate explicitly defers provider-specific implementation until the first provider, credential/configuration contract, timeout and retry semantics, payload mapping, and deterministic integration-test boundary are accepted.
+
+See `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`.
