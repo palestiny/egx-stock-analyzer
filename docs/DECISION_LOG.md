@@ -1663,3 +1663,17 @@ Durable state must preserve the existing analysis result and analysis date requi
 The next gate must define the concrete persistence technology, storage model, serialization, adapter responsibilities, migrations/versioning, transaction semantics, failure behavior, testing, and local development setup. No database dependency is introduced by this decision alone.
 
 See `docs/DEC-071-M13-DURABLE-ANALYSIS-STATE-BOUNDARY.md`.
+
+
+## DEC-072 — SQLite Analysis Result Persistence MVP
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+Following DEC-071, the first durable persistence implementation will use SQLite behind the existing `AnalysisResultStore` contract. The MVP uses Python's standard-library `sqlite3` driver and an explicit versioned serializer for the complete `StockAnalysisResult` rather than ORM mappings or Python pickle.
+
+The store keeps the latest completed analysis per symbol and preserves the analysis date. Persistence must be transactional, reconstruct complete analytical results, and fail explicitly on unsupported/corrupt payload versions. Report and alert application services remain unchanged.
+
+The implementation is intentionally limited to durable analysis results; historical browsing, market-data warehousing, authentication, scheduler durability, and other production capabilities remain separate concerns.
+
+See `docs/DEC-072-M13-SQLITE-ANALYSIS-RESULT-PERSISTENCE-MVP.md`.
