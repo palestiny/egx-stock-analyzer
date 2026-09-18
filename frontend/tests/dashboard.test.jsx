@@ -74,7 +74,12 @@ describe("Dashboard", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Load Opportunities" }));
 
-    expect(await screen.findByText(/EGAL.*buy.*Stock 6.*Entry 2.*Technical 4.*Fundamental 2/)).toBeInTheDocument();
+    expect(await screen.findByText("EGAL")).toBeInTheDocument();
+    expect(screen.getByText("buy")).toBeInTheDocument();
+    expect(screen.getByText(/Stock 6/)).toBeInTheDocument();
+    expect(screen.getByText(/Entry 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Technical 4/)).toBeInTheDocument();
+    expect(screen.getByText(/Fundamental 2/)).toBeInTheDocument();
     expect(screen.getByText("Missing stored results: IEEC")).toBeInTheDocument();
     expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
