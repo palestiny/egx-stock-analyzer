@@ -51,3 +51,18 @@ def test_infrastructure_runtime_owns_shared_result_store() -> None:
 
     assert runtime.application_runtime.result_store is result_store
     runtime.close()
+
+
+def test_infrastructure_runtime_close_is_idempotent() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(),
+    )
+
+    assert runtime.closed is False
+    runtime.close()
+    assert runtime.closed is True
+    runtime.close()
+    assert runtime.closed is True
