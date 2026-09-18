@@ -1,6 +1,6 @@
 # DEC-066 — M12 Dashboard / Presentation Boundary
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-17
 
 ## 1. Design Question
@@ -267,16 +267,15 @@ These are intentionally not implementation blockers yet:
 
 ## 12. Committed vs Proposed
 
-Until explicitly accepted, this document is a design proposal.
+The dashboard presentation boundary is accepted by DEC-067. The frontend technology is React + Vite.
 
-The following boundary is the intended direction:
+The following boundary is committed:
 
 > **Dashboard displays analytical results; backend owns analytical meaning.**
 
 The following remain open:
 
-- frontend technology
-- exact first-screen UX
+- exact first-screen UX refinements
 - additional API endpoints needed by the dashboard
 
 No dashboard implementation should begin until the open implementation choice is accepted.
