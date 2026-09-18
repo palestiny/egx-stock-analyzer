@@ -890,13 +890,9 @@ Domain-first development
 TDD for domain behavior
 ```
 
-Current known test baseline:
+Current known test baseline is maintained by the repository CI pipeline rather than a fixed test-count checkpoint.
 
-```text
-17 passed
-```
-
-This number is a project checkpoint, not a permanent requirement.
+The exact passing count may evolve as coverage grows; CI success is the authoritative validation signal for the current branch.
 
 ---
 
