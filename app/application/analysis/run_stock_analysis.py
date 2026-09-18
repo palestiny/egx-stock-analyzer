@@ -20,7 +20,7 @@ class RunStockAnalysis:
 
     def execute(self, stock: Stock, as_of: date) -> None:
         analysis_input: StockAnalysisInput = self._input_assembler.assemble(stock, as_of)
-        result = self._daily_analysis.run([analysis_input])
+        result = self._daily_analysis.run([analysis_input], analysis_date=as_of)
 
         if result.execution.state is not ExecutionState.COMPLETED:
             reason = result.execution.failure_reasons.get(stock.symbol)
