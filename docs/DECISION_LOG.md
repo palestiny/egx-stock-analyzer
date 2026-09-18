@@ -1934,11 +1934,45 @@ See `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`.
 
 ## DEC-087 — M28 Automatic Alert Delivery Policy
 
-**Status:** Proposed  
-**Date:** 2026-09-19
+**Status:** Accepted
 
-M28 opens a design gate for automatically delivering existing alert candidates after completed analysis. The capability must remain separate from stock-analysis execution and must delegate delivery to the existing M25 `DeliverAlert` boundary.
+### Context
 
-The gate must resolve trigger input, candidate eligibility, channel configuration, deterministic ordering, failure isolation, aggregate delivery semantics, persistence scope, retry behavior, trigger coupling, and idempotency before implementation.
+M27 provides explicit single-alert delivery. M28 defines when the platform may automatically deliver existing alert candidates without coupling notification side effects to analytical execution.
 
-See `docs/DEC-087-M28-AUTOMATIC-ALERT-DELIVERY-POLICY-DESIGN-GATE.md`.
+### Decision
+
+Automatic delivery is a dedicated post-analysis application capability.
+
+It consumes the successful symbols from a completed market-analysis `Execution`, resolves existing candidates through `GetAlertCandidate`, and delegates delivery to `DeliverAlert`.
+
+The MVP:
+
+- uses one configured default channel: `telegram`;
+- orders successful symbols deterministically by normalized symbol;
+- continues after individual delivery failures;
+- records aggregate delivery semantics separately from analysis execution state;
+- persists only through the existing M25 `AlertDeliveryStore`;
+- adds no automatic retry;
+- relies on M25 snapshot/channel idempotency;
+- does not trigger fresh analysis or recalculate alert eligibility.
+
+### Alternatives Considered
+
+Sending from `RunStockAnalysis` or `RunMarketAnalysis` was rejected because notification availability must not change analytical execution semantics.
+
+Having the scheduler own notification policy was rejected because scheduling should trigger capabilities rather than decide business eligibility.
+
+### Trade-offs
+
+This keeps analysis and delivery failure domains independent and makes automatic delivery deterministic and testable.
+
+The trade-off is an explicit post-analysis invocation boundary; automatic delivery is not implicitly guaranteed by every analysis call until a future orchestration requirement explicitly wires that trigger.
+
+### Consequences
+
+No new aggregate delivery persistence schema is introduced. Repeated runs reuse M25 idempotency. Multiple channels, user preferences, provider retries, asynchronous queues, and scheduled delivery policy remain separate future decisions.
+
+### Revisit Conditions
+
+Revisit when automatic delivery needs asynchronous processing, user-specific preferences, multiple channels, provider retries, or delivery scheduling policy.
