@@ -8,7 +8,11 @@ from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.stocks.stock import Stock
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.runtime import InfrastructureRuntime
-from app.main import create_application, create_application_from_environment
+from app.main import (
+    create_application,
+    create_application_from_environment,
+    create_development_application_from_environment,
+)
 
 
 @dataclass
@@ -66,6 +70,34 @@ def test_create_application_from_environment_loads_config_at_composition_root(
     assert isinstance(captured["config"], InfrastructureConfig)
     assert captured["config"].finnhub_api_key == "test-key"
     assert captured["yfinance_module"].__name__ == "yfinance"
+
+    with TestClient(app):
+        pass
+
+    assert runtime.closed is True
+
+def test_create_development_application_from_environment_uses_development_catalog(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("FINNHUB_API_KEY", "test-key")
+    captured: dict[str, object] = {}
+    runtime = FakeRuntime(InMemoryAnalysisResultStore())
+
+    def fake_create_infrastructure_runtime(**kwargs):
+        captured.update(kwargs)
+        return runtime
+
+    monkeypatch.setattr(
+        "app.main.create_infrastructure_runtime",
+        fake_create_infrastructure_runtime,
+    )
+
+    app = create_development_application_from_environment()
+
+    assert app is not None
+    catalog = captured["stock_catalog"]
+    assert catalog.get("EGAL") is not None
+    assert catalog.get("EGAL").name == "Egypt Aluminum"
 
     with TestClient(app):
         pass
