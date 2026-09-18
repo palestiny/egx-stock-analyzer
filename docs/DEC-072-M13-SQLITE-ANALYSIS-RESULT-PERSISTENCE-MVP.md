@@ -105,7 +105,7 @@ The implementation must include:
 7. report projection works from a persisted result;
 8. alert projection works from a persisted result;
 9. existing in-memory store tests remain unchanged;
-10. integration coverage verifies analysis → persistent store → report/alert read-side flow.
+10. integration coverage verifies analysis → persistent store → report/alert read-side flow.\n11. API-level integration coverage verifies report and alert projections after SQLite store recreation.
 
 ## Non-Goals
 
