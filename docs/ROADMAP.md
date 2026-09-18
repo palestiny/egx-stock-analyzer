@@ -120,6 +120,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
+| M20 | Historical Analysis Result History | 🟡 Design Proposed | Preserve completed analytical snapshots across recurring runs without changing analytical rules |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -161,6 +162,8 @@ M17 — Market Universe & All-Market Execution
 M18 — Scheduled Full-Market Analysis
         ↓
 M19 — Recurring Market Scheduling
+        ↓
+M20 — Historical Analysis Result History
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -565,7 +568,39 @@ Completion record: docs/M19-RECURRING-MARKET-SCHEDULING-MVP-COMPLETION.md.
 
 ---
 
-# 17. Cross-Cutting Requirements
+# 17. M20 — Historical Analysis Result History
+
+## Status
+
+A new design gate is **proposed** in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`.
+
+The problem is now concrete: M19 can execute the market repeatedly, while the current analysis result persistence is latest-result-only. This prevents persisted comparison of completed analysis snapshots across recurring runs.
+
+M20 will first define the historical snapshot contract before implementation. It is not yet authorized for implementation.
+
+### Candidate boundary
+
+```
+Analysis / Scheduled Execution
+          ↓
+AnalysisResultStore
+          ↓
+Historical Analysis Result Repository
+          ↓
+SQLite
+```
+
+### Candidate outcome
+
+Preserve immutable completed analysis snapshots while keeping the current latest-result read contract compatible.
+
+### Explicitly deferred
+
+Historical market-data warehousing, historical ranking, performance analytics, change-detection rules, notifications, watchlists, portfolio/trading behavior, AI analysis, and API expansion are not part of the proposed gate.
+
+---
+
+# 18. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -599,7 +634,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 18. Milestone Completion Rule
+# 19. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -625,7 +660,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 19. Changing the Roadmap
+# 20. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -635,6 +670,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 20. Guiding Principle
+# 21. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
