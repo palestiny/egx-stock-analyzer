@@ -1,6 +1,6 @@
 # DEC-084 — M25 Alert Delivery & Notification Boundary Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M25
 
@@ -104,11 +104,27 @@ Delivery state gets its own persistence boundary. Analysis-result persistence is
 - no analytical recalculation occurs during delivery;
 - retry of FAILED is explicit rather than automatic.
 
-## Design Gate Status
+## Accepted Decisions
 
-Proposed — implementation is not authorized yet.
+1. **Alert input:** delivery consumes an existing AlertCandidate associated with a persisted analysis snapshot; delivery never recalculates analytical values.
+2. **Event identity:** the logical event is (stock_id, snapshot_id) and the idempotency key is (stock_id, snapshot_id, channel).
+3. **AlertCandidate contract:** the existing snapshot_id is propagated into AlertCandidate before delivery implementation. This is an application/projection contract extension, not a new analytical rule.
+4. **Delivery state:** PENDING, DELIVERED, and FAILED are persisted in a dedicated delivery store. DELIVERED is terminal for an event/channel in M25.
+5. **Failure isolation:** provider failure affects delivery state only and never changes analysis or historical snapshots.
+6. **Provider abstraction:** application code depends only on a provider-neutral interface. M25 implementation uses a deterministic test provider; concrete external channels are deferred to a later gate.
+7. **Retry:** M25 does not add a generic retry engine. Retrying FAILED is an explicit application operation.
+8. **Execution:** synchronous and sequential for M25. Queue/distributed delivery is deferred.
+9. **Persistence:** delivery state is separate from analysis-result persistence.
 
-Acceptance must explicitly confirm event identity, AlertCandidate contract extension, delivery-state boundary, idempotency, provider abstraction, and synchronous MVP.
+## Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M25 MVP defined here.**
+
+The implementation boundary is:
+
+Completed Analysis Snapshot → AlertCandidate → DeliverAlert → AlertDeliveryStore → NotificationProvider
+
+The first implementation must establish delivery semantics and provider neutrality without requiring a live external notification service.
 
 ## Revisit Conditions
 
