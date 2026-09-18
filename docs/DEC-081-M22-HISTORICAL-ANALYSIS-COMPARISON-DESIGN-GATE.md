@@ -200,9 +200,9 @@ The implementation must test:
 
 The implementation must not introduce persistence schema changes, new analytical rules, ranking, prediction, or cross-stock comparison.
 
-## 10. Revisit Conditions
+## 10. Implementation Authorization
 
-**Status: Proposed — implementation is not authorized until the open questions are resolved and this gate is accepted.**
+**Status: Accepted — implementation is authorized for the M22 MVP defined here.**
 
 ## 11. Revisit Conditions
 
