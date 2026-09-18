@@ -71,20 +71,6 @@ def test_partial_analysis_still_delivers_successful_symbols():
     delivery = Mock()
     execution = make_execution(ExecutionState.COMPLETED_WITH_ERRORS, {"EGAL"})
     analysis.execute.return_value = execution
-    workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
-
-    result = workflow.execute(AS_OF)
-
-    assert result.analysis_execution is execution
-    assert result.delivery_result is None
-    delivery.execute.assert_not_called()
-
-
-def test_failed_analysis_execution_does_not_trigger_delivery():
-    analysis = Mock()
-    delivery = Mock()
-    execution = make_execution(ExecutionState.FAILED)
-    analysis.execute.return_value = execution
     delivery.execute.return_value = delivery_result(AutomaticAlertDeliveryState.COMPLETED)
 
     workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
@@ -92,7 +78,23 @@ def test_failed_analysis_execution_does_not_trigger_delivery():
     result = workflow.execute(AS_OF)
 
     assert result.analysis_execution is execution
+    assert result.delivery_result.state is AutomaticAlertDeliveryState.COMPLETED
     delivery.execute.assert_called_once_with(execution)
+
+
+def test_failed_analysis_execution_does_not_trigger_delivery():
+    analysis = Mock()
+    delivery = Mock()
+    execution = make_execution(ExecutionState.FAILED)
+    analysis.execute.return_value = execution
+
+    workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
+
+    result = workflow.execute(AS_OF)
+
+    assert result.analysis_execution is execution
+    assert result.delivery_result is None
+    delivery.execute.assert_not_called()
 
 
 def test_analysis_exception_prevents_delivery():
