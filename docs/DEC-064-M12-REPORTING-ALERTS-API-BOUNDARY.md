@@ -53,8 +53,6 @@ This is a deliberate prerequisite, not an implementation detail to hide inside F
 
 ## 5. Proposed Read Surface
 
-Once the application result representation carries the analysis period:
-
 ### Report
 
 `GET /api/v1/reports/{symbol}`
@@ -68,6 +66,18 @@ Semantics:
 - response is a transport DTO
 - report contents are derived from the already-computed analysis
 
+The report transport DTO explicitly exposes presentation-safe values only:
+
+- symbol and preserved analysis date
+- fundamental period end
+- technical/fundamental/stock-quality/entry-quality scores
+- opportunity classification
+- current price and nearest support/resistance when available
+- technical trend/momentum/volume statuses
+- fundamental profitability/liquidity/growth statuses
+
+Domain objects, UUID identity, and scoring/evidence objects are not returned directly.
+
 ### Alert Candidate
 
 `GET /api/v1/alerts/{symbol}`
@@ -79,6 +89,8 @@ Semantics:
 - returns 404 when no alert candidate exists for the latest result
 - does not send a notification
 - does not persist or deduplicate alerts
+
+The alert transport DTO exposes the stock identity, classification, stock-quality score, and entry-quality score. It does not expose notification-delivery behavior.
 
 A separate notification-delivery endpoint is explicitly out of scope.
 
@@ -128,28 +140,36 @@ The following remain outside this gate:
 - authentication/authorization
 - production observability
 
-## 8. Prerequisite Implementation Status
+## 8. Implementation Status
 
-The analysis period prerequisite is now implemented in the application layer:
+The analysis period prerequisite and read-side projections are now implemented:
 
 - `AnalysisResultRecord` preserves `StockAnalysisResult` plus `analysis_date`.
 - `RunStockAnalysis` passes its `as_of` date into the analysis execution.
 - `InMemoryAnalysisResultStore` exposes the stored record without breaking the existing `get()` contract.
 - `GetAnalysisReport` composes the existing M11 `AnalysisReport` from the stored result and preserved analysis date.
-- Report composition returns no report when the result has no preserved analysis date, avoiding invented freshness semantics.
+- `GetAlertCandidate` delegates BUY-only alert semantics to the existing M11 `AlertGenerator`.
+- `AnalysisReportResponse` and `AlertCandidateResponse` are explicit transport DTOs.
+- `GET /api/v1/reports/{symbol}` and `GET /api/v1/alerts/{symbol}` are read-only API projections.
+- No notification infrastructure, persistence, deduplication, or scheduling was introduced.
 
-Contract tests were added for unknown stock, missing result, preserved analysis date, and legacy results without an analysis date.
+## 9. Validation
 
-## 9. Next Implementation Gate
+Application-level report tests cover unknown stock, missing result, preserved analysis date, and legacy results without an analysis date.
 
-Before adding the HTTP report endpoint, define the report transport DTO explicitly. The DTO must expose presentation-safe fields without leaking domain objects or moving report semantics into FastAPI.
+API contract tests cover:
 
-Acceptance criteria for that prerequisite:
+- report endpoint not configured
+- missing report
+- successful report projection with preserved analysis date
+- alert endpoint not configured
+- non-BUY alert absence
+- successful BUY alert projection
 
-1. The actual analysis date/period survives from the analysis command to the stored result.
-2. Existing analysis GET/POST behavior remains compatible.
-3. Report composition uses the stored analysis period, not the current wall-clock date.
-4. Alert projection uses the stored analysis result without recalculating classification.
-5. API contract tests cover missing result, successful report projection, BUY alert projection, and non-BUY alert absence.
+The new tests have been committed to the branch but still require local execution before their pass status is claimed.
+
+## 10. Next Gate
+
+The next M12 design gate should address how these read-side projections are consumed by a dashboard/presentation layer, while keeping dashboard-specific presentation concerns outside the domain and application analysis rules.
 
 No notification infrastructure is introduced by this gate.
