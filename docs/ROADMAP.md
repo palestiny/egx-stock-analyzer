@@ -119,7 +119,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
-| M19 | Recurring Market Scheduling | 🟡 Design Gate Open | Define deterministic recurring full-market execution without moving business policy into the scheduler |
+| M19 | Recurring Market Scheduling | 🟡 Design Accepted | Define deterministic recurring full-market execution without moving business policy into the scheduler |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -553,11 +553,11 @@ M18 is a one-shot scheduling adapter. The configured universe is resolved at exe
 
 ## Status
 
-The M19 design gate is **proposed** in `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`. Implementation is not authorized yet.
+The M19 design gate is **accepted** in `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`. Implementation is now authorized for the accepted MVP.
 
-M19 addresses recurring full-market execution after the one-shot M18 scheduling boundary. The gate must explicitly resolve recurrence representation, timezone, trading-calendar semantics, missed-run behavior, overlap/concurrency behavior, occurrence identity/idempotency, persistence scope, clock abstraction, and failure continuation.
+M19 uses daily-at-local-time recurrence, Africa/Cairo as the default timezone, Monday-Friday as the temporary calendar policy, skipped missed occurrences, no concurrent market-analysis execution, process-local occurrence idempotency, process-local schedules, an injected clock, and continuation after failed occurrences.
 
-The existing `RunConfiguredMarketAnalysis` capability remains the business-execution boundary. The scheduler must not become responsible for stock discovery or analysis policy.
+The existing `RunConfiguredMarketAnalysis` capability remains the business-execution boundary. The scheduler remains timing-only.
 
 ---
 
