@@ -29,6 +29,7 @@ from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import ConfiguredMarketAnalysisResult
 from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import RunConfiguredMarketAnalysisWithAutomaticAlerts
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
@@ -185,11 +186,21 @@ def create_app(
 
     @app.post("/api/v1/market-analysis")
     def run_market_analysis() -> dict[str, object]:
-        if run_configured_market_analysis_with_automatic_alerts is None:
+        if (
+            run_configured_market_analysis_with_automatic_alerts is None
+            and run_configured_market_analysis is None
+        ):
             raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
 
         try:
-            result = run_configured_market_analysis_with_automatic_alerts.execute(date.today())
+            if run_configured_market_analysis_with_automatic_alerts is not None:
+                result = run_configured_market_analysis_with_automatic_alerts.execute(date.today())
+            else:
+                execution = run_configured_market_analysis.execute(date.today())
+                result = ConfiguredMarketAnalysisResult(
+                    execution=execution,
+                    automatic_alert_delivery=None,
+                )
         except Exception as error:
             logger.exception("Market-wide analysis execution failed", exc_info=error)
             raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
