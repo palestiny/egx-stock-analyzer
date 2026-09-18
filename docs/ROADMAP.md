@@ -122,7 +122,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
-| M22 | Historical Analysis Comparison | 🟡 Design Proposed | Define a read-only comparison of two persisted snapshots for the same stock |
+| M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -664,11 +664,27 @@ Completion record: `docs/M21-HISTORICAL-ANALYSIS-VIEW-MVP-COMPLETION.md`.
 
 ## Status
 
-M22 design gate is **accepted** in `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`. Implementation is authorized for the defined comparison MVP.
+M22 is **complete**. The accepted design is documented in `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`, and the implementation was merged through PR #30. GitHub Actions Run #570 completed successfully for implementation head `470a4d05a868cf27c6ea9e89736c6df69fd142e4` before merge.
 
-The proposed capability compares two persisted snapshots for the same stock without recalculating historical analysis. Open questions cover snapshot selection, before/after direction, derived deltas, same-date snapshots, missing/cross-symbol selections, API shape, and dashboard presentation.
+The capability compares two persisted snapshots for the same stock by UUID, preserves caller-selected before/after direction, derives deterministic numeric deltas, exposes classification changes without interpretation, and remains read-only. The API endpoint and dashboard presentation consume the comparison read model without recalculating analytical values.
 
-No implementation is authorized yet.
+### Accepted boundary
+
+```
+Dashboard
+    ↓
+HTTP
+    ↓
+CompareAnalysisSnapshots
+    ↓
+AnalysisResultStore
+    ↓
+Persisted Historical Snapshots
+```
+
+### Scope boundary
+
+Performance analytics, return calculations, predictive analysis, ranking, charting, portfolio behavior, notifications, and cross-stock comparison remain deferred behind separate design gates.
 
 ---
 
