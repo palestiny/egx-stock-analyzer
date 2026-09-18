@@ -87,9 +87,32 @@ def test_get_analysis_returns_transport_dto():
     }
 
 
-def test_post_analysis_runs_application_capability_and_returns_result():
+def test_post_analysis_runs_application_capability_and_returns_stored_result():
     store = InMemoryAnalysisResultStore()
-    store.save("EGAL", make_result())
+
+    class SuccessfulRunner:
+        def execute(self, symbol, as_of):
+            assert symbol == "EGAL"
+            store.save(symbol, make_result())
+
+    app = create_app(store, SuccessfulRunner())
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/analysis/EGAL")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "symbol": "EGAL",
+        "technical_score": 26,
+        "fundamental_score": 21,
+        "stock_quality": 47,
+        "entry_quality": 13,
+        "opportunity": "watch",
+    }
+
+
+def test_post_analysis_returns_500_when_execution_does_not_store_result():
+    store = InMemoryAnalysisResultStore()
 
     class SuccessfulRunner:
         def execute(self, symbol, as_of):
@@ -100,6 +123,7 @@ def test_post_analysis_runs_application_capability_and_returns_result():
     with TestClient(app) as client:
         response = client.post("/api/v1/analysis/EGAL")
 
-    assert response.status_code == 200
-    assert response.json()["symbol"] == "EGAL"
-    assert response.json()["opportunity"] == "watch"
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Analysis result was not stored for EGAL",
+    }
