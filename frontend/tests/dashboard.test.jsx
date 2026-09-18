@@ -50,7 +50,7 @@ describe("Dashboard", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "EGAL" })).toBeInTheDocument());
     expect(getReport).toHaveBeenCalledWith("EGAL");
     expect(getAlert).toHaveBeenCalledWith("EGAL");
-    expect(screen.getByText("350.5")).toBeInTheDocument();
+    expect(screen.getByText(/Current price:\s*350\.5/)).toBeInTheDocument();
     expect(screen.getByText("BUY")).toBeInTheDocument();
   });
 
