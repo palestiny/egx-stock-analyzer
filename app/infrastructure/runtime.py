@@ -118,7 +118,6 @@ def create_infrastructure_runtime(
             RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(
                 run_configured_market_analysis=application_runtime.run_configured_market_analysis,
                 automatic_alert_delivery=automatic_alert_delivery,
-        run_configured_market_analysis_with_automatic_alert_delivery=run_configured_market_analysis_with_automatic_alert_delivery,
             )
         )
 
@@ -129,5 +128,8 @@ def create_infrastructure_runtime(
         deliver_alert=deliver_alert,
         deliver_alert_by_symbol=deliver_alert_by_symbol,
         automatic_alert_delivery=automatic_alert_delivery,
+        run_configured_market_analysis_with_automatic_alert_delivery=(
+            run_configured_market_analysis_with_automatic_alert_delivery
+        ),
         telegram_notification_provider=telegram_notification_provider,
     )
