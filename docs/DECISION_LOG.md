@@ -1693,3 +1693,28 @@ Successful per-stock persistence remains owned by `RunStockAnalysis`; M14 does n
 The aggregate run uses the existing `Execution.id` rather than introducing a second execution model. Per-stock retry remains inside the existing single-stock execution boundary.
 
 See `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`.
+
+
+## DEC-074 — M15 Market Opportunity Ranking
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M15 introduces `RankMarketOpportunities` as a pure application composition over completed `StockAnalysisResult` values. It ranks only BUY and WATCH results using deterministic score keys and normalized symbol order, while excluding HOLD and AVOID without synthetic values.
+
+The capability does not execute analysis, persist results, mutate source results, or own transport concerns.
+
+See `docs/DEC-074-M15-MARKET-OPPORTUNITY-RANKING-DESIGN-GATE.md`.
+
+## DEC-075 — M16 Market Opportunity View
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M16 introduces `GetMarketOpportunityRanking` as a read-side application capability over `AnalysisResultStore`. It collects the latest stored result for each requested symbol, reports missing symbols explicitly, and delegates ordering to the existing M15 `RankMarketOpportunities` capability.
+
+The HTTP endpoint `GET /api/v1/opportunities?symbols=...` is read-only and never triggers fresh analysis. The dashboard consumes the resulting ordered read model and does not calculate scores, classifications, filtering, or ranking.
+
+No new persistence schema is introduced. Watchlists, historical ranking, personalization, portfolio logic, real-time streaming, trading execution, and AI ranking remain outside M16.
+
+See `docs/DEC-075-M16-MARKET-OPPORTUNITY-VIEW-DESIGN-GATE.md`.
