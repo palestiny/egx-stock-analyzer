@@ -9,6 +9,7 @@ from app.domain.technical_analysis.scoring import TechnicalScore
 
 
 STOCK_ID = uuid4()
+SNAPSHOT_ID = uuid4()
 
 
 def stock_quality(total_score: int) -> StockQualityScore:
@@ -30,6 +31,7 @@ def stock_quality(total_score: int) -> StockQualityScore:
 def test_buy_classification_produces_alert_candidate():
     candidate = AlertGenerator.generate(
         stock_id=STOCK_ID,
+        snapshot_id=SNAPSHOT_ID,
         stock_quality=stock_quality(5),
         entry_quality=EntryQualityScore(1, 1, 2),
         classification=OpportunityClassification.BUY,
@@ -40,6 +42,7 @@ def test_buy_classification_produces_alert_candidate():
         classification=OpportunityClassification.BUY,
         stock_quality_score=5,
         entry_quality_score=2,
+        snapshot_id=SNAPSHOT_ID,
     )
 
 
@@ -57,6 +60,7 @@ def test_non_buy_classification_produces_no_alert():
 def test_alert_candidate_is_immutable():
     candidate = AlertGenerator.generate(
         stock_id=STOCK_ID,
+        snapshot_id=SNAPSHOT_ID,
         stock_quality=stock_quality(5),
         entry_quality=EntryQualityScore(1, 1, 2),
         classification=OpportunityClassification.BUY,
