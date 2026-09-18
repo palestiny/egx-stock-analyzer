@@ -2,26 +2,27 @@
 
 ## Decision
 
-Introduce \`app/infrastructure/runtime.py\` as the infrastructure composition boundary for stock-analysis execution.
+The infrastructure runtime is the composition boundary for stock-analysis execution.
 
-It is responsible for creating and wiring:
+For the current development vertical slice it creates and wires:
 
-- \`YahooFinanceHistoryClient\`
-- \`YahooFinanceAdapter\`
-- \`HttpxFinnhubFinancialsClient\`
-- \`FinnhubFundamentalDataProvider\`
-- \`AnalysisInputAssembler\`
-- the existing application \`StockAnalysisRuntime\`
+- `YahooFinanceHistoryClient`
+- `YahooFinanceAdapter`
+- `YahooFinanceFundamentalDataSource`
+- `AnalysisInputAssembler`
+- the existing application `StockAnalysisRuntime`
 
-The factory receives the \`StockCatalog\` explicitly and receives the \`yfinance\` module explicitly. Infrastructure configuration is represented by \`InfrastructureConfig\` and is passed explicitly to the factory.
+Yahoo Finance is currently used as the live data source for both market and fundamental data so that the system can be exercised on real EGX data without introducing a dependency on a separate financial-data provider.
+
+This is a development/testing source decision, not a long-term provider commitment.
 
 ## Resource ownership
 
-The infrastructure runtime owns the Finnhub HTTP client. The returned runtime therefore exposes \`close()\` so the composition root can release the HTTP client without leaking infrastructure lifecycle concerns into the application layer.
+Yahoo Finance access through `yfinance` does not currently require a long-lived explicit HTTP client owned by the runtime. `close()` therefore exists as a lifecycle boundary but has no external client to release today.
 
 ## Boundaries
 
-The infrastructure runtime may construct infrastructure adapters and application dependencies, but it must not:
+The infrastructure runtime may construct infrastructure data-source adapters and application dependencies, but it must not:
 
 - perform stock analysis;
 - calculate scores;
@@ -31,23 +32,11 @@ The infrastructure runtime may construct infrastructure adapters and application
 - resolve symbols by querying external services;
 - persist analysis results.
 
-## Why
+## Current status
 
-The application runtime defined by DEC-060 remains infrastructure-agnostic. Infrastructure composition is kept outside \`app/application\` so external clients and resource lifecycle do not leak inward.
+The previous Finnhub integration was blocked by a real HTTP 403 response: `You don't have access to this resource.` A direct request outside the application reproduced the same response, so the blocker was external to the application code.
 
-## Implementation Status
-
-Implemented.
-
-FastAPI lifecycle integration is implemented in \`app/main.py\`: the application created by \`create_application()\` uses a lifespan context that calls \`InfrastructureRuntime.close()\` during application shutdown. This keeps infrastructure resource ownership in the infrastructure runtime while allowing the composition root to manage its lifecycle.
-
-Environment lookup is isolated in \`app/infrastructure/config.py\`. \`InfrastructureConfig.from_environment()\` reads \`FINNHUB_API_KEY\`, while \`HttpxFinnhubFinancialsClient\` requires the API key explicitly. The application composition root now exposes \`create_application_from_environment()\`, which loads \`InfrastructureConfig\` and passes it explicitly into \`create_infrastructure_runtime()\`. Environment access therefore remains outside the application and domain layers, and infrastructure dependencies are still not constructed at module import time.
-
-The API now supports an explicit analysis trigger through \`POST /api/v1/analysis/{symbol}\`. The composition root passes \`RunStockAnalysisBySymbol\` into the API while preserving the existing result-query endpoint.\n\nA development composition entry point, \`create_development_application_from_environment()\`, now creates the development stock catalog at the composition boundary and delegates to the environment-based application composition. This keeps development seed data out of the API and application layers.
-
-A development stock catalog is now available at \`app/infrastructure/stocks/development_catalog.py\`. It is intentionally limited to a small development seed and exists only to exercise composition and the first real-data vertical slice. It is not treated as the production EGX stock master.
-
-The lifecycle, configuration, composition, API trigger, and development catalog behavior are covered by tests.
+For the current vertical-slice goal, the Finnhub dependency is removed from the runtime composition and Yahoo Finance is used for both market and annual fundamental data.
 
 ## Deferred
 
@@ -55,4 +44,6 @@ The lifecycle, configuration, composition, API trigger, and development catalog 
 - persistent result store;
 - scheduled trigger wiring;
 - multi-stock orchestration;
-- real EGX vertical-slice verification with live provider credentials.
+- final long-term data-source/provider architecture;
+- reconciliation between multiple data sources;
+- real EGX vertical-slice verification using the Yahoo Finance fundamental dataset.
