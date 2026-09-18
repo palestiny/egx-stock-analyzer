@@ -122,6 +122,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
+| M22 | Historical Analysis Comparison | 🟡 Design Proposed | Define a read-only comparison of two persisted snapshots for the same stock |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -168,7 +169,7 @@ M20 — Historical Analysis Result History
         ↓
 M21 — Historical Analysis View
         ↓
-M22 — Next Capability Design Gate
+M22 — Historical Analysis Comparison
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -659,7 +660,19 @@ Completion record: `docs/M21-HISTORICAL-ANALYSIS-VIEW-MVP-COMPLETION.md`.
 
 ---
 
-# 21. Cross-Cutting Requirements
+# 21. M22 — Historical Analysis Comparison
+
+## Status
+
+M22 design gate is **proposed** in `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`. Implementation is not authorized until the comparison contract is accepted.
+
+The proposed capability compares two persisted snapshots for the same stock without recalculating historical analysis. Open questions cover snapshot selection, before/after direction, derived deltas, same-date snapshots, missing/cross-symbol selections, API shape, and dashboard presentation.
+
+No implementation is authorized yet.
+
+---
+
+# 22. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -693,7 +706,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 22. Milestone Completion Rule
+# 23. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -719,7 +732,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 23. Changing the Roadmap
+# 24. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -729,6 +742,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 24. Guiding Principle
+# 25. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
