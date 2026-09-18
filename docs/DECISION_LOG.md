@@ -1718,3 +1718,17 @@ The HTTP endpoint `GET /api/v1/opportunities?symbols=...` is read-only and never
 No new persistence schema is introduced. Watchlists, historical ranking, personalization, portfolio logic, real-time streaming, trading execution, and AI ranking remain outside M16.
 
 See `docs/DEC-075-M16-MARKET-OPPORTUNITY-VIEW-DESIGN-GATE.md`.
+
+
+## DEC-076 — M17 Market Universe & All-Market Execution
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M17 extends the existing `StockCatalog` with deterministic symbol enumeration and introduces `RunConfiguredMarketAnalysis` to capture the configured universe once and delegate it to the existing `RunMarketAnalysis` capability.
+
+The configured-market command is exposed as `POST /api/v1/market-analysis`. The endpoint triggers execution only; it does not rank, notify, schedule, or perform analytical calculations. The scheduler remains a trigger mechanism and will use the configured-market capability when full-market scheduling is introduced.
+
+No new persistence schema or concurrency model is introduced. A separate `StockUniverse` abstraction is deferred until universe membership becomes independently persisted, filtered, synchronized, or user-configurable.
+
+See `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`.
