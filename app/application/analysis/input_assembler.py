@@ -78,7 +78,11 @@ class AnalysisInputAssembler:
             if assessment.status is not DataQualityStatus.VALID:
                 raise ValueError(
                     f"Invalid market data observation at index {index}: "
-                    f"{assessment.issues}"
+                    f"{assessment.issues}; "
+                    f"timestamp={observation.timestamp}, "
+                    f"open={observation.open}, high={observation.high}, "
+                    f"low={observation.low}, close={observation.close}, "
+                    f"volume={observation.volume}"
                 )
             price_bars.append(PriceBarFactory.create(observation, assessment))
 
