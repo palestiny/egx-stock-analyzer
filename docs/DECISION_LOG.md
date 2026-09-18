@@ -1247,6 +1247,80 @@ The goal is to ensure that development continues from the documented state
 rather than relying on memory or conversation history.
 
 
+
+## DEC-021 — Use Yahoo Finance as the Current Real-Data Source for the Vertical Slice
+
+**Status:** Accepted for current development/testing phase
+
+### Context
+
+The EGX real-data vertical slice reached Yahoo Finance successfully for market data, but the Finnhub financial-data endpoint returned HTTP 403:
+
+`You don't have access to this resource.`
+
+A direct request outside the application reproduced the same 403, confirming that the blocker is external to the application implementation.
+
+The immediate project goal is to exercise the analysis pipeline against real EGX data, not to finalize the long-term external-data architecture.
+
+### Decision
+
+For the current vertical-slice validation, Yahoo Finance is used as the live source for both:
+
+- daily market data;
+- annual fundamental data.
+
+The fundamental-data implementation reads Yahoo Finance annual income-statement and balance-sheet data and maps it into the existing `FinancialPeriod` domain model.
+
+This is explicitly a development/testing source decision and is **not** a long-term commitment to Yahoo Finance as the project's permanent data provider.
+
+### Alternatives Considered
+
+#### Continue with Finnhub
+
+Deferred because the currently available account/key cannot access the required financials resource.
+
+#### Introduce another financial-data provider
+
+Deferred because doing so would solve the immediate integration problem while prematurely making a provider choice that the project has explicitly kept open.
+
+#### Use Yahoo Finance for the current vertical slice
+
+Accepted because the project already uses Yahoo Finance for EGX market history and it allows us to continue testing the complete analysis path with one currently accessible source.
+
+### Trade-offs
+
+Advantages:
+
+- removes the immediate Finnhub access blocker;
+- keeps the current vertical slice focused;
+- avoids adding another external dependency for the test phase;
+- allows market and annual fundamental data to come from the same current source.
+
+Trade-offs:
+
+- Yahoo Finance fundamental coverage for EGX must be verified empirically;
+- source-specific field names require normalization;
+- this does not resolve the project's long-term data acquisition strategy.
+
+### Consequences
+
+The infrastructure runtime no longer requires `FINNHUB_API_KEY` for the current development application.
+
+The existing application and domain layers remain unchanged.
+
+The long-term data-source/provider architecture remains an open decision.
+
+### Revisit Conditions
+
+Revisit when:
+
+- Yahoo Finance cannot provide sufficient EGX fundamental coverage;
+- data quality or historical depth becomes inadequate;
+- production automation requires stronger guarantees;
+- licensing or reliability requirements demand another source;
+- multiple-source reconciliation becomes necessary.
+
+
 ## DEC-020 — Exclude Invalid External Observations When Sufficient Valid Data Remains
 
 **Status:** Accepted
