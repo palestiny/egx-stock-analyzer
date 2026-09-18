@@ -3,26 +3,6 @@ import { useState } from "react";
 import { getAlert, getMarketOpportunities, getReport } from "./api/analysisApi";
 
 function Metric({ label, value }) {
-  async function handleMarketOpportunities(event) {
-    event.preventDefault();
-    const symbols = marketSymbols
-      .split(",")
-      .map((value) => value.trim().toUpperCase())
-      .filter(Boolean);
-
-    setMarketLoading(true);
-    setMarketError(null);
-
-    try {
-      setMarketView(await getMarketOpportunities(symbols));
-    } catch (requestError) {
-      setMarketError(requestError);
-      setMarketView(null);
-    } finally {
-      setMarketLoading(false);
-    }
-  }
-
   return (
     <div className="metric">
       <span className="metric-label">{label}</span>
@@ -87,6 +67,28 @@ function App() {
       setLoading(false);
     }
   }
+
+
+  async function handleMarketOpportunities(event) {
+    event.preventDefault();
+    const symbols = marketSymbols
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+
+    setMarketLoading(true);
+    setMarketError(null);
+
+    try {
+      setMarketView(await getMarketOpportunities(symbols));
+    } catch (requestError) {
+      setMarketError(requestError);
+      setMarketView(null);
+    } finally {
+      setMarketLoading(false);
+    }
+  }
+
 
   return (
     <main className="app-shell">
