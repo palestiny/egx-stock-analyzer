@@ -104,3 +104,13 @@ def test_duplicate_normalized_symbols_are_rejected_before_execution():
         runner.execute(["EGAL", " egal "], AS_OF)
 
     run_stock_analysis.execute.assert_not_called()
+
+
+def test_each_market_run_has_its_own_execution_identity():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, _ = make_runner(stocks)
+
+    first = runner.execute(["EGAL"], AS_OF)
+    second = runner.execute(["EGAL"], AS_OF)
+
+    assert first.execution.id != second.execution.id
