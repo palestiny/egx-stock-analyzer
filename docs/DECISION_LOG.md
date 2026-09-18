@@ -1855,3 +1855,19 @@ UUID selection is unambiguous even when multiple snapshots share a date, but cli
 ### Consequences
 
 The API returns before/after values and deterministic numeric deltas. Classification is represented as before/after plus a changed flag. Missing snapshots map to 404; cross-symbol selections and identical snapshot IDs are invalid requests. Dashboard presentation consumes the comparison read model and does not calculate deltas.
+
+
+## DEC-082 — M23 Historical Performance Analytics
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M23 introduces a read-only historical performance capability over two explicitly selected persisted analysis snapshots for the same stock.
+
+The capability calculates absolute price change and percentage price change using the snapshots' `EntryContext.current_price` values and domain `Decimal` arithmetic. Caller-selected before/after direction is preserved.
+
+Missing current prices produce unavailable performance metrics. A zero before price makes percentage performance unavailable without invalidating an otherwise calculable absolute change.
+
+M23 does not execute fresh analysis, mutate or persist derived metrics, change scoring/classification, include dividends, costs, benchmarks, risk-adjusted returns, portfolio semantics, or predictive interpretation.
+
+See `docs/DEC-082-M23-HISTORICAL-PERFORMANCE-ANALYTICS-DESIGN-GATE.md`.
