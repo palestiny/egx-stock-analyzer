@@ -5,12 +5,16 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.analysis.daily_market_analysis import StockAnalysisInput
 from app.application.analysis.stock_analysis import StockAnalysisResult
+from app.application.analysis.run_stock_analysis import RunStockAnalysis
+from app.application.execution.retry import RetryPolicy
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.entry_analysis.context import EntryContext
 from app.domain.entry_analysis.scoring import EntryQualityScore
+from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
 from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
 from app.domain.fundamental_analysis.profitability import (
@@ -33,9 +37,40 @@ from app.domain.technical_analysis.scoring import TechnicalScore
 from app.domain.technical_analysis.support_resistance import SupportResistanceEvidence
 from app.domain.technical_analysis.trend import TrendEvidence, TrendStatus
 from app.domain.technical_analysis.volume import VolumeEvidence, VolumeStatus
+from unittest.mock import patch
+
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+
+
+class FakeInputAssembler:
+    def __init__(self, analysis_input: StockAnalysisInput) -> None:
+        self.analysis_input = analysis_input
+
+    def assemble(self, stock: Stock, as_of: date) -> StockAnalysisInput:
+        return self.analysis_input
+
+
+def make_analysis_input(stock: Stock) -> StockAnalysisInput:
+    return StockAnalysisInput(
+        symbol=stock.symbol,
+        stock_id=stock.id,
+        timeframe=Timeframe.DAILY,
+        price_bars=[],
+        current_period=FinancialPeriod(
+            period_end=date(2026, 6, 30),
+            revenue=Decimal("100"),
+            net_income=Decimal("10"),
+        ),
+        previous_period=FinancialPeriod(
+            period_end=date(2026, 3, 31),
+            revenue=Decimal("90"),
+            net_income=Decimal("8"),
+        ),
+        momentum_lookback=5,
+        volume_lookback=5,
+    )
 
 
 def make_result():
@@ -101,7 +136,16 @@ def test_api_report_and_alert_read_persisted_result_after_store_recreation(tmp_p
     stock = Stock.create("EGAL", "Egypt Aluminum")
 
     first_store = SQLiteAnalysisResultStore(database_path)
-    first_store.save("EGAL", make_result(), analysis_date)
+    assembler = FakeInputAssembler(make_analysis_input(stock))
+
+    with patch(
+        "app.application.analysis.daily_market_analysis.StockAnalysisPipeline.analyze",
+        return_value=make_result(),
+    ):
+        RunStockAnalysis(assembler, first_store, RetryPolicy(1)).execute(
+            stock,
+            analysis_date,
+        )
 
     recreated_store = SQLiteAnalysisResultStore(database_path)
     catalog = InMemoryStockCatalog([stock])
