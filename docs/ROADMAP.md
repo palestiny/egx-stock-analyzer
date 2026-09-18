@@ -117,7 +117,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M14 | Market-Wide Analysis | 🟢 Complete | Sequential market-wide orchestration merged and validated by GitHub Actions Run #200 on implementation head |
 | M15 | Market Opportunity Ranking | 🟢 Complete | Deterministic BUY/WATCH ranking over completed stock-analysis results |
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
-| M17 | Market Universe & All-Market Execution | 🟡 Design Accepted | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
+| M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -493,7 +493,7 @@ Deferred from M16: watchlist persistence, historical ranking, personalized ranki
 
 ## Status
 
-The M17 design gate is **accepted** in `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`. Implementation is the next controlled step.
+The M17 design gate is **accepted** in `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`, and the implementation is complete.
 
 ### Accepted application boundary
 
@@ -508,6 +508,10 @@ RunStockAnalysis
 AnalysisResultStore
 
 M17 extends the existing StockCatalog with deterministic symbol enumeration and introduces a configured-market execution capability. The HTTP command endpoint is POST /api/v1/market-analysis. The scheduler remains a trigger only, and no new persistence, ranking, dashboard logic, or concurrency is introduced.
+
+PR #15 was merged into `main` after GitHub Actions Run #349 completed successfully for implementation head `b5b420923490109ccb8307c2ce00b32691d06f6a`. The completion record is `docs/M17-MARKET-UNIVERSE-EXECUTION-MVP-COMPLETION.md`.
+
+M17 is complete for its accepted MVP scope. The next capability requires a new design gate.
 
 ---
 
