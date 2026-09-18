@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from app.api.main import create_app
 from app.application.analysis.result_store import (
     AnalysisResultStore,
-    InMemoryAnalysisResultStore,
 )
 from app.application.execution.retry import RetryPolicy
 from app.application.stocks.catalog import StockCatalog
