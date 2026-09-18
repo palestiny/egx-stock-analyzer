@@ -29,7 +29,7 @@ class FakeScheduler:
 
 
 def test_daily_recurrence_schedules_next_weekday_at_configured_local_time():
-    clock = FakeClock(datetime(2026, 9, 18, 18, 0, tzinfo=timezone.utc))
+    clock = FakeClock(datetime(2026, 9, 18, 17, 0, tzinfo=timezone.utc))
     scheduler = FakeScheduler()
     capability = Mock()
 
@@ -94,7 +94,7 @@ def test_registration_does_not_execute_analysis_immediately():
 
 
 def test_due_occurrence_delegates_and_registers_next_occurrence():
-    clock = FakeClock(datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO))
+    clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
     recurring = RecurringConfiguredMarketAnalysis(
@@ -105,6 +105,7 @@ def test_due_occurrence_delegates_and_registers_next_occurrence():
     )
 
     recurring.start()
+    clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     operation = scheduler.scheduled[0][1]
     operation()
 
