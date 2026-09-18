@@ -1477,7 +1477,7 @@ See `docs/DEC-064-M12-REPORTING-ALERTS-API-BOUNDARY.md`.
 
 ## DEC-065 — M12 Reporting/Alert API Contract Validation Status
 
-**Status:** Accepted
+**Status:** Superseded
 
 ### Context
 
@@ -1493,7 +1493,7 @@ The focused suite passed:
 17 passed, 2 warnings
 ```
 
-The contract intentionally preserves `Decimal` transport values as JSON strings rather than converting them to floating-point numbers.
+The original contract represented `Decimal` transport values as JSON strings. This was superseded by DEC-066, which defines prices as JSON numbers.
 
 ### Consequences
 
@@ -1505,3 +1505,65 @@ The contract intentionally preserves `Decimal` transport values as JSON strings 
 ### Next Gate
 
 M12 remains in progress. The next design gate is the dashboard/presentation boundary. No dashboard-specific business logic should be introduced before that gate is defined.
+
+
+## DEC-066 — Price Values Are JSON Numbers at the API Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+M12 reporting API responses exposed domain `Decimal` price values at the transport boundary. The initial contract represented those values as JSON strings to preserve exact decimal text.
+
+The project owner approved changing the external API representation to JSON numbers.
+
+### Decision
+
+The API transport contract represents price values as JSON numbers.
+
+Example:
+
+```json
+{
+  "current_price": 350.5,
+  "nearest_support": 340.0,
+  "nearest_resistance": 365.0
+}
+```
+
+The domain continues to use `Decimal` for price semantics and precision. Conversion happens explicitly in the API response DTO.
+
+### Alternatives Considered
+
+#### JSON strings
+
+Advantages:
+- preserves exact decimal representation;
+- avoids binary floating-point conversion at the transport boundary.
+
+Trade-offs:
+- API consumers must parse the value before numerical operations;
+- clients may treat a price as textual data.
+
+#### JSON numbers
+
+Advantages:
+- natural representation for numerical market prices;
+- consumers can compare and calculate directly;
+- better fit for dashboards and analytical clients.
+
+Trade-offs:
+- JSON has no native Decimal type;
+- floating-point representation has limitations for some decimal values.
+
+### Consequences
+
+- M12 report price fields are JSON numbers.
+- Domain precision remains based on `Decimal`.
+- Contract tests explicitly verify numeric JSON values.
+- Exact decimal text transport must be introduced only through a future explicit design decision.
+
+### Revisit Conditions
+
+Revisit if an API consumer requires exact decimal text, financial/regulatory requirements require fixed-scale decimal transport, or the API adopts a serialization format with native decimal support.
