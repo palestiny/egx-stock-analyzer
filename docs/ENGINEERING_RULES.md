@@ -918,9 +918,9 @@ And the developer remains responsible for understanding all of them.
 
 This document is currently:
 
-**Draft — M0**
+**Maintained — M13**
 
-It may evolve as the project reveals new engineering requirements.
+The rules remain active and may evolve only through intentional project-level decisions.
 
 Changes to this document should be intentional and should not be used to justify arbitrary architectural changes after implementation.
 
