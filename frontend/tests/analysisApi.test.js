@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getAnalysis } from "../src/api/analysisApi";
+import { getAnalysis, getMarketOpportunities } from "../src/api/analysisApi";
 
 describe("analysis API client", () => {
   it("requests analysis for the requested symbol and returns the response", async () => {
@@ -34,4 +34,18 @@ describe("analysis API client", () => {
       status: 404,
     });
   });
+});
+
+
+it("requests the market opportunity endpoint", async () => {
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ opportunities: [], missing_symbols: [] }),
+  });
+
+  await getMarketOpportunities(["egal", "ieec"]);
+
+  expect(global.fetch).toHaveBeenCalledWith(
+    "/api/v1/opportunities?symbols=egal%2Cieec",
+  );
 });

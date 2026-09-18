@@ -7,7 +7,9 @@ from fastapi import FastAPI, HTTPException
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
+from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
+from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
@@ -24,6 +26,7 @@ def create_app(
     run_stock_analysis_by_symbol: RunStockAnalysisBySymbol | None = None,
     get_analysis_report: GetAnalysisReport | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
+    get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -92,6 +95,24 @@ def create_app(
         response = AnalysisReportResponse.from_report(report)
         return asdict(response)
 
+    @app.get("/api/v1/opportunities")
+    def get_opportunities(symbols: str = "") -> dict[str, object]:
+        if get_market_opportunity_ranking is None:
+            raise HTTPException(status_code=503, detail="Market opportunity reporting is not configured")
+
+        requested_symbols = [
+            symbol.strip().upper()
+            for symbol in symbols.split(",")
+            if symbol.strip()
+        ]
+
+        try:
+            view = get_market_opportunity_ranking.execute(requested_symbols)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        response = MarketOpportunityViewResponse.from_view(view)
+        return asdict(response)
     @app.get("/api/v1/alerts/{symbol}")
     def get_alert(symbol: str) -> dict[str, object]:
         if get_alert_candidate is None:
