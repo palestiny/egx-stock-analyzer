@@ -117,7 +117,7 @@ def test_due_occurrence_delegates_and_registers_next_occurrence():
 
 
 def test_missed_occurrence_is_skipped_and_next_future_occurrence_is_registered():
-    clock = FakeClock(datetime(2026, 9, 18, 21, 5, tzinfo=CAIRO))
+    clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
     recurring = RecurringConfiguredMarketAnalysis(
@@ -128,6 +128,7 @@ def test_missed_occurrence_is_skipped_and_next_future_occurrence_is_registered()
     )
 
     recurring.start()
+    clock.current = datetime(2026, 9, 18, 21, 5, tzinfo=CAIRO)
     operation = scheduler.scheduled[0][1]
     operation()
 
