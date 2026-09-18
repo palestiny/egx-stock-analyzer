@@ -1462,3 +1462,14 @@ The first M12 API slice now has seven contract tests covering:
 The tests are committed on the `m12-runtime-integration` branch.
 
 Execution of these tests through GitHub Actions is not currently observable through the available workflow-run integration, so the contract is implemented but not marked externally validated by CI.
+
+
+## DEC-064 — M12 Reporting & Alerts API Boundary
+
+**Status:** Accepted
+
+The M12 API will expose M11 reporting and alert capabilities only as read-side projections of completed analysis. FastAPI remains responsible for routing, transport DTOs, and HTTP semantics; it must not own scoring, classification, alert delivery, persistence, scheduling, or deduplication.
+
+The current `AnalysisResultStore` does not preserve the analysis period alongside `StockAnalysisResult`. Because M11 `AnalysisReport` requires the real analysis date, M12 will not invent report freshness/history semantics with `date.today()`. The next implementation gate is to preserve the actual analysis period in the stored application result before adding report/alert endpoints.
+
+See `docs/DEC-064-M12-REPORTING-ALERTS-API-BOUNDARY.md`.
