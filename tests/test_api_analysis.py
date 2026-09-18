@@ -104,4 +104,4 @@ def test_post_analysis_does_not_hide_analysis_input_value_errors():
     response = TestClient(app, raise_server_exceptions=False).post("/api/v1/analysis/EGAL")
 
     assert response.status_code == 500
-    assert response.json() == {"detail": "Internal Server Error"}
+    assert response.text == "Internal Server Error"
