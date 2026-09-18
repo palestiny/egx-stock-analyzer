@@ -110,7 +110,7 @@ The project still avoids premature UI, database-heavy architecture, AI-first arc
 | M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
 | M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
-| M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
+| M12 | API & Dashboard | 🟡 In Progress | Expose application capabilities through the API; runtime composition and a real-data vertical slice are validated on the integration branch |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -319,6 +319,47 @@ These require separate design gates.
 
 # 9. M12 — API & Dashboard
 
+## Status
+
+M12 is **in progress**.
+
+The current branch has validated the first API/runtime slice:
+
+POST /api/v1/analysis/{symbol}
+        ↓
+StockCatalog
+        ↓
+RunStockAnalysisBySymbol
+        ↓
+RunStockAnalysis
+        ↓
+AnalysisInputAssembler
+        ↓
+Yahoo Finance market + annual fundamental data
+        ↓
+Data Quality
+        ↓
+DailyMarketAnalysis
+        ↓
+Execution
+        ↓
+AnalysisResultStore
+        ↓
+API response
+
+Current validation includes:
+
+- API composition through InfrastructureRuntime.
+- Development stock catalog containing EGAL.
+- Real EGAL market and annual fundamental data through Yahoo Finance.
+- End-to-end integration test returning a successful analysis response.
+- Execution failure diagnostics through DEC-062.
+- Unit suite: 269 passed, 1 skipped, 1 deselected.
+- Real-data integration: 1 passed.
+- Dependency deprecation warnings remain as separate cleanup work.
+
+These results establish the runtime/API foundation but do **not** mark M12 complete.
+
 ## Objective
 
 Expose application capabilities to users.
@@ -326,6 +367,24 @@ Expose application capabilities to users.
 API/UI must consume application/domain capabilities and must not own business rules.
 
 ---
+
+## M12 Next Design Gate
+
+The next M12 design work should define the API surface before adding more endpoints or dashboard behavior.
+
+The gate should cover:
+
+- Which application capabilities are exposed.
+- Read vs command endpoints.
+- Request/response DTO boundaries.
+- HTTP status and error semantics.
+- Symbol validation and unknown-symbol behavior.
+- Analysis freshness/result retrieval semantics.
+- How reports and alerts are exposed without moving business rules into FastAPI.
+- Which dashboard concerns remain presentation-only.
+- What remains explicitly deferred to M13.
+
+No additional API surface should be treated as committed until this gate is documented.
 
 # 10. M13 — Production Hardening
 
