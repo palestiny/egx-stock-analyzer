@@ -186,12 +186,6 @@ The ranking capability owns only cross-stock ordering and eligibility selection.
 - explainable ranking output;
 - no mutation of source analysis results.
 
-## Design Gate Decision
-
-**Status: Proposed — implementation is not authorized by this document yet.**
-
-The next action is to resolve the open questions and record the accepted ranking contract before writing M15 production code.
-
 ## Revisit Conditions
 
 Revisit this design if the stock-level scoring model changes materially, opportunity classification gains new states, ranking becomes portfolio-aware, users require personalized ranking, historical ranking becomes persisted, or ranking requires real-time/distributed execution.
