@@ -91,3 +91,75 @@ def test_history_rejects_reversed_date_range():
     with TestClient(app) as client:
         response = client.get("/api/v1/history/EGAL?from_date=2026-09-18&to_date=2026-09-16")
     assert response.status_code == 400
+
+
+def test_comparison_returns_before_after_and_deltas():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    store.save("EGAL", make_result(26), date(2026, 9, 16))
+    store.save("EGAL", make_result(28), date(2026, 9, 18))
+    history = store.get_history("EGAL")
+    from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
+    capability = CompareAnalysisSnapshots(InMemoryStockCatalog([stock]), store)
+    app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
+
+    response = TestClient(app).get(
+        f"/api/v1/comparisons/EGAL?before={history[1].snapshot_id}&after={history[0].snapshot_id}"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["symbol"] == "EGAL"
+    assert body["before"]["snapshot_id"] == str(history[1].snapshot_id)
+    assert body["after"]["snapshot_id"] == str(history[0].snapshot_id)
+    assert body["deltas"]["technical_score"] == 2
+    assert body["classification_changed"] is False
+
+
+def test_comparison_returns_400_for_same_snapshot():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    store.save("EGAL", make_result(26), date(2026, 9, 18))
+    snapshot = store.get_history("EGAL")[0]
+    from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
+    capability = CompareAnalysisSnapshots(InMemoryStockCatalog([stock]), store)
+    app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
+
+    response = TestClient(app).get(
+        f"/api/v1/comparisons/EGAL?before={snapshot.snapshot_id}&after={snapshot.snapshot_id}"
+    )
+
+    assert response.status_code == 400
+
+
+def test_comparison_returns_404_for_missing_snapshot():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
+    capability = CompareAnalysisSnapshots(InMemoryStockCatalog([stock]), store)
+    app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
+
+    response = TestClient(app).get(
+        f"/api/v1/comparisons/EGAL?before=00000000-0000-0000-0000-000000000001&after=00000000-0000-0000-0000-000000000002"
+    )
+
+    assert response.status_code == 404
+
+
+def test_comparison_returns_400_for_cross_symbol_snapshots():
+    egal = Stock.create("EGAL", "Egypt Aluminum")
+    ieec = Stock.create("IEEC", "Ismailia Engineering")
+    store = InMemoryAnalysisResultStore()
+    store.save("EGAL", make_result(26), date(2026, 9, 16))
+    store.save("IEEC", make_result(28), date(2026, 9, 18))
+    egal_snapshot = store.get_history("EGAL")[0]
+    ieec_snapshot = store.get_history("IEEC")[0]
+    from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
+    capability = CompareAnalysisSnapshots(InMemoryStockCatalog([egal, ieec]), store)
+    app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
+
+    response = TestClient(app).get(
+        f"/api/v1/comparisons/EGAL?before={egal_snapshot.snapshot_id}&after={ieec_snapshot.snapshot_id}"
+    )
+
+    assert response.status_code == 400
