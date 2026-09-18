@@ -19,11 +19,18 @@ from app.main import (
 class FakeApplicationRuntime:
     result_store: InMemoryAnalysisResultStore
     run_by_symbol: object | None = None
+    get_analysis_report: object | None = None
+    get_alert_candidate: object | None = None
 
 
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
-        self.application_runtime = FakeApplicationRuntime(result_store, run_by_symbol=object())
+        self.application_runtime = FakeApplicationRuntime(
+            result_store,
+            run_by_symbol=object(),
+            get_analysis_report=object(),
+            get_alert_candidate=object(),
+        )
         self.closed = False
 
     def close(self) -> None:
@@ -75,6 +82,7 @@ def test_create_application_from_environment_loads_config_at_composition_root(
         pass
 
     assert runtime.closed is True
+
 
 def test_create_development_application_from_environment_uses_development_catalog(
     monkeypatch,
