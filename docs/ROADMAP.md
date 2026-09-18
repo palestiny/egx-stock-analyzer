@@ -125,7 +125,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
-| M25 | Alert Delivery & Notification Boundary | 🟡 Design Gate Proposed | Define provider-neutral, idempotent delivery of existing alert candidates without changing analytical decisions |
+| M25 | Alert Delivery & Notification Boundary | 🟡 Design Accepted | Define provider-neutral, idempotent delivery of existing alert candidates without changing analytical decisions |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
