@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import RunConfiguredMarketAnalysisWithAutomaticAlerts
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
@@ -35,6 +36,7 @@ class InfrastructureRuntime:
     fundamental_data_provider: YahooFinanceFundamentalDataSource
     deliver_alert: DeliverAlert | None = None
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None
+    run_configured_market_analysis_with_automatic_alerts: RunConfiguredMarketAnalysisWithAutomaticAlerts | None = None
     automatic_alert_delivery: AutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     _closed: bool = field(default=False, init=False, repr=False)
@@ -89,6 +91,9 @@ def create_infrastructure_runtime(
     deliver_alert = None
     deliver_alert_by_symbol = None
     automatic_alert_delivery = None
+    run_configured_market_analysis_with_automatic_alerts = RunConfiguredMarketAnalysisWithAutomaticAlerts(
+        run_configured_market_analysis=application_runtime.run_configured_market_analysis,
+    )
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -117,5 +122,9 @@ def create_infrastructure_runtime(
         deliver_alert=deliver_alert,
         deliver_alert_by_symbol=deliver_alert_by_symbol,
         automatic_alert_delivery=automatic_alert_delivery,
+        run_configured_market_analysis_with_automatic_alerts=RunConfiguredMarketAnalysisWithAutomaticAlerts(
+            run_configured_market_analysis=application_runtime.run_configured_market_analysis,
+            automatic_alert_delivery=automatic_alert_delivery,
+        ),
         telegram_notification_provider=telegram_notification_provider,
     )
