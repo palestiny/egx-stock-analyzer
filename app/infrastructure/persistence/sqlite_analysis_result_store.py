@@ -165,7 +165,7 @@ class SQLiteAnalysisResultStore:
         if row is None:
             return None
 
-        return self._to_record(row)
+        return self._to_record(row, symbol)
 
     def get_history(
         self,
@@ -201,10 +201,13 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             rows = connection.execute(query, parameters).fetchall()
 
-        return tuple(self._to_record(row) for row in rows)
+        return tuple(self._to_record(row, symbol) for row in rows)
 
     @staticmethod
-    def _to_record(row: tuple[str, str | None, str]) -> AnalysisResultRecord:
+    def _to_record(
+        row: tuple[str, str | None, str],
+        symbol: str | None = None,
+    ) -> AnalysisResultRecord:
         snapshot_id, analysis_date_value, payload = row
         return AnalysisResultRecord(
             result=deserialize_analysis_result(payload),
@@ -214,4 +217,5 @@ class SQLiteAnalysisResultStore:
                 else None
             ),
             snapshot_id=UUID(snapshot_id),
+            symbol=symbol,
         )
