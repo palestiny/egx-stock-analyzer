@@ -120,7 +120,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
-| M20 | Historical Analysis Result History | 🟡 Design Proposed | Preserve completed analytical snapshots across recurring runs without changing analytical rules |
+| M20 | Historical Analysis Result History | 🟡 Design Accepted | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -572,13 +572,13 @@ Completion record: docs/M19-RECURRING-MARKET-SCHEDULING-MVP-COMPLETION.md.
 
 ## Status
 
-A new design gate is **proposed** in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`.
+The design gate is **accepted** in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`. Implementation is now authorized for the defined MVP.
 
 The problem is now concrete: M19 can execute the market repeatedly, while the current analysis result persistence is latest-result-only. This prevents persisted comparison of completed analysis snapshots across recurring runs.
 
-M20 will first define the historical snapshot contract before implementation. It is not yet authorized for implementation.
+The MVP uses append-only snapshot history behind `AnalysisResultStore`, preserves the existing `get(symbol)` latest-result contract, derives latest from history, migrates the existing latest-only row, and defers HTTP/dashboard history exposure to a separate gate.
 
-### Candidate boundary
+### Accepted boundary
 
 ```
 Analysis / Scheduled Execution
@@ -590,13 +590,13 @@ Historical Analysis Result Repository
 SQLite
 ```
 
-### Candidate outcome
+### Accepted outcome
 
 Preserve immutable completed analysis snapshots while keeping the current latest-result read contract compatible.
 
 ### Explicitly deferred
 
-Historical market-data warehousing, historical ranking, performance analytics, change-detection rules, notifications, watchlists, portfolio/trading behavior, AI analysis, and API expansion are not part of the proposed gate.
+Historical market-data warehousing, historical ranking, performance analytics, change-detection rules, notifications, watchlists, portfolio/trading behavior, AI analysis, and API/dashboard history exposure remain deferred.
 
 ---
 
