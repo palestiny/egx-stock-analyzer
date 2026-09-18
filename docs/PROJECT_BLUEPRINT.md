@@ -1117,6 +1117,6 @@ rather than relying on memory or conversation history.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M19 — Recurring Full-Market Scheduling complete
+**Current Implementation:** M20 — Historical Analysis Result History complete
 
-**Next Step:** Resolve the proposed M20 Historical Analysis Result History design gate before implementation.
+**Next Step:** Open a new Design Gate only when the next concrete deferred capability is selected.

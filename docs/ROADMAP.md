@@ -120,7 +120,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
-| M20 | Historical Analysis Result History | 🟡 Design Accepted | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
+| M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -572,11 +572,11 @@ Completion record: docs/M19-RECURRING-MARKET-SCHEDULING-MVP-COMPLETION.md.
 
 ## Status
 
-The design gate is **accepted** in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`. Implementation is now authorized for the defined MVP.
+The design gate is **accepted** in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`, and the implementation is complete through PR #24.
 
 The problem is now concrete: M19 can execute the market repeatedly, while the current analysis result persistence is latest-result-only. This prevents persisted comparison of completed analysis snapshots across recurring runs.
 
-The MVP uses append-only snapshot history behind `AnalysisResultStore`, preserves the existing `get(symbol)` latest-result contract, derives latest from history, migrates the existing latest-only row, and defers HTTP/dashboard history exposure to a separate gate.
+The MVP uses append-only snapshot history behind `AnalysisResultStore`, preserves the existing `get(symbol)` latest-result contract, derives latest from history, migrates the existing latest-only row, and defers HTTP/dashboard history exposure to a separate gate. GitHub Actions Run #430 validated implementation head `1a8f72eaeeec57306e9dcdc1f4de113863f13eac` with Python unit tests plus frontend tests/build passing.
 
 ### Accepted boundary
 
@@ -593,6 +593,8 @@ SQLite
 ### Accepted outcome
 
 Preserve immutable completed analysis snapshots while keeping the current latest-result read contract compatible.
+
+Completion record: `docs/M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-MVP-COMPLETION.md`.
 
 ### Explicitly deferred
 
