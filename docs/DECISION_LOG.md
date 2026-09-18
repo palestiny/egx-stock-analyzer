@@ -1639,11 +1639,13 @@ Revisit when a concrete next dashboard capability is selected and its API/domain
 
 ## DEC-070 — M13 Production Hardening Boundary and First Slice
 
-**Status:** Accepted  
+**Status:** Accepted — Operational Runtime Baseline Complete  
 **Date:** 2026-09-18
 
 M13 begins with an Operational Runtime Baseline rather than a broad production rewrite.
 
-The first slice covers configuration validation, runtime lifecycle/health semantics, safe API error boundaries, operational diagnostics, and tests. Persistence, authentication/authorization, deployment topology, metrics/tracing, provider failover, durable scheduling, and other production capabilities require separate design gates.
+The first slice validated runtime health through application composition/lifespan, safe API error exposure, operational logging, graceful lifecycle ownership, and idempotent runtime shutdown. The current configuration contract has no required external credentials or mandatory environment values, so no artificial configuration validation rule was introduced. If required configuration is added later, deterministic composition-time validation becomes mandatory.
+
+Persistence, authentication/authorization, deployment topology, metrics/tracing, provider failover, durable scheduling, and other production capabilities require separate design gates.
 
 See `docs/DEC-070-M13-PRODUCTION-HARDENING-BOUNDARY.md`.
