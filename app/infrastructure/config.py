@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class InfrastructureConfig:
-    finnhub_api_key: str
+    """Configuration for infrastructure composition.
+
+    External data-source credentials are intentionally not required for the
+    current development vertical slice. Yahoo Finance is used as the live
+    data source for both market and fundamental data.
+    """
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
-        api_key = os.getenv("FINNHUB_API_KEY")
-        if not api_key:
-            raise ValueError("FINNHUB_API_KEY is required")
-        return cls(finnhub_api_key=api_key)
+        return cls()
