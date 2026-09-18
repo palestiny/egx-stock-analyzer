@@ -1443,3 +1443,22 @@ Current HTTP mappings are: unknown symbol/result not found → 404; execution no
 Freshness metadata, historical results, reports, alerts, authentication/authorization, structured production error taxonomy, and dashboard implementation remain deferred. Additional API surface requires a separate design decision rather than being added opportunistically.
 
 See `docs/DEC-063-M12-API-SURFACE-AND-BOUNDARY-DESIGN.md` for the full design gate.
+
+
+## DEC-063 Validation Note — API Contract Coverage
+
+**Status:** Contract tests implemented
+
+The first M12 API slice now has seven contract tests covering:
+
+- missing GET result → 404
+- unconfigured execution → 503
+- unknown symbol → 404
+- execution failure → 500
+- successful GET transport DTO
+- successful POST execution followed by stored-result response
+- successful execution without a stored result → 500
+
+The tests are committed on the `m12-runtime-integration` branch.
+
+Execution of these tests through GitHub Actions is not currently observable through the available workflow-run integration, so the contract is implemented but not marked externally validated by CI.
