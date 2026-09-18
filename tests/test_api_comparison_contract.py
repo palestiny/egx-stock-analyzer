@@ -1,3 +1,4 @@
+from app.domain.opportunity.classification import OpportunityClassification
 from datetime import date
 from decimal import Decimal
 from uuid import uuid4
@@ -23,7 +24,7 @@ def make_result(score, price):
             "nearest_resistance": None,
         })(),
         "opportunity": type("Opportunity", (), {
-            "classification": type("Classification", (), {"value": "watch"})(),
+            "classification": OpportunityClassification.WATCH,
         })(),
     })()
 
