@@ -123,7 +123,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
-| M23 | Historical Performance Analytics | 🟡 Design Accepted | Calculate descriptive price-change metrics between two persisted snapshots without predicting future performance |
+| M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -694,6 +694,12 @@ Performance analytics, return calculations, predictive analysis, ranking, charti
 # 23. M23 — Historical Performance Analytics
 
 ## Status
+
+M23 is **complete**.
+
+The accepted application capability, API endpoint, and dashboard presentation are implemented. The capability remains read-only and descriptive: it calculates absolute and percentage price change from two persisted snapshots and performs no financial calculation in the frontend.
+
+CI Run #605 passed for the final M23 dashboard commit before merge.
 
 The M23 design gate is **accepted** in `docs/DEC-082-M23-HISTORICAL-PERFORMANCE-ANALYTICS-DESIGN-GATE.md`. Implementation is the next controlled step.
 
