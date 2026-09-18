@@ -3,13 +3,14 @@ from dataclasses import dataclass
 from app.application.analysis.rank_market_opportunities import (
     MarketOpportunityInput,
     RankMarketOpportunities,
+    RankedOpportunity,
 )
 from app.application.analysis.result_store import AnalysisResultStore
 
 
 @dataclass(frozen=True)
 class MarketOpportunityView:
-    opportunities: tuple
+    opportunities: tuple[RankedOpportunity, ...]
     missing_symbols: tuple[str, ...]
 
 
