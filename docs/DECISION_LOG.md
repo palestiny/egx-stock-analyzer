@@ -1992,3 +1992,17 @@ The workflow returns independent analysis and delivery outcomes. Delivery failur
 Manual market analysis remains analysis-only. No new retry, idempotency, persistence, provider, or concurrency mechanism is introduced.
 
 See `docs/DEC-088-M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-DESIGN-GATE.md`.
+
+
+## DEC-089 — M30 Durable Scheduled Workflow
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M30 introduces a dedicated durable lifecycle boundary for scheduled M29 workflow occurrences. The workflow execution record is separate from analytical-result persistence and alert-delivery persistence.
+
+The MVP uses stable workflow execution UUIDs plus the scheduler occurrence identity, with lifecycle states CREATED, RUNNING, COMPLETED, COMPLETED_WITH_ERRORS, FAILED, and INTERRUPTED. Duplicate starts are idempotent. Persisted RUNNING executions are detected during restart recovery and marked INTERRUPTED; they are not automatically resumed.
+
+SQLite is the first implementation technology behind a dedicated ScheduledWorkflowExecutionStore. The MVP remains process-local and sequential and does not introduce queues, workers, distributed locks, provider retry, multiple channels, user-specific schedules, or automatic replay.
+
+See `docs/DEC-089-M30-DURABLE-SCHEDULED-WORKFLOW-DESIGN-GATE.md`.
