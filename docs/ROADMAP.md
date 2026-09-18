@@ -42,7 +42,7 @@ M10 Automation is complete for its MVP scope.
 
 M11 Reporting & Alerts is complete for its MVP scope.
 
-M12 has now established a validated API/runtime/dashboard presentation slice on the integration branch. The branch is protected by CI covering Python unit tests plus frontend tests and production build.
+M12 has established and validated its first API/runtime/dashboard presentation slice on the integration branch. The branch is protected by CI covering Python unit tests plus frontend tests and production build. The first dashboard slice is now frozen under `docs/DECISION_LOG.md` DEC-069; further dashboard capabilities require a new design gate.
 
 The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -112,7 +112,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
 | M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
-| M12 | API & Dashboard | 🟡 In Progress | Validate the first user-facing API/runtime/dashboard slice |
+| M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
 | M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -278,7 +278,7 @@ These require separate design gates.
 
 ## Status
 
-M12 is **in progress**.
+M12 first slice is **complete**. Further dashboard capabilities are deferred behind new design gates.
 
 The first API/runtime slice is implemented and validated through the integration branch.
 
@@ -350,9 +350,9 @@ The dashboard presentation boundary is documented in `docs/DEC-068-M12-DASHBOARD
 
 ### Remaining M12 work
 
-M12 should not be expanded opportunistically.
+The first M12 slice is complete. M12 should not be expanded opportunistically.
 
-Before adding additional endpoints or advanced dashboard behavior, a new design gate should define the next user-facing capability and its API contract.
+Before adding additional endpoints or advanced dashboard behavior, a new design gate should define the next user-facing capability and its API contract. See DEC-069 for the scope freeze.
 
 Potential deferred capabilities include:
 
