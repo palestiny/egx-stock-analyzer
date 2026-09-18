@@ -13,6 +13,7 @@ from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
     UnknownStockSymbolError,
@@ -79,6 +80,31 @@ def create_app(
 
         response = AnalysisResultResponse.from_result(symbol, result)
         return asdict(response)
+
+    @app.post("/api/v1/market-analysis")
+    def run_market_analysis() -> dict[str, object]:
+        if run_configured_market_analysis is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Market analysis execution is not configured",
+            )
+
+        try:
+            execution = run_configured_market_analysis.execute(date.today())
+        except Exception as error:
+            logger.exception("Market-wide analysis execution failed", exc_info=error)
+            raise HTTPException(
+                status_code=500,
+                detail="Market-wide analysis execution failed",
+            ) from error
+
+        return {
+            "execution_id": str(execution.id),
+            "state": execution.state.value,
+            "successful_stock_ids": sorted(execution.successful_stock_ids),
+            "failed_stock_ids": sorted(execution.failed_stock_ids),
+            "failure_reasons": dict(sorted(execution.failure_reasons.items())),
+        }
 
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str) -> dict[str, object]:
