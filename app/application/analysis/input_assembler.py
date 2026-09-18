@@ -28,6 +28,10 @@ class AnalysisInputAssemblyPolicy:
         if self.market_data_window_days <= 0:
             raise ValueError("market_data_window_days must be positive")
 
+    @property
+    def minimum_price_bars(self) -> int:
+        return max(self.momentum_lookback, self.volume_lookback) + 1
+
 
 class AnalysisInputAssembler:
     def __init__(
@@ -47,7 +51,10 @@ class AnalysisInputAssembler:
             from_date,
             as_of,
         )
-        price_bars = self._build_price_bars(observations)
+        price_bars = self._build_price_bars(
+            observations,
+            minimum_price_bars=self._policy.minimum_price_bars,
+        )
         current_period, previous_period = self._fundamental_data_provider.get_periods(
             stock,
             as_of,
@@ -65,25 +72,31 @@ class AnalysisInputAssembler:
         )
 
     @staticmethod
-    def _build_price_bars(observations) -> list[PriceBar]:
+    def _build_price_bars(
+        observations,
+        *,
+        minimum_price_bars: int,
+    ) -> list[PriceBar]:
         if not observations:
             raise ValueError("Market data provider returned no observations")
 
         assessments = DataQualityAssessor.assess(observations)
         price_bars: list[PriceBar] = []
+        rejected_count = 0
 
-        for index, (observation, assessment) in enumerate(
-            zip(observations, assessments, strict=True)
-        ):
+        for observation, assessment in zip(observations, assessments, strict=True):
             if assessment.status is not DataQualityStatus.VALID:
-                raise ValueError(
-                    f"Invalid market data observation at index {index}: "
-                    f"{assessment.issues}; "
-                    f"timestamp={observation.timestamp}, "
-                    f"open={observation.open}, high={observation.high}, "
-                    f"low={observation.low}, close={observation.close}, "
-                    f"volume={observation.volume}"
-                )
+                rejected_count += 1
+                continue
+
             price_bars.append(PriceBarFactory.create(observation, assessment))
+
+        if len(price_bars) < minimum_price_bars:
+            raise ValueError(
+                "Insufficient valid market data observations for analysis: "
+                f"required={minimum_price_bars}, "
+                f"valid={len(price_bars)}, "
+                f"rejected={rejected_count}"
+            )
 
         return price_bars
