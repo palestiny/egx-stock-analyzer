@@ -64,3 +64,15 @@ export function getAnalysisComparison(symbol, beforeSnapshotId, afterSnapshotId)
     "Analysis comparison request",
   );
 }
+
+
+export function getSnapshotPerformance(symbol, beforeSnapshotId, afterSnapshotId) {
+  const params = new URLSearchParams({
+    before: beforeSnapshotId,
+    after: afterSnapshotId,
+  });
+  return getJson(
+    "/api/v1/performance/" + encodeURIComponent(symbol) + "?" + params.toString(),
+    "Historical performance request",
+  );
+}
