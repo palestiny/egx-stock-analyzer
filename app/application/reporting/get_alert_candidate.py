@@ -20,6 +20,7 @@ class GetAlertCandidate:
         result = record.result
         return AlertGenerator.generate(
             stock_id=stock.id,
+            snapshot_id=record.snapshot_id,
             stock_quality=result.stock_quality,
             entry_quality=result.entry_quality,
             classification=result.opportunity.classification,
