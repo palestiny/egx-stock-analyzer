@@ -35,6 +35,8 @@ The first M13 implementation slice will establish:
 5. tests for the above behavior;
 6. minimal operational diagnostics without exposing internal exception details as an API contract.
 
+The current configuration contract has no required external credentials or mandatory environment values, so there is no artificial configuration validation rule to add in this slice. If a required setting is introduced later, deterministic validation at the composition boundary becomes mandatory.
+
 The first slice will **not** introduce a database, authentication system, deployment platform, distributed tracing stack, persistent scheduler, or new market-data provider.
 
 ## Boundary
@@ -103,8 +105,8 @@ Does not expose:
 
 The first slice is complete when:
 
-- configuration behavior is covered by tests;
-- invalid required configuration fails deterministically at composition time;
+- the current configuration contract is covered by tests;
+- if required configuration is introduced, invalid values must fail deterministically at composition time;
 - runtime lifecycle behavior is covered by tests;
 - a minimal health/readiness contract exists if required by the selected runtime model;
 - API error responses do not leak raw internal exception details;
