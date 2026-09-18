@@ -118,7 +118,7 @@ The first slice is complete when:
 
 These require separate design gates:
 
-- persistent database and migrations;
+- additional persistence capabilities beyond the accepted SQLite analysis-result MVP, including migrations and broader data models;
 - authentication and authorization;
 - production secret management;
 - structured logging schema;
@@ -139,7 +139,7 @@ These require separate design gates:
 
 Starting with an operational baseline gives deployment and reliability work a concrete boundary without prematurely selecting infrastructure technologies.
 
-The trade-off is that the system will remain development-oriented until persistence, security, observability, and deployment concerns receive their own design gates.
+The trade-off is that the system remains development-oriented until the remaining persistence, security, observability, and deployment concerns receive their own design gates. The SQLite analysis-result MVP is now explicitly handled by DEC-072.
 
 ## Revisit Conditions
 
