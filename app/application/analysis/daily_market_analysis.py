@@ -38,7 +38,11 @@ class DailyMarketAnalysis:
         self._orchestrator = ExecutionOrchestrator(retry_policy)
         self._result_store = result_store
 
-    def run(self, inputs: list[StockAnalysisInput]) -> DailyMarketAnalysisResult:
+    def run(
+        self,
+        inputs: list[StockAnalysisInput],
+        analysis_date=None,
+    ) -> DailyMarketAnalysisResult:
         stock_results: dict[str, StockAnalysisResult] = {}
         inputs_by_symbol = {item.symbol: item for item in inputs}
 
@@ -55,7 +59,7 @@ class DailyMarketAnalysis:
             )
             stock_results[symbol] = result
             if self._result_store is not None:
-                self._result_store.save(symbol, result)
+                self._result_store.save(symbol, result, analysis_date)
 
         execution = self._orchestrator.run(
             [item.symbol for item in inputs],
