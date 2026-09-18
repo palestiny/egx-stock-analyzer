@@ -12,20 +12,21 @@ vi.mock("../src/api/analysisApi", () => ({
 const report = {
   symbol: "EGAL",
   analysis_date: "2026-09-18",
-  current_price: "350.5",
+  current_price: 350.5,
   technical_score: 72,
   fundamental_score: 68,
   stock_quality: 70,
   entry_quality: 65,
   opportunity: "watch",
-  nearest_support: "340.0",
-  nearest_resistance: "365.0",
+  nearest_support: 340.0,
+  nearest_resistance: 365.0,
   trend: "uptrend",
   momentum: "positive",
   volume: "normal",
   profitability: "strong",
   liquidity: "adequate",
   growth: "positive",
+  fundamental_period_end: "2026-06-30",
 };
 
 describe("Dashboard", () => {
@@ -50,8 +51,8 @@ describe("Dashboard", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "EGAL" })).toBeInTheDocument());
     expect(getReport).toHaveBeenCalledWith("EGAL");
     expect(getAlert).toHaveBeenCalledWith("EGAL");
-    expect(screen.getByText(/Current price:\s*350\.5/)).toBeInTheDocument();
-    expect(screen.getByText(/Classification:\s*BUY/)).toBeInTheDocument();
+    expect(screen.getByText("350.5")).toBeInTheDocument();
+    expect(screen.getByText("BUY")).toBeInTheDocument();
   });
 
   it("shows a loading state while the report request is pending", async () => {
