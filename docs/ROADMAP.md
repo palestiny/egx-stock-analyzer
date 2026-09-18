@@ -113,7 +113,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
-| M13 | Production Hardening | 🟡 Design Started | Establish production boundaries and implement the first operational runtime baseline |
+| M13 | Production Hardening | 🟢 Operational Baseline Complete | Establish production boundaries; further hardening requires separate design gates |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -378,7 +378,7 @@ Prepare the system for reliable long-term operation.
 
 Areas include reliability, retries, failure recovery, idempotency, monitoring, secrets management, authentication/authorization, performance, caching, observability, deployment, backups, migrations, and rollback.
 
-M13 design has started under DEC-070. The first implementation slice is the Operational Runtime Baseline; additional production capabilities require separate design gates.
+M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. Additional production capabilities require separate design gates.
 
 ---
 
