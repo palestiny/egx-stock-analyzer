@@ -43,3 +43,15 @@ def test_catalog_symbols_are_stable_snapshots():
 
     assert isinstance(symbols, tuple)
     assert symbols == ("EGAL",)
+
+
+def test_catalog_rejects_duplicate_symbols():
+    first = Stock.create("EGAL", "Egypt Aluminum")
+    second = Stock.create("EGAL", "Egypt Aluminum Duplicate")
+
+    try:
+        InMemoryStockCatalog([first, second])
+    except ValueError as error:
+        assert str(error) == "Duplicate stock symbol in catalog: EGAL"
+    else:
+        raise AssertionError("Expected duplicate catalog symbol to be rejected")
