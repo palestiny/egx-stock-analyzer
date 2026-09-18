@@ -1656,7 +1656,7 @@ See `docs/DEC-070-M13-PRODUCTION-HARDENING-BOUNDARY.md`.
 **Status:** Accepted  
 **Date:** 2026-09-18
 
-The current analysis result store is in-memory, which is suitable for controlled development but loses completed analysis state across process restarts. M13 therefore establishes a persistence boundary before selecting or implementing a concrete database technology.
+The analysis result store was initially in-memory, which was suitable for controlled development but lost completed analysis state across process restarts. M13 therefore established a persistence boundary before selecting a concrete database technology; DEC-072 now implements that boundary with SQLite.
 
 Durable state must preserve the existing analysis result and analysis date required by the report and alert read-side projections. Persistence remains behind the application-facing `AnalysisResultStore` contract, and domain/application code must not depend directly on a database library.
 
