@@ -114,7 +114,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
 | M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
-| M14 | Market-Wide Analysis | 🟡 Design Accepted | Execute the defined stock universe through the existing single-stock analysis capability with explicit aggregate outcomes |
+| M14 | Market-Wide Analysis | 🟡 Implementation Merged — CI Verification Not Observable | Market-wide orchestration is merged; milestone remains open until repository validation is independently observable |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -389,7 +389,7 @@ M13's first Operational Runtime Baseline is complete under DEC-070: health expos
 
 ## Status
 
-The M14 design gate is **accepted** in `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`. Implementation is the next controlled step.
+The M14 design gate is **accepted** in `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`. The implementation was merged through PR #3. The available GitHub workflow-run integration does not currently expose a workflow run for merge commit `e71ca64b88ad7acad447fe8317d6f4168c350174`, so M14 remains open until CI verification is independently observable.
 
 ### Accepted application boundary
 
@@ -403,7 +403,9 @@ RunStockAnalysis
 AnalysisResultStore
 ```
 
-The MVP accepts an explicit ordered symbol list, executes sequentially, preserves successful per-stock persistence, and returns an aggregate state of `COMPLETED`, `COMPLETED_WITH_ERRORS`, or `FAILED`. An empty universe is a completed no-op. Unknown symbols are individual failures, while duplicate normalized symbols are invalid input.
+The MVP accepts an explicit ordered symbol list, executes sequentially, preserves successful per-stock persistence through the existing single-stock capability, and returns an aggregate state of `COMPLETED`, `COMPLETED_WITH_ERRORS`, or `FAILED`. An empty universe is a completed no-op. Unknown symbols are individual failures, while duplicate normalized symbols are invalid input.
+
+The merged implementation includes focused TDD coverage for empty input, success, ordering, partial failure, all-failure, unknown symbols, duplicate input, persistence preservation, and execution identity, plus runtime wiring coverage.
 
 The aggregate run reuses the existing `Execution` aggregate and its `Execution.id`; M14 does not add aggregate persistence. Per-stock retry remains inside the existing single-stock capability.
 
