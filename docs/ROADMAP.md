@@ -128,8 +128,8 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
-| M28 | Automatic Alert Delivery Policy | 🟡 Design Accepted | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
-| M28 | Automatic Alert Delivery Policy | 🟡 Design Proposed | Define when completed analysis should automatically deliver existing alert candidates |
+| M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
+
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -891,6 +891,20 @@ The M28 design gate is **accepted** in `docs/DEC-087-M28-AUTOMATIC-ALERT-DELIVER
 M28 consumes the successful symbols from a completed market-analysis `Execution`, resolves existing candidates through `GetAlertCandidate`, and delegates delivery through `DeliverAlert`. Delivery uses one configured default channel (`telegram`), processes symbols deterministically, isolates per-candidate failures, adds no retry layer, and relies on M25 snapshot/channel idempotency.
 
 M28 is an explicit post-analysis application capability. It is not an implicit side effect of stock analysis, market execution, or scheduling, and it introduces no aggregate delivery persistence.
+
+---
+
+# 28. M28 — Automatic Alert Delivery Policy
+
+## Status
+
+M28 is **complete**. The accepted design is documented in `docs/DEC-087-M28-AUTOMATIC-ALERT-DELIVERY-POLICY-DESIGN-GATE.md`, and the implementation was merged through PR #46.
+
+See `docs/M28-AUTOMATIC-ALERT-DELIVERY-POLICY-MVP-COMPLETION.md` for the completion record.
+
+The automatic-delivery capability consumes successful symbols from a completed market-analysis `Execution`, resolves existing alert candidates, and delegates delivery through M25 `DeliverAlert`. It uses one configured default channel, deterministic ordering, per-candidate failure isolation, and M25 idempotency without adding automatic retry or analytical coupling.
+
+The next capability requires a separate design gate.
 
 ---
 
