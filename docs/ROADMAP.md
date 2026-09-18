@@ -395,7 +395,7 @@ The reporting and alert read-side API slice has now been locally validated:
 - Alert endpoint preserves BUY-only domain semantics.
 - Remaining warnings are dependency deprecations from Starlette/httpx and AnyIO; they are separate cleanup work and do not change the M12 business contract.
 
-M12 remains **in progress**. The next Design Gate is the dashboard/presentation boundary; no dashboard implementation is committed until that gate defines the presentation responsibilities and API consumption boundary.
+M12 remains **in progress**. Dashboard presentation boundary is now documented as a proposal in `docs/DEC-066-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`. No dashboard implementation is committed until the open implementation choice is accepted.
 
 # 10. M13 — Production Hardening
 
