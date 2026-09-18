@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAlert, getAnalysisHistory, getMarketOpportunities, getReport } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport } from "./api/analysisApi";
 
 function Metric({ label, value }) {
   return (
@@ -31,7 +31,7 @@ function App() {
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);\n  const [beforeSnapshotId, setBeforeSnapshotId] = useState("");\n  const [afterSnapshotId, setAfterSnapshotId] = useState("");\n  const [comparison, setComparison] = useState(null);\n  const [comparisonError, setComparisonError] = useState(null);\n  const [comparisonLoading, setComparisonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
@@ -80,6 +80,26 @@ function App() {
       setHistoryLoading(false);
     } finally {
       setLoading(false);
+    }
+  }
+
+
+  async function handleCompare(event) {
+    event.preventDefault();
+    if (!beforeSnapshotId || !afterSnapshotId) {
+      return;
+    }
+
+    setComparisonLoading(true);
+    setComparisonError(null);
+
+    try {
+      setComparison(await getAnalysisComparison(symbol, beforeSnapshotId, afterSnapshotId));
+    } catch (requestError) {
+      setComparison(null);
+      setComparisonError(requestError);
+    } finally {
+      setComparisonLoading(false);
     }
   }
 
@@ -294,17 +314,81 @@ function App() {
             )}
 
             {!historyLoading && !historyError && history && history.items.length > 0 && (
-              <div className="history-list">
-                {history.items.map((item) => (
-                  <div className="history-row" key={item.snapshot_id}>
-                    <strong>{item.report.analysis_date}</strong>
-                    <span>{item.report.opportunity}</span>
-                    <span>Stock {item.report.stock_quality}</span>
-                    <span>Entry {item.report.entry_quality}</span>
-                    <span>Price {item.report.current_price}</span>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="history-list">
+                  {history.items.map((item) => (
+                    <div className="history-row" key={item.snapshot_id}>
+                      <strong>{item.report.analysis_date}</strong>
+                      <span>{item.report.opportunity}</span>
+                      <span>Stock {item.report.stock_quality}</span>
+                      <span>Entry {item.report.entry_quality}</span>
+                      <span>Price {item.report.current_price}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {history.items.length >= 2 && (
+                  <form className="comparison-form" onSubmit={handleCompare}>
+                    <label>
+                      Before
+                      <select
+                        value={beforeSnapshotId}
+                        onChange={(event) => setBeforeSnapshotId(event.target.value)}
+                      >
+                        <option value="">Select snapshot</option>
+                        {history.items.map((item) => (
+                          <option key={item.snapshot_id} value={item.snapshot_id}>
+                            {item.report.analysis_date}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      After
+                      <select
+                        value={afterSnapshotId}
+                        onChange={(event) => setAfterSnapshotId(event.target.value)}
+                      >
+                        <option value="">Select snapshot</option>
+                        {history.items.map((item) => (
+                          <option key={item.snapshot_id} value={item.snapshot_id}>
+                            {item.report.analysis_date}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={comparisonLoading || !beforeSnapshotId || !afterSnapshotId}
+                    >
+                      {comparisonLoading ? "Comparing..." : "Compare"}
+                    </button>
+                  </form>
+                )}
+              </>
+            )}
+
+            {comparisonError && (
+              <p className="state-card error" role="alert">
+                {comparisonError.message}
+              </p>
+            )}
+
+            {comparison && (
+              <section className="comparison-panel" aria-label="analysis comparison">
+                <p className="eyebrow">COMPARISON</p>
+                <h3>{comparison.symbol} before / after</h3>
+                <div className="metrics-grid">
+                  <Metric label="Technical Δ" value={comparison.deltas.technical_score} />
+                  <Metric label="Fundamental Δ" value={comparison.deltas.fundamental_score} />
+                  <Metric label="Stock Quality Δ" value={comparison.deltas.stock_quality} />
+                  <Metric label="Entry Quality Δ" value={comparison.deltas.entry_quality} />
+                  <Metric label="Price Δ" value={comparison.deltas.current_price} />
+                  <Metric label="Support Δ" value={comparison.deltas.nearest_support} />
+                  <Metric label="Resistance Δ" value={comparison.deltas.nearest_resistance} />
+                  <Metric label="Classification Changed" value={comparison.classification_changed ? "Yes" : "No"} />
+                </div>
+              </section>
             )}
           </section>
         </>
