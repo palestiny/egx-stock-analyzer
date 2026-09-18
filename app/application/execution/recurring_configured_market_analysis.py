@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import (
-    RunConfiguredMarketAnalysisWithAutomaticAlertsWithAutomaticAlerts,
+    RunConfiguredMarketAnalysisWithAutomaticAlerts,
 )
 from app.application.execution.scheduler import Scheduler
 
