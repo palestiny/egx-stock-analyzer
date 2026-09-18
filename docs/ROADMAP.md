@@ -119,6 +119,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
+| M19 | Recurring Market Scheduling | 🟡 Design Accepted | Define deterministic recurring full-market execution without moving business policy into the scheduler |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -158,6 +159,8 @@ M16 — Market Opportunity View
 M17 — Market Universe & All-Market Execution
         ↓
 M18 — Scheduled Full-Market Analysis
+        ↓
+M19 — Recurring Market Scheduling
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -546,7 +549,19 @@ M18 is a one-shot scheduling adapter. The configured universe is resolved at exe
 
 ---
 
-# 16. Cross-Cutting Requirements
+# 16. M19 — Recurring Market Scheduling
+
+## Status
+
+The M19 design gate is **accepted** in `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`. Implementation is now authorized for the accepted MVP.
+
+M19 uses daily-at-local-time recurrence, Africa/Cairo as the default timezone, Monday-Friday as the temporary calendar policy, skipped missed occurrences, no concurrent market-analysis execution, process-local occurrence idempotency, process-local schedules, an injected clock, and continuation after failed occurrences.
+
+The existing `RunConfiguredMarketAnalysis` capability remains the business-execution boundary. The scheduler remains timing-only.
+
+---
+
+# 17. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -580,7 +595,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 17. Milestone Completion Rule
+# 18. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -606,7 +621,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 18. Changing the Roadmap
+# 19. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -616,6 +631,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 19. Guiding Principle
+# 20. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**

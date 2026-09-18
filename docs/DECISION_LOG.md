@@ -1742,3 +1742,38 @@ See `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`.
 M18 adds a one-shot scheduling boundary around the existing `RunConfiguredMarketAnalysis` capability. The scheduler remains responsible only for timing; the configured-market use case remains responsible for universe discovery and execution. The universe is resolved when the scheduled operation runs, and the execution date is determined at run time. No recurring schedules, schedule persistence, trading-calendar semantics, concurrency, scheduling API, ranking, dashboard, or notification behavior is introduced.
 
 See `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`.
+
+
+## DEC-078 — M19 Recurring Market Scheduling
+
+**Status:** Proposed  
+**Date:** 2026-09-18
+
+M19 opens a design gate for recurring full-market analysis after the one-shot M18 scheduling capability. The gate will define recurrence representation, timezone and trading-calendar semantics, missed-run behavior, overlap policy, occurrence identity/idempotency, persistence scope, deterministic clock behavior, and failure continuation before implementation begins.
+
+The current direction is to keep `RunConfiguredMarketAnalysis` as the business-execution boundary and keep the generic scheduler focused on timing mechanics. No implementation decision is committed until the M19 gate is accepted.
+
+See `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`.
+
+
+---
+
+## DEC-078 — M19 Recurring Market Scheduling
+
+**Status:** Accepted
+
+### Decision
+
+M19 introduces recurring full-market scheduling as an application capability around the existing one-shot scheduler. Recurrence is daily at a configured local time, with Africa/Cairo as the default timezone and Monday-Friday as the temporary calendar policy.
+
+Missed occurrences are skipped. Concurrent market-analysis execution is not introduced. Each occurrence has a deterministic identity based on schedule identity plus scheduled local date/time, with process-local idempotency. Schedules remain process-local and do not survive restart. Time is injected through a clock abstraction. Failed occurrences do not disable future recurrence.
+
+The recurring capability owns recurrence policy and next-run calculation. Scheduler owns timestamp timing mechanics. RunConfiguredMarketAnalysis remains responsible for business execution.
+
+### Trade-offs
+
+This keeps the scheduler generic and the market-analysis policy explicit, at the cost of deferring cron/fixed-interval recurrence, authoritative EGX holiday handling, durable schedules, restart recovery, and distributed coordination.
+
+### Revisit Conditions
+
+Revisit when durable user-managed schedules, an authoritative EGX trading calendar, multiple recurrence rule types, distributed scheduling, or multi-process coordination become required.
