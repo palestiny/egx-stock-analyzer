@@ -80,20 +80,6 @@ def create_app(
         response = AnalysisResultResponse.from_result(symbol, result)
         return asdict(response)
 
-    @app.post("/api/v1/market-analysis")
-    def run_market_analysis() -> dict[str, object]:
-        if run_configured_market_analysis is None:
-            raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
-
-        try:
-            execution = run_configured_market_analysis.execute(date.today())
-        except Exception as error:
-            logger.exception("Market-wide analysis execution failed", exc_info=error)
-            raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
-
-        response = MarketAnalysisExecutionResponse.from_execution(execution)
-        return asdict(response)
-
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str) -> dict[str, object]:
         if get_analysis_report is None:
