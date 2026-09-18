@@ -6,6 +6,10 @@ from app.application.stocks.catalog import StockCatalog
 from app.domain.execution import Execution
 
 
+class DuplicateMarketAnalysisSymbolError(ValueError):
+    """Raised when a market analysis universe contains duplicate symbols."""
+
+
 @dataclass(frozen=True)
 class MarketAnalysisResult:
     execution: Execution
@@ -28,7 +32,9 @@ class RunMarketAnalysis:
         normalized_symbols = [symbol.strip().upper() for symbol in symbols]
 
         if len(normalized_symbols) != len(set(normalized_symbols)):
-            raise ValueError("Duplicate stock symbol in market analysis universe")
+            raise DuplicateMarketAnalysisSymbolError(
+                "Duplicate stock symbol in market analysis universe"
+            )
 
         execution = Execution.create()
         execution.start()
