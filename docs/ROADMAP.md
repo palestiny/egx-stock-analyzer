@@ -121,6 +121,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
+| M21 | Historical Analysis View | 🟡 Design Proposed | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -164,6 +165,8 @@ M18 — Scheduled Full-Market Analysis
 M19 — Recurring Market Scheduling
         ↓
 M20 — Historical Analysis Result History
+        ↓
+M21 — Historical Analysis View
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -620,7 +623,31 @@ Historical HTTP/dashboard exposure, historical ranking, performance analytics, m
 
 ---
 
-# 19. Cross-Cutting Requirements
+# 20. M21 — Historical Analysis View
+
+## Status
+
+M21 design gate is proposed in `docs/DEC-080-M21-HISTORICAL-ANALYSIS-VIEW-DESIGN-GATE.md`. Implementation is not authorized until the API, application, and dashboard contract questions are accepted.
+
+### Current boundary
+
+```
+Dashboard
+    ↓
+HTTP
+    ↓
+GetAnalysisHistory
+    ↓
+AnalysisResultStore
+    ↓
+SQLite History
+```
+
+M21 is intentionally read-only and does not recalculate historical analysis or change analytical rules. Historical ranking, analytics, charting, notifications, watchlists, portfolio/trading behavior, and persistence-schema changes remain deferred.
+
+---
+
+# 21. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -654,7 +681,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 20. Milestone Completion Rule
+# 22. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -680,7 +707,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 21. Changing the Roadmap
+# 23. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -690,6 +717,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 22. Guiding Principle
+# 24. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
