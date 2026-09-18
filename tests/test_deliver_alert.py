@@ -98,3 +98,17 @@ def test_alert_without_snapshot_identity_cannot_be_delivered():
     with pytest.raises(ValueError, match="snapshot identity"):
         DeliverAlert(store, provider).execute(candidate, "test")
     assert provider.calls == []
+
+def test_failed_delivery_is_not_retried_implicitly():
+    store = InMemoryAlertDeliveryStore()
+    failing_provider = FakeNotificationProvider(RuntimeError("down"))
+    candidate = make_candidate()
+
+    first = DeliverAlert(store, failing_provider).execute(candidate, "test")
+
+    second_provider = FakeNotificationProvider()
+    second = DeliverAlert(store, second_provider).execute(candidate, "test")
+
+    assert first.status.value == "failed"
+    assert second.status.value == "failed"
+    assert second_provider.calls == []
