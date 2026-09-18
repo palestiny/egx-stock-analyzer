@@ -125,7 +125,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
-| M25 | Alert Delivery & Notification Boundary | 🟡 Design Accepted | Define provider-neutral, idempotent delivery of existing alert candidates without changing analytical decisions |
+| M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -175,6 +175,10 @@ M21 — Historical Analysis View
 M22 — Historical Analysis Comparison
         ↓
 M23 — Historical Performance Analytics
+        ↓
+M24 — Historical Analysis Change Detection
+        ↓
+M25 — Alert Delivery & Notification Boundary
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -752,6 +756,18 @@ API / Dashboard / Future Alert Consumers
 M24 detects descriptive changes in opportunity classification, technical/fundamental/stock-quality/entry-quality scores, current price, nearest support, and nearest resistance. Optional price availability transitions are changes; both-missing values are unchanged.
 
 The capability reuses M22 comparison semantics, introduces no persistence, no significance thresholds, no notification delivery, and no predictive interpretation.
+
+---
+
+# M25 — Alert Delivery & Notification Boundary
+
+M25 is complete. See `docs/M25-ALERT-DELIVERY-MVP-COMPLETION.md` for the completion record. The accepted design is `docs/DEC-084-M25-ALERT-DELIVERY-DESIGN-GATE.md`.
+
+The implementation provides `DeliverAlert`, a provider-neutral `NotificationProvider`, independent durable delivery state, snapshot-based alert identity, synchronous idempotent delivery, and explicit terminal failure semantics. No external notification provider or API/dashboard delivery integration was introduced.
+
+The latest implementation CI validation observed before merge is GitHub Actions Run #668 on `d8a2759bde75b8530acfaa78af4d2939c4dca426`, which completed successfully.
+
+Deferred: external provider adapters, explicit failed-delivery retry operation, queues/distributed delivery, user notification preferences, delivery analytics, and transport/UI integration.
 
 ---
 
