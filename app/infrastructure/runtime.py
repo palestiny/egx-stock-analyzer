@@ -91,9 +91,6 @@ def create_infrastructure_runtime(
     deliver_alert = None
     deliver_alert_by_symbol = None
     automatic_alert_delivery = None
-    run_configured_market_analysis_with_automatic_alerts = RunConfiguredMarketAnalysisWithAutomaticAlerts(
-        run_configured_market_analysis=application_runtime.run_configured_market_analysis,
-    )
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
