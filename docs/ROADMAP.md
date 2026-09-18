@@ -334,7 +334,7 @@ The frontend suite currently contains API-client and dashboard component coverag
 
 The Python CI job successfully installs the project package and executes the non-integration test suite.
 
-A real-data EGAL integration test was previously validated successfully through the current Yahoo Finance market + annual fundamental data path.
+A real-data EGAL integration test validates the current Yahoo Finance market + annual fundamental data path. The integration slice now also verifies that a successful analysis is readable through the Report endpoint and that the Alert endpoint returns either a BUY candidate or the expected no-candidate 404.
 
 Dependency deprecation warnings remain a separate compatibility cleanup concern and do not change the current business contracts.
 
