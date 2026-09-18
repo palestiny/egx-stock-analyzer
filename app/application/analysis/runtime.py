@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
-from app.application.analysis.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
