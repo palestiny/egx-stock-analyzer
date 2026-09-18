@@ -8,11 +8,17 @@ from fastapi import FastAPI, HTTPException
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
+from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.calculate_snapshot_performance import (
+    AnalysisSnapshotPerformanceNotFoundError,
+    CalculateSnapshotPerformance,
+    InvalidSnapshotPerformanceError,
+)
 from app.application.reporting.compare_analysis_snapshots import (
     AnalysisSnapshotNotFoundError,
     CompareAnalysisSnapshots,
@@ -41,6 +47,7 @@ def create_app(
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
     get_analysis_history: GetAnalysisHistory | None = None,
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
+    calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -133,6 +140,23 @@ def create_app(
 
         return AnalysisComparisonResponse.from_comparison(comparison).to_dict()
 
+    @app.get("/api/v1/performance/{symbol}")
+    def calculate_performance(
+        symbol: str,
+        before: UUID,
+        after: UUID,
+    ) -> dict[str, object]:
+        if calculate_snapshot_performance is None:
+            raise HTTPException(status_code=503, detail="Historical performance is not configured")
+        try:
+            performance = calculate_snapshot_performance.execute(
+                symbol, before_snapshot_id=before, after_snapshot_id=after
+            )
+        except AnalysisSnapshotPerformanceNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except InvalidSnapshotPerformanceError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str) -> dict[str, object]:
         if get_analysis_report is None:
