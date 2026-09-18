@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import date
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from app.application.analysis.result_store import AnalysisResultRecord
 from app.application.analysis.stock_analysis import StockAnalysisResult
@@ -197,5 +197,5 @@ class SQLiteAnalysisResultStore:
                 if analysis_date_value is not None
                 else None
             ),
-            snapshot_id=__import__("uuid").UUID(snapshot_id),
+            snapshot_id=UUID(snapshot_id),
         )
