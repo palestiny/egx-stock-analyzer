@@ -183,6 +183,7 @@ def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_
 
 
 def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> None:
+    from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import RunConfiguredMarketAnalysisWithAutomaticAlertDelivery
     from app.application.notifications.deliver_alert import DeliverAlert
     from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 
@@ -200,6 +201,10 @@ def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> 
 
     assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
     assert isinstance(runtime.deliver_alert, DeliverAlert)
+    assert isinstance(
+        runtime.run_configured_market_analysis_with_automatic_alert_delivery,
+        RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+    )
     runtime.close()
 
 
