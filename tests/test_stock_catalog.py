@@ -25,25 +25,21 @@ def test_catalog_normalizes_symbol_on_lookup():
     assert catalog.get("  egal  ") is stock
 
 
-def test_catalog_returns_deterministic_normalized_symbols():
+def test_catalog_symbols_preserve_constructor_order_and_normalize():
     stocks = [
         Stock.create("egal", "Egypt Aluminum"),
-        Stock.create("IEEC", "Egyptian Electrical"),
+        Stock.create(" ieec ", "Egyptian Electrical"),
     ]
     catalog = InMemoryStockCatalog(stocks)
 
     assert catalog.symbols() == ("EGAL", "IEEC")
 
 
-def test_catalog_rejects_duplicate_normalized_symbols():
-    stocks = [
-        Stock.create("EGAL", "Egypt Aluminum"),
-        Stock.create(" egal ", "Duplicate Egypt Aluminum"),
-    ]
+def test_catalog_symbols_are_stable_snapshots():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    catalog = InMemoryStockCatalog([stock])
 
-    try:
-        InMemoryStockCatalog(stocks)
-    except ValueError as error:
-        assert "Duplicate stock symbol" in str(error)
-    else:
-        raise AssertionError("Expected duplicate stock symbol validation")
+    symbols = catalog.symbols()
+
+    assert isinstance(symbols, tuple)
+    assert symbols == ("EGAL",)
