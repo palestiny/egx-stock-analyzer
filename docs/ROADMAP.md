@@ -324,7 +324,7 @@ The first dashboard view consumes report/alert read models and does not calculat
 
 ### Current validation
 
-GitHub Actions Run #95 on commit `bdc1799` completed successfully with:
+GitHub Actions Run #170 on commit `8476fd3` completed successfully with:
 
 - Python unit-tests job: **success**
 - Frontend tests job: **success**
@@ -378,7 +378,7 @@ Prepare the system for reliable long-term operation.
 
 Areas include reliability, retries, failure recovery, idempotency, monitoring, secrets management, authentication/authorization, performance, caching, observability, deployment, backups, migrations, and rollback.
 
-M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. DEC-071 established the durable analysis-state boundary, and DEC-072 accepted SQLite plus an explicit versioned serializer as the first persistence MVP. The persistence implementation is now validated through store-level and API-level tests, including analysis → SQLite → store recreation → report/alert projections. The API/report/dashboard contracts remain unchanged. CI Runs #158 through #164 completed successfully; Runs #162-#164 validate the subsequent roadmap and persistence-boundary documentation updates. A read-only SQLite inspection command is available for local diagnostics.
+M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. DEC-071 established the durable analysis-state boundary, and DEC-072 accepted SQLite plus an explicit versioned serializer as the first persistence MVP. The persistence implementation is now validated through store-level and API-level tests, including analysis → SQLite → store recreation → report/alert projections. The API/report/dashboard contracts remain unchanged. CI Runs #158 through #170 completed successfully; Runs #165-#170 validate the subsequent documentation synchronization updates through the current branch head. A read-only SQLite inspection command is available for local diagnostics.
 
 ---
 
