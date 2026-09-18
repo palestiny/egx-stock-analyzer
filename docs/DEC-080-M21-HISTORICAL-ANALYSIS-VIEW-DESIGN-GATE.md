@@ -1,6 +1,6 @@
 # DEC-080 — M21 Historical Analysis View Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M21 — Historical Analysis View
 
@@ -141,7 +141,39 @@ These semantics require acceptance before implementation.
 
 ---
 
-## 9. Open Questions
+## 9. Accepted Decisions
+
+1. **Endpoint:** use `GET /api/v1/history/{symbol}`, consistent with the existing report and alert resource pattern.
+2. **Response shape:** return an object containing the normalized symbol and an `items` collection. Each item contains the persisted snapshot UUID, analysis date, and the same analytical result fields already represented by the existing report/read-side transport mapping. No new analytical calculations are introduced.
+3. **Date bounds:** `from_date` and `to_date` are inclusive, matching the business interpretation of a requested analysis-date range.
+4. **Invalid range:** `from_date > to_date` is a client validation error.
+5. **Unknown symbol:** an unknown catalog symbol returns 404. A known symbol with no stored history returns 200 with an empty `items` collection.
+6. **Dashboard presentation:** the first MVP renders a deterministic table/list of historical snapshots. Charting is deferred.
+7. **Unbounded result size:** the MVP returns all matching snapshots. Pagination is deferred until actual history volume demonstrates the need.
+8. **Read-only behavior:** the endpoint never triggers fresh analysis. Persistence failures remain server errors rather than empty-history responses.
+
+### Response Contract
+
+Conceptually:
+
+```json
+{
+  "symbol": "EGAL",
+  "items": [
+    {
+      "snapshot_id": "...",
+      "analysis_date": "2026-09-18",
+      "...": "existing analytical result fields"
+    }
+  ]
+}
+```
+
+The historical item is a presentation of an already-persisted snapshot. It is not a new analytical model.
+
+---
+
+## 10. Open Questions
 
 1. Should the endpoint be `/history/{symbol}` or nested under `/analysis/{symbol}/history`?
 2. What exact response shape should represent each historical snapshot?
@@ -152,7 +184,7 @@ These semantics require acceptance before implementation.
 7. How many snapshots should the MVP return when no limit is supplied?
 8. Should pagination be deferred until evidence requires it?
 
-No implementation should begin until these questions are resolved in the accepted gate.
+The design questions are resolved by the accepted decisions above. Implementation is authorized for the defined M21 MVP.
 
 ---
 
@@ -175,14 +207,12 @@ The accepted implementation should test:
 
 ---
 
-## 11. Design Gate Decision
+## 12. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
-
-The next step is to resolve the open questions and record the accepted API/application/presentation contract before writing M21 implementation code.
+**Status: Accepted — implementation is authorized for the M21 MVP defined here.**
 
 ---
 
-## 12. Revisit Conditions
+## 13. Revisit Conditions
 
 Revisit this gate if the requirement changes from simple historical inspection to analytics, charting, ranking, comparison, performance measurement, or other derived historical behavior. Those capabilities should receive separate design gates rather than expanding M21 opportunistically.
