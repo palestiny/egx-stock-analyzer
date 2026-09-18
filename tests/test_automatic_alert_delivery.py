@@ -10,6 +10,7 @@ from app.application.notifications.delivery_store import (
     AlertDeliveryStatus,
 )
 from app.domain.execution import Execution
+from app.domain.opportunity.classification import OpportunityClassification
 from app.domain.reporting.alerts import AlertCandidate
 
 
@@ -26,8 +27,9 @@ def make_candidate():
     return AlertCandidate(
         stock_id=uuid4(),
         snapshot_id=uuid4(),
-        stock_quality=8,
-        entry_quality=7,
+        classification=OpportunityClassification.BUY,
+        stock_quality_score=8,
+        entry_quality_score=7,
     )
 
 
