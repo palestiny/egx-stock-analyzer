@@ -7,7 +7,6 @@ from app.application.analysis.run_market_analysis import (
     DuplicateMarketAnalysisSymbolError,
     RunMarketAnalysis,
 )
-from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
@@ -19,8 +18,7 @@ AS_OF = date(2026, 9, 18)
 def make_runner(stocks: list[Stock]):
     catalog = InMemoryStockCatalog(stocks)
     run_stock_analysis = Mock()
-    by_symbol = RunStockAnalysisBySymbol(catalog, run_stock_analysis)
-    runner = RunMarketAnalysis(by_symbol)
+    runner = RunMarketAnalysis(catalog, run_stock_analysis)
     return runner, run_stock_analysis
 
 
@@ -133,3 +131,13 @@ def test_each_market_run_has_its_own_execution_identity():
 
     assert first.execution.id != second.execution.id
 
+
+def test_market_orchestrator_does_not_duplicate_per_stock_retries():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
+    run_stock_analysis.execute.side_effect = RuntimeError("transient")
+
+    result = runner.execute(["EGAL"], AS_OF)
+
+    assert result.execution.state is ExecutionState.FAILED
+    assert run_stock_analysis.execute.call_count == 1
