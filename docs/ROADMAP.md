@@ -121,7 +121,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
-| M21 | Historical Analysis View | 🟡 Design Accepted | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
+| M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -167,6 +167,8 @@ M19 — Recurring Market Scheduling
 M20 — Historical Analysis Result History
         ↓
 M21 — Historical Analysis View
+        ↓
+M22 — Next Capability Design Gate
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -627,9 +629,11 @@ Historical HTTP/dashboard exposure, historical ranking, performance analytics, m
 
 ## Status
 
-M21 design gate is proposed in `docs/DEC-080-M21-HISTORICAL-ANALYSIS-VIEW-DESIGN-GATE.md`. Implementation is not authorized until the API, application, and dashboard contract questions are accepted.
+M21 is **complete**. The accepted design is documented in `docs/DEC-080-M21-HISTORICAL-ANALYSIS-VIEW-DESIGN-GATE.md`, and the implementation was merged through PR #28.
 
-### Current boundary
+GitHub Actions Run #484 completed successfully for implementation head `4f2d047461b2ffa5e05d3cdc4d22cdee3f0e6eb9`, validating the Python unit tests and frontend tests/build workflow.
+
+### Accepted boundary
 
 ```
 Dashboard
@@ -643,7 +647,15 @@ AnalysisResultStore
 SQLite History
 ```
 
-M21 is intentionally read-only and does not recalculate historical analysis or change analytical rules. Historical ranking, analytics, charting, notifications, watchlists, portfolio/trading behavior, and persistence-schema changes remain deferred.
+M21 exposes `GET /api/v1/history/{symbol}` with inclusive optional date bounds. Unknown symbols return 404, while known symbols with no stored history return an empty collection. The endpoint never triggers fresh analysis.
+
+The dashboard now renders the deterministic newest-first historical snapshot list with loading, empty, and history-error states. It consumes the API read model and does not calculate or mutate analytical values.
+
+### Scope boundary
+
+Historical ranking, performance analytics, change detection, OHLC charting, notifications, watchlists, portfolio/trading behavior, pagination, authentication/authorization, and AI analysis remain deferred behind separate design gates.
+
+Completion record: `docs/M21-HISTORICAL-ANALYSIS-VIEW-MVP-COMPLETION.md`.
 
 ---
 
