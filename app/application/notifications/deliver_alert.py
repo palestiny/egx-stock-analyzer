@@ -1,14 +1,14 @@
-from app.application.notifications.provider import NotificationProvider
-from app.domain.reporting.alerts import AlertCandidate
-from app.infrastructure.notifications.in_memory_alert_delivery_store import (
+from app.application.notifications.delivery_store import (
     AlertDeliveryRecord,
     AlertDeliveryStatus,
-    InMemoryAlertDeliveryStore,
+    AlertDeliveryStore,
 )
+from app.application.notifications.provider import NotificationProvider
+from app.domain.reporting.alerts import AlertCandidate
 
 
 class DeliverAlert:
-    def __init__(self, store: InMemoryAlertDeliveryStore, provider: NotificationProvider) -> None:
+    def __init__(self, store: AlertDeliveryStore, provider: NotificationProvider) -> None:
         self._store = store
         self._provider = provider
 
