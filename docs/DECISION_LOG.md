@@ -1388,3 +1388,20 @@ Revisit this decision if:
 - quality reporting becomes a first-class domain capability
 - multiple providers are reconciled
 - invalid-data rates become high enough to require provider-level handling
+
+
+## DEC-021 Validation Note — Real EGAL Vertical Slice
+
+**Status:** Validated for the current development/testing phase
+
+On 2026-09-18, the real-data EGAL integration test completed successfully:
+
+```
+1 passed, 5 warnings in 4.82s
+```
+
+This validates the current end-to-end vertical slice using Yahoo Finance for the live market and annual fundamental data path.
+
+The five warnings did not cause test failure and remain a separate cleanup/compatibility concern. They do not change the current provider decision.
+
+The validation also confirms that non-finite Yahoo fundamental values such as `NaN` are excluded at the infrastructure boundary rather than entering the `FinancialPeriod` domain model.
