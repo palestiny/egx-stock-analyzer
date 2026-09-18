@@ -828,7 +828,7 @@ Deferred from M26: delivery trigger/API, automatic delivery after analysis, mult
 
 ## Status
 
-The M27 design gate is **proposed** in `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`. Implementation is not authorized yet.
+The M27 design gate is **accepted** in `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
 
 The next capability will define an explicit application/API command for delivering an existing alert candidate through M25 `DeliverAlert` and the M26 provider boundary.
 
@@ -841,7 +841,7 @@ The gate preserves these constraints:
 - provider-specific concepts remain outside application/API contracts;
 - M27 MVP is single-alert, synchronous, and sequential.
 
-Open questions and TDD acceptance criteria are recorded in DEC-086.
+The accepted command is `POST /api/v1/alerts/{symbol}/deliver?channel=telegram`. It resolves the existing alert candidate, delegates to `DeliverAlert`, preserves M25 idempotency, and does not execute fresh analysis.
 
 ---
 
