@@ -3,6 +3,7 @@ from datetime import date
 
 from fastapi import FastAPI, HTTPException
 
+from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.result_store import AnalysisResultStore
@@ -10,11 +11,13 @@ from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
     UnknownStockSymbolError,
 )
+from app.application.reporting.get_analysis_report import GetAnalysisReport
 
 
 def create_app(
     result_store: AnalysisResultStore,
     run_stock_analysis_by_symbol: RunStockAnalysisBySymbol | None = None,
+    get_analysis_report: GetAnalysisReport | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -55,6 +58,24 @@ def create_app(
             )
 
         response = AnalysisResultResponse.from_result(symbol, result)
+        return asdict(response)
+
+    @app.get("/api/v1/reports/{symbol}")
+    def get_report(symbol: str) -> dict[str, object]:
+        if get_analysis_report is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis reporting is not configured",
+            )
+
+        report = get_analysis_report.execute(symbol)
+        if report is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Analysis report not found for {symbol}",
+            )
+
+        response = AnalysisReportResponse.from_report(report)
         return asdict(response)
 
     return app
