@@ -265,3 +265,33 @@ def test_sqlite_store_history_survives_store_recreation(tmp_path):
     restored = SQLiteAnalysisResultStore(database_path)
 
     assert len(restored.get_history("EGAL")) == 2
+
+
+def test_sqlite_store_gets_snapshot_by_id(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    result = make_result()
+    store.save("EGAL", result, date(2026, 9, 18))
+
+    saved = store.get_history("EGAL")[0]
+    restored = store.get_snapshot(saved.snapshot_id)
+
+    assert restored == saved
+    assert restored.symbol == "EGAL"
+
+
+def test_sqlite_store_returns_none_for_missing_snapshot(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+
+    assert store.get_snapshot(uuid4()) is None
+
+
+def test_sqlite_store_gets_snapshot_by_uuid_and_preserves_symbol(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    store.save("EGAL", make_result(), date(2026, 9, 18))
+
+    snapshot = store.get_history("EGAL")[0]
+    restored = store.get_snapshot(snapshot.snapshot_id)
+
+    assert restored == snapshot
+    assert restored is not None
+    assert restored.symbol == "EGAL"

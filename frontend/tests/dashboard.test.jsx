@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisHistory, getMarketOpportunities, getReport } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
@@ -94,7 +94,7 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText("Stock 72")).toBeInTheDocument();
     expect(screen.getAllByText("2026-09-18").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("2026-09-16")).toBeInTheDocument();
+    expect(screen.getAllByText("2026-09-16").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Stock 72")).toBeInTheDocument();
     expect(screen.getByText("Entry 61")).toBeInTheDocument();
     expect(getAnalysisHistory).toHaveBeenCalledWith("EGAL");

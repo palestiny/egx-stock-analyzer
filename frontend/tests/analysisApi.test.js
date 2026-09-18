@@ -69,3 +69,22 @@ describe("analysis history API client", () => {
     );
   });
 });
+
+
+it("requests an explicit historical comparison by snapshot UUID", async () => {
+  const comparison = { symbol: "EGAL", deltas: { stock_quality: 3 } };
+
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue(comparison),
+  });
+
+  const { getAnalysisComparison } = await import("../src/api/analysisApi");
+  await expect(
+    getAnalysisComparison("EGAL", "before-id", "after-id"),
+  ).resolves.toEqual(comparison);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/comparisons/EGAL?before=before-id&after=after-id",
+  );
+});

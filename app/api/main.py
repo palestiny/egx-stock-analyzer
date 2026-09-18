@@ -1,16 +1,23 @@
 import logging
 from dataclasses import asdict
 from datetime import date
+from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 
 from app.api.alert_candidate_response import AlertCandidateResponse
+from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.compare_analysis_snapshots import (
+    AnalysisSnapshotNotFoundError,
+    CompareAnalysisSnapshots,
+    InvalidSnapshotComparisonError,
+)
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
@@ -33,6 +40,7 @@ def create_app(
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
     get_analysis_history: GetAnalysisHistory | None = None,
+    compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -99,6 +107,31 @@ def create_app(
             raise HTTPException(status_code=404, detail=f"Analysis history not found for {symbol}")
         response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
         return response.to_dict()
+
+    @app.get("/api/v1/comparisons/{symbol}")
+    def compare_analysis(
+        symbol: str,
+        before: UUID,
+        after: UUID,
+    ) -> dict[str, object]:
+        if compare_analysis_snapshots is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis comparison is not configured",
+            )
+
+        try:
+            comparison = compare_analysis_snapshots.execute(
+                symbol,
+                before_snapshot_id=before,
+                after_snapshot_id=after,
+            )
+        except AnalysisSnapshotNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except InvalidSnapshotComparisonError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        return AnalysisComparisonResponse.from_comparison(comparison).to_dict()
 
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str) -> dict[str, object]:
