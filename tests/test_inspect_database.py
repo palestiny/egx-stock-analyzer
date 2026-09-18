@@ -25,6 +25,9 @@ def test_inspect_database_reports_persisted_result(tmp_path, capsys):
     from app.application.analysis.stock_analysis import StockAnalysisResult
     from app.domain.entry_analysis.context import EntryContext
     from app.domain.entry_analysis.scoring import EntryQualityScore
+    from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
+    from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
+    from app.domain.fundamental_analysis.profitability import ProfitabilityEvidence, ProfitabilityStatus
     from app.domain.fundamental_analysis.result import FundamentalAnalysisResult
     from app.domain.fundamental_analysis.scoring import FundamentalScore
     from app.domain.market_data.price import Price
@@ -33,9 +36,13 @@ def test_inspect_database_reports_persisted_result(tmp_path, capsys):
         OpportunityClassificationResult,
     )
     from app.domain.scoring.stock_quality import StockQualityScore
+    from app.domain.technical_analysis.momentum import MomentumEvidence, MomentumStatus
     from app.domain.technical_analysis.result import TechnicalAnalysisResult
+    from app.domain.technical_analysis.support_resistance import SupportResistanceEvidence
+    from app.domain.technical_analysis.trend import TrendEvidence, TrendStatus
+    from app.domain.technical_analysis.volume import VolumeEvidence, VolumeStatus
     from app.domain.technical_analysis.scoring import TechnicalScore
-    from app.domain.technical_analysis.timeframe import Timeframe
+    from app.domain.market_data.timeframe import Timeframe
     from app.infrastructure.persistence.sqlite_analysis_result_store import (
         SQLiteAnalysisResultStore,
     )
@@ -44,17 +51,17 @@ def test_inspect_database_reports_persisted_result(tmp_path, capsys):
     technical = TechnicalAnalysisResult(
         stock_id=stock_id,
         timeframe=Timeframe.DAILY,
-        trend=None,
-        support_resistance=None,
-        momentum=None,
-        volume=None,
+        trend=TrendEvidence(TrendStatus.UPTREND),
+        support_resistance=SupportResistanceEvidence((), ()),
+        momentum=MomentumEvidence(MomentumStatus.POSITIVE),
+        volume=VolumeEvidence(VolumeStatus.ABOVE_AVERAGE),
     )
     fundamental = FundamentalAnalysisResult(
         stock_id=stock_id,
         period_end=date(2026, 9, 18),
-        profitability=None,
-        liquidity=None,
-        growth=None,
+        profitability=ProfitabilityEvidence(ProfitabilityStatus.PROFITABLE),
+        liquidity=LiquidityEvidence(LiquidityStatus.ABOVE_ONE),
+        growth=GrowthEvidence(GrowthStatus.POSITIVE),
     )
     technical_score = TechnicalScore(1, 1, 1, 3)
     fundamental_score = FundamentalScore(total=2, contributions=())
