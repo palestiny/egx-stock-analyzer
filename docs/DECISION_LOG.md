@@ -1793,3 +1793,17 @@ The accepted MVP assigns each persisted snapshot a UUID, allows multiple same-da
 Historical market-data warehousing, historical ranking, performance analytics, change detection, notifications, watchlists, portfolio/trading behavior, AI analysis, and API expansion are explicitly deferred until separately designed.
 
 See `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`.
+
+
+## DEC-080 — M21 Historical Analysis View
+
+**Status:** Proposed  
+**Date:** 2026-09-18
+
+M21 opens a design gate for exposing the immutable historical analysis snapshots introduced by M20 through a read-only application/API/dashboard boundary.
+
+The current candidate is a dedicated `GetAnalysisHistory` application use case behind `GET /api/v1/history/{symbol}`, with optional date bounds. The endpoint must never execute fresh analysis, and the dashboard must render stored snapshots without duplicating analytical logic.
+
+The gate intentionally defers historical ranking, performance analytics, change detection, charting, notifications, watchlists, portfolio/trading behavior, persistence changes, and AI analysis.
+
+See `docs/DEC-080-M21-HISTORICAL-ANALYSIS-VIEW-DESIGN-GATE.md`.
