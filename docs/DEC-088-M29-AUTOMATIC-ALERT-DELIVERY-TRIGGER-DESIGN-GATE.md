@@ -1,6 +1,6 @@
 # DEC-088 — M29 Automatic Alert Delivery Trigger Integration Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M29
 
@@ -127,8 +127,100 @@ Candidate for evaluation. This gives the cleanest separation if multiple post-an
 - repeated execution remains safe under existing delivery idempotency;
 - no analytical calculations are introduced into the trigger.
 
+## Resolved Decisions
+
+### 1. Trigger Owner
+
+M29 introduces a dedicated application orchestration capability, `RunConfiguredMarketAnalysisWithAutomaticAlerts`.
+
+It composes the existing `RunConfiguredMarketAnalysis` analysis capability with the existing M28 `AutomaticAlertDelivery` capability.
+
+This keeps `RunMarketAnalysis` and `RunStockAnalysis` focused on analysis and avoids adding notification policy to the reusable market-analysis core.
+
+### 2. Invocation Condition
+
+Automatic delivery runs when the configured-market analysis execution is `COMPLETED` or `COMPLETED_WITH_ERRORS`.
+
+A `FAILED` analysis execution does not invoke automatic delivery because there are no successful analysis outcomes that can safely form the delivery input.
+
+An empty universe produces a completed no-op analysis execution and therefore invokes M28, which itself returns a deterministic no-op.
+
+### 3. Delivery Failure Effect
+
+Delivery failure never changes the originating analysis execution state.
+
+The composed result preserves the analysis execution and the separate M28 delivery result.
+
+### 4. Result Shape
+
+The new orchestration capability returns both outcomes:
+
+- the original market-analysis `Execution`;
+- the M28 `AutomaticAlertDeliveryResult`, or `None` when analysis failed before delivery was eligible.
+
+This avoids hiding delivery failures behind analysis status.
+
+### 5. Idempotency
+
+No new trigger-level persistence is introduced.
+
+Repeated invocation relies on M25 snapshot/channel idempotency. M29 does not add another delivery identity or persistence table.
+
+### 6. Scheduled Path
+
+The existing scheduled full-market trigger should invoke the new composed capability rather than bypassing it.
+
+The scheduler remains timing-only; it does not know about alert candidates, channels, providers, or delivery policy.
+
+### 7. Manual Path
+
+The configured-market analysis API command also uses the composed capability.
+
+The existing single-stock analysis endpoint remains unchanged: M29 concerns configured full-market execution only.
+
+### 8. Testing Boundary
+
+Tests cover the composition independently and through the manual/scheduled trigger wiring where that wiring exists. The tests must prove that analysis failure prevents delivery, partial analysis delivers only successful symbols, delivery failure leaves analysis state unchanged, and both results remain observable.
+
+## Accepted Boundary
+
+```
+Manual / Scheduled Trigger
+          ↓
+RunConfiguredMarketAnalysisWithAutomaticAlerts
+          ↓
+RunConfiguredMarketAnalysis
+          ↓
+RunMarketAnalysis
+          ↓
+RunStockAnalysis
+
+RunConfiguredMarketAnalysisWithAutomaticAlerts
+          ↓
+AutomaticAlertDelivery
+          ↓
+GetAlertCandidate
+          ↓
+DeliverAlert
+          ↓
+NotificationProvider
+```
+
+The scheduler remains a timing adapter. The composed application capability owns only sequencing between completed market analysis and the already-defined M28 delivery policy.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M29 MVP defined here.**
 
-The next action is to resolve the open questions and record the accepted trigger boundary before implementation.
+## TDD Acceptance Criteria
+
+- completed market analysis invokes M28 exactly once;
+- partial analysis invokes M28 using only successful symbols;
+- failed analysis does not invoke M28;
+- delivery failure does not change analysis execution state;
+- the composed result preserves both analysis and delivery outcomes;
+- manual configured-market execution uses the composed capability;
+- scheduled configured-market execution uses the composed capability;
+- empty successful analysis remains a deterministic no-op;
+- repeated execution relies on existing M25 idempotency;
+- no analytical calculations are introduced into the orchestration layer.
