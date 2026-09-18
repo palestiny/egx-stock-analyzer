@@ -21,10 +21,9 @@ class RunMarketAnalysis:
     def __init__(
         self,
         run_stock_analysis_by_symbol: RunStockAnalysisBySymbol,
-        retry_policy: RetryPolicy,
     ) -> None:
         self._run_stock_analysis_by_symbol = run_stock_analysis_by_symbol
-        self._orchestrator = ExecutionOrchestrator(retry_policy)
+        # Per-stock retry remains owned by RunStockAnalysis; the aggregate layer only records outcomes.\n        self._orchestrator = ExecutionOrchestrator(RetryPolicy(max_attempts=1))
 
     def execute(
         self,
