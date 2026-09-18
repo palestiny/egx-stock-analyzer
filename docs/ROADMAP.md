@@ -124,6 +124,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M21 | Historical Analysis View | 🟢 Complete | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 | M22 | Historical Analysis Comparison | 🟢 Complete | Compare two persisted snapshots by UUID through a read-only application/API/dashboard boundary |
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
+| M24 | Alert Delivery & Notification Boundary | 🟡 Design Gate Proposed | Define provider-neutral, idempotent delivery of existing alert candidates without changing analytical decisions |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -173,6 +174,8 @@ M21 — Historical Analysis View
 M22 — Historical Analysis Comparison
         ↓
 M23 — Historical Performance Analytics
+        ↓
+M24 — Alert Delivery & Notification Boundary
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
