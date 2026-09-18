@@ -149,11 +149,11 @@ Rejected because it is Python-specific, not a stable explicit data contract, and
 
 ## Consequences
 
-The next implementation should add the SQLite adapter and serializer behind `AnalysisResultStore`, wire it into infrastructure composition, and preserve the current in-memory implementation for tests.
+The SQLite adapter and explicit serializer are implemented behind `AnalysisResultStore`, wired into infrastructure composition, with the in-memory implementation preserved for tests. Store-level and API-level integration tests verify persistence across store recreation.
 
 The API/report/dashboard contracts should remain unchanged.
 
-The local application should be able to restart and still serve the latest completed analysis report.
+The local application can restart and still serve the latest completed analysis report from SQLite when the full infrastructure composition is used.
 
 ## Revisit Conditions
 
