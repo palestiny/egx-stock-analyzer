@@ -1649,3 +1649,17 @@ The first slice validated runtime health through application composition/lifespa
 Persistence, authentication/authorization, deployment topology, metrics/tracing, provider failover, durable scheduling, and other production capabilities require separate design gates.
 
 See `docs/DEC-070-M13-PRODUCTION-HARDENING-BOUNDARY.md`.
+
+
+## DEC-071 — M13 Durable Analysis State Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+The current analysis result store is in-memory, which is suitable for controlled development but loses completed analysis state across process restarts. M13 therefore establishes a persistence boundary before selecting or implementing a concrete database technology.
+
+Durable state must preserve the existing analysis result and analysis date required by the report and alert read-side projections. Persistence remains behind the application-facing `AnalysisResultStore` contract, and domain/application code must not depend directly on a database library.
+
+The next gate must define the concrete persistence technology, storage model, serialization, adapter responsibilities, migrations/versioning, transaction semantics, failure behavior, testing, and local development setup. No database dependency is introduced by this decision alone.
+
+See `docs/DEC-071-M13-DURABLE-ANALYSIS-STATE-BOUNDARY.md`.
