@@ -4,24 +4,30 @@ async function parseError(response, operation) {
   throw error;
 }
 
-export async function getAnalysis(symbol) {
-  const response = await fetch("/api/v1/analysis/" + symbol);
+async function getJson(url, operation, options) {
+  const response = await fetch(url, options);
 
   if (!response.ok) {
-    await parseError(response, "Analysis request");
+    await parseError(response, operation);
   }
 
   return response.json();
 }
 
-export async function runAnalysis(symbol) {
-  const response = await fetch("/api/v1/analysis/" + symbol, {
+export function getAnalysis(symbol) {
+  return getJson("/api/v1/analysis/" + encodeURIComponent(symbol), "Analysis request");
+}
+
+export function runAnalysis(symbol) {
+  return getJson("/api/v1/analysis/" + encodeURIComponent(symbol), "Analysis execution request", {
     method: "POST",
   });
+}
 
-  if (!response.ok) {
-    await parseError(response, "Analysis execution request");
-  }
+export function getReport(symbol) {
+  return getJson("/api/v1/reports/" + encodeURIComponent(symbol), "Report request");
+}
 
-  return response.json();
+export function getAlert(symbol) {
+  return getJson("/api/v1/alerts/" + encodeURIComponent(symbol), "Alert request");
 }
