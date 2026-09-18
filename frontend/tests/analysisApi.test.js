@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getMarketOpportunities } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketOpportunities } from "../src/api/analysisApi";
 
 describe("analysis API client", () => {
   it("requests analysis for the requested symbol and returns the response", async () => {
@@ -48,4 +48,24 @@ it("requests the market opportunity endpoint", async () => {
   expect(global.fetch).toHaveBeenCalledWith(
     "/api/v1/opportunities?symbols=egal%2Cieec",
   );
+});
+
+
+describe("analysis history API client", () => {
+  it("requests historical analysis with optional inclusive date bounds", async () => {
+    const history = { symbol: "EGAL", items: [] };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(history),
+    });
+
+    await expect(
+      getAnalysisHistory("EGAL", "2026-09-16", "2026-09-18"),
+    ).resolves.toEqual(history);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/v1/history/EGAL?from_date=2026-09-16&to_date=2026-09-18",
+    );
+  });
 });

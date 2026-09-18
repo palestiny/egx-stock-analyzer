@@ -2,10 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getMarketOpportunities, getReport } from "../src/api/analysisApi";
+import { getAlert, getAnalysisHistory, getMarketOpportunities, getReport } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
+  getAnalysisHistory: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
 }));
@@ -54,6 +55,62 @@ describe("Dashboard", () => {
     expect(getAlert).toHaveBeenCalledWith("EGAL");
     expect(screen.getByText("350.5")).toBeInTheDocument();
     expect(screen.getByText("BUY")).toBeInTheDocument();
+  });
+
+  it("loads and renders historical analysis snapshots", async () => {
+    getReport.mockResolvedValue(report);
+    getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
+    getAnalysisHistory.mockResolvedValue({
+      symbol: "EGAL",
+      items: [
+        {
+          snapshot_id: "snapshot-2",
+          report: {
+            ...report,
+            analysis_date: "2026-09-18",
+            opportunity: "buy",
+            stock_quality: 72,
+            entry_quality: 66,
+            current_price: 350.5,
+          },
+        },
+        {
+          snapshot_id: "snapshot-1",
+          report: {
+            ...report,
+            analysis_date: "2026-09-16",
+            opportunity: "watch",
+            stock_quality: 68,
+            entry_quality: 61,
+            current_price: 344.0,
+          },
+        },
+      ],
+    });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "egal" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
+
+    expect(await screen.findByText("Stock 72")).toBeInTheDocument();
+    expect(screen.getAllByText("2026-09-18").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("2026-09-16")).toBeInTheDocument();
+    expect(screen.getByText("Stock 72")).toBeInTheDocument();
+    expect(screen.getByText("Entry 61")).toBeInTheDocument();
+    expect(getAnalysisHistory).toHaveBeenCalledWith("EGAL");
+  });
+
+  it("shows a historical-analysis error without hiding the latest report", async () => {
+    getReport.mockResolvedValue(report);
+    getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
+    getAnalysisHistory.mockRejectedValue(new Error("Analysis history request failed"));
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
+
+    expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
+    expect(screen.getByText("Analysis history request failed")).toBeInTheDocument();
   });
 
   it("loads and renders the market opportunity view", async () => {

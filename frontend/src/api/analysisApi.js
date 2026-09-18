@@ -38,3 +38,17 @@ export function getMarketOpportunities(symbols) {
   const query = symbols.join(",");
   return getJson("/api/v1/opportunities?symbols=" + encodeURIComponent(query), "Market opportunities request");
 }
+
+export function getAnalysisHistory(symbol, fromDate, toDate) {
+  const params = new URLSearchParams();
+  if (fromDate) {
+    params.set("from_date", fromDate);
+  }
+  if (toDate) {
+    params.set("to_date", toDate);
+  }
+
+  const query = params.toString();
+  const url = "/api/v1/history/" + encodeURIComponent(symbol) + (query ? "?" + query : "");
+  return getJson(url, "Analysis history request");
+}
