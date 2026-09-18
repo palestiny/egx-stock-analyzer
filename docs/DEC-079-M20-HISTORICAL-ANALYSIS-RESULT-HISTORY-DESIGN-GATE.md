@@ -1,6 +1,6 @@
 # DEC-079 — M20 Historical Analysis Result History Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M20 — Historical Analysis Result History
 
@@ -131,24 +131,32 @@ Store market observations and recompute historical analysis when requested.
 
 ---
 
-## 8. Open Questions
+## 8. Accepted Decisions
 
-Before implementation, resolve:
+1. **Snapshot identity:** each persisted snapshot receives a generated UUID. The UUID identifies the persisted analytical snapshot and is independent of transport/API identity.
+2. **Same-day runs:** multiple completed runs for the same symbol and date are allowed. The snapshot UUID makes them distinct.
+3. **Current `get(symbol)` semantics:** `get(symbol)` continues to return the latest completed snapshot for compatibility with existing report/alert consumers.
+4. **Historical retrieval:** the store gains an explicit history query by symbol with optional date bounds and deterministic newest-first ordering. History retrieval never executes analysis.
+5. **Latest result source:** the latest result is derived from the history records rather than maintained as a second analytical source of truth.
+6. **SQLite migration:** the existing latest-only row is migrated into the history representation as one snapshot. Existing completed state is preserved; no historical records are fabricated for periods that were not stored.
+7. **Serialization failures:** corrupt or unsupported historical payloads remain explicit persistence errors. Reads do not silently skip or repair corrupt records.
+8. **Failed analysis:** failed executions do not create successful historical snapshots. A snapshot is appended only after the single-stock analysis completes successfully and its result is available.
+9. **Ordering semantics:** snapshots are ordered by analysis date descending, then snapshot UUID ascending as a deterministic tie-breaker. The date remains the business analysis period; the UUID is not interpreted as time.
+10. **API exposure:** M20 is application/infrastructure scope only. Historical HTTP/dashboard exposure requires a separate design gate.
 
-1. Snapshot identity: analysis date alone, or date plus execution ID?
-2. Can multiple completed runs for the same symbol and date coexist?
-3. What does `get(symbol)` return after history is introduced?
-4. What is the exact historical retrieval contract?
-5. Should the latest result be a query over history or a separately maintained current record?
-6. How should existing SQLite rows migrate into the history model?
-7. What happens when a historical payload is corrupt or has an unsupported serialization version?
-8. Should failed analyses ever create historical records?
-9. What date/time semantics are authoritative for historical ordering?
-10. How much history does the MVP expose to the API, if any?
+### Storage Shape
+
+The SQLite MVP will use a dedicated history table keyed by snapshot UUID. The existing latest-only table is migrated into it, after which `get(symbol)` queries the newest historical snapshot.
+
+Historical records are append-only. Existing report/alert reads remain on the `get(symbol)` compatibility path.
+
+### Compatibility
+
+The application-facing `AnalysisResultStore` contract retains `save`, `get`, and `get_record`; M20 adds an explicit history query without exposing SQLite types to application/domain code.
 
 ---
 
-## 9. Proposed Invariants
+## 9. Invariants
 
 1. A successfully completed analysis may produce one historical snapshot.
 2. Failed analysis must not create a successful analytical snapshot.
@@ -163,19 +171,21 @@ Before implementation, resolve:
 
 ---
 
-## 10. TDD Acceptance Shape
+## 10. TDD Acceptance Criteria
 
 The implementation should establish behavior for:
 
 - saving multiple snapshots for one symbol;
-- retrieving snapshots in deterministic order;
+- retrieving snapshots in deterministic newest-first order;
 - preserving snapshots across store recreation;
 - latest-result compatibility;
 - multiple runs on the same date;
 - failed analysis not creating a historical snapshot;
 - corrupt/unsupported historical payload handling;
-- migration of existing latest-only rows;
-- no recalculation during historical reads.
+- migration of an existing latest-only row;
+- no recalculation during historical reads;
+- deterministic date-bound history queries;
+- generated snapshot identity uniqueness.
 
 API exposure, if needed, must be designed separately rather than added implicitly.
 
@@ -183,9 +193,9 @@ API exposure, if needed, must be designed separately rather than added implicitl
 
 ## 11. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M20 MVP defined here.**
 
-The next step is to resolve the open questions and record the accepted historical-result contract before implementation.
+The implementation must preserve the existing latest-result behavior while adding append-only historical snapshots behind `AnalysisResultStore`. No API/dashboard work is authorized by this gate.
 
 ---
 
