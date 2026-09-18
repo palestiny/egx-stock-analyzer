@@ -522,7 +522,7 @@ M17 is complete for its accepted MVP scope. The next capability requires a new d
 
 ## Status
 
-The M18 design gate is **accepted** in `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`. Implementation is the next controlled step.
+The M18 design gate is **accepted** in `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`, and the implementation is complete through PR #20. The one-shot scheduling trigger was merged into `main` as commit `08c0e167384875dda59ed93dfa88cd753f2389cd`. GitHub Actions status for this commit was not observable through the available workflow-run integration at the time of completion.
 
 ### Accepted boundary
 
