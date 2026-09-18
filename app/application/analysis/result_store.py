@@ -89,7 +89,6 @@ class InMemoryAnalysisResultStore:
                 key=lambda record: (
                     record.analysis_date is None,
                     -(record.analysis_date.toordinal() if record.analysis_date else 0),
-                    str(record.snapshot_id),
                 ),
             )
         )
