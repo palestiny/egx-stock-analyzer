@@ -1473,3 +1473,35 @@ The M12 API will expose M11 reporting and alert capabilities only as read-side p
 The current `AnalysisResultStore` does not preserve the analysis period alongside `StockAnalysisResult`. Because M11 `AnalysisReport` requires the real analysis date, M12 will not invent report freshness/history semantics with `date.today()`. The next implementation gate is to preserve the actual analysis period in the stored application result before adding report/alert endpoints.
 
 See `docs/DEC-064-M12-REPORTING-ALERTS-API-BOUNDARY.md`.
+
+
+## DEC-065 — M12 Reporting/Alert API Contract Validation Status
+
+**Status:** Accepted
+
+### Context
+
+The M12 reporting and alert read-side API slice has been implemented and its focused application/API contract tests were executed locally.
+
+### Decision
+
+The current M12 reporting/alert API contract is considered locally validated for the implemented scope.
+
+The focused suite passed:
+
+```text
+17 passed, 2 warnings
+```
+
+The contract intentionally preserves `Decimal` transport values as JSON strings rather than converting them to floating-point numbers.
+
+### Consequences
+
+- Analysis dates remain explicit and are not invented by the API.
+- Report and alert endpoints remain read-only projections of stored analysis.
+- Decimal precision is preserved at the transport boundary.
+- The two remaining warnings are dependency deprecation warnings and are tracked separately from business behavior.
+
+### Next Gate
+
+M12 remains in progress. The next design gate is the dashboard/presentation boundary. No dashboard-specific business logic should be introduced before that gate is defined.
