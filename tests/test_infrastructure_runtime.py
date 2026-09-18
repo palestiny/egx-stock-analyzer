@@ -85,3 +85,26 @@ def test_infrastructure_runtime_uses_sqlite_store_by_default(tmp_path) -> None:
     )
     assert database_path.exists()
     runtime.close()
+
+
+def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_path) -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    config = InfrastructureConfig(analysis_database_path=str(database_path))
+
+    first_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+    first_result_store = first_runtime.application_runtime.result_store
+    first_runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert second_runtime.application_runtime.result_store.get("EGAL") is None
+    second_runtime.close()
