@@ -1405,3 +1405,25 @@ This validates the current end-to-end vertical slice using Yahoo Finance for the
 The five warnings did not cause test failure and remain a separate cleanup/compatibility concern. They do not change the current provider decision.
 
 The validation also confirms that non-finite Yahoo fundamental values such as `NaN` are excluded at the infrastructure boundary rather than entering the `FinancialPeriod` domain model.
+
+
+## DEC-062 — Preserve Execution Failure Details
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+The execution boundary preserved failed stock IDs but discarded the final exception reason. This made failures harder to diagnose after retry handling.
+
+### Decision
+
+Store a lightweight human-readable failure reason per failed stock in Execution. ExecutionRunner records the final exception message when retries are exhausted. A later successful retry clears the stored reason.
+
+### Trade-offs
+
+This improves diagnostics without changing partial-failure semantics or retry behavior. The stored reason is diagnostic context only; it is not a stable API contract, secure audit log, or replacement for structured observability.
+
+### Revisit
+
+Revisit in M13 Production Hardening when production-safe logging, observability, and structured failure categories are designed.
