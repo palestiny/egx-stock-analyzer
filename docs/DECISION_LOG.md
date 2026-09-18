@@ -1807,3 +1807,17 @@ The accepted contract uses a dedicated `GetAnalysisHistory` application use case
 The gate intentionally defers historical ranking, performance analytics, change detection, charting, notifications, watchlists, portfolio/trading behavior, persistence changes, and AI analysis.
 
 See `docs/DEC-080-M21-HISTORICAL-ANALYSIS-VIEW-DESIGN-GATE.md`.
+
+
+## DEC-081 — M22 Historical Analysis Comparison
+
+**Status:** Proposed  
+**Date:** 2026-09-18
+
+M22 opens a design gate for comparing two persisted historical analysis snapshots for the same stock.
+
+The proposed direction is a read-only application capability over `AnalysisResultStore`. It must not recalculate historical analysis, mutate snapshots, change scoring/classification rules, or introduce persistence schema changes.
+
+The gate must resolve snapshot selection, before/after direction, same-date snapshot handling, derived comparison fields, missing/cross-symbol behavior, API shape, and dashboard presentation before implementation.
+
+See `docs/DEC-081-M22-HISTORICAL-ANALYSIS-COMPARISON-DESIGN-GATE.md`.
