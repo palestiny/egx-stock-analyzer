@@ -1,4 +1,7 @@
+from datetime import date
 from unittest.mock import Mock
+
+import pytest
 
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
@@ -32,11 +35,9 @@ def test_in_memory_store_preserves_history_and_latest_result():
 def test_in_memory_store_rejects_invalid_history_date_range():
     store = InMemoryAnalysisResultStore()
 
-    import pytest
-
     with pytest.raises(ValueError, match="start_date cannot be after end_date"):
         store.get_history(
             "COMI",
-            start_date=__import__("datetime").date(2026, 9, 18),
-            end_date=__import__("datetime").date(2026, 9, 17),
+            start_date=date(2026, 9, 18),
+            end_date=date(2026, 9, 17),
         )
