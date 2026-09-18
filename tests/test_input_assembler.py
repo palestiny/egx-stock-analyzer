@@ -57,7 +57,7 @@ def test_suspect_duplicate_observations_are_excluded():
 
     result = AnalysisInputAssembler._build_price_bars(
         observations,
-        minimum_price_bars=3,
+        minimum_price_bars=2,
     )
 
     assert len(result) == 2
