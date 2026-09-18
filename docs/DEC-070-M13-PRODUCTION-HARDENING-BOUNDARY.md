@@ -31,9 +31,10 @@ The first M13 implementation slice will establish:
 1. explicit application/runtime health semantics;
 2. configuration validation at the infrastructure boundary;
 3. deterministic startup failure for invalid required configuration;
-4. graceful runtime lifecycle behavior;\n5. health behavior is verified through the application composition/lifespan boundary;
-5. tests for the above behavior;
-6. minimal operational diagnostics without exposing internal exception details as an API contract.
+4. graceful runtime lifecycle behavior;
+5. health behavior verified through the application composition/lifespan boundary;
+6. tests for the above behavior;
+7. minimal operational diagnostics without exposing internal exception details as an API contract.
 
 The current configuration contract has no required external credentials or mandatory environment values, so there is no artificial configuration validation rule to add in this slice. If a required setting is introduced later, deterministic validation at the composition boundary becomes mandatory.
 
