@@ -4,7 +4,6 @@ from datetime import date
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.stocks.catalog import StockCatalog
 from app.domain.execution import Execution
-from app.domain.stocks.stock import Stock
 
 
 @dataclass(frozen=True)
