@@ -1,6 +1,6 @@
 # DEC-078 — M19 Recurring Market Scheduling Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M19 — Recurring Market Scheduling
 
@@ -172,6 +172,54 @@ Before implementation, tests should establish at least:
 - due execution delegates to `RunConfiguredMarketAnalysis`;
 - configured universe is resolved at execution time;
 - scheduler remains unaware of market-analysis rules.
+
+
+## Accepted Decisions
+
+1. **Recurrence:** M19 supports one explicit recurrence shape: daily at a configured local time. Fixed intervals, cron expressions, and multiple recurrence rule types are deferred.
+
+2. **Timezone:** the schedule timezone is explicit and defaults to Africa/Cairo. Schedule evaluation uses timezone-aware datetimes; naive schedule timestamps are rejected.
+
+3. **Trading calendar:** M19 uses Monday through Friday as eligible days. This is not an authoritative EGX holiday calendar; official EGX holiday/session semantics require a future trading-calendar design.
+
+4. **Missed runs:** missed occurrences are skipped. On wake-up after missed times, the capability calculates the next future occurrence instead of replaying historical occurrences.
+
+5. **Overlap:** M19 does not introduce concurrent market-analysis execution. Only one occurrence may be active; a due occurrence is skipped if another occurrence is already running.
+
+6. **Occurrence identity/idempotency:** an occurrence is identified by recurring schedule identity plus scheduled local date and time. Consumed occurrence identities are tracked in process-local state. Durable idempotency is deferred with persistence.
+
+7. **Persistence:** schedules are process-local. No schedule persistence or restart recovery is introduced; a restart requires registration again.
+
+8. **Ownership:** RecurringConfiguredMarketAnalysis owns recurrence policy and next-occurrence calculation. Scheduler remains a generic timestamp-based timing mechanism. RunConfiguredMarketAnalysis remains the business-execution capability.
+
+9. **Clock:** time is accessed through an injected clock abstraction so recurrence and timezone calculations are deterministic in tests.
+
+10. **Failure:** a failed occurrence does not disable future occurrences. Existing market-analysis retry/failure semantics remain unchanged.
+
+## Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M19 MVP defined here.**
+
+Accepted boundary:
+
+RecurringConfiguredMarketAnalysis → Scheduler → RunConfiguredMarketAnalysis → StockCatalog.symbols() → RunMarketAnalysis → RunStockAnalysis → AnalysisResultStore
+
+The recurring capability owns schedule semantics only. The scheduler owns timing mechanics only. Market-analysis capabilities own market execution only.
+
+## TDD Acceptance Criteria
+
+- daily recurrence calculates the expected next occurrence;
+- timezone conversion is deterministic;
+- weekdays are accepted and weekend dates are skipped;
+- missed occurrences are skipped rather than replayed;
+- occurrence identity is deterministic;
+- duplicate occurrence execution is prevented in-process;
+- overlapping execution is not started concurrently;
+- failed occurrences do not disable future occurrences;
+- registration does not execute analysis immediately;
+- due execution delegates to RunConfiguredMarketAnalysis;
+- the configured universe is resolved at execution time;
+- the scheduler remains unaware of market-analysis rules.
 
 ## Design Gate Rule
 
