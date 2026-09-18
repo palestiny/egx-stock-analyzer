@@ -1871,3 +1871,17 @@ Missing current prices produce unavailable performance metrics. A zero before pr
 M23 does not execute fresh analysis, mutate or persist derived metrics, change scoring/classification, include dividends, costs, benchmarks, risk-adjusted returns, portfolio semantics, or predictive interpretation.
 
 See `docs/DEC-082-M23-HISTORICAL-PERFORMANCE-ANALYTICS-DESIGN-GATE.md`.
+
+
+## DEC-083 — M24 Alert Delivery & Notification Boundary
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M24 opens a design gate for delivering existing `AlertCandidate` objects through a provider-neutral notification boundary.
+
+The proposed direction is a dedicated application delivery use case with explicit delivery-state persistence and idempotency based on the analytical snapshot identity. Notification delivery must not recalculate analytical scores or classification and must not make analytical success depend on provider availability.
+
+The first implementation is proposed to be synchronous and sequential, with provider-specific integrations behind infrastructure adapters. Provider retry/backoff and queue-based delivery are deferred until the basic delivery semantics are proven.
+
+The gate is documented in `docs/DEC-083-M24-ALERT-DELIVERY-DESIGN-GATE.md` and must be accepted before implementation begins.
