@@ -1,6 +1,4 @@
 from datetime import date, datetime
-from typing import Protocol
-
 from app.application.analysis.run_configured_market_analysis import (
     RunConfiguredMarketAnalysis,
 )
