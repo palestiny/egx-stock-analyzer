@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
-
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.domain.opportunity.classification import OpportunityClassification
 
