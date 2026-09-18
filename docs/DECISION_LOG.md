@@ -1742,3 +1742,15 @@ See `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`.
 M18 adds a one-shot scheduling boundary around the existing `RunConfiguredMarketAnalysis` capability. The scheduler remains responsible only for timing; the configured-market use case remains responsible for universe discovery and execution. The universe is resolved when the scheduled operation runs, and the execution date is determined at run time. No recurring schedules, schedule persistence, trading-calendar semantics, concurrency, scheduling API, ranking, dashboard, or notification behavior is introduced.
 
 See `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`.
+
+
+## DEC-078 — M19 Recurring Market Scheduling
+
+**Status:** Proposed  
+**Date:** 2026-09-18
+
+M19 opens a design gate for recurring full-market analysis after the one-shot M18 scheduling capability. The gate will define recurrence representation, timezone and trading-calendar semantics, missed-run behavior, overlap policy, occurrence identity/idempotency, persistence scope, deterministic clock behavior, and failure continuation before implementation begins.
+
+The current direction is to keep `RunConfiguredMarketAnalysis` as the business-execution boundary and keep the generic scheduler focused on timing mechanics. No implementation decision is committed until the M19 gate is accepted.
+
+See `docs/DEC-078-M19-RECURRING-MARKET-SCHEDULING-DESIGN-GATE.md`.
