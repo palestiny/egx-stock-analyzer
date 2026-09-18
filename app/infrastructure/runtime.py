@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.result_store import (
     AnalysisResultStore,
-    InMemoryAnalysisResultStore,
 )
 from app.application.analysis.runtime import (
     StockAnalysisRuntime,
@@ -16,7 +15,7 @@ from app.infrastructure.market_data.yahoo_finance import (
     YahooFinanceAdapter,
     YahooFinanceFundamentalDataSource,
     YahooFinanceHistoryClient,
- )
+)
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
