@@ -32,6 +32,16 @@ class AnalysisResultStore(Protocol):
     def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
         ...
 
+    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+        ...
+
+    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+        for records in self._results.values():
+            for record in records:
+                if record.snapshot_id == snapshot_id:
+                    return record
+        return None
+
     def get_history(
         self,
         symbol: str,
