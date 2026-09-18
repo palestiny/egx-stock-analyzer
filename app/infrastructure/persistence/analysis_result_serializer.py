@@ -3,6 +3,7 @@ from dataclasses import fields, is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from types import UnionType
 from typing import Any, Union, get_args, get_origin, get_type_hints
 from uuid import UUID
 
@@ -87,7 +88,7 @@ def _decode(value: Any, expected_type: Any) -> Any:
     origin = get_origin(expected_type)
     args = get_args(expected_type)
 
-    if origin in (Union,):
+    if origin in (Union, UnionType):
         non_none = [item for item in args if item is not type(None)]
         if len(non_none) == 1:
             return _decode(value, non_none[0])
