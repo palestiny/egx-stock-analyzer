@@ -278,7 +278,7 @@ The following remain open:
 - exact first-screen UX refinements
 - additional API endpoints needed by the dashboard
 
-No dashboard implementation should begin until the open implementation choice is accepted.
+Implementation may proceed under the accepted React + Vite decision. Remaining open questions are scope refinements, not blockers for the first vertical slice.
 
 ## 13. Acceptance Criteria for the Gate
 
