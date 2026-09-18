@@ -17,6 +17,7 @@ class InfrastructureConfig:
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     telegram_timeout_seconds: float = 10.0
+    automatic_alert_delivery_channel: str = "telegram"
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -29,5 +30,9 @@ class InfrastructureConfig:
             telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
             telegram_timeout_seconds=float(
                 os.getenv("EGX_TELEGRAM_TIMEOUT_SECONDS", "10")
+            ),
+            automatic_alert_delivery_channel=os.getenv(
+                "EGX_AUTOMATIC_ALERT_DELIVERY_CHANNEL",
+                "telegram",
             ),
         )
