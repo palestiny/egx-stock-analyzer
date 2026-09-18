@@ -6,7 +6,10 @@ from fastapi import FastAPI, HTTPException
 from app.api.analysis_response import AnalysisResultResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.analysis.run_stock_analysis_by_symbol import (
+    RunStockAnalysisBySymbol,
+    UnknownStockSymbolError,
+)
 
 
 def create_app(
@@ -39,7 +42,7 @@ def create_app(
 
         try:
             run_stock_analysis_by_symbol.execute(symbol, date.today())
-        except ValueError as error:
+        except UnknownStockSymbolError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except RuntimeError as error:
             raise HTTPException(status_code=500, detail=str(error)) from error
