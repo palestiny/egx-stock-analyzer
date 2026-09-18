@@ -105,6 +105,10 @@ class RecurringConfiguredMarketAnalysis:
 
         self._consumed_occurrences.add(identity)
 
+        if now > occurrence:
+            self._schedule_occurrence(self._next_occurrence(now))
+            return
+
         if self._running:
             self._schedule_occurrence(self._next_occurrence(now))
             return
