@@ -29,10 +29,10 @@ def create_app(
     result_store: AnalysisResultStore,
     run_stock_analysis_by_symbol: RunStockAnalysisBySymbol | None = None,
     get_analysis_report: GetAnalysisReport | None = None,
-    get_analysis_history: GetAnalysisHistory | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
+    get_analysis_history: GetAnalysisHistory | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
