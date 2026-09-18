@@ -83,7 +83,8 @@ def test_multiple_candidates_are_delivered_in_deterministic_symbol_order():
 
 
 def test_one_delivery_failure_does_not_stop_later_candidates():
-    get_candidate = Mock(side_effect=lambda symbol: make_candidate())
+    get_candidate = Mock()
+    get_candidate.execute.side_effect = lambda symbol: make_candidate()
     deliver = Mock()
     deliver.execute.side_effect = [failed(), delivered()]
     policy = AutomaticAlertDelivery(get_candidate, deliver)
@@ -134,7 +135,8 @@ def test_repeated_execution_delegates_idempotency_to_deliver_alert():
 
 
 def test_analysis_execution_is_not_mutated():
-    get_candidate = Mock(return_value=None)
+    get_candidate = Mock()
+    get_candidate.execute.return_value = None
     deliver = Mock()
     policy = AutomaticAlertDelivery(get_candidate, deliver)
     execution = make_execution("EGAL", "IEEC")
