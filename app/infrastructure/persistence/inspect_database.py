@@ -19,8 +19,22 @@ def inspect_database(database_path: str, symbol: str | None = None) -> int:
             rows = connection.execute(
                 """
                 SELECT symbol, analysis_date, payload
-                FROM analysis_results
-                WHERE symbol = ?
+                FROM (
+                    SELECT
+                        symbol,
+                        analysis_date,
+                        payload,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY symbol
+                            ORDER BY
+                                analysis_date IS NULL ASC,
+                                analysis_date DESC,
+                                snapshot_id ASC
+                        ) AS row_number
+                    FROM analysis_results
+                    WHERE symbol = ?
+                )
+                WHERE row_number = 1
                 """,
                 (symbol.strip().upper(),),
             ).fetchall()
@@ -28,7 +42,21 @@ def inspect_database(database_path: str, symbol: str | None = None) -> int:
             rows = connection.execute(
                 """
                 SELECT symbol, analysis_date, payload
-                FROM analysis_results
+                FROM (
+                    SELECT
+                        symbol,
+                        analysis_date,
+                        payload,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY symbol
+                            ORDER BY
+                                analysis_date IS NULL ASC,
+                                analysis_date DESC,
+                                snapshot_id ASC
+                        ) AS row_number
+                    FROM analysis_results
+                )
+                WHERE row_number = 1
                 ORDER BY symbol
                 """
             ).fetchall()
