@@ -1732,3 +1732,13 @@ The configured-market command is exposed as `POST /api/v1/market-analysis`. The 
 No new persistence schema or concurrency model is introduced. A separate `StockUniverse` abstraction is deferred until universe membership becomes independently persisted, filtered, synchronized, or user-configurable.
 
 See `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`.
+
+
+## DEC-077 — M18 Scheduled Full-Market Analysis
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M18 adds a one-shot scheduling boundary around the existing `RunConfiguredMarketAnalysis` capability. The scheduler remains responsible only for timing; the configured-market use case remains responsible for universe discovery and execution. The universe is resolved when the scheduled operation runs, and the execution date is determined at run time. No recurring schedules, schedule persistence, trading-calendar semantics, concurrency, scheduling API, ranking, dashboard, or notification behavior is introduced.
+
+See `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`.
