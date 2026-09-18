@@ -21,7 +21,7 @@ describe("Dashboard", () => {
     render(<App />);
 
     expect(screen.getByLabelText(/stock symbol/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /analyze/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /load analysis/i })).toBeInTheDocument();
   });
 
   it("runs analysis and renders a successful result", async () => {
@@ -36,7 +36,7 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
       target: { value: "egal" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
+    fireEvent.click(screen.getByRole("button", { name: /load analysis/i }));
 
     expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
     expect(screen.getByText("Technical Score")).toBeInTheDocument();
@@ -62,10 +62,10 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
       target: { value: "EGAL" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
+    fireEvent.click(screen.getByRole("button", { name: /load analysis/i }));
 
     expect(screen.getByText(/running analysis/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /analyze/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /load analysis/i })).toBeDisabled();
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/analysis/EGAL", {
       method: "POST",
     });
@@ -87,7 +87,7 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
       target: { value: "EGAL" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
+    fireEvent.click(screen.getByRole("button", { name: /load analysis/i }));
 
     expect(await screen.findByText("Network error")).toBeInTheDocument();
   });
@@ -103,7 +103,7 @@ describe("Dashboard", () => {
     fireEvent.change(screen.getByLabelText(/stock symbol/i), {
       target: { value: "EGAL" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /analyze/i }));
+    fireEvent.click(screen.getByRole("button", { name: /load analysis/i }));
 
     expect(await screen.findByText(/stock symbol was not found/i)).toBeInTheDocument();
   });
