@@ -115,6 +115,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
 | M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
 | M14 | Market-Wide Analysis | 🟢 Complete | Sequential market-wide orchestration merged and validated by GitHub Actions Run #200 on implementation head |
+| M15 | Market Opportunity Ranking | 🟡 Design Accepted | Deterministically order BUY/WATCH opportunities from completed stock-analysis results |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -146,6 +147,8 @@ M12 — API / Dashboard
 M13 — Production Hardening
         ↓
 M14 — Market-Wide Analysis
+        ↓
+M15 — Market Opportunity Ranking
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -413,7 +416,31 @@ Deferred from M14: ranking, watchlists, history, concurrency, distributed execut
 
 ---
 
-# 12. Cross-Cutting Requirements
+# 12. M15 — Market Opportunity Ranking
+
+## Status
+
+The M15 design gate is **accepted** in `docs/DEC-074-M15-MARKET-OPPORTUNITY-RANKING-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted application boundary
+
+```
+Market Analysis
+      ↓
+Completed StockAnalysisResult set
+      ↓
+RankMarketOpportunities
+      ↓
+Ordered Opportunity Set
+```
+
+M15 ranks only BUY and WATCH results. It orders them by Stock Quality Score, Entry Quality Score, Technical Score, Fundamental Score, then normalized symbol ascending. HOLD and AVOID are excluded. Duplicate normalized symbols are invalid input, and missing/failed results are omitted rather than converted into synthetic analytical results.
+
+The capability is pure composition over supplied results: no recalculation, mutation, persistence, provider dependency, API/dashboard behavior, portfolio allocation, trading decisions, or AI ranking.
+
+---
+
+# 13. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -447,7 +474,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 13. Milestone Completion Rule
+# 14. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -473,7 +500,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 14. Changing the Roadmap
+# 15. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -483,6 +510,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 15. Guiding Principle
+# 16. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
