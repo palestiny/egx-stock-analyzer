@@ -180,3 +180,41 @@ def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_
     assert record is not None
     assert record.analysis_date == date(2026, 9, 18)
     second_runtime.close()
+
+
+def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> None:
+    from app.application.notifications.deliver_alert import DeliverAlert
+    from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            telegram_bot_token="token",
+            telegram_chat_id="chat",
+        ),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
+    assert isinstance(runtime.deliver_alert, DeliverAlert)
+    runtime.close()
+
+
+def test_infrastructure_runtime_rejects_partial_telegram_configuration() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(telegram_bot_token="token"),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "Telegram bot token and chat ID must be configured together"
+    else:
+        raise AssertionError("Expected ValueError")

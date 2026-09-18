@@ -9,6 +9,7 @@ from app.application.analysis.runtime import (
     create_stock_analysis_runtime,
 )
 from app.application.execution.retry import RetryPolicy
+from app.application.notifications.deliver_alert import DeliverAlert
 from app.application.stocks.catalog import StockCatalog
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.market_data.yahoo_finance import (
@@ -16,6 +17,10 @@ from app.infrastructure.market_data.yahoo_finance import (
     YahooFinanceFundamentalDataSource,
     YahooFinanceHistoryClient,
 )
+from app.infrastructure.notifications.sqlite_alert_delivery_store import (
+    SQLiteAlertDeliveryStore,
+)
+from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
@@ -26,6 +31,8 @@ class InfrastructureRuntime:
     application_runtime: StockAnalysisRuntime
     market_data_provider: YahooFinanceAdapter
     fundamental_data_provider: YahooFinanceFundamentalDataSource
+    deliver_alert: DeliverAlert | None = None
+    telegram_notification_provider: TelegramNotificationProvider | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -36,6 +43,8 @@ class InfrastructureRuntime:
         if self._closed:
             return
         self.fundamental_data_provider.close()
+        if self.telegram_notification_provider is not None:
+            self.telegram_notification_provider.close()
         self._closed = True
 
 
@@ -65,8 +74,31 @@ def create_infrastructure_runtime(
         retry_policy=retry_policy,
     )
 
+    has_telegram_token = config.telegram_bot_token is not None
+    has_telegram_chat_id = config.telegram_chat_id is not None
+    if has_telegram_token != has_telegram_chat_id:
+        raise ValueError(
+            "Telegram bot token and chat ID must be configured together"
+        )
+
+    telegram_notification_provider = None
+    deliver_alert = None
+    if has_telegram_token and has_telegram_chat_id:
+        telegram_notification_provider = TelegramNotificationProvider(
+            config.telegram_bot_token,
+            config.telegram_chat_id,
+            timeout=config.telegram_timeout_seconds,
+        )
+        delivery_store = SQLiteAlertDeliveryStore(config.analysis_database_path)
+        deliver_alert = DeliverAlert(
+            store=delivery_store,
+            provider=telegram_notification_provider,
+        )
+
     return InfrastructureRuntime(
         application_runtime=application_runtime,
         market_data_provider=market_data_provider,
         fundamental_data_provider=fundamental_data_provider,
+        deliver_alert=deliver_alert,
+        telegram_notification_provider=telegram_notification_provider,
     )

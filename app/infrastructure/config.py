@@ -14,6 +14,9 @@ class InfrastructureConfig:
     """
 
     analysis_database_path: str = "storage/analysis.db"
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+    telegram_timeout_seconds: float = 10.0
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -21,5 +24,10 @@ class InfrastructureConfig:
             analysis_database_path=os.getenv(
                 "EGX_ANALYSIS_DATABASE_PATH",
                 "storage/analysis.db",
-            )
+            ),
+            telegram_bot_token=os.getenv("EGX_TELEGRAM_BOT_TOKEN"),
+            telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
+            telegram_timeout_seconds=float(
+                os.getenv("EGX_TELEGRAM_TIMEOUT_SECONDS", "10")
+            ),
         )
