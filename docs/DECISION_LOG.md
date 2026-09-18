@@ -1567,3 +1567,71 @@ Trade-offs:
 ### Revisit Conditions
 
 Revisit if an API consumer requires exact decimal text, financial/regulatory requirements require fixed-scale decimal transport, or the API adopts a serialization format with native decimal support.
+
+
+## DEC-069 — Freeze the First M12 Dashboard Slice
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+The first M12 user-facing slice now has:
+
+- API/runtime integration;
+- reporting and alert read-side endpoints;
+- React + Vite dashboard;
+- dashboard loading, success, empty, and transport-error states;
+- frontend component/API contract tests;
+- production frontend build validation;
+- CI coverage for Python tests, frontend tests, and frontend build.
+
+### Decision
+
+Treat the implemented dashboard surface as the accepted first M12 slice and freeze its scope.
+
+Further dashboard capabilities require a new design gate and must not be added opportunistically.
+
+The frozen surface is:
+
+- stock symbol input;
+- latest stored analysis report;
+- analysis date;
+- current price;
+- support/resistance;
+- technical/fundamental/stock-quality/entry-quality scores;
+- opportunity classification;
+- technical and fundamental status fields;
+- latest alert-candidate projection;
+- loading, unavailable, and no-alert states.
+
+### Alternatives Considered
+
+#### Continue expanding the dashboard immediately
+
+Rejected for the current milestone because additional capabilities have different product and API implications.
+
+#### Mark the entire dashboard roadmap complete
+
+Not selected because deferred capabilities such as ranking, watchlists, historical comparison, charting, authentication, and real-time behavior remain outside the accepted slice.
+
+### Trade-offs
+
+The freeze gives the current slice a stable contract and prevents presentation work from driving unplanned backend/domain changes.
+
+The trade-off is that useful dashboard capabilities remain deferred until their own design gates are completed.
+
+### Consequences
+
+M12's first user-facing slice is implementation-complete and validated.
+
+The next work must either:
+
+1. complete M12 documentation/acceptance bookkeeping; or
+2. open a new design gate for a specific deferred capability.
+
+No new analytical logic belongs in the frontend.
+
+### Revisit Conditions
+
+Revisit when a concrete next dashboard capability is selected and its API/domain impact can be designed explicitly.
