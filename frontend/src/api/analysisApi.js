@@ -33,3 +33,8 @@ export function getReport(symbol) {
 export function getAlert(symbol) {
   return getJson("/api/v1/alerts/" + encodeURIComponent(symbol), "Alert request");
 }
+
+export function getMarketOpportunities(symbols) {
+  const query = symbols.join(",");
+  return getJson("/api/v1/opportunities?symbols=" + encodeURIComponent(query), "Market opportunities request");
+}
