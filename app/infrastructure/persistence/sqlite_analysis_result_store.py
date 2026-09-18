@@ -12,7 +12,9 @@ from app.infrastructure.persistence.analysis_result_serializer import (
 
 class SQLiteAnalysisResultStore:
     def __init__(self, database_path: str | Path) -> None:
-        self._database_path = str(database_path)
+        path = Path(database_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._database_path = str(path)
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
