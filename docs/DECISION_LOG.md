@@ -1693,3 +1693,17 @@ Successful per-stock persistence remains owned by `RunStockAnalysis`; M14 does n
 The aggregate run uses the existing `Execution.id` rather than introducing a second execution model. Per-stock retry remains inside the existing single-stock execution boundary.
 
 See `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`.
+
+
+## DEC-074 — M15 Market Opportunity Ranking
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M15 introduces a dedicated application capability, `RankMarketOpportunities`, that composes completed per-stock analytical results into a deterministic market-wide opportunity ordering.
+
+Only BUY and WATCH classifications are rankable. The primary ordering is Stock Quality Score descending, followed by Entry Quality Score, Technical Score, Fundamental Score, and finally normalized symbol ascending. HOLD and AVOID are excluded rather than assigned synthetic scores.
+
+The ranking input is intentionally narrow: normalized symbol plus the original `StockAnalysisResult`. Duplicate normalized symbols are rejected. Missing or failed M14 results are omitted from ranking rather than fabricated. The ranking capability does not recalculate analysis, mutate source results, persist rankings, depend on providers, or make portfolio/trading decisions.
+
+See `docs/DEC-074-M15-MARKET-OPPORTUNITY-RANKING-DESIGN-GATE.md`.
