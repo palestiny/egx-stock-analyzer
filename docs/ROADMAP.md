@@ -117,6 +117,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M14 | Market-Wide Analysis | 🟢 Complete | Sequential market-wide orchestration merged and validated by GitHub Actions Run #200 on implementation head |
 | M15 | Market Opportunity Ranking | 🟢 Complete | Deterministic BUY/WATCH ranking over completed stock-analysis results |
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
+| M17 | Market Universe & All-Market Execution | 🟡 Design Accepted | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -152,6 +153,8 @@ M14 — Market-Wide Analysis
 M15 — Market Opportunity Ranking
         ↓
 M16 — Market Opportunity View
+        ↓
+M17 — Market Universe & All-Market Execution
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -486,7 +489,29 @@ Deferred from M16: watchlist persistence, historical ranking, personalized ranki
 
 ---
 
-# 14. Cross-Cutting Requirements
+# 14. M17 — Market Universe & All-Market Execution
+
+## Status
+
+The M17 design gate is **accepted** in `docs/DEC-076-M17-MARKET-UNIVERSE-EXECUTION-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted application boundary
+
+RunConfiguredMarketAnalysis
+          ↓
+StockCatalog.symbols()
+          ↓
+RunMarketAnalysis
+          ↓
+RunStockAnalysis
+          ↓
+AnalysisResultStore
+
+M17 extends the existing StockCatalog with deterministic symbol enumeration and introduces a configured-market execution capability. The HTTP command endpoint is POST /api/v1/market-analysis. The scheduler remains a trigger only, and no new persistence, ranking, dashboard logic, or concurrency is introduced.
+
+---
+
+# 15. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -520,7 +545,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 15. Milestone Completion Rule
+# 16. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -546,7 +571,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 16. Changing the Roadmap
+# 17. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -556,6 +581,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 17. Guiding Principle
+# 18. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
