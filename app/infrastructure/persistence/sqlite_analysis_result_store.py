@@ -151,6 +151,22 @@ class SQLiteAnalysisResultStore:
 
         return self._to_record(row)
 
+    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT snapshot_id, analysis_date, payload
+                FROM analysis_results
+                WHERE snapshot_id = ?
+                """,
+                (str(snapshot_id),),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return self._to_record(row)
+
     def get_history(
         self,
         symbol: str,
