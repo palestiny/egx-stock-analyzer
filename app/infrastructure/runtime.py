@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.result_store import (
@@ -24,9 +24,17 @@ class InfrastructureRuntime:
     application_runtime: StockAnalysisRuntime
     market_data_provider: YahooFinanceAdapter
     fundamental_data_provider: YahooFinanceFundamentalDataSource
+    _closed: bool = field(default=False, init=False, repr=False)
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
 
     def close(self) -> None:
+        if self._closed:
+            return
         self.fundamental_data_provider.close()
+        self._closed = True
 
 
 def create_infrastructure_runtime(
