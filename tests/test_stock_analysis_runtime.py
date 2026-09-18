@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.application.analysis.daily_market_analysis import StockAnalysisInput, StockAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
@@ -59,6 +60,7 @@ def test_create_stock_analysis_runtime_wires_symbol_use_case_and_store() -> None
     assert isinstance(runtime.rank_market_opportunities, RankMarketOpportunities)
     assert isinstance(runtime.get_market_opportunity_ranking, GetMarketOpportunityRanking)
     assert isinstance(runtime.run_stock_analysis, RunStockAnalysis)
+    assert isinstance(runtime.get_analysis_history, GetAnalysisHistory)
     assert runtime.result_store is store
 
 

@@ -83,13 +83,13 @@ class InMemoryAnalysisResultStore:
                     continue
             records.append(record)
 
-        return tuple(
-            sorted(
-                records,
-                key=lambda record: (
-                    record.analysis_date is None,
-                    -(record.analysis_date.toordinal() if record.analysis_date else 0),
-                    str(record.snapshot_id),
-                ),
-            )
+        dated_records = sorted(
+            (record for record in records if record.analysis_date is not None),
+            key=lambda record: record.analysis_date.toordinal(),
+            reverse=True,
         )
+        undated_records = [
+            record for record in records if record.analysis_date is None
+        ][::-1]
+
+        return tuple(dated_records + undated_records)
