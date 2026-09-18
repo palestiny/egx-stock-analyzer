@@ -5,6 +5,7 @@ import pytest
 
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
 
 
@@ -22,7 +23,7 @@ def test_empty_universe_completes_without_running_stock_analysis():
 
     result = runner.execute([], AS_OF)
 
-    assert result.execution.state.value == "completed"
+    assert result.execution.state is ExecutionState.COMPLETED
     assert result.execution.successful_stock_ids == set()
     assert result.execution.failed_stock_ids == set()
     run_stock_analysis.execute.assert_not_called()
@@ -49,7 +50,7 @@ def test_unknown_symbol_is_recorded_as_failure_and_later_stock_still_runs():
 
     result = runner.execute(["UNKNOWN", "EGAL"], AS_OF)
 
-    assert result.execution.state.value == "completed_with_errors"
+    assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
     assert result.execution.failed_stock_ids == {"UNKNOWN"}
     assert result.execution.successful_stock_ids == {"EGAL"}
     assert "Unknown stock symbol: UNKNOWN" in result.execution.failure_reasons["UNKNOWN"]
@@ -87,7 +88,7 @@ def test_all_stock_failures_return_failed():
 
     result = runner.execute(["EGAL", "IEEC"], AS_OF)
 
-    assert result.execution.state.value == "failed"
+    assert result.execution.state is ExecutionState.FAILED
     assert result.execution.successful_stock_ids == set()
     assert result.execution.failed_stock_ids == {"EGAL", "IEEC"}
 
