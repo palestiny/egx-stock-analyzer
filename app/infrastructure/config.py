@@ -17,9 +17,6 @@ class InfrastructureConfig:
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     telegram_timeout_seconds: float = 10.0
-    telegram_bot_token: str | None = None
-    telegram_chat_id: str | None = None
-    telegram_timeout_seconds: float = 10.0
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
