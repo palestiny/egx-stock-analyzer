@@ -4,6 +4,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
+    RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+)
 from app.application.execution.recurring_configured_market_analysis import (
     RecurringConfiguredMarketAnalysis,
 )
@@ -33,8 +36,9 @@ def test_daily_recurrence_schedules_next_weekday_at_configured_local_time():
     scheduler = FakeScheduler()
     capability = Mock()
 
+    workflow = Mock(spec=RunConfiguredMarketAnalysisWithAutomaticAlertDelivery)
     recurring = RecurringConfiguredMarketAnalysis(
-        capability,
+        workflow,
         scheduler,
         clock,
         schedule_time=time(21, 0),
@@ -90,7 +94,7 @@ def test_registration_does_not_execute_analysis_immediately():
 
     recurring.start()
 
-    recurring._run_configured_market_analysis.execute.assert_not_called()
+    recurring._scheduled_operation.execute.assert_not_called()
 
 
 def test_due_occurrence_delegates_and_registers_next_occurrence():
@@ -98,7 +102,7 @@ def test_due_occurrence_delegates_and_registers_next_occurrence():
     scheduler = FakeScheduler()
     capability = Mock()
     recurring = RecurringConfiguredMarketAnalysis(
-        capability,
+        workflow,
         scheduler,
         clock,
         schedule_time=time(21, 0),
@@ -109,7 +113,7 @@ def test_due_occurrence_delegates_and_registers_next_occurrence():
     operation = scheduler.scheduled[0][1]
     operation()
 
-    capability.execute.assert_called_once_with(clock.current.date())
+    workflow.execute.assert_called_once_with(clock.current.date())
     assert len(scheduler.scheduled) == 2
     assert scheduler.scheduled[1][0] == datetime(
         2026, 9, 21, 21, 0, tzinfo=CAIRO
@@ -132,7 +136,7 @@ def test_missed_occurrence_is_skipped_and_next_future_occurrence_is_registered()
     operation = scheduler.scheduled[0][1]
     operation()
 
-    capability.execute.assert_not_called()
+    workflow.execute.assert_not_called()
     assert len(scheduler.scheduled) == 2
     assert scheduler.scheduled[1][0] == datetime(
         2026, 9, 21, 21, 0, tzinfo=CAIRO
@@ -156,14 +160,14 @@ def test_same_occurrence_cannot_execute_twice():
     operation()
     operation()
 
-    capability.execute.assert_called_once()
+    workflow.execute.assert_called_once()
 
 
 def test_failed_occurrence_does_not_disable_future_recurrence():
     clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
-    capability.execute.side_effect = RuntimeError("analysis failed")
+    workflow.execute.side_effect = RuntimeError("analysis failed")
     recurring = RecurringConfiguredMarketAnalysis(
         capability,
         scheduler,
@@ -202,7 +206,7 @@ def test_overlapping_occurrence_is_not_started_concurrently():
     def execute(_as_of):
         operation()
 
-    capability.execute.side_effect = execute
+    workflow.execute.side_effect = execute
     operation()
 
     capability.execute.assert_called_once()
