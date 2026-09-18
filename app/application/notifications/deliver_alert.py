@@ -21,8 +21,8 @@ class DeliverAlert:
 
         existing = self._store.get(candidate.stock_id, candidate.snapshot_id, normalized_channel)
         if existing is not None:
-            if existing.status in {AlertDeliveryStatus.PENDING, AlertDeliveryStatus.DELIVERED}:
-                return existing
+            if existing is not None:
+            return existing
 
         self._store.create_pending(candidate.stock_id, candidate.snapshot_id, normalized_channel)
 
