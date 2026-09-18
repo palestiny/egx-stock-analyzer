@@ -18,11 +18,12 @@ from app.main import (
 @dataclass
 class FakeApplicationRuntime:
     result_store: InMemoryAnalysisResultStore
+    run_by_symbol: object | None = None
 
 
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
-        self.application_runtime = FakeApplicationRuntime(result_store)
+        self.application_runtime = FakeApplicationRuntime(result_store, run_by_symbol=object())
         self.closed = False
 
     def close(self) -> None:
