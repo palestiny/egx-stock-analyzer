@@ -1,14 +1,18 @@
+from dataclasses import dataclass
 from datetime import date
 
-from app.application.stocks.catalog import StockCatalog
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
+from app.application.stocks.catalog import StockCatalog
 from app.domain.execution import Execution
 from app.domain.stocks.stock import Stock
 
 
-class RunMarketAnalysis:
-    """Execute the existing single-stock analysis capability across a requested universe."""
+@dataclass(frozen=True)
+class MarketAnalysisResult:
+    execution: Execution
 
+
+class RunMarketAnalysis:
     def __init__(
         self,
         stock_catalog: StockCatalog,
@@ -17,7 +21,11 @@ class RunMarketAnalysis:
         self._stock_catalog = stock_catalog
         self._run_stock_analysis = run_stock_analysis
 
-    def execute(self, symbols: list[str], as_of: date) -> Execution:
+    def execute(
+        self,
+        symbols: list[str],
+        as_of: date,
+    ) -> MarketAnalysisResult:
         normalized_symbols = [symbol.strip().upper() for symbol in symbols]
 
         if len(normalized_symbols) != len(set(normalized_symbols)):
@@ -28,7 +36,7 @@ class RunMarketAnalysis:
 
         if not normalized_symbols:
             execution.complete()
-            return execution
+            return MarketAnalysisResult(execution=execution)
 
         for symbol in normalized_symbols:
             stock = self._stock_catalog.get(symbol)
@@ -36,17 +44,16 @@ class RunMarketAnalysis:
             if stock is None:
                 execution.record_stock_failure(
                     symbol,
-                    f"Unknown stock symbol: {symbol}",
+                    reason=f"Unknown stock symbol: {symbol}",
                 )
                 continue
 
             try:
                 self._run_stock_analysis.execute(stock, as_of)
-            except Exception as exc:
-                reason = str(exc) or exc.__class__.__name__
-                execution.record_stock_failure(stock.symbol, reason)
+            except Exception as error:
+                execution.record_stock_failure(symbol, reason=str(error))
             else:
-                execution.record_stock_success(stock.symbol)
+                execution.record_stock_success(symbol)
 
         execution.finish()
-        return execution
+        return MarketAnalysisResult(execution=execution)
