@@ -166,7 +166,7 @@ API contract tests cover:
 - non-BUY alert absence
 - successful BUY alert projection
 
-The new tests have been committed to the branch but still require local execution before their pass status is claimed.
+The focused report/alert API contract suite has now been executed locally: **17 passed, 2 warnings**. The warnings are dependency deprecations and are separate cleanup work.
 
 ## 10. Next Gate
 
