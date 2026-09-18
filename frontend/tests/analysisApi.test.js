@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getAnalysis } from "../src/api/analysisApi";
+import { getAnalysis, getMarketOpportunities } from "../src/api/analysisApi";
 
 describe("analysis API client", () => {
   it("requests analysis for the requested symbol and returns the response", async () => {
@@ -36,10 +36,9 @@ describe("analysis API client", () => {
   });
 });
 
-import { getMarketOpportunities } from "../src/api/analysisApi";
 
-test("getMarketOpportunities requests the market opportunity endpoint", async () => {
-  global.fetch = vi.fn().mockResolvedValue({
+it("requests the market opportunity endpoint", async () => {
+  globalThis.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ opportunities: [], missing_symbols: [] }),
   });
