@@ -1,77 +1,59 @@
 # DEC-085 — M26 External Notification Provider Integration Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M26
 
 ## Context
 
-M25 completed the provider-neutral alert-delivery boundary. The system can now take an existing `AlertCandidate`, persist independent delivery state, enforce snapshot-based idempotency, and perform synchronous delivery through a `NotificationProvider` abstraction.
+M25 established provider-neutral alert delivery with durable delivery state, snapshot-based idempotency, and the replaceable `NotificationProvider` boundary. M26 introduces the first concrete external transport without changing analytical or delivery semantics.
 
-M25 intentionally stopped before connecting the system to an external notification service.
+## Accepted Decisions
 
-The next architectural question is therefore not how to generate alerts, but how one concrete external delivery adapter should be introduced without leaking provider concerns into the application or changing analytical semantics.
+### 1. First Provider
 
-## Problem
+The M26 MVP uses the **Telegram Bot API** as the first concrete notification provider.
 
-The current system has a delivery capability but no production notification transport.
+The choice fits the current personal market-alert use case: message-oriented delivery over HTTP, with a simple provider contract. SMTP and generic webhook remain future adapters.
 
-A concrete provider introduces concerns that M25 deliberately kept outside the boundary:
+### 2. Configuration and Secrets
 
-- credentials and secret configuration;
-- external network failure;
-- provider request/response semantics;
-- provider-specific message formatting;
-- timeout and retry behavior;
-- delivery result mapping;
-- rate limits;
-- provider availability;
-- safe handling of provider errors.
+Telegram configuration is infrastructure-only and comes from environment-backed configuration:
 
-These concerns must remain behind the existing notification-provider boundary.
+- bot token;
+- recipient chat ID.
 
-## Desired Outcome
+Credentials never enter domain objects, alert candidates, analytical snapshots, or delivery records. Missing configuration is an explicit configuration error, and secret values must never appear in errors or diagnostics.
 
-Introduce one concrete notification provider adapter while preserving:
+### 3. Timeout
 
-1. `DeliverAlert` as the application delivery capability;
-2. `NotificationProvider` as the replaceable infrastructure boundary;
-3. durable delivery-state ownership outside the provider adapter;
-4. snapshot-based idempotency;
-5. analytical results and alert generation as independent of notification availability;
-6. deterministic tests without requiring live external delivery;
-7. explicit configuration and secret boundaries.
+The synchronous Telegram request uses an explicit **10-second timeout**.
 
-## Scope
+Timeouts are provider failures and map to the existing M25 `FAILED` delivery state.
 
-### In scope
+### 4. Retry
 
-- selection of the first concrete provider strategy;
-- provider configuration boundary;
-- credential/secret handling contract;
-- provider request mapping;
-- provider response mapping;
-- timeout behavior;
-- failure classification at the provider boundary;
-- test doubles and integration-test boundary;
-- application/infrastructure composition;
-- operational diagnostics that do not expose credentials.
+M26 adds **no automatic provider retry**.
 
-### Explicitly out of scope
+Transient network failures, timeouts, provider rejection, and rate-limit responses map to the existing delivery failure semantics. Retrying FAILED delivery remains a separate future capability.
 
-- multiple providers in the first slice;
-- notification preferences;
-- user-specific subscriptions;
-- delivery analytics;
-- asynchronous queues/workers;
-- distributed delivery;
-- scheduled notification policy;
-- changing alert-generation rules;
-- changing BUY/WATCH/HOLD/AVOID semantics;
-- trading execution;
-- AI-generated notification decisions.
+### 5. Payload
 
-## Current Boundary
+The adapter receives already-composed alert content and maps it to Telegram's message request. It does not recalculate scores, classification, or alert eligibility.
+
+Provider-specific formatting remains inside the adapter.
+
+### 6. Rate Limits and Diagnostics
+
+Provider-specific status information may be retained only as safe diagnostic text. Authorization headers, bot tokens, and other credentials are never exposed.
+
+M26 does not introduce queueing or rate-limit scheduling.
+
+### 7. Testing Boundary
+
+Deterministic tests use an HTTP fake/transport boundary and never require a live Telegram service. Optional live integration testing is explicitly isolated from normal CI and requires externally supplied credentials.
+
+## Architectural Boundary
 
 ```
 AlertCandidate
@@ -80,125 +62,42 @@ DeliverAlert
       ↓
 NotificationProvider
       ↓
-Concrete Provider Adapter
+TelegramNotificationProvider
       ↓
-External Notification Service
+Telegram Bot API
 ```
 
-Delivery-state persistence remains owned by the M25 delivery boundary.
+The provider adapter owns transport mapping only. M25 owns delivery state and idempotency.
 
-## Alternatives
-
-### A — Email / SMTP
-
-Advantages:
-- broadly supported;
-- simple conceptual model;
-- useful for operational notifications.
-
-Trade-offs:
-- SMTP configuration varies;
-- sender/domain configuration can be operationally heavier;
-- message delivery semantics can be less immediate.
-
-### B — Telegram Bot
-
-Advantages:
-- simple message-oriented interaction;
-- useful for personal market alerts;
-- straightforward provider API model.
-
-Trade-offs:
-- bot/token management is provider-specific;
-- chat identity/configuration must be supplied;
-- external API availability and rate limits become relevant.
-
-### C — Generic Webhook
-
-Advantages:
-- provider-neutral consumer integration;
-- simple HTTP contract;
-- can connect to many downstream automation systems.
-
-Trade-offs:
-- does not itself provide a user-facing notification channel;
-- recipient semantics become the downstream consumer's responsibility;
-- security and endpoint validation require explicit treatment.
-
-### D — Multiple providers immediately
-
-Advantages:
-- resilience and flexibility.
-
-Trade-offs:
-- multiplies configuration, testing, failure semantics, and operational complexity before there is evidence that multiple providers are needed.
-
-## Proposed MVP Direction
-
-Use exactly one concrete provider adapter first.
-
-The adapter should:
-
-- implement the existing `NotificationProvider` contract;
-- receive already-composed alert content rather than analytical domain objects;
-- obtain credentials/configuration from infrastructure configuration;
-- never persist delivery state itself;
-- never decide whether an alert should exist;
-- never recalculate scores or classification;
-- map provider success/failure into the existing delivery result semantics;
-- use explicit network timeouts;
-- expose safe diagnostic information without secrets.
-
-The provider choice remains an explicit decision before implementation. No provider-specific code should be merged while this gate is still Proposed.
-
-## Open Questions
-
-1. Which first provider should the MVP support: SMTP email, Telegram Bot, or generic webhook?
-2. Should provider credentials come exclusively from environment variables/secrets in the first slice?
-3. What provider timeout is appropriate for synchronous delivery?
-4. Should transient provider failures be represented only as delivery failure in M26, leaving retry as the existing M25 follow-up, or should one bounded provider retry be included?
-5. What exact message payload should be sent, and which alert fields are safe/required?
-6. Should provider-specific rate-limit information be retained as diagnostic metadata or only mapped to failure?
-7. What integration-test boundary is acceptable without making CI dependent on a live external service?
-
-## Proposed Invariants
+## Invariants
 
 1. `DeliverAlert` remains the application owner of delivery semantics.
-2. The provider adapter never generates or changes an `AlertCandidate`.
-3. Provider credentials never enter domain objects or persisted analytical results.
-4. External provider failure must not corrupt or invalidate the underlying analysis.
-5. No live provider call is required for deterministic unit tests.
-6. The concrete provider remains replaceable behind `NotificationProvider`.
-7. M26 does not introduce multi-provider routing or asynchronous infrastructure.
+2. Telegram concepts remain outside the domain and application contracts.
+3. Credentials remain infrastructure-only.
+4. Provider failure cannot corrupt analysis or historical snapshots.
+5. Deterministic unit tests require no live provider.
+6. No automatic provider retry is introduced.
+7. Replacing Telegram later does not change analytical or delivery-state semantics.
 
 ## TDD Acceptance Shape
 
-Before implementation, tests should cover:
-
-- provider request mapping;
-- successful provider response;
-- provider rejection;
-- timeout/network failure;
-- safe configuration validation;
-- missing credential handling;
-- no credential leakage in errors/logs;
-- `DeliverAlert` integration with a fake provider;
-- idempotency remaining owned by M25 delivery state;
-- no analytical recalculation during delivery.
+- configuration is validated safely;
+- missing credentials fail deterministically;
+- alert payload maps correctly to a Telegram request;
+- successful provider response maps to delivery success;
+- provider rejection maps to delivery failure;
+- timeout/network failure maps to delivery failure;
+- secrets never appear in errors or diagnostics;
+- `DeliverAlert` remains idempotent;
+- provider calls do not recalculate analytical values;
+- live external delivery is not required by CI.
 
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M26 MVP defined here.**
 
-The next controlled action is to resolve the provider-selection and configuration questions, then update this document to Accepted before implementing the adapter.
+Implementation may proceed with one Telegram adapter behind the existing `NotificationProvider` boundary.
 
 ## Revisit Conditions
 
-Revisit this gate if:
-
-- the project requires multiple notification channels;
-- asynchronous delivery becomes mandatory;
-- user-specific notification preferences become a requirement;
-- provider limits require queueing or distributed delivery;
-- a concrete provider becomes unavailable;
-- security/compliance requirements materially change credential handling.
+Revisit this gate if multiple channels are required, asynchronous delivery becomes necessary, provider limits require queueing, user-specific preferences become a product requirement, or security/compliance requirements materially change credential handling.
