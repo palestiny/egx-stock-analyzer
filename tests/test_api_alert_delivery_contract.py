@@ -12,7 +12,6 @@ from app.application.notifications.delivery_store import (
 from app.application.notifications.deliver_alert_by_symbol import (
     AlertCandidateNotFoundError,
 )
-from app.domain.reporting.alerts import AlertCandidate
 
 
 def make_record(status: AlertDeliveryStatus) -> AlertDeliveryRecord:
