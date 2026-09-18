@@ -7,6 +7,7 @@ from app.application.analysis.rank_market_opportunities import RankMarketOpportu
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
+from app.application.reporting.change_detection import DetectAnalysisChanges
 from app.application.reporting.calculate_snapshot_performance import CalculateSnapshotPerformance
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
@@ -28,6 +29,7 @@ class StockAnalysisRuntime:
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
     compare_analysis_snapshots: CompareAnalysisSnapshots
+    detect_analysis_changes: DetectAnalysisChanges
     calculate_snapshot_performance: CalculateSnapshotPerformance
     get_alert_candidate: GetAlertCandidate
     result_store: AnalysisResultStore
@@ -69,6 +71,7 @@ def create_stock_analysis_runtime(
         stock_catalog=stock_catalog,
         result_store=result_store,
     )
+    detect_analysis_changes = DetectAnalysisChanges(compare_analysis_snapshots)
     calculate_snapshot_performance = CalculateSnapshotPerformance(
         stock_catalog=stock_catalog,
         result_store=result_store,
@@ -92,6 +95,7 @@ def create_stock_analysis_runtime(
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,
         compare_analysis_snapshots=compare_analysis_snapshots,
+        detect_analysis_changes=detect_analysis_changes,
         calculate_snapshot_performance=calculate_snapshot_performance,
         get_alert_candidate=get_alert_candidate,
         result_store=result_store,
