@@ -114,6 +114,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
 | M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
 | M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
+| M14 | Market-Wide Analysis | 🟡 Design Accepted | Execute the defined stock universe through the existing single-stock analysis capability with explicit aggregate outcomes |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -143,6 +144,8 @@ M10 — Automation
 M12 — API / Dashboard
         ↓
 M13 — Production Hardening
+        ↓
+M14 — Market-Wide Analysis
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -382,7 +385,33 @@ M13's first Operational Runtime Baseline is complete under DEC-070: health expos
 
 ---
 
-# 11. Cross-Cutting Requirements
+# 11. M14 — Market-Wide Analysis
+
+## Status
+
+The M14 design gate is **accepted** in `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted application boundary
+
+```
+RunMarketAnalysis
+      ↓
+StockCatalog
+      ↓
+RunStockAnalysis
+      ↓
+AnalysisResultStore
+```
+
+The MVP accepts an explicit ordered symbol list, executes sequentially, preserves successful per-stock persistence, and returns an aggregate state of `COMPLETED`, `PARTIALLY_COMPLETED`, or `FAILED`. An empty universe is a completed no-op. Unknown symbols are individual failures, while duplicate normalized symbols are invalid input.
+
+The aggregate run has its own execution identity, but M14 does not add aggregate persistence. Per-stock retry remains inside the existing single-stock capability.
+
+Deferred from M14: ranking, watchlists, history, concurrency, distributed execution, notification delivery, dashboard changes, trading decisions, portfolio allocation, provider failover, and AI-based selection.
+
+---
+
+# 12. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -416,7 +445,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 12. Milestone Completion Rule
+# 13. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -442,7 +471,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 13. Changing the Roadmap
+# 14. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -452,6 +481,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 14. Guiding Principle
+# 15. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
