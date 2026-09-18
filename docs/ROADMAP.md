@@ -121,7 +121,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
 | M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
-| M21 | Historical Analysis View | 🟡 Design Proposed | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
+| M21 | Historical Analysis View | 🟡 Design Accepted | Expose stored historical analysis snapshots through a read-only application/API/dashboard boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
