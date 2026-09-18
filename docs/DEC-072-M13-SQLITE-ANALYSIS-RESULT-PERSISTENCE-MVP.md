@@ -158,3 +158,8 @@ The local application can restart and still serve the latest completed analysis 
 ## Revisit Conditions
 
 Revisit the storage technology when deployment topology, concurrency, data volume, query requirements, or operational requirements exceed the SQLite MVP's intended scope.
+
+
+## Development Inspection Tool
+
+A read-only development inspector is available at `python -m app.infrastructure.persistence.inspect_database`. It defaults to `storage/analysis.db` and can optionally receive `--symbol EGAL`. It is a diagnostics convenience only; it does not become part of the application/API boundary and does not mutate persisted analysis state.
