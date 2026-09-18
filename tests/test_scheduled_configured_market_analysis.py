@@ -1,6 +1,8 @@
 from datetime import date, datetime
 from unittest.mock import Mock, patch
 
+from app.application.execution.scheduler import InProcessScheduler
+
 from app.application.execution.scheduled_configured_market_analysis import ScheduledConfiguredMarketAnalysis
 
 
@@ -40,3 +42,17 @@ def test_registration_does_not_execute_capability():
     trigger.schedule(datetime(2026, 9, 18, 22, 0))
 
     capability.execute.assert_not_called()
+
+
+
+def test_due_operation_is_removed_by_existing_scheduler():
+    scheduler = InProcessScheduler()
+    capability = Mock()
+    trigger = ScheduledConfiguredMarketAnalysis(capability, scheduler)
+
+    trigger.schedule(datetime(2026, 9, 18, 22, 0))
+
+    scheduler.run_due(datetime(2026, 9, 18, 22, 1))
+
+    assert scheduler.pending_count() == 0
+    capability.execute.assert_called_once_with(date(2026, 9, 18))
