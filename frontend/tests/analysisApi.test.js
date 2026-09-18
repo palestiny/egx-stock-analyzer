@@ -35,3 +35,18 @@ describe("analysis API client", () => {
     });
   });
 });
+
+import { getMarketOpportunities } from "../src/api/analysisApi";
+
+test("getMarketOpportunities requests the market opportunity endpoint", async () => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ opportunities: [], missing_symbols: [] }),
+  });
+
+  await getMarketOpportunities(["egal", "ieec"]);
+
+  expect(global.fetch).toHaveBeenCalledWith(
+    "/api/v1/opportunities?symbols=egal%2Cieec",
+  );
+});
