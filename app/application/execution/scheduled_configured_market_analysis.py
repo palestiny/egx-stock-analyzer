@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import (
-    RunConfiguredMarketAnalysisWithAutomaticAlertsWithAutomaticAlerts,
+    RunConfiguredMarketAnalysisWithAutomaticAlerts,
 )
 from app.application.execution.scheduler import Scheduler
 from app.domain.execution import Execution
