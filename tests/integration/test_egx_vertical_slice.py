@@ -16,7 +16,7 @@ def test_egal_real_data_vertical_slice() -> None:
     with TestClient(app) as client:
         response = client.post("/api/v1/analysis/EGAL")
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
 
     body = response.json()
     assert body["symbol"] == "EGAL"
