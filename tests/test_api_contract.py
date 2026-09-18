@@ -16,6 +16,16 @@ def make_result():
     )
 
 
+def test_health_returns_ok():
+    app = create_app(InMemoryAnalysisResultStore())
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_get_analysis_returns_404_when_result_does_not_exist():
     app = create_app(InMemoryAnalysisResultStore())
 
@@ -65,7 +75,7 @@ def test_post_analysis_returns_500_when_analysis_execution_fails():
         response = client.post("/api/v1/analysis/EGAL")
 
     assert response.status_code == 500
-    assert response.json() == {"detail": "analysis failed"}
+    assert response.json() == {"detail": "Analysis execution failed"}
 
 
 def test_get_analysis_returns_transport_dto():
