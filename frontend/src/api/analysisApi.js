@@ -5,7 +5,9 @@ async function parseError(response, operation) {
 }
 
 async function getJson(url, operation, options) {
-  const response = await fetch(url, options);
+  const response = options === undefined
+    ? await fetch(url)
+    : await fetch(url, options);
 
   if (!response.ok) {
     await parseError(response, operation);
