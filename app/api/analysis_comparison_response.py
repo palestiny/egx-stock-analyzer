@@ -1,18 +1,17 @@
 from dataclasses import asdict, dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
 from app.application.reporting.compare_analysis_snapshots import (
     AnalysisSnapshotComparison,
 )
-from app.application.reporting.get_analysis_history import GetAnalysisHistory
-from app.domain.reporting.report import AnalysisReport
 
 
 @dataclass(frozen=True)
 class AnalysisComparisonSnapshotResponse:
     snapshot_id: str
-    analysis_date: object | None
+    analysis_date: date | None
     technical_score: int
     fundamental_score: int
     stock_quality: int
