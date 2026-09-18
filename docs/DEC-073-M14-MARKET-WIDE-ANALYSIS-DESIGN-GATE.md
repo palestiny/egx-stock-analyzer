@@ -221,11 +221,11 @@ The market-wide use case resolves each symbol through the existing StockCatalog.
 
 ### 2. Aggregate Failure Semantics
 
-The aggregate result uses states distinct from the existing per-stock ExecutionState:
+The aggregate run reuses the existing `Execution` aggregate and its established state semantics:
 
-- COMPLETED — all requested stocks completed successfully, including the empty-universe no-op case.
-- PARTIALLY_COMPLETED — at least one stock completed and at least one stock failed.
-- FAILED — all requested stocks failed.
+- `COMPLETED` — all requested stocks completed successfully, including the empty-universe no-op case.
+- `COMPLETED_WITH_ERRORS` — at least one stock completed and at least one stock failed; this is the aggregate equivalent of partial completion.
+- `FAILED` — all requested stocks failed.
 
 Individual stock outcomes remain available. An unknown symbol is an individual stock failure rather than an abort of the entire run.
 
@@ -253,9 +253,7 @@ A stock is failed for the aggregate result only after the existing single-stock 
 
 ### 7. Execution Identity
 
-The market-wide run has its own aggregate execution identity, separate from individual stock execution identities.
-
-M14 does not persist aggregate execution history; the identity exists to distinguish one market-wide invocation and support future observability.
+The market-wide run reuses one `Execution` aggregate for the invocation, consistent with the project's existing daily market execution model. The execution identity is therefore the existing `Execution.id`; M14 does not introduce a second aggregate execution model or persist aggregate execution history.
 
 ### 8. Concurrency
 
@@ -284,13 +282,13 @@ RunMarketAnalysis owns only market-wide orchestration and aggregate result seman
 - empty universe returns COMPLETED with zero outcomes;
 - one-stock success returns COMPLETED;
 - multiple stocks execute in the exact supplied order;
-- one failure with other successes returns PARTIALLY_COMPLETED;
+- one failure with other successes returns COMPLETED_WITH_ERRORS;
 - all stocks failing returns FAILED;
 - unknown symbols become individual failures without aborting later symbols;
 - duplicate normalized symbols are rejected before execution;
 - successful stocks remain persisted when a later stock fails;
 - existing per-stock retry behavior is reused;
-- the aggregate run receives a distinct execution identity;
+- the aggregate run receives an `Execution.id` from the existing execution aggregate;
 - no analytical calculation is introduced into the market-wide orchestration layer.
 
 ## Consequences if Accepted

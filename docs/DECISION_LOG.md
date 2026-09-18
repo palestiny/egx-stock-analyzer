@@ -1677,3 +1677,19 @@ The store keeps the latest completed analysis per symbol and preserves the analy
 The implementation is intentionally limited to durable analysis results; historical browsing, market-data warehousing, authentication, scheduler durability, and other production capabilities remain separate concerns.
 
 See `docs/DEC-072-M13-SQLITE-ANALYSIS-RESULT-PERSISTENCE-MVP.md`.
+
+
+## DEC-073 — M14 Market-Wide Analysis Capability
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+M14 introduces a dedicated application use case, `RunMarketAnalysis`, for executing an explicit ordered list of stock symbols through the existing single-stock analysis capability.
+
+The MVP resolves symbols through `StockCatalog`, executes sequentially in caller-provided order, reuses the existing `Execution` aggregate and its `COMPLETED` / `COMPLETED_WITH_ERRORS` / `FAILED` semantics, and treats an empty universe as a completed no-op. Unknown symbols are individual failures; duplicate normalized symbols are invalid input.
+
+Successful per-stock persistence remains owned by `RunStockAnalysis`; M14 does not add aggregate persistence, new database schema, API/dashboard behavior, concurrency, ranking, watchlists, notifications, trading logic, or AI-based selection.
+
+The aggregate run uses the existing `Execution.id` rather than introducing a second execution model. Per-stock retry remains inside the existing single-stock execution boundary.
+
+See `docs/DEC-073-M14-MARKET-WIDE-ANALYSIS-DESIGN-GATE.md`.

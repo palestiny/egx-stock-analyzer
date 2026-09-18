@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.application.analysis.daily_market_analysis import StockAnalysisInput, StockAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.analysis.runtime import StockAnalysisRuntime, create_stock_analysis_runtime
@@ -50,6 +51,7 @@ def test_create_stock_analysis_runtime_wires_symbol_use_case_and_store() -> None
 
     assert isinstance(runtime, StockAnalysisRuntime)
     assert isinstance(runtime.run_by_symbol, RunStockAnalysisBySymbol)
+    assert isinstance(runtime.run_market_analysis, RunMarketAnalysis)
     assert isinstance(runtime.run_stock_analysis, RunStockAnalysis)
     assert runtime.result_store is store
 
@@ -66,4 +68,5 @@ def test_runtime_exposes_shared_analysis_dependencies() -> None:
 
     assert runtime.result_store is store
     assert runtime.run_by_symbol is not None
+    assert runtime.run_market_analysis is not None
     assert runtime.run_stock_analysis is not None
