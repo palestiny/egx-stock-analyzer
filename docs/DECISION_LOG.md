@@ -1427,3 +1427,19 @@ This improves diagnostics without changing partial-failure semantics or retry be
 ### Revisit
 
 Revisit in M13 Production Hardening when production-safe logging, observability, and structured failure categories are designed.
+
+
+## DEC-063 — M12 API Surface and Boundary Design
+
+**Status:** Accepted for the first M12 API slice  
+**Date:** 2026-09-18
+
+The first M12 API surface is intentionally split into a query and a command: `GET /api/v1/analysis/{symbol}` reads the latest stored result, while `POST /api/v1/analysis/{symbol}` requests analysis through the application use case and returns the resulting stored result.
+
+FastAPI remains a transport adapter. Business rules remain in application/domain layers. `AnalysisResultResponse` is the transport DTO and domain objects are not exposed directly.
+
+Current HTTP mappings are: unknown symbol/result not found → 404; execution not configured → 503; analysis execution failure → 500; successful analysis → 200.
+
+Freshness metadata, historical results, reports, alerts, authentication/authorization, structured production error taxonomy, and dashboard implementation remain deferred. Additional API surface requires a separate design decision rather than being added opportunistically.
+
+See `docs/DEC-063-M12-API-SURFACE-AND-BOUNDARY-DESIGN.md` for the full design gate.
