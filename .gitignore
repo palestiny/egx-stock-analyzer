@@ -18,3 +18,5 @@ venv/
 Thumbs.db
 
 *.egg-info/
+# Local runtime state
+storage/*.db

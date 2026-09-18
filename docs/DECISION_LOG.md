@@ -1245,3 +1245,435 @@ from GitHub before implementing new work.
 
 The goal is to ensure that development continues from the documented state
 rather than relying on memory or conversation history.
+
+
+
+## DEC-021 — Use Yahoo Finance as the Current Real-Data Source for the Vertical Slice
+
+**Status:** Accepted for current development/testing phase
+
+### Context
+
+The EGX real-data vertical slice reached Yahoo Finance successfully for market data, but the Finnhub financial-data endpoint returned HTTP 403:
+
+`You don't have access to this resource.`
+
+A direct request outside the application reproduced the same 403, confirming that the blocker is external to the application implementation.
+
+The immediate project goal is to exercise the analysis pipeline against real EGX data, not to finalize the long-term external-data architecture.
+
+### Decision
+
+For the current vertical-slice validation, Yahoo Finance is used as the live source for both:
+
+- daily market data;
+- annual fundamental data.
+
+The fundamental-data implementation reads Yahoo Finance annual income-statement and balance-sheet data and maps it into the existing `FinancialPeriod` domain model.
+
+This is explicitly a development/testing source decision and is **not** a long-term commitment to Yahoo Finance as the project's permanent data provider.
+
+### Alternatives Considered
+
+#### Continue with Finnhub
+
+Deferred because the currently available account/key cannot access the required financials resource.
+
+#### Introduce another financial-data provider
+
+Deferred because doing so would solve the immediate integration problem while prematurely making a provider choice that the project has explicitly kept open.
+
+#### Use Yahoo Finance for the current vertical slice
+
+Accepted because the project already uses Yahoo Finance for EGX market history and it allows us to continue testing the complete analysis path with one currently accessible source.
+
+### Trade-offs
+
+Advantages:
+
+- removes the immediate Finnhub access blocker;
+- keeps the current vertical slice focused;
+- avoids adding another external dependency for the test phase;
+- allows market and annual fundamental data to come from the same current source.
+
+Trade-offs:
+
+- Yahoo Finance fundamental coverage for EGX must be verified empirically;
+- source-specific field names require normalization;
+- this does not resolve the project's long-term data acquisition strategy.
+
+### Consequences
+
+The infrastructure runtime no longer requires `FINNHUB_API_KEY` for the current development application.
+
+The existing application and domain layers remain unchanged.
+
+The long-term data-source/provider architecture remains an open decision.
+
+### Revisit Conditions
+
+Revisit when:
+
+- Yahoo Finance cannot provide sufficient EGX fundamental coverage;
+- data quality or historical depth becomes inadequate;
+- production automation requires stronger guarantees;
+- licensing or reliability requirements demand another source;
+- multiple-source reconciliation becomes necessary.
+
+
+## DEC-020 — Exclude Invalid External Observations When Sufficient Valid Data Remains
+
+**Status:** Accepted
+
+### Context
+
+A real EGX vertical-slice run exposed an OHLC inconsistency in Yahoo Finance data for EGAL.CA. The provider returned an observation where the low price was above the open price.
+
+The existing data-quality model correctly classified the observation as invalid, but the assembler rejected the entire market-data window.
+
+### Decision
+
+Invalid or suspect external observations are excluded from the analysis input rather than causing the entire dataset to be rejected.
+
+Analysis may continue only when the remaining valid observations satisfy the minimum data requirement of the analysis policy.
+
+The minimum number of PriceBars is:
+
+    max(momentum_lookback, volume_lookback) + 1
+
+The system does not repair or rewrite provider values.
+
+### Alternatives Considered
+
+#### Reject the Entire Dataset
+
+Rejected because one provider anomaly can unnecessarily block analysis of otherwise usable historical data.
+
+#### Repair the Invalid Observation
+
+Rejected because the system would be inventing market data and could silently alter the provider's observation.
+
+#### Exclude Invalid Observations and Continue
+
+Accepted because it preserves the raw-observation/quality distinction while preventing one isolated external anomaly from contaminating analysis.
+
+### Trade-offs
+
+Advantages:
+
+- resilient to isolated provider anomalies
+- preserves strict quality rules
+- avoids silently modifying source data
+- keeps downstream analysis working when sufficient evidence remains
+
+Trade-offs:
+
+- the analysis input may contain fewer observations than the provider returned
+- excessive invalid observations will still block analysis
+- the current implementation reports rejection counts through the failure message but does not yet persist a quality report
+
+### Consequences
+
+`AnalysisInputAssembler` is responsible for applying the analysis-eligibility decision after `DataQualityAssessor` evaluates observations.
+
+`PriceBarFactory` continues to accept only `VALID` observations.
+
+No OHLC quality rule is weakened to accommodate a provider response.
+
+### Revisit Conditions
+
+Revisit this decision if:
+
+- downstream indicators require more sophisticated data sufficiency rules
+- quality reporting becomes a first-class domain capability
+- multiple providers are reconciled
+- invalid-data rates become high enough to require provider-level handling
+
+
+## DEC-021 Validation Note — Real EGAL Vertical Slice
+
+**Status:** Validated for the current development/testing phase
+
+On 2026-09-18, the real-data EGAL integration test completed successfully:
+
+```
+1 passed, 5 warnings in 4.82s
+```
+
+This validates the current end-to-end vertical slice using Yahoo Finance for the live market and annual fundamental data path.
+
+The five warnings did not cause test failure and remain a separate cleanup/compatibility concern. They do not change the current provider decision.
+
+The validation also confirms that non-finite Yahoo fundamental values such as `NaN` are excluded at the infrastructure boundary rather than entering the `FinancialPeriod` domain model.
+
+
+## DEC-062 — Preserve Execution Failure Details
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+The execution boundary preserved failed stock IDs but discarded the final exception reason. This made failures harder to diagnose after retry handling.
+
+### Decision
+
+Store a lightweight human-readable failure reason per failed stock in Execution. ExecutionRunner records the final exception message when retries are exhausted. A later successful retry clears the stored reason.
+
+### Trade-offs
+
+This improves diagnostics without changing partial-failure semantics or retry behavior. The stored reason is diagnostic context only; it is not a stable API contract, secure audit log, or replacement for structured observability.
+
+### Revisit
+
+Revisit in M13 Production Hardening when production-safe logging, observability, and structured failure categories are designed.
+
+
+## DEC-063 — M12 API Surface and Boundary Design
+
+**Status:** Accepted for the first M12 API slice  
+**Date:** 2026-09-18
+
+The first M12 API surface is intentionally split into a query and a command: `GET /api/v1/analysis/{symbol}` reads the latest stored result, while `POST /api/v1/analysis/{symbol}` requests analysis through the application use case and returns the resulting stored result.
+
+FastAPI remains a transport adapter. Business rules remain in application/domain layers. `AnalysisResultResponse` is the transport DTO and domain objects are not exposed directly.
+
+Current HTTP mappings are: unknown symbol/result not found → 404; execution not configured → 503; analysis execution failure → 500; successful analysis → 200.
+
+Freshness metadata, historical results, reports, alerts, authentication/authorization, structured production error taxonomy, and dashboard implementation remain deferred. Additional API surface requires a separate design decision rather than being added opportunistically.
+
+See `docs/DEC-063-M12-API-SURFACE-AND-BOUNDARY-DESIGN.md` for the full design gate.
+
+
+## DEC-063 Validation Note — API Contract Coverage
+
+**Status:** Contract tests implemented
+
+The first M12 API slice now has seven contract tests covering:
+
+- missing GET result → 404
+- unconfigured execution → 503
+- unknown symbol → 404
+- execution failure → 500
+- successful GET transport DTO
+- successful POST execution followed by stored-result response
+- successful execution without a stored result → 500
+
+The tests are committed on the `m12-runtime-integration` branch.
+
+Execution of these tests through GitHub Actions is not currently observable through the available workflow-run integration, so the contract is implemented but not marked externally validated by CI.
+
+
+## DEC-064 — M12 Reporting & Alerts API Boundary
+
+**Status:** Accepted
+
+The M12 API will expose M11 reporting and alert capabilities only as read-side projections of completed analysis. FastAPI remains responsible for routing, transport DTOs, and HTTP semantics; it must not own scoring, classification, alert delivery, persistence, scheduling, or deduplication.
+
+The current `AnalysisResultStore` does not preserve the analysis period alongside `StockAnalysisResult`. Because M11 `AnalysisReport` requires the real analysis date, M12 will not invent report freshness/history semantics with `date.today()`. The next implementation gate is to preserve the actual analysis period in the stored application result before adding report/alert endpoints.
+
+See `docs/DEC-064-M12-REPORTING-ALERTS-API-BOUNDARY.md`.
+
+
+## DEC-065 — M12 Reporting/Alert API Contract Validation Status
+
+**Status:** Superseded
+
+### Context
+
+The M12 reporting and alert read-side API slice has been implemented and its focused application/API contract tests were executed locally.
+
+### Decision
+
+The current M12 reporting/alert API contract is considered locally validated for the implemented scope.
+
+The focused suite passed:
+
+```text
+17 passed, 2 warnings
+```
+
+The original contract represented `Decimal` transport values as JSON strings. This was superseded by DEC-066, which defines prices as JSON numbers.
+
+### Consequences
+
+- Analysis dates remain explicit and are not invented by the API.
+- Report and alert endpoints remain read-only projections of stored analysis.
+- Decimal precision is preserved at the transport boundary.
+- The two remaining warnings are dependency deprecation warnings and are tracked separately from business behavior.
+
+### Next Gate
+
+M12 remains in progress. The next design gate is the dashboard/presentation boundary. No dashboard-specific business logic should be introduced before that gate is defined.
+
+
+## DEC-066 — Price Values Are JSON Numbers at the API Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+M12 reporting API responses exposed domain `Decimal` price values at the transport boundary. The initial contract represented those values as JSON strings to preserve exact decimal text.
+
+The project owner approved changing the external API representation to JSON numbers.
+
+### Decision
+
+The API transport contract represents price values as JSON numbers.
+
+Example:
+
+```json
+{
+  "current_price": 350.5,
+  "nearest_support": 340.0,
+  "nearest_resistance": 365.0
+}
+```
+
+The domain continues to use `Decimal` for price semantics and precision. Conversion happens explicitly in the API response DTO.
+
+### Alternatives Considered
+
+#### JSON strings
+
+Advantages:
+- preserves exact decimal representation;
+- avoids binary floating-point conversion at the transport boundary.
+
+Trade-offs:
+- API consumers must parse the value before numerical operations;
+- clients may treat a price as textual data.
+
+#### JSON numbers
+
+Advantages:
+- natural representation for numerical market prices;
+- consumers can compare and calculate directly;
+- better fit for dashboards and analytical clients.
+
+Trade-offs:
+- JSON has no native Decimal type;
+- floating-point representation has limitations for some decimal values.
+
+### Consequences
+
+- M12 report price fields are JSON numbers.
+- Domain precision remains based on `Decimal`.
+- Contract tests explicitly verify numeric JSON values.
+- Exact decimal text transport must be introduced only through a future explicit design decision.
+
+### Revisit Conditions
+
+Revisit if an API consumer requires exact decimal text, financial/regulatory requirements require fixed-scale decimal transport, or the API adopts a serialization format with native decimal support.
+
+
+## DEC-069 — Freeze the First M12 Dashboard Slice
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+### Context
+
+The first M12 user-facing slice now has:
+
+- API/runtime integration;
+- reporting and alert read-side endpoints;
+- React + Vite dashboard;
+- dashboard loading, success, empty, and transport-error states;
+- frontend component/API contract tests;
+- production frontend build validation;
+- CI coverage for Python tests, frontend tests, and frontend build.
+
+### Decision
+
+Treat the implemented dashboard surface as the accepted first M12 slice and freeze its scope.
+
+Further dashboard capabilities require a new design gate and must not be added opportunistically.
+
+The frozen surface is:
+
+- stock symbol input;
+- latest stored analysis report;
+- analysis date;
+- current price;
+- support/resistance;
+- technical/fundamental/stock-quality/entry-quality scores;
+- opportunity classification;
+- technical and fundamental status fields;
+- latest alert-candidate projection;
+- loading, unavailable, and no-alert states.
+
+### Alternatives Considered
+
+#### Continue expanding the dashboard immediately
+
+Rejected for the current milestone because additional capabilities have different product and API implications.
+
+#### Mark the entire dashboard roadmap complete
+
+Not selected because deferred capabilities such as ranking, watchlists, historical comparison, charting, authentication, and real-time behavior remain outside the accepted slice.
+
+### Trade-offs
+
+The freeze gives the current slice a stable contract and prevents presentation work from driving unplanned backend/domain changes.
+
+The trade-off is that useful dashboard capabilities remain deferred until their own design gates are completed.
+
+### Consequences
+
+M12's first user-facing slice is implementation-complete and validated.
+
+The next work must either:
+
+1. complete M12 documentation/acceptance bookkeeping; or
+2. open a new design gate for a specific deferred capability.
+
+No new analytical logic belongs in the frontend.
+
+### Revisit Conditions
+
+Revisit when a concrete next dashboard capability is selected and its API/domain impact can be designed explicitly.
+
+
+## DEC-070 — M13 Production Hardening Boundary and First Slice
+
+**Status:** Accepted — Operational Runtime Baseline Complete  
+**Date:** 2026-09-18
+
+M13 begins with an Operational Runtime Baseline rather than a broad production rewrite.
+
+The first slice validated runtime health through application composition/lifespan, safe API error exposure, operational logging, graceful lifecycle ownership, and idempotent runtime shutdown. The current configuration contract has no required external credentials or mandatory environment values, so no artificial configuration validation rule was introduced. If required configuration is added later, deterministic composition-time validation becomes mandatory.
+
+Persistence, authentication/authorization, deployment topology, metrics/tracing, provider failover, durable scheduling, and other production capabilities require separate design gates.
+
+See `docs/DEC-070-M13-PRODUCTION-HARDENING-BOUNDARY.md`.
+
+
+## DEC-071 — M13 Durable Analysis State Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+The analysis result store was initially in-memory, which was suitable for controlled development but lost completed analysis state across process restarts. M13 therefore established a persistence boundary before selecting a concrete database technology; DEC-072 now implements that boundary with SQLite.
+
+Durable state must preserve the existing analysis result and analysis date required by the report and alert read-side projections. Persistence remains behind the application-facing `AnalysisResultStore` contract, and domain/application code must not depend directly on a database library.
+
+DEC-072 has completed that next gate: SQLite is the selected concrete technology, with an explicit serializer, infrastructure adapter, transactional writes, versioned payloads, failure behavior, tests, and local development inspection tooling. Further persistence evolution remains subject to separate design gates.
+
+See `docs/DEC-071-M13-DURABLE-ANALYSIS-STATE-BOUNDARY.md`.
+
+
+## DEC-072 — SQLite Analysis Result Persistence MVP
+
+**Status:** Accepted  
+**Date:** 2026-09-18
+
+Following DEC-071, the first durable persistence implementation will use SQLite behind the existing `AnalysisResultStore` contract. The MVP uses Python's standard-library `sqlite3` driver and an explicit versioned serializer for the complete `StockAnalysisResult` rather than ORM mappings or Python pickle.
+
+The store keeps the latest completed analysis per symbol and preserves the analysis date. Persistence must be transactional, reconstruct complete analytical results, and fail explicitly on unsupported/corrupt payload versions. Report and alert application services remain unchanged.
+
+The implementation is intentionally limited to durable analysis results; historical browsing, market-data warehousing, authentication, scheduler durability, and other production capabilities remain separate concerns.
+
+See `docs/DEC-072-M13-SQLITE-ANALYSIS-RESULT-PERSISTENCE-MVP.md`.

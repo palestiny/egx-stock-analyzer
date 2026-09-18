@@ -1,0 +1,69 @@
+from datetime import date
+from decimal import Decimal
+from uuid import uuid4
+
+from app.application.analysis.daily_market_analysis import StockAnalysisInput, StockAnalysisResult
+from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.analysis.run_stock_analysis import RunStockAnalysis
+from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.analysis.runtime import StockAnalysisRuntime, create_stock_analysis_runtime
+from app.application.execution.retry import RetryPolicy
+from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.fundamental_analysis.financial_period import FinancialPeriod
+from app.domain.stocks.stock import Stock
+
+
+class FakeInputAssembler:
+    def assemble(self, stock: Stock, as_of: date) -> StockAnalysisInput:
+        period = FinancialPeriod(
+            period_end=date(2026, 6, 30),
+            revenue=Decimal("100"),
+            net_income=Decimal("10"),
+        )
+        return StockAnalysisInput(
+            symbol=stock.symbol,
+            stock_id=stock.id,
+            timeframe=stock_analysis_timeframe(),
+            price_bars=[],
+            current_period=period,
+            previous_period=period,
+            momentum_lookback=5,
+            volume_lookback=5,
+        )
+
+
+def stock_analysis_timeframe():
+    from app.domain.market_data.timeframe import Timeframe
+
+    return Timeframe.DAILY
+
+
+def test_create_stock_analysis_runtime_wires_symbol_use_case_and_store() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    runtime = create_stock_analysis_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        input_assembler=FakeInputAssembler(),
+        result_store=store,
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime, StockAnalysisRuntime)
+    assert isinstance(runtime.run_by_symbol, RunStockAnalysisBySymbol)
+    assert isinstance(runtime.run_stock_analysis, RunStockAnalysis)
+    assert runtime.result_store is store
+
+
+def test_runtime_exposes_shared_analysis_dependencies() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    runtime = create_stock_analysis_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        input_assembler=FakeInputAssembler(),
+        result_store=store,
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.result_store is store
+    assert runtime.run_by_symbol is not None
+    assert runtime.run_stock_analysis is not None

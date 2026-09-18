@@ -38,9 +38,11 @@ Completed reliability/acquisition foundations include:
 - Daily analysis scheduling use case
 - End-to-end scheduled analysis integration
 
-M10 Automation is complete for its MVP scope. The execution, retry, idempotency, analysis integration, trigger, scheduler, and daily scheduling mechanics are implemented and documented.
+M10 Automation is complete for its MVP scope.
 
-The next milestone is M12 API & Dashboard.
+M11 Reporting & Alerts is complete for its MVP scope.
+
+M12 has established and validated its first API/runtime/dashboard presentation slice on the integration branch. The branch is protected by CI covering Python unit tests plus frontend tests and production build. The first dashboard slice is now frozen under `docs/DECISION_LOG.md` DEC-069; further dashboard capabilities require a new design gate.
 
 The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -60,7 +62,7 @@ The roadmap may change when new evidence or requirements justify a deliberate de
 
 The project is developed through two connected tracks:
 
-```text
+```
 CORE ANALYTICAL TRACK
 Market Observation
   ↓
@@ -90,7 +92,7 @@ Production Reliability
 
 The analytical core was intentionally built before detailed data-quality and provider integration. Those reliability boundaries have now been implemented around the understood core.
 
-The project still avoids premature UI, database-heavy architecture, AI-first architecture, microservices, and production-hardening concerns before their design gates are needed.
+The project still avoids premature database-heavy architecture, AI-first architecture, microservices, and production-hardening concerns before their design gates are needed.
 
 ---
 
@@ -110,8 +112,8 @@ The project still avoids premature UI, database-heavy architecture, AI-first arc
 | M9 | Data Quality | 🟢 Complete | Assess raw observations and gate PriceBar creation |
 | M10 | Automation | 🟢 Complete | Execute the analytical pipeline automatically |
 | M11 | Reporting & Alerts | 🟢 Complete | Produce immutable reports and alert candidates |
-| M12 | API & Dashboard | 🔴 Not Started | Expose application capabilities |
-| M13 | Production Hardening | 🔴 Not Started | Reliability, security, observability, deployment |
+| M12 | API & Dashboard | 🟢 First Slice Complete | Freeze and validate the first user-facing API/runtime/dashboard slice |
+| M13 | Production Hardening | 🟢 Operational Baseline + Persistence MVP Complete | Establish production boundaries; further hardening requires separate design gates |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -119,7 +121,7 @@ The milestone numbering is retained to preserve project history. The actual exec
 
 # 4. Current Execution Sequence
 
-```text
+```
 M4 — Technical Analysis
         ↓
 M5 — Fundamental Analysis
@@ -172,7 +174,7 @@ Assess whether raw external observations are usable for analysis.
 
 ## Implemented Boundary
 
-```text
+```
 RawPriceBarObservation
         ↓
 DataQualityAssessor
@@ -199,7 +201,7 @@ Connect external market-data providers without leaking provider-specific behavio
 
 ## Implemented
 
-```text
+```
 Application
     ↓
 MarketDataProvider
@@ -238,7 +240,7 @@ Run the analytical pipeline automatically.
 
 Target flow:
 
-```text
+```
 Collect
   ↓
 Assess Data Quality
@@ -254,53 +256,9 @@ Generate Report
 Send Alerts
 ```
 
-## Completed MVP
+M10 MVP is complete.
 
-The M10 MVP includes:
-
-- whole-market `Execution` lifecycle
-- partial-failure handling with `COMPLETED_WITH_ERRORS`
-- limited retry for explicitly retryable errors
-- execution idempotency and recovery semantics
-- stock-analysis pipeline integration
-- daily-market analysis orchestration
-- manual trigger
-- scheduled trigger
-- `Scheduler` protocol
-- `InProcessScheduler`
-- one-shot `run_at` timing
-- due/not-due timing tests
-- scheduled-trigger integration with the in-process scheduler
-- `DailyAnalysisSchedule` application use case
-- end-to-end daily scheduling integration
-
-The scheduler boundary is:
-
-```text
-Scheduler
-   │ WHEN
-   ▼
-ScheduledAnalysisTrigger
-   │ WHAT
-   ▼
-DailyMarketAnalysis
-   ▼
-Execution
-```
-
-`DailyAnalysisSchedule` registers the existing analysis with a caller-provided `run_at`. It does not calculate market-calendar times.
-
-See:
-
-- `docs/DEC-048-M10-AUTOMATION-MVP.md`
-- `docs/DEC-049-SCHEDULING-SEMANTICS-MVP.md`
-- `docs/DEC-050-DAILY-ANALYSIS-SCHEDULE-MVP.md`
-- `docs/DEC-051-DAILY-SCHEDULE-TIME-OWNERSHIP.md`
-- `docs/M10-AUTOMATION-MVP-COMPLETION.md`
-
-M10 is complete.
-
-## Deferred
+Deferred scheduler capabilities remain:
 
 - recurring schedules
 - cron expressions
@@ -309,7 +267,6 @@ M10 is complete.
 - persistent schedules
 - restart recovery
 - distributed workers/queues
-- Celery/Redis/RabbitMQ/Kubernetes
 - advanced concurrency/scaling
 - scheduler monitoring/dashboard
 
@@ -319,11 +276,97 @@ These require separate design gates.
 
 # 9. M12 — API & Dashboard
 
-## Objective
+## Status
 
-Expose application capabilities to users.
+M12 first slice is **complete**. Further dashboard capabilities are deferred behind new design gates.
 
-API/UI must consume application/domain capabilities and must not own business rules.
+The first API/runtime slice is implemented and validated through the integration branch.
+
+### Runtime boundary
+
+```
+InfrastructureRuntime
+        ↓
+StockAnalysisRuntime
+        ↓
+Application capabilities
+        ↓
+AnalysisResultStore
+```
+
+### API surface
+
+```
+GET  /api/v1/analysis/{symbol}
+POST /api/v1/analysis/{symbol}
+
+GET  /api/v1/reports/{symbol}
+GET  /api/v1/alerts/{symbol}
+```
+
+The report and alert endpoints are read-side projections of completed analysis. FastAPI owns transport concerns only.
+
+### Dashboard boundary
+
+```
+React + Vite Dashboard
+          ↓ HTTP
+        FastAPI
+          ↓
+    Application
+          ↓
+       Domain
+          ↓
+   Infrastructure
+```
+
+The first dashboard view consumes report/alert read models and does not calculate analytical values.
+
+### Current validation
+
+GitHub Actions Run #171 on commit `c385c1d7` completed successfully with:
+
+- Python unit-tests job: **success**
+- Frontend tests job: **success**
+- Frontend production build: **success**
+
+The frontend suite currently contains API-client and dashboard component coverage. The latest validated frontend test run is **7 tests passing across 2 test files**.
+
+The Python CI job successfully installs the project package and executes the non-integration test suite.
+
+A real-data EGAL integration test validates the current Yahoo Finance market + annual fundamental data path. The integration slice now also verifies that a successful analysis is readable through the Report endpoint and that the Alert endpoint returns either a BUY candidate or the expected no-candidate 404.
+
+Dependency deprecation warnings remain a separate compatibility cleanup concern and do not change the current business contracts.
+
+### M12 design decisions already accepted
+
+- `DEC-063` — first API surface and boundary
+- `DEC-064` — reporting/alerts API boundary
+- `DEC-066` — API price values are JSON numbers
+- `DEC-067` — React + Vite frontend technology
+- `DEC-068` — dashboard presentation boundary
+
+The dashboard presentation boundary is documented in `docs/DEC-068-M12-DASHBOARD-PRESENTATION-BOUNDARY.md`.
+
+### Remaining M12 work
+
+The first M12 slice is complete. M12 should not be expanded opportunistically.
+
+Before adding additional endpoints or advanced dashboard behavior, a new design gate should define the next user-facing capability and its API contract. See DEC-069 for the scope freeze.
+
+Potential deferred capabilities include:
+
+- market-wide ranking
+- watchlists
+- historical comparison
+- interactive charting
+- notification configuration
+- authentication/authorization
+- real-time streaming
+- advanced filtering
+- automated trading
+
+These are not part of the current first dashboard slice.
 
 ---
 
@@ -334,6 +377,8 @@ API/UI must consume application/domain capabilities and must not own business ru
 Prepare the system for reliable long-term operation.
 
 Areas include reliability, retries, failure recovery, idempotency, monitoring, secrets management, authentication/authorization, performance, caching, observability, deployment, backups, migrations, and rollback.
+
+M13's first Operational Runtime Baseline is complete under DEC-070: health exposure, safe execution errors, application lifecycle verification, idempotent runtime shutdown, and CI coverage are validated. The current configuration contract has no required external settings, so no artificial validation rule was introduced. DEC-071 established the durable analysis-state boundary, and DEC-072 accepted SQLite plus an explicit versioned serializer as the first persistence MVP. The persistence implementation is now validated through store-level and API-level tests, including analysis → SQLite → store recreation → report/alert projections. The API/report/dashboard contracts remain unchanged. The latest externally observed successful CI validation is Run #171 on commit `c385c1d7`. Subsequent documentation-only commits are present on the integration branch, but their workflow runs are not currently observable through the available GitHub workflow-run integration; therefore they are not marked as independently CI-validated here. A read-only SQLite inspection command is available for local diagnostics.
 
 ---
 
@@ -375,7 +420,7 @@ Important failures and system decisions must eventually be visible.
 
 Every milestone follows:
 
-```text
+```
 Design
  ↓
 Tests

@@ -123,3 +123,22 @@ def test_execution_fails_when_all_stocks_fail():
     execution.finish()
 
     assert execution.state == ExecutionState.FAILED
+
+
+def test_execution_records_failure_reason():
+    execution = Execution.create()
+    execution.start()
+
+    execution.record_stock_failure("IEEC", reason="analysis failed")
+
+    assert execution.failure_reasons == {"IEEC": "analysis failed"}
+
+
+def test_execution_success_clears_previous_failure_reason():
+    execution = Execution.create()
+    execution.start()
+
+    execution.record_stock_failure("IEEC", reason="analysis failed")
+    execution.record_stock_success("IEEC")
+
+    assert execution.failure_reasons == {}

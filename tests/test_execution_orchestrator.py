@@ -27,3 +27,4 @@ def test_orchestrator_continues_after_one_stock_fails():
     assert execution.state == ExecutionState.COMPLETED_WITH_ERRORS
     assert execution.successful_stock_ids == {"EGAL"}
     assert execution.failed_stock_ids == {"IEEC"}
+    assert execution.failure_reasons == {"IEEC": "analysis failed"}

@@ -26,5 +26,5 @@ class ExecutionRunner:
                     attempt += 1
                     continue
 
-                execution.record_stock_failure(stock_id)
+                execution.record_stock_failure(stock_id, reason=str(error))
                 return
