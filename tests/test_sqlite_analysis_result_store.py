@@ -1,11 +1,10 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.domain.entry_analysis.context import EntryContext
 from app.domain.entry_analysis.scoring import EntryQualityScore
-from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
 from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
 from app.domain.fundamental_analysis.profitability import (
