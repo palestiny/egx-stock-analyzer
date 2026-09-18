@@ -152,7 +152,7 @@ M18 does not introduce:
 
 ## Design Gate Decision
 
-**Status: Accepted — implementation is authorized for the M18 MVP defined here.**
+**Status: Complete — M18 MVP implemented and merged in PR #20.**
 
 M18 is a thin scheduling adapter around the already accepted configured-market execution capability. It must not move business logic into the scheduler.
 
