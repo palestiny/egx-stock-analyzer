@@ -6,6 +6,7 @@ from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.analysis.run_configured_market_analysis_with_automatic_alerts import RunConfiguredMarketAnalysisWithAutomaticAlerts
 from app.application.reporting.compare_analysis_snapshots import CompareAnalysisSnapshots
 from app.application.reporting.change_detection import DetectAnalysisChanges
 from app.application.reporting.calculate_snapshot_performance import CalculateSnapshotPerformance
@@ -23,6 +24,7 @@ class StockAnalysisRuntime:
     run_by_symbol: RunStockAnalysisBySymbol
     run_market_analysis: RunMarketAnalysis
     run_configured_market_analysis: RunConfiguredMarketAnalysis
+    run_configured_market_analysis_with_automatic_alerts: RunConfiguredMarketAnalysisWithAutomaticAlerts
     rank_market_opportunities: RankMarketOpportunities
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     run_stock_analysis: RunStockAnalysis
@@ -85,10 +87,16 @@ def create_stock_analysis_runtime(
         result_store=result_store,
     )
 
+    run_configured_market_analysis_with_automatic_alerts = RunConfiguredMarketAnalysisWithAutomaticAlerts(
+        run_configured_market_analysis=run_configured_market_analysis,
+        automatic_alert_delivery=None,
+    )
+
     return StockAnalysisRuntime(
         run_by_symbol=run_by_symbol,
         run_market_analysis=run_market_analysis,
         run_configured_market_analysis=run_configured_market_analysis,
+        run_configured_market_analysis_with_automatic_alerts=run_configured_market_analysis_with_automatic_alerts,
         rank_market_opportunities=rank_market_opportunities,
         get_market_opportunity_ranking=get_market_opportunity_ranking,
         run_stock_analysis=run_stock_analysis,
