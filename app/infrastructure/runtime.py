@@ -107,7 +107,7 @@ def create_infrastructure_runtime(
         automatic_alert_delivery = AutomaticAlertDelivery(
             get_alert_candidate=application_runtime.get_alert_candidate,
             deliver_alert=deliver_alert,
-            default_channel="telegram",
+            default_channel=config.automatic_alert_delivery_channel,
         )
 
     return InfrastructureRuntime(
