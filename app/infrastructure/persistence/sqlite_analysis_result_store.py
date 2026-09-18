@@ -141,10 +141,7 @@ class SQLiteAnalysisResultStore:
                 (str(snapshot_id),),
             ).fetchone()
 
-        if row is None:
-            return None
-
-        return self._to_record(row)
+        return self._to_record(row) if row is not None else None
 
     def get_record(self, symbol: str) -> AnalysisResultRecord | None:
         with self._connect() as connection:
@@ -162,36 +159,7 @@ class SQLiteAnalysisResultStore:
                 (symbol,),
             ).fetchone()
 
-        if row is None:
-            return None
-
-        return self._to_record(row, symbol)
-
-    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
-        with self._connect() as connection:
-            row = connection.execute(
-                """
-                SELECT snapshot_id, symbol, analysis_date, payload
-                FROM analysis_results
-                WHERE snapshot_id = ?
-                """,
-                (str(snapshot_id),),
-            ).fetchone()
-
-        if row is None:
-            return None
-
-        snapshot_id_value, symbol, analysis_date_value, payload = row
-        return AnalysisResultRecord(
-            result=deserialize_analysis_result(payload),
-            analysis_date=(
-                date.fromisoformat(analysis_date_value)
-                if analysis_date_value is not None
-                else None
-            ),
-            snapshot_id=UUID(snapshot_id_value),
-            symbol=symbol,
-        )
+        return self._to_record(row) if row is not None else None
 
     def get_history(
         self,
@@ -203,7 +171,7 @@ class SQLiteAnalysisResultStore:
             raise ValueError("start_date cannot be after end_date")
 
         query = """
-            SELECT snapshot_id, analysis_date, payload
+            SELECT snapshot_id, symbol, analysis_date, payload
             FROM analysis_results
             WHERE symbol = ?
         """
@@ -227,14 +195,13 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             rows = connection.execute(query, parameters).fetchall()
 
-        return tuple(self._to_record(row, symbol) for row in rows)
+        return tuple(self._to_record(row) for row in rows)
 
     @staticmethod
     def _to_record(
-        row: tuple[str, str | None, str],
-        symbol: str | None = None,
+        row: tuple[str, str, str | None, str],
     ) -> AnalysisResultRecord:
-        snapshot_id, analysis_date_value, payload = row
+        snapshot_id, symbol, analysis_date_value, payload = row
         return AnalysisResultRecord(
             result=deserialize_analysis_result(payload),
             analysis_date=(
