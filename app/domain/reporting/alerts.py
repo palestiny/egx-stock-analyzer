@@ -12,6 +12,7 @@ class AlertCandidate:
     classification: OpportunityClassification
     stock_quality_score: int
     entry_quality_score: int
+    snapshot_id: UUID | None = None
 
 
 class AlertGenerator:
@@ -21,12 +22,14 @@ class AlertGenerator:
         stock_quality: StockQualityScore,
         entry_quality: EntryQualityScore,
         classification: OpportunityClassification,
+        snapshot_id: UUID | None = None,
     ) -> AlertCandidate | None:
         if classification is not OpportunityClassification.BUY:
             return None
 
         return AlertCandidate(
             stock_id=stock_id,
+            snapshot_id=snapshot_id,
             classification=classification,
             stock_quality_score=stock_quality.total_score,
             entry_quality_score=entry_quality.total_score,
