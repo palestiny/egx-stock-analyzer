@@ -85,3 +85,21 @@ def test_get_analysis_returns_transport_dto():
         "entry_quality": 13,
         "opportunity": "watch",
     }
+
+
+def test_post_analysis_runs_application_capability_and_returns_result():
+    store = InMemoryAnalysisResultStore()
+    store.save("EGAL", make_result())
+
+    class SuccessfulRunner:
+        def execute(self, symbol, as_of):
+            assert symbol == "EGAL"
+
+    app = create_app(store, SuccessfulRunner())
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/analysis/EGAL")
+
+    assert response.status_code == 200
+    assert response.json()["symbol"] == "EGAL"
+    assert response.json()["opportunity"] == "watch"
