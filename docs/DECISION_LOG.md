@@ -1245,3 +1245,72 @@ from GitHub before implementing new work.
 
 The goal is to ensure that development continues from the documented state
 rather than relying on memory or conversation history.
+
+
+## DEC-020 — Exclude Invalid External Observations When Sufficient Valid Data Remains
+
+**Status:** Accepted
+
+### Context
+
+A real EGX vertical-slice run exposed an OHLC inconsistency in Yahoo Finance data for EGAL.CA. The provider returned an observation where the low price was above the open price.
+
+The existing data-quality model correctly classified the observation as invalid, but the assembler rejected the entire market-data window.
+
+### Decision
+
+Invalid or suspect external observations are excluded from the analysis input rather than causing the entire dataset to be rejected.
+
+Analysis may continue only when the remaining valid observations satisfy the minimum data requirement of the analysis policy.
+
+The minimum number of PriceBars is:
+
+    max(momentum_lookback, volume_lookback) + 1
+
+The system does not repair or rewrite provider values.
+
+### Alternatives Considered
+
+#### Reject the Entire Dataset
+
+Rejected because one provider anomaly can unnecessarily block analysis of otherwise usable historical data.
+
+#### Repair the Invalid Observation
+
+Rejected because the system would be inventing market data and could silently alter the provider's observation.
+
+#### Exclude Invalid Observations and Continue
+
+Accepted because it preserves the raw-observation/quality distinction while preventing one isolated external anomaly from contaminating analysis.
+
+### Trade-offs
+
+Advantages:
+
+- resilient to isolated provider anomalies
+- preserves strict quality rules
+- avoids silently modifying source data
+- keeps downstream analysis working when sufficient evidence remains
+
+Trade-offs:
+
+- the analysis input may contain fewer observations than the provider returned
+- excessive invalid observations will still block analysis
+- the current implementation reports rejection counts through the failure message but does not yet persist a quality report
+
+### Consequences
+
+`AnalysisInputAssembler` is responsible for applying the analysis-eligibility decision after `DataQualityAssessor` evaluates observations.
+
+`PriceBarFactory` continues to accept only `VALID` observations.
+
+No OHLC quality rule is weakened to accommodate a provider response.
+
+### Revisit Conditions
+
+Revisit this decision if:
+
+- downstream indicators require more sophisticated data sufficiency rules
+- quality reporting becomes a first-class domain capability
+- multiple providers are reconciled
+- invalid-data rates become high enough to require provider-level handling
