@@ -51,7 +51,7 @@ describe("Dashboard", () => {
     expect(getReport).toHaveBeenCalledWith("EGAL");
     expect(getAlert).toHaveBeenCalledWith("EGAL");
     expect(screen.getByText(/Current price:\s*350\.5/)).toBeInTheDocument();
-    expect(screen.getByText("BUY")).toBeInTheDocument();
+    expect(screen.getByText(/Classification:\s*BUY/)).toBeInTheDocument();
   });
 
   it("shows a loading state while the report request is pending", async () => {
