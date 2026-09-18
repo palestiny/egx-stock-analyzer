@@ -128,9 +128,21 @@ The following remain outside this gate:
 - authentication/authorization
 - production observability
 
-## 8. Next Implementation Gate
+## 8. Prerequisite Implementation Status
 
-Before adding the two endpoints, define the application-level stored-analysis metadata needed to preserve the real analysis period.
+The analysis period prerequisite is now implemented in the application layer:
+
+- `AnalysisResultRecord` preserves `StockAnalysisResult` plus `analysis_date`.
+- `RunStockAnalysis` passes its `as_of` date into the analysis execution.
+- `InMemoryAnalysisResultStore` exposes the stored record without breaking the existing `get()` contract.
+- `GetAnalysisReport` composes the existing M11 `AnalysisReport` from the stored result and preserved analysis date.
+- Report composition returns no report when the result has no preserved analysis date, avoiding invented freshness semantics.
+
+Contract tests were added for unknown stock, missing result, preserved analysis date, and legacy results without an analysis date.
+
+## 9. Next Implementation Gate
+
+Before adding the HTTP report endpoint, define the report transport DTO explicitly. The DTO must expose presentation-safe fields without leaking domain objects or moving report semantics into FastAPI.
 
 Acceptance criteria for that prerequisite:
 
