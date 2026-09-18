@@ -23,6 +23,8 @@ class RunStockAnalysis:
         result = self._daily_analysis.run([analysis_input])
 
         if result.execution.state is not ExecutionState.COMPLETED:
+            reason = result.execution.failure_reasons.get(stock.symbol)
+            detail = f": {reason}" if reason else ""
             raise RuntimeError(
-                f"Stock analysis did not complete successfully: {result.execution.state}"
+                f"Stock analysis did not complete successfully: {result.execution.state}{detail}"
             )
