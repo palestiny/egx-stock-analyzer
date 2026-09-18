@@ -105,7 +105,8 @@ The implementation must include:
 7. report projection works from a persisted result;
 8. alert projection works from a persisted result;
 9. existing in-memory store tests remain unchanged;
-10. integration coverage verifies analysis → persistent store → report/alert read-side flow.\n11. API-level integration coverage verifies report and alert projections after SQLite store recreation.
+10. integration coverage verifies analysis → persistent store → report/alert read-side flow;
+11. API-level integration coverage verifies report and alert projections after SQLite store recreation.
 
 ## Non-Goals
 
@@ -128,6 +129,7 @@ This MVP does not introduce:
 ### SQLite + explicit JSON-style serialization
 
 Advantages:
+
 - simple deployment;
 - explicit persistence contract;
 - low dependency count;
@@ -135,6 +137,7 @@ Advantages:
 - clear path to later storage replacement.
 
 Costs:
+
 - serializer maintenance is required as domain result types evolve;
 - the MVP is not optimized for analytical querying inside the stored payload;
 - SQLite is not being selected as a universal future scaling solution.
@@ -158,7 +161,6 @@ The local application can restart and still serve the latest completed analysis 
 ## Revisit Conditions
 
 Revisit the storage technology when deployment topology, concurrency, data volume, query requirements, or operational requirements exceed the SQLite MVP's intended scope.
-
 
 ## Development Inspection Tool
 
