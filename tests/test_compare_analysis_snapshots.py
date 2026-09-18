@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -97,7 +98,7 @@ def test_missing_snapshot_is_rejected():
     stock = Stock.create("EGAL", "Egypt Aluminum")
     store, use_case = build_use_case([stock])
     with pytest.raises(AnalysisSnapshotNotFoundError):
-        use_case.execute("EGAL", stock.id, stock.id)
+        use_case.execute("EGAL", uuid4(), uuid4())
 
 
 def test_cross_symbol_snapshot_is_rejected():
