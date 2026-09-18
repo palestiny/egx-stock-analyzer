@@ -1,21 +1,9 @@
-from dataclasses import dataclass
-from enum import Enum
 from uuid import UUID
 
-
-class AlertDeliveryStatus(Enum):
-    PENDING = "pending"
-    DELIVERED = "delivered"
-    FAILED = "failed"
-
-
-@dataclass(frozen=True)
-class AlertDeliveryRecord:
-    stock_id: UUID
-    snapshot_id: UUID
-    channel: str
-    status: AlertDeliveryStatus
-    last_error: str | None = None
+from app.application.notifications.delivery_store import (
+    AlertDeliveryRecord,
+    AlertDeliveryStatus,
+)
 
 
 class InMemoryAlertDeliveryStore:
@@ -37,13 +25,30 @@ class InMemoryAlertDeliveryStore:
     def mark_delivered(self, stock_id: UUID, snapshot_id: UUID, channel: str) -> AlertDeliveryRecord:
         key = (stock_id, snapshot_id, channel)
         current = self._records[key]
-        record = AlertDeliveryRecord(current.stock_id, current.snapshot_id, current.channel, AlertDeliveryStatus.DELIVERED)
+        record = AlertDeliveryRecord(
+            current.stock_id,
+            current.snapshot_id,
+            current.channel,
+            AlertDeliveryStatus.DELIVERED,
+        )
         self._records[key] = record
         return record
 
-    def mark_failed(self, stock_id: UUID, snapshot_id: UUID, channel: str, error: str) -> AlertDeliveryRecord:
+    def mark_failed(
+        self,
+        stock_id: UUID,
+        snapshot_id: UUID,
+        channel: str,
+        error: str,
+    ) -> AlertDeliveryRecord:
         key = (stock_id, snapshot_id, channel)
         current = self._records[key]
-        record = AlertDeliveryRecord(current.stock_id, current.snapshot_id, current.channel, AlertDeliveryStatus.FAILED, error)
+        record = AlertDeliveryRecord(
+            current.stock_id,
+            current.snapshot_id,
+            current.channel,
+            AlertDeliveryStatus.FAILED,
+            error,
+        )
         self._records[key] = record
         return record
