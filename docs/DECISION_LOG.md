@@ -1797,12 +1797,12 @@ See `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`.
 
 ## DEC-080 — M21 Historical Analysis View
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18
 
-M21 opens a design gate for exposing the immutable historical analysis snapshots introduced by M20 through a read-only application/API/dashboard boundary.
+M21 exposes the immutable historical analysis snapshots introduced by M20 through a read-only application/API/dashboard boundary.
 
-The current candidate is a dedicated `GetAnalysisHistory` application use case behind `GET /api/v1/history/{symbol}`, with optional date bounds. The endpoint must never execute fresh analysis, and the dashboard must render stored snapshots without duplicating analytical logic.
+The accepted contract uses a dedicated `GetAnalysisHistory` application use case behind `GET /api/v1/history/{symbol}`, with inclusive optional date bounds. Unknown symbols return 404; known symbols with no history return an empty collection. The endpoint never executes fresh analysis, and the dashboard renders stored snapshots without duplicating analytical logic.
 
 The gate intentionally defers historical ranking, performance analytics, change detection, charting, notifications, watchlists, portfolio/trading behavior, persistence changes, and AI analysis.
 
