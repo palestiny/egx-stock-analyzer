@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
-
 from app.domain.reporting.report import AnalysisReport
 
 
@@ -15,9 +13,9 @@ class AnalysisReportResponse:
     stock_quality: int
     entry_quality: int
     opportunity: str
-    current_price: Decimal | None
-    nearest_support: Decimal | None
-    nearest_resistance: Decimal | None
+    current_price: float | None
+    nearest_support: float | None
+    nearest_resistance: float | None
     trend: str
     momentum: str
     volume: str
@@ -36,9 +34,9 @@ class AnalysisReportResponse:
             stock_quality=report.stock_quality.total_score,
             entry_quality=report.entry_quality.total_score,
             opportunity=report.classification.classification.value,
-            current_price=(report.entry_context.current_price.value if report.entry_context.current_price else None),
-            nearest_support=(report.entry_context.nearest_support.price.value if report.entry_context.nearest_support else None),
-            nearest_resistance=(report.entry_context.nearest_resistance.price.value if report.entry_context.nearest_resistance else None),
+            current_price=(float(report.entry_context.current_price.value) if report.entry_context.current_price else None),
+            nearest_support=(float(report.entry_context.nearest_support.price.value) if report.entry_context.nearest_support else None),
+            nearest_resistance=(float(report.entry_context.nearest_resistance.price.value) if report.entry_context.nearest_resistance else None),
             trend=report.technical_analysis.trend.status.value,
             momentum=report.technical_analysis.momentum.status.value,
             volume=report.technical_analysis.volume.status.value,
