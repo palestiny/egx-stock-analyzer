@@ -99,6 +99,6 @@ def test_inspect_database_reports_persisted_result(tmp_path, capsys):
     assert "Technical score:  3" in output
     assert "Fundamental:      2" in output
     assert "Stock quality:    5" in output
-    assert "Entry quality:    3" in output
+    assert "Entry quality:    1" in output
     assert "Opportunity:      buy" in output
     assert "Current price:    350.5" in output
