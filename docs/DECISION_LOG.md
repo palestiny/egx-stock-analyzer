@@ -1871,3 +1871,15 @@ Missing current prices produce unavailable performance metrics. A zero before pr
 M23 does not execute fresh analysis, mutate or persist derived metrics, change scoring/classification, include dividends, costs, benchmarks, risk-adjusted returns, portfolio semantics, or predictive interpretation.
 
 See `docs/DEC-082-M23-HISTORICAL-PERFORMANCE-ANALYTICS-DESIGN-GATE.md`.
+
+
+## DEC-083 — M24 Historical Analysis Change Detection
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M24 introduces a read-only `DetectAnalysisChanges` application capability over the existing M22 snapshot-comparison boundary. It detects descriptive changes in classification, analytical scores, current price, support, and resistance using deterministic dimension ordering.
+
+The capability reuses M22 snapshot validation, treats optional-value availability transitions as changes, persists nothing, and introduces no significance thresholds or notification delivery. It does not interpret changes as favorable/unfavorable or actionable.
+
+See `docs/DEC-083-M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-DESIGN-GATE.md`.
