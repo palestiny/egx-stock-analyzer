@@ -5,6 +5,7 @@ from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.execution.retry import RetryPolicy
+from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.stocks.catalog import StockCatalog
 
 
@@ -12,6 +13,7 @@ from app.application.stocks.catalog import StockCatalog
 class StockAnalysisRuntime:
     run_by_symbol: RunStockAnalysisBySymbol
     run_stock_analysis: RunStockAnalysis
+    get_analysis_report: GetAnalysisReport
     result_store: AnalysisResultStore
 
 
@@ -30,9 +32,14 @@ def create_stock_analysis_runtime(
         stock_catalog=stock_catalog,
         run_stock_analysis=run_stock_analysis,
     )
+    get_analysis_report = GetAnalysisReport(
+        stock_catalog=stock_catalog,
+        result_store=result_store,
+    )
 
     return StockAnalysisRuntime(
         run_by_symbol=run_by_symbol,
         run_stock_analysis=run_stock_analysis,
+        get_analysis_report=get_analysis_report,
         result_store=result_store,
     )
