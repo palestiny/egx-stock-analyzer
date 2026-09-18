@@ -1660,7 +1660,7 @@ The analysis result store was initially in-memory, which was suitable for contro
 
 Durable state must preserve the existing analysis result and analysis date required by the report and alert read-side projections. Persistence remains behind the application-facing `AnalysisResultStore` contract, and domain/application code must not depend directly on a database library.
 
-The next gate must define the concrete persistence technology, storage model, serialization, adapter responsibilities, migrations/versioning, transaction semantics, failure behavior, testing, and local development setup. No database dependency is introduced by this decision alone.
+DEC-072 has completed that next gate: SQLite is the selected concrete technology, with an explicit serializer, infrastructure adapter, transactional writes, versioned payloads, failure behavior, tests, and local development inspection tooling. Further persistence evolution remains subject to separate design gates.
 
 See `docs/DEC-071-M13-DURABLE-ANALYSIS-STATE-BOUNDARY.md`.
 
