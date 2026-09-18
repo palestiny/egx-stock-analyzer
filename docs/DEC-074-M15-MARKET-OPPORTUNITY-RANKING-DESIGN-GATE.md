@@ -1,6 +1,6 @@
 # DEC-074 — M15 Market Opportunity Ranking Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18  
 **Milestone:** M15 — Market Opportunity Ranking
 
@@ -81,19 +81,86 @@ Candidate: RankMarketOpportunities. This introduces an explicit application boun
 
 Would make a stock-level domain classification depend on other stocks, violating the existing stock-local analytical boundary.
 
-## Open Questions
+## Accepted Decisions
 
-1. Which opportunity classifications are rankable?
-2. What is the primary ranking measure?
-3. Should Stock Quality and Entry Quality be separate ranking dimensions or supporting evidence only?
-4. How should technical/fundamental status affect eligibility?
-5. How should equal primary scores be ordered?
-6. What is the deterministic final tie-breaker?
-7. Should failed M14 symbols be absent from ranking or represented explicitly?
-8. Should ranking consume raw StockAnalysisResult objects or a narrower ranking input model?
-9. Should ranking return only eligible opportunities or a complete ordered market view?
-10. Does M15 need a market-run identifier, or can it remain a pure function over supplied results?
+### 1. Rankable Classifications
 
+M15 ranks only BUY and WATCH results. HOLD and AVOID remain part of supplied analytical results but are not included in the opportunity set.
+
+This keeps the ranking focused on attention states already defined by the stock-level classifier rather than inventing a second classification system.
+
+### 2. Primary Ranking Measure
+
+The primary ranking measure is StockQualityScore.total_score.
+
+No new aggregate opportunity score is introduced in M15. The existing stock-quality score is already an explicit composite of technical and fundamental scores.
+
+### 3. Secondary Ranking Measure
+
+EntryQualityScore.total_score is the second ranking dimension.
+
+This preserves the project's distinction between stock quality and entry quality instead of collapsing them into a new opaque number.
+
+### 4. Additional Tie-Breaking Evidence
+
+If stock quality and entry quality are equal, use:
+
+1. technical score descending;
+2. fundamental score descending;
+3. symbol ascending.
+
+The final symbol ordering makes the result deterministic even when all numerical values are equal.
+
+### 5. Technical/Fundamental Status
+
+M15 does not add a separate eligibility rule based on technical/fundamental status fields. Existing OpportunityClassification remains the source of eligibility.
+
+### 6. Failed and Missing Results
+
+Failed M14 executions and missing analytical results are excluded from the ranked opportunity set. They are not converted into zero scores or synthetic results.
+
+The ranking input contract therefore receives only completed StockAnalysisResult records. Callers that need failure reporting continue to use M14 execution outcomes.
+
+### 7. Ranking Input Model
+
+The ranking capability accepts a narrow immutable input containing the stock symbol and its StockAnalysisResult, rather than depending on the full market execution object.
+
+### 8. Output Shape
+
+M15 returns an immutable ordered opportunity collection containing symbol plus the original StockAnalysisResult. The source analytical result is not mutated or recalculated.
+
+### 9. Market Run Identity
+
+M15 remains a pure composition over supplied results. It does not require a market-run identifier and does not persist rankings.
+
+### 10. Duplicate Symbols
+
+Duplicate normalized symbols are rejected before ranking because they make the output ambiguous.
+
+## Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M15 MVP defined here.**
+
+Application boundary:
+
+Market Analysis → Completed Results → RankMarketOpportunities → Ordered Opportunity Set
+
+The ranking capability owns only cross-stock ordering and eligibility selection. It does not own analysis, scoring, persistence, API transport, dashboard rendering, notifications, or trading decisions.
+
+## TDD Acceptance Criteria
+
+- empty input returns an empty immutable opportunity set;
+- BUY and WATCH results are included;
+- HOLD and AVOID results are excluded;
+- stock quality orders opportunities first;
+- entry quality breaks stock-quality ties;
+- technical score breaks the next tie;
+- fundamental score breaks the next tie;
+- symbol ascending is the final deterministic tie-breaker;
+- duplicate normalized symbols are rejected;
+- source StockAnalysisResult objects are preserved without mutation;
+- ranking performs no analytical recalculation;
+- missing/failed results are represented by omission from the ranking input rather than synthetic scores.
 ## Design Constraints
 
 1. Stock-level analytical rules remain unchanged.
