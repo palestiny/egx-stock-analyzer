@@ -63,3 +63,23 @@ def test_run_stock_analysis_assembles_runs_and_stores_result():
 
     assert assembler.calls == [(stock, date(2026, 9, 16))]
     assert store.get("EGAL") is expected_result
+
+
+def test_run_stock_analysis_includes_failure_reason():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    assembler = FakeInputAssembler(make_input(stock))
+    store = InMemoryAnalysisResultStore()
+
+    with patch(
+        "app.application.analysis.daily_market_analysis.StockAnalysisPipeline.analyze",
+        side_effect=ValueError("invalid analysis input"),
+    ):
+        try:
+            RunStockAnalysis(assembler, store, RetryPolicy(1)).execute(
+                stock,
+                date(2026, 9, 16),
+            )
+        except RuntimeError as error:
+            assert "invalid analysis input" in str(error)
+        else:
+            raise AssertionError("Expected RuntimeError")
