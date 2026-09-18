@@ -30,6 +30,7 @@ class FakeApplicationRuntime:
 
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
+        self.deliver_alert_by_symbol = object()
         self.application_runtime = FakeApplicationRuntime(
             result_store,
             run_by_symbol=object(),

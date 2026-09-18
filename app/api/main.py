@@ -9,6 +9,7 @@ from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
+from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
@@ -33,6 +34,10 @@ from app.application.analysis.run_stock_analysis_by_symbol import (
     UnknownStockSymbolError,
 )
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
+from app.application.notifications.deliver_alert_by_symbol import (
+    AlertCandidateNotFoundError,
+    DeliverAlertBySymbol,
+)
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 
 logger = logging.getLogger(__name__)
@@ -48,6 +53,7 @@ def create_app(
     get_analysis_history: GetAnalysisHistory | None = None,
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
     calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
+    deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -207,6 +213,21 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
+    @app.post("/api/v1/alerts/{symbol}/deliver")
+    def deliver_alert(symbol: str, channel: str) -> dict[str, object]:
+        if deliver_alert_by_symbol is None:
+            raise HTTPException(status_code=503, detail="Alert delivery is not configured")
+
+        try:
+            record = deliver_alert_by_symbol.execute(symbol, channel)
+        except AlertCandidateNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        response = AlertDeliveryResponse.from_record(record)
+        return asdict(response)
+
     @app.get("/api/v1/alerts/{symbol}")
     def get_alert(symbol: str) -> dict[str, object]:
         if get_alert_candidate is None:
