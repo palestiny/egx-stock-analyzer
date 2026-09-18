@@ -1920,13 +1920,13 @@ See `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`.
 
 ## DEC-086 — M27 Alert Delivery Trigger & Transport Boundary
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
 M27 opens a design gate for an explicit application/API trigger for delivering an existing `AlertCandidate` through the M25 provider-neutral delivery capability and the M26 Telegram provider.
 
-The proposed direction is a dedicated delivery command boundary using POST semantics. GET alert remains read-only. Delivery must never execute fresh analysis or recalculate alert eligibility, and M25 idempotency/durable delivery state remains authoritative.
+The accepted MVP uses `POST /api/v1/alerts/{symbol}/deliver?channel=telegram`. The trigger resolves the candidate through `GetAlertCandidate`, delegates delivery to `DeliverAlert`, and keeps Telegram-specific behavior behind the existing provider boundary.
 
-The gate must resolve candidate lookup, channel selection, missing-candidate behavior, provider-unavailable behavior, delivery-failure mapping, idempotent repeat behavior, and exact API scope before implementation.
+No candidate maps to 404; unconfigured delivery maps to 503; persisted delivery failures are returned as explicit FAILED outcomes with HTTP 200; repeated successful delivery remains idempotent. Delivery never executes fresh analysis or recalculates alert eligibility.
 
 See `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`.
