@@ -129,7 +129,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
-| M29 | Scheduled Automatic Alert Delivery | 🟡 Design Accepted | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
+| M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -915,7 +915,39 @@ The next capability requires a separate design gate.
 
 ## Status
 
-The M29 design gate is **accepted** in `docs/DEC-088-M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-DESIGN-GATE.md`. Implementation is the next controlled step.
+M29 is **complete**. The accepted design is documented in `docs/DEC-088-M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-DESIGN-GATE.md`, and the implementation was merged through the scheduled automatic-delivery workflow PR.
+
+Completion record: `docs/M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-MVP-COMPLETION.md`.
+
+The implementation head `11a4fbbb4c71e9bf69509bf034b046c48277fba9` passed GitHub Actions Run #823 before merge. The merge commit is `6ca0f2f653aa13cd37e96d0b3b13aa3c9828566e`.
+
+### Accepted boundary
+
+```
+Recurring Scheduler
+        ↓
+RunConfiguredMarketAnalysisWithAutomaticAlertDelivery
+        ↓
+RunConfiguredMarketAnalysis
+        ↓
+RunMarketAnalysis
+        ↓
+RunStockAnalysis
+
+RunConfiguredMarketAnalysisWithAutomaticAlertDelivery
+        ↓
+AutomaticAlertDelivery
+        ↓
+DeliverAlert
+        ↓
+NotificationProvider
+```
+
+The workflow invokes automatic delivery for `COMPLETED` and `COMPLETED_WITH_ERRORS` analysis executions and skips delivery for `FAILED` executions. Analysis and delivery outcomes remain independent.
+
+Manual configured-market analysis remains analysis-only.
+
+Deferred: independent delivery schedules, asynchronous delivery, queues/workers, provider retry, multiple channels, user-specific schedules, durable workflow state, and distributed coordination.
 
 ### Accepted boundary
 
