@@ -128,6 +128,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
 | M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
+| M28 | Automatic Alert Delivery Policy | 🟡 Design Proposed | Define when completed analysis should automatically deliver existing alert candidates |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -185,6 +186,8 @@ M25 — Alert Delivery & Notification Boundary
 M26 — External Notification Provider Integration
         ↓
 M27 — Alert Delivery Trigger & Transport Boundary
+        ↓
+M28 — Automatic Alert Delivery Policy
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -875,6 +878,18 @@ GitHub Actions Run #730 completed successfully for implementation head `396383e9
 Completion record: `docs/M27-ALERT-DELIVERY-TRIGGER-MVP-COMPLETION.md`.
 
 Deferred: automatic delivery after analysis, bulk delivery, multi-channel fan-out, failed-delivery retry, queues/workers, scheduled delivery, user preferences, delivery analytics, trading execution, and AI notification decisions.
+
+---
+
+# 28. M28 — Automatic Alert Delivery Policy
+
+## Status
+
+The M28 design gate is **proposed** in `docs/DEC-087-M28-AUTOMATIC-ALERT-DELIVERY-POLICY-DESIGN-GATE.md`. Implementation is not authorized yet.
+
+M28 addresses the remaining gap between completed analysis and explicit alert delivery. The capability must consume existing alert candidates and delegate delivery to M25 without embedding notification side effects into analysis.
+
+Open questions cover trigger input, candidate eligibility, channel configuration, deterministic ordering, failure isolation, aggregate delivery semantics, persistence scope, retry behavior, trigger coupling, and idempotency.
 
 ---
 
