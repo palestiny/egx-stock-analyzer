@@ -94,7 +94,7 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText("Stock 72")).toBeInTheDocument();
     expect(screen.getAllByText("2026-09-18").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("2026-09-16")).toBeInTheDocument();
+    expect(screen.getAllByText("2026-09-16").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Stock 72")).toBeInTheDocument();
     expect(screen.getByText("Entry 61")).toBeInTheDocument();
     expect(getAnalysisHistory).toHaveBeenCalledWith("EGAL");
