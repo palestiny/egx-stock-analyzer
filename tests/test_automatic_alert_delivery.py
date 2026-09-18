@@ -53,7 +53,8 @@ def failed(reason="provider unavailable"):
 
 
 def test_no_candidates_is_completed_no_op():
-    get_candidate = Mock(return_value=None)
+    get_candidate = Mock()
+    get_candidate.execute.return_value = None
     deliver = Mock()
     policy = AutomaticAlertDelivery(get_candidate, deliver)
 
@@ -68,7 +69,8 @@ def test_no_candidates_is_completed_no_op():
 
 
 def test_multiple_candidates_are_delivered_in_deterministic_symbol_order():
-    get_candidate = Mock(side_effect=lambda symbol: make_candidate())
+    get_candidate = Mock()
+    get_candidate.execute.side_effect = lambda symbol: make_candidate()
     deliver = Mock()
     deliver.execute.side_effect = lambda candidate, channel: delivered()
     policy = AutomaticAlertDelivery(get_candidate, deliver)
@@ -76,7 +78,7 @@ def test_multiple_candidates_are_delivered_in_deterministic_symbol_order():
     result = policy.execute(make_execution("SVCE", "EGAL", "IEEC"))
 
     assert result.state is AutomaticAlertDeliveryState.COMPLETED
-    assert [call.args[0] for call in get_candidate.call_args_list] == ["EGAL", "IEEC", "SVCE"]
+    assert [call.args[0] for call in get_candidate.execute.call_args_list] == ["EGAL", "IEEC", "SVCE"]
     assert deliver.execute.call_count == 3
 
 
@@ -97,7 +99,8 @@ def test_one_delivery_failure_does_not_stop_later_candidates():
 
 
 def test_all_delivery_failures_return_failed():
-    get_candidate = Mock(return_value=make_candidate())
+    get_candidate = Mock()
+    get_candidate.execute.return_value = make_candidate()
     deliver = Mock()
     deliver.execute.return_value = failed("telegram failed")
     policy = AutomaticAlertDelivery(get_candidate, deliver)
@@ -116,7 +119,8 @@ def test_all_delivery_failures_return_failed():
 
 def test_repeated_execution_delegates_idempotency_to_deliver_alert():
     candidate = make_candidate()
-    get_candidate = Mock(return_value=candidate)
+    get_candidate = Mock()
+    get_candidate.execute.return_value = candidate
     deliver = Mock()
     deliver.execute.return_value = delivered()
     policy = AutomaticAlertDelivery(get_candidate, deliver)
@@ -125,7 +129,7 @@ def test_repeated_execution_delegates_idempotency_to_deliver_alert():
     policy.execute(execution)
     policy.execute(execution)
 
-    assert deliver.call_count == 2
+    assert deliver.execute.call_count == 2
     assert all(call.args[1] == "telegram" for call in deliver.execute.call_args_list)
 
 
