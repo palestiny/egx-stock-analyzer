@@ -1,3 +1,4 @@
+import json
 from uuid import uuid4
 
 import httpx
@@ -40,8 +41,9 @@ def test_telegram_provider_sends_expected_request():
     request = requests[0]
     assert request.method == "POST"
     assert request.url.path == f"/bot{TOKEN}/sendMessage"
-    assert request.json()["chat_id"] == CHAT_ID
-    assert "Classification: buy" in request.json()["text"]
+    payload = json.loads(request.content)
+    assert payload["chat_id"] == CHAT_ID
+    assert "Classification: buy" in payload["text"]
 
 
 def test_telegram_provider_rejects_unsupported_channel():
