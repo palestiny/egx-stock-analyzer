@@ -1976,3 +1976,19 @@ No new aggregate delivery persistence schema is introduced. Repeated runs reuse 
 ### Revisit Conditions
 
 Revisit when automatic delivery needs asynchronous processing, user-specific preferences, multiple channels, provider retries, or delivery scheduling policy.
+
+
+## DEC-088 — M29 Scheduled Automatic Alert Delivery
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M29 connects recurring configured-market analysis to the existing M28 automatic alert-delivery capability through a dedicated application workflow. The workflow runs configured-market analysis first, then passes the returned analysis Execution unchanged to M28.
+
+If analysis returns COMPLETED, COMPLETED_WITH_ERRORS, or FAILED, delivery is still invoked so M28 can process any successful symbols recorded in the execution. If analysis raises before returning an Execution, delivery is not invoked.
+
+The workflow returns independent analysis and delivery outcomes. Delivery failure never changes analysis execution state. The scheduler remains responsible only for timing and recurrence; it does not inspect alert candidates, delivery state, or provider behavior.
+
+Manual market analysis remains analysis-only. No new retry, idempotency, persistence, provider, or concurrency mechanism is introduced.
+
+See `docs/DEC-088-M29-SCHEDULED-AUTOMATIC-ALERT-DELIVERY-DESIGN-GATE.md`.
