@@ -1883,3 +1883,17 @@ M24 introduces a read-only `DetectAnalysisChanges` application capability over t
 The capability reuses M22 snapshot validation, treats optional-value availability transitions as changes, persists nothing, and introduces no significance thresholds or notification delivery. It does not interpret changes as favorable/unfavorable or actionable.
 
 See `docs/DEC-083-M24-HISTORICAL-ANALYSIS-CHANGE-DETECTION-DESIGN-GATE.md`.
+
+
+## DEC-084 — M25 Alert Delivery & Notification Boundary
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M25 opens a design gate for delivering existing AlertCandidate objects through a provider-neutral notification boundary. The proposed direction is a dedicated DeliverAlert application capability with delivery-state persistence and idempotency based on the existing analysis snapshot identity.
+
+AnalysisResultRecord already exposes snapshot_id, but AlertCandidate must carry that identity before delivery implementation. Notification delivery must not recalculate analytical scores or classification and must not make analytical success depend on provider availability.
+
+The first implementation is proposed to be synchronous and sequential, with provider-specific integrations behind infrastructure adapters. Provider retry/backoff and queue-based delivery are deferred.
+
+See docs/DEC-084-M25-ALERT-DELIVERY-DESIGN-GATE.md.
