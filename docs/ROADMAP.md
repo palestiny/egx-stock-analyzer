@@ -126,7 +126,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M23 | Historical Performance Analytics | 🟢 Complete | Calculate and present descriptive price-change metrics between two persisted snapshots without predicting future performance |
 | M24 | Historical Analysis Change Detection | 🟢 Complete | Detect descriptive changes between two persisted analysis snapshots through a reusable read-side capability |
 | M25 | Alert Delivery & Notification Boundary | 🟢 Complete | Deliver existing alert candidates through a provider-neutral, durable, idempotent synchronous boundary |
-| M26 | External Notification Provider Integration | 🟡 Design Proposed | Select and integrate the first concrete notification provider behind the M25 provider boundary |
+| M26 | External Notification Provider Integration | 🟢 Complete | Integrate Telegram as the first concrete provider behind the M25 notification boundary |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -182,6 +182,8 @@ M24 — Historical Analysis Change Detection
 M25 — Alert Delivery & Notification Boundary
         ↓
 M26 — External Notification Provider Integration
+        ↓
+M27 — Alert Delivery Trigger & Transport Boundary
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -810,15 +812,40 @@ Deferred capabilities remain subject to separate design gates.
 
 ## Status
 
-M26 design is **accepted** in `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
+M26 is **complete**. The accepted design is documented in `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`, and the implementation was merged through PR #41.
 
-The accepted provider is Telegram Bot API behind the existing M25 `NotificationProvider` boundary. Configuration is infrastructure-only, the synchronous request timeout is 10 seconds, automatic provider retry is deferred, and deterministic CI remains independent of live Telegram delivery.
+Telegram Bot API is integrated behind the existing M25 `NotificationProvider` boundary. Configuration is infrastructure-only, the synchronous request timeout is 10 seconds, no automatic provider retry was added, and deterministic provider tests use an HTTP fake transport.
 
-Deferred from M26: multiple providers, user preferences, notification analytics, queues/workers, distributed delivery, scheduling policy, alert-generation changes, trading execution, and AI notification decisions.
+Completion record: `docs/M26-EXTERNAL-NOTIFICATION-PROVIDER-MVP-COMPLETION.md`.
+
+The implementation does not expose provider credentials, change analytical behavior, or make analysis success depend on notification availability.
+
+Deferred from M26: delivery trigger/API, automatic delivery after analysis, multiple providers, user preferences, notification analytics, queues/workers, distributed delivery, scheduling policy, alert-generation changes, trading execution, and AI notification decisions.
 
 ---
 
-# 27. Cross-Cutting Requirements
+# 27. M27 — Alert Delivery Trigger & Transport Boundary
+
+## Status
+
+The M27 design gate is **proposed** in `docs/DEC-086-M27-ALERT-DELIVERY-TRIGGER-DESIGN-GATE.md`. Implementation is not authorized yet.
+
+The next capability will define an explicit application/API command for delivering an existing alert candidate through M25 `DeliverAlert` and the M26 provider boundary.
+
+The gate preserves these constraints:
+
+- delivery is an explicit side effect, not a GET operation;
+- delivery never triggers fresh analysis;
+- delivery never recalculates alert eligibility or analytical scores;
+- M25 idempotency and durable delivery state remain authoritative;
+- provider-specific concepts remain outside application/API contracts;
+- M27 MVP is single-alert, synchronous, and sequential.
+
+Open questions and TDD acceptance criteria are recorded in DEC-086.
+
+---
+
+# 28. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -852,7 +879,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 28. Milestone Completion Rule
+# 29. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -878,7 +905,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 29. Changing the Roadmap
+# 30. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -888,6 +915,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 30. Guiding Principle
+# 31. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
