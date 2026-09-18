@@ -64,7 +64,6 @@ def create_development_application_from_environment(
     )
 
 
-# Temporary safe composition for the API-only development entry point.
-# Infrastructure dependencies are intentionally not constructed at import time.
-result_store = InMemoryAnalysisResultStore()
-app = create_app(result_store)
+# Default development entry point uses the full infrastructure composition so local
+# API/dashboard runs exercise the same durable SQLite result store as the runtime.
+app = create_development_application_from_environment()
