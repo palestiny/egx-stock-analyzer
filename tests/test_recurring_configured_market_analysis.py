@@ -139,7 +139,7 @@ def test_missed_occurrence_is_skipped_and_next_future_occurrence_is_registered()
 
 
 def test_same_occurrence_cannot_execute_twice():
-    clock = FakeClock(datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO))
+    clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
     recurring = RecurringConfiguredMarketAnalysis(
@@ -150,6 +150,7 @@ def test_same_occurrence_cannot_execute_twice():
     )
 
     recurring.start()
+    clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     operation = scheduler.scheduled[0][1]
     operation()
     operation()
@@ -158,7 +159,7 @@ def test_same_occurrence_cannot_execute_twice():
 
 
 def test_failed_occurrence_does_not_disable_future_recurrence():
-    clock = FakeClock(datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO))
+    clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
     capability.execute.side_effect = RuntimeError("analysis failed")
@@ -170,6 +171,7 @@ def test_failed_occurrence_does_not_disable_future_recurrence():
     )
 
     recurring.start()
+    clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     operation = scheduler.scheduled[0][1]
 
     with pytest.raises(RuntimeError, match="analysis failed"):
@@ -182,7 +184,7 @@ def test_failed_occurrence_does_not_disable_future_recurrence():
 
 
 def test_overlapping_occurrence_is_not_started_concurrently():
-    clock = FakeClock(datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO))
+    clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
     capability = Mock()
     recurring = RecurringConfiguredMarketAnalysis(
@@ -193,6 +195,7 @@ def test_overlapping_occurrence_is_not_started_concurrently():
     )
 
     recurring.start()
+    clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     operation = scheduler.scheduled[0][1]
 
     def execute(_as_of):
