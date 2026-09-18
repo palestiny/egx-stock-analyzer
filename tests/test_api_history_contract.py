@@ -24,6 +24,8 @@ def make_result(score: int):
             liquidity=SimpleNamespace(status=SimpleNamespace(value="above_one")),
             growth=SimpleNamespace(status=SimpleNamespace(value="positive")),
         ),
+        technical_score=SimpleNamespace(total_score=score),
+        fundamental_score=SimpleNamespace(total=21),
         stock_quality=SimpleNamespace(
             technical_score=SimpleNamespace(total_score=score),
             fundamental_score=SimpleNamespace(total=21),
