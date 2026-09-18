@@ -130,6 +130,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
+| M30 | Durable Scheduled Workflow | 🟡 Design Accepted | Persist scheduled workflow lifecycle and detect interrupted executions without introducing distributed execution |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -192,6 +193,8 @@ M27 — Alert Delivery Trigger & Transport Boundary
 M28 — Automatic Alert Delivery Policy
         ↓
 M29 — Scheduled Automatic Alert Delivery
+        ↓
+M30 — Durable Scheduled Workflow
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -977,7 +980,21 @@ Deferred: independent delivery schedules, asynchronous delivery, queues/workers,
 
 ---
 
-# 30. Cross-Cutting Requirements
+# 30. M30 — Durable Scheduled Workflow
+
+## Status
+
+The M30 design gate is **accepted** in `docs/DEC-089-M30-DURABLE-SCHEDULED-WORKFLOW-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+M30 will persist the lifecycle of one scheduled M29 workflow occurrence independently from analytical-result persistence and alert-delivery persistence.
+
+The MVP states are `CREATED`, `RUNNING`, `COMPLETED`, `COMPLETED_WITH_ERRORS`, `FAILED`, and `INTERRUPTED`. Duplicate occurrence starts are idempotent, and persisted RUNNING executions are recoverable as INTERRUPTED after restart. Interrupted executions are detected, not automatically replayed.
+
+The first implementation uses SQLite behind a dedicated `ScheduledWorkflowExecutionStore` boundary. Distributed locks, queues, workers, automatic resume, provider retry, multiple channels, and user-specific schedules remain deferred.
+
+---
+
+# 31. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -1011,7 +1028,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 31. Milestone Completion Rule
+# 32. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -1037,7 +1054,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 32. Changing the Roadmap
+# 33. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -1047,6 +1064,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 33. Guiding Principle
+# 34. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
