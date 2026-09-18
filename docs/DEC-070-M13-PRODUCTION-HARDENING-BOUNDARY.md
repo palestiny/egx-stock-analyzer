@@ -31,7 +31,7 @@ The first M13 implementation slice will establish:
 1. explicit application/runtime health semantics;
 2. configuration validation at the infrastructure boundary;
 3. deterministic startup failure for invalid required configuration;
-4. graceful runtime lifecycle behavior;
+4. graceful runtime lifecycle behavior;\n5. health behavior is verified through the application composition/lifespan boundary;
 5. tests for the above behavior;
 6. minimal operational diagnostics without exposing internal exception details as an API contract.
 
