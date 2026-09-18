@@ -7,10 +7,12 @@ from fastapi import FastAPI, HTTPException
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
+from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
     UnknownStockSymbolError,
@@ -27,6 +29,7 @@ def create_app(
     get_analysis_report: GetAnalysisReport | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
+    run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -93,6 +96,20 @@ def create_app(
             )
 
         response = AnalysisReportResponse.from_report(report)
+        return asdict(response)
+
+    @app.post("/api/v1/market-analysis")
+    def run_market_analysis() -> dict[str, object]:
+        if run_configured_market_analysis is None:
+            raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
+
+        try:
+            execution = run_configured_market_analysis.execute(date.today())
+        except Exception as error:
+            logger.exception("Market-wide analysis execution failed", exc_info=error)
+            raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
+
+        response = MarketAnalysisExecutionResponse.from_execution(execution)
         return asdict(response)
 
     @app.get("/api/v1/opportunities")
