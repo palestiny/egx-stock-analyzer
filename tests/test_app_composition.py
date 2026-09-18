@@ -126,23 +126,3 @@ def test_create_development_application_from_environment_uses_development_catalo
 
     assert runtime.closed is True
 
-
-def test_default_app_uses_full_development_composition(monkeypatch):
-    import app.main as main_module
-
-    captured = {}
-
-    def fake_create_development_application_from_environment(**kwargs):
-        captured["called"] = True
-        return object()
-
-    monkeypatch.setattr(
-        main_module,
-        "create_development_application_from_environment",
-        fake_create_development_application_from_environment,
-    )
-
-    # The module-level default is intentionally covered by the composition
-    # function contract; direct reload would create external-provider objects.
-    assert callable(main_module.create_development_application_from_environment)
-    assert captured == {}
