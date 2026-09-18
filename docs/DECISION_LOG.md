@@ -1900,11 +1900,19 @@ See docs/DEC-084-M25-ALERT-DELIVERY-DESIGN-GATE.md.
 
 ## DEC-085 — M26 External Notification Provider Integration
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
-M26 opens the next design gate after the provider-neutral M25 alert-delivery boundary. The goal is to introduce one concrete external notification provider without moving provider concerns into `DeliverAlert`, alert generation, or analytical code.
+M26 accepts Telegram Bot API as the first concrete provider behind the existing M25 `NotificationProvider` boundary.
 
-The gate explicitly defers provider-specific implementation until the first provider, credential/configuration contract, timeout and retry semantics, payload mapping, and deterministic integration-test boundary are accepted.
+Accepted constraints:
+
+- Telegram bot token and recipient chat ID are infrastructure-only configuration.
+- The synchronous provider timeout is 10 seconds.
+- M26 adds no automatic provider retry.
+- The adapter receives already-composed alert content and never recalculates analytical values.
+- Provider failures affect delivery state only.
+- Deterministic CI uses an HTTP fake/transport boundary and does not require live Telegram credentials.
+- Multiple providers, queues, user preferences, and delivery analytics remain deferred.
 
 See `docs/DEC-085-M26-EXTERNAL-NOTIFICATION-PROVIDER-DESIGN-GATE.md`.
