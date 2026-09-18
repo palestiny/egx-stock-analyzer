@@ -123,11 +123,98 @@ Not selected for M27. Automatic delivery couples analytical execution to externa
 - provider-specific error/credential details do not leak through the API;
 - deterministic tests require no live Telegram service.
 
+## Accepted Decisions
+
+### 1. Candidate Lookup
+
+The delivery trigger accepts a normalized stock symbol and resolves the current `AlertCandidate` through the existing `GetAlertCandidate` capability.
+
+The trigger does not accept a caller-constructed candidate over HTTP. This keeps candidate construction inside the existing reporting boundary and prevents clients from supplying analytical values or eligibility decisions.
+
+### 2. Channel Selection
+
+The delivery request requires an explicit channel value.
+
+For M27 the supported value is `telegram`. The application boundary remains provider-neutral; Telegram-specific transport behavior stays behind `NotificationProvider`.
+
+No implicit default channel is introduced.
+
+### 3. Missing Candidate
+
+If no alert candidate exists for the requested symbol, the application returns a not-found outcome.
+
+The HTTP transport maps this to **404**.
+
+No provider call is made.
+
+### 4. Provider Unavailable
+
+If delivery is not configured for the requested channel, the application returns a provider-unavailable outcome.
+
+The HTTP transport maps this to **503**. Credentials and provider configuration details are not exposed.
+
+### 5. Delivery Failure
+
+A provider failure is recorded by the existing `DeliverAlert` capability as a durable `FAILED` delivery record.
+
+The command returns that persisted delivery result rather than converting the provider exception into a second application-level failure model.
+
+The HTTP transport returns **200** because the delivery command itself was processed and its terminal delivery outcome is represented explicitly in the response.
+
+### 6. Already Delivered
+
+A repeated request for the same candidate snapshot and channel returns the existing `DELIVERED` record through M25 idempotency.
+
+No second provider call occurs.
+
+The HTTP transport returns **200**.
+
+### 7. HTTP Shape
+
+The M27 MVP uses:
+
+`POST /api/v1/alerts/{symbol}/deliver?channel=telegram`
+
+The operation is explicitly side-effecting. The existing `GET /api/v1/alerts/{symbol}` remains read-only.
+
+### 8. Scope
+
+M27 supports one symbol and one channel per request.
+
+Bulk delivery, multi-channel fan-out, automatic delivery after analysis, queues, retries, scheduling, and user preferences remain deferred.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M27 MVP defined here.**
 
-The implementation must wait until the open questions are resolved and recorded as accepted decisions.
+The accepted boundary is:
+
+```
+POST /api/v1/alerts/{symbol}/deliver
+          ↓
+GetAlertCandidate
+          ↓
+DeliverAlert
+          ↓
+NotificationProvider
+          ↓
+TelegramNotificationProvider
+```
+
+Delivery does not execute analysis, recalculate alert eligibility, or mutate analytical snapshots.
+
+## TDD Acceptance Criteria
+
+- existing alert candidate is resolved by symbol;
+- no candidate returns 404 and makes no provider call;
+- Telegram delivery uses the explicit `channel=telegram` contract;
+- successful delivery returns a delivered record;
+- repeated successful delivery returns the same delivered record without a second provider call;
+- provider failure is persisted as FAILED and returned as an explicit delivery outcome;
+- unconfigured Telegram delivery returns 503 without leaking credentials;
+- GET alert remains side-effect free;
+- delivery never triggers fresh analysis;
+- deterministic tests use a fake provider and do not require live Telegram credentials.
 
 ## Revisit Conditions
 
