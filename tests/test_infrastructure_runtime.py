@@ -8,6 +8,7 @@ from app.infrastructure.market_data.yahoo_finance import (
     YahooFinanceAdapter,
     YahooFinanceFundamentalDataSource,
 )
+from app.infrastructure.persistence.sqlite_analysis_result_store import SQLiteAnalysisResultStore
 from app.infrastructure.runtime import InfrastructureRuntime, create_infrastructure_runtime
 
 
@@ -66,3 +67,21 @@ def test_infrastructure_runtime_close_is_idempotent() -> None:
     assert runtime.closed is True
     runtime.close()
     assert runtime.closed is True
+
+
+def test_infrastructure_runtime_uses_sqlite_store_by_default(tmp_path) -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(analysis_database_path=str(database_path)),
+    )
+
+    assert isinstance(
+        runtime.application_runtime.result_store,
+        SQLiteAnalysisResultStore,
+    )
+    assert database_path.exists()
+    runtime.close()
