@@ -21,6 +21,7 @@ class FakeApplicationRuntime:
     run_by_symbol: object | None = None
     get_analysis_report: object | None = None
     get_alert_candidate: object | None = None
+    get_market_opportunity_ranking: object | None = None
 
 
 class FakeRuntime:
@@ -30,6 +31,7 @@ class FakeRuntime:
             run_by_symbol=object(),
             get_analysis_report=object(),
             get_alert_candidate=object(),
+            get_market_opportunity_ranking=object(),
         )
         self.closed = False
 
