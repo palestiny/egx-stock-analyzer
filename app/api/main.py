@@ -5,10 +5,12 @@ from datetime import date
 from fastapi import FastAPI, HTTPException
 
 from app.api.alert_candidate_response import AlertCandidateResponse
+from app.api.analysis_history_response import AnalysisHistoryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
+from app.application.analysis.get_analysis_history import GetAnalysisHistory
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
@@ -27,6 +29,7 @@ def create_app(
     result_store: AnalysisResultStore,
     run_stock_analysis_by_symbol: RunStockAnalysisBySymbol | None = None,
     get_analysis_report: GetAnalysisReport | None = None,
+    get_analysis_history: GetAnalysisHistory | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
@@ -79,6 +82,23 @@ def create_app(
 
         response = AnalysisResultResponse.from_result(symbol, result)
         return asdict(response)
+
+    @app.get("/api/v1/history/{symbol}")
+    def get_history(
+        symbol: str,
+        from_date: date | None = None,
+        to_date: date | None = None,
+    ) -> dict[str, object]:
+        if get_analysis_history is None:
+            raise HTTPException(status_code=503, detail="Analysis history is not configured")
+        try:
+            items = get_analysis_history.execute(symbol, start_date=from_date, end_date=to_date)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        if items is None:
+            raise HTTPException(status_code=404, detail=f"Analysis history not found for {symbol}")
+        response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
+        return response.to_dict()
 
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str) -> dict[str, object]:
