@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.runtime import StockAnalysisRuntime
 from app.application.execution.retry import RetryPolicy
@@ -10,6 +12,7 @@ from app.infrastructure.market_data.yahoo_finance import (
 )
 from app.infrastructure.persistence.sqlite_analysis_result_store import SQLiteAnalysisResultStore
 from app.infrastructure.runtime import InfrastructureRuntime, create_infrastructure_runtime
+from tests.test_sqlite_analysis_result_store import make_result
 
 
 class FakeYFinanceModule:
@@ -98,6 +101,7 @@ def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_
         config=config,
     )
     first_result_store = first_runtime.application_runtime.result_store
+    first_result_store.save("EGAL", make_result(), date(2026, 9, 18))
     first_runtime.close()
 
     second_runtime = create_infrastructure_runtime(
@@ -106,5 +110,8 @@ def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_
         config=config,
     )
 
-    assert second_runtime.application_runtime.result_store.get("EGAL") is None
+    assert second_runtime.application_runtime.result_store.get("EGAL") is not None
+    record = second_runtime.application_runtime.result_store.get_record("EGAL")
+    assert record is not None
+    assert record.analysis_date == date(2026, 9, 18)
     second_runtime.close()
