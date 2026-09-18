@@ -52,3 +52,15 @@ export function getAnalysisHistory(symbol, fromDate, toDate) {
   const url = "/api/v1/history/" + encodeURIComponent(symbol) + (query ? "?" + query : "");
   return getJson(url, "Analysis history request");
 }
+
+
+export function getAnalysisComparison(symbol, beforeSnapshotId, afterSnapshotId) {
+  const params = new URLSearchParams({
+    before: beforeSnapshotId,
+    after: afterSnapshotId,
+  });
+  return getJson(
+    "/api/v1/comparisons/" + encodeURIComponent(symbol) + "?" + params.toString(),
+    "Analysis comparison request",
+  );
+}
