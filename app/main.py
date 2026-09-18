@@ -28,6 +28,8 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.application_runtime.get_analysis_report,
         runtime.application_runtime.get_alert_candidate,
         runtime.application_runtime.get_market_opportunity_ranking,
+        runtime.application_runtime.run_configured_market_analysis,
+        runtime.application_runtime.get_market_opportunity_ranking,
     )
     app.router.lifespan_context = lifespan
     return app
