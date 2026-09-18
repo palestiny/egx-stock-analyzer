@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.stocks.catalog import InMemoryStockCatalog
@@ -76,26 +77,22 @@ def make_result():
     )
     entry_quality = EntryQualityScore(1, 1, 2)
 
-    return type(
-        "Result",
-        (),
-        {
-            "technical_analysis": technical,
-            "fundamental_analysis": fundamental,
-            "technical_score": technical_score,
-            "fundamental_score": fundamental_score,
-            "stock_quality": stock_quality,
-            "entry_context": EntryContext(
-                current_price=Price(Decimal("350.5")),
-                nearest_support=None,
-                nearest_resistance=None,
-            ),
-            "entry_quality": entry_quality,
-            "opportunity": OpportunityClassificationResult(
-                OpportunityClassification.BUY
-            ),
-        },
-    )()
+    return StockAnalysisResult(
+        technical_analysis=technical,
+        fundamental_analysis=fundamental,
+        technical_score=technical_score,
+        fundamental_score=fundamental_score,
+        stock_quality=stock_quality,
+        entry_context=EntryContext(
+            current_price=Price(Decimal("350.5")),
+            nearest_support=None,
+            nearest_resistance=None,
+        ),
+        entry_quality=entry_quality,
+        opportunity=OpportunityClassificationResult(
+            OpportunityClassification.BUY
+        ),
+    )
 
 
 def test_api_report_and_alert_read_persisted_result_after_store_recreation(tmp_path):
