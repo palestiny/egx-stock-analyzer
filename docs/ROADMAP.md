@@ -118,7 +118,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M15 | Market Opportunity Ranking | 🟢 Complete | Deterministic BUY/WATCH ranking over completed stock-analysis results |
 | M16 | Market Opportunity View | 🟢 Complete | Read stored results, reuse M15 ranking, and expose the ordered opportunity set through API/dashboard |
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
-| M18 | Scheduled Full-Market Analysis | 🟡 Design Accepted | Connect the existing scheduler to configured-market execution without moving business logic into scheduling |
+| M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
