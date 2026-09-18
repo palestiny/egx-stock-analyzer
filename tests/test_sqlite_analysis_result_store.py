@@ -283,3 +283,15 @@ def test_sqlite_store_returns_none_for_missing_snapshot(tmp_path):
     store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
 
     assert store.get_snapshot(uuid4()) is None
+
+
+def test_sqlite_store_gets_snapshot_by_uuid_and_preserves_symbol(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    store.save("EGAL", make_result(), date(2026, 9, 18))
+
+    snapshot = store.get_history("EGAL")[0]
+    restored = store.get_snapshot(snapshot.snapshot_id)
+
+    assert restored == snapshot
+    assert restored is not None
+    assert restored.symbol == "EGAL"
