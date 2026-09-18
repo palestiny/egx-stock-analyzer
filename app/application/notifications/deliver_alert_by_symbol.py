@@ -1,5 +1,3 @@
-from datetime import date
-
 from app.application.notifications.deliver_alert import DeliverAlert
 from app.application.notifications.delivery_store import AlertDeliveryRecord
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
