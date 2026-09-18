@@ -22,7 +22,10 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         yield
         runtime.close()
 
-    app = create_app(runtime.application_runtime.result_store)
+    app = create_app(
+        runtime.application_runtime.result_store,
+        runtime.application_runtime.run_by_symbol,
+    )
     app.router.lifespan_context = lifespan
     return app
 
