@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAnalysis } from "./api/analysisApi";
+import { runAnalysis } from "./api/analysisApi";
 
 function App() {
   const [symbol, setSymbol] = useState("");
@@ -20,7 +20,7 @@ function App() {
     setError(null);
 
     try {
-      const result = await getAnalysis(normalizedSymbol);
+      const result = await runAnalysis(normalizedSymbol);
       setAnalysis(result);
     } catch (requestError) {
       setError(requestError);
@@ -47,9 +47,9 @@ function App() {
         Analyze
       </button>
 
-      {loading && <p>Loading analysis...</p>}
+      {loading && <p>Running analysis...</p>}
 
-      {error?.status === 404 && <p>Analysis result not found.</p>}
+      {error?.status === 404 && <p>Stock symbol was not found.</p>}
       {error && error.status !== 404 && <p>{error.message}</p>}
 
       {analysis && (
