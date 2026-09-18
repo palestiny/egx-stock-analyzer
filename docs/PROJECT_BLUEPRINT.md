@@ -1115,8 +1115,8 @@ rather than relying on memory or conversation history.
 
 ---
 
-**Document Status:** Draft — M0
+**Document Status:** Foundational blueprint — maintained
 
-**Last Major Update:** Project Blueprint initialization
+**Current Implementation:** M13 — Operational Runtime Baseline + SQLite Persistence MVP
 
-**Next Step:** Create and review `PROJECT_RULES.md`.
+**Next Step:** Open a new Design Gate only when a concrete deferred capability is selected.
