@@ -4,6 +4,7 @@ from app.application.analysis.get_market_opportunity_ranking import GetMarketOpp
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
@@ -18,6 +19,7 @@ from app.application.stocks.catalog import StockCatalog
 class StockAnalysisRuntime:
     run_by_symbol: RunStockAnalysisBySymbol
     run_market_analysis: RunMarketAnalysis
+    run_configured_market_analysis: RunConfiguredMarketAnalysis
     run_configured_market_analysis: RunConfiguredMarketAnalysis
     rank_market_opportunities: RankMarketOpportunities
     get_market_opportunity_ranking: GetMarketOpportunityRanking
@@ -41,6 +43,11 @@ def create_stock_analysis_runtime(
     run_market_analysis = RunMarketAnalysis(
         stock_catalog=stock_catalog,
         run_stock_analysis=run_stock_analysis,
+    )
+    run_configured_market_analysis = RunConfiguredMarketAnalysis(
+        stock_catalog=stock_catalog,
+        run_market_analysis=run_market_analysis,
+        run_configured_market_analysis=run_configured_market_analysis,
     )
     run_configured_market_analysis = RunConfiguredMarketAnalysis(
         stock_catalog=stock_catalog,
