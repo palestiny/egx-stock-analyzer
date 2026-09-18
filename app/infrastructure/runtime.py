@@ -10,6 +10,7 @@ from app.application.analysis.runtime import (
 )
 from app.application.execution.retry import RetryPolicy
 from app.application.notifications.deliver_alert import DeliverAlert
+from app.application.notifications.deliver_alert_by_symbol import DeliverAlertBySymbol
 from app.application.stocks.catalog import StockCatalog
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.market_data.yahoo_finance import (
@@ -32,6 +33,7 @@ class InfrastructureRuntime:
     market_data_provider: YahooFinanceAdapter
     fundamental_data_provider: YahooFinanceFundamentalDataSource
     deliver_alert: DeliverAlert | None = None
+    deliver_alert_by_symbol: DeliverAlertBySymbol | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -83,6 +85,7 @@ def create_infrastructure_runtime(
 
     telegram_notification_provider = None
     deliver_alert = None
+    deliver_alert_by_symbol = None
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -94,11 +97,16 @@ def create_infrastructure_runtime(
             store=delivery_store,
             provider=telegram_notification_provider,
         )
+        deliver_alert_by_symbol = DeliverAlertBySymbol(
+            get_alert_candidate=application_runtime.get_alert_candidate,
+            deliver_alert=deliver_alert,
+        )
 
     return InfrastructureRuntime(
         application_runtime=application_runtime,
         market_data_provider=market_data_provider,
         fundamental_data_provider=fundamental_data_provider,
         deliver_alert=deliver_alert,
+        deliver_alert_by_symbol=deliver_alert_by_symbol,
         telegram_notification_provider=telegram_notification_provider,
     )
