@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from app.application.analysis.daily_market_analysis import StockAnalysisInput, StockAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
-from app.application.analysis.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
