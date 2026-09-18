@@ -3,7 +3,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from app.application.analysis.run_market_analysis import RunMarketAnalysis
+from app.application.analysis.run_market_analysis import (
+    DuplicateMarketAnalysisSymbolError,
+    RunMarketAnalysis,
+)
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
@@ -97,7 +100,7 @@ def test_duplicate_normalized_symbols_are_rejected_before_execution():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
     runner, run_stock_analysis = make_runner(stocks)
 
-    with pytest.raises(ValueError, match="Duplicate stock symbol"):
+    with pytest.raises(DuplicateMarketAnalysisSymbolError, match="Duplicate stock symbol"):
         runner.execute(["EGAL", " egal "], AS_OF)
 
     run_stock_analysis.execute.assert_not_called()
