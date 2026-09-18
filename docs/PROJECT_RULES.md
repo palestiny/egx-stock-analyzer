@@ -738,7 +738,8 @@ At the time of establishing these rules:
 - Local project is connected to GitHub.
 - Domain tests are passing.
 - Current known test baseline: 17 passing tests.
-- Project is in **M0 — Vision & Project Blueprint**.
+- Current implementation is through **M13 — Operational Runtime Baseline + SQLite Persistence MVP**.
+- The project remains under active development; new capabilities require an explicit design gate.
 - Market Data validation responsibilities remain under design.
 
 ---
