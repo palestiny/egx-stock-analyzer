@@ -120,7 +120,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M17 | Market Universe & All-Market Execution | 🟢 Complete | Discover the configured universe through StockCatalog and execute it through the existing market-wide capability |
 | M18 | Scheduled Full-Market Analysis | 🟢 Complete | One-shot scheduling adapter for configured-market execution; no scheduling business logic moved into the scheduler |
 | M19 | Recurring Market Scheduling | 🟢 Complete | Deterministic daily recurring full-market scheduling capability with explicit calendar/timezone/idempotency semantics |
-| M20 | Historical Analysis Result History | 🟡 Design Accepted | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
+| M20 | Historical Analysis Result History | 🟢 Complete | Preserve immutable completed analytical snapshots across recurring runs while keeping latest-result compatibility |
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -600,7 +600,27 @@ Historical market-data warehousing, historical ranking, performance analytics, c
 
 ---
 
-# 18. Cross-Cutting Requirements
+# 18. M20 — Historical Analysis Result History
+
+## Status
+
+M20 is **complete**. The accepted design is documented in `docs/DEC-079-M20-HISTORICAL-ANALYSIS-RESULT-HISTORY-DESIGN-GATE.md`, and the implementation was merged through PR #24.
+
+GitHub Actions Run #430 completed successfully for implementation fix head `1a8f72eaeeec57306e9dcdc1f4de113863f13eac`, validating the Python unit tests and frontend tests/build workflow.
+
+### Accepted outcome
+
+The system now preserves immutable completed analysis snapshots in history while keeping the existing latest-result `get(symbol)` compatibility path. SQLite migration preserves an existing latest-only row as one historical snapshot, and deterministic history queries support optional date bounds.
+
+Failed analyses do not create successful snapshots. Historical reads never execute fresh analysis, and persistence/serialization errors remain explicit.
+
+### Scope boundary
+
+Historical HTTP/dashboard exposure, historical ranking, performance analytics, market-data warehousing, change detection, notifications, watchlists, portfolio/trading behavior, distributed storage, and AI analysis remain deferred behind separate design gates.
+
+---
+
+# 19. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -634,7 +654,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 19. Milestone Completion Rule
+# 20. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -660,7 +680,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 20. Changing the Roadmap
+# 21. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -670,6 +690,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 21. Guiding Principle
+# 22. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
