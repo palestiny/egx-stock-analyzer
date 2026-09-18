@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from app.application.analysis.result_store import AnalysisResultStore
@@ -41,7 +42,7 @@ class DailyMarketAnalysis:
     def run(
         self,
         inputs: list[StockAnalysisInput],
-        analysis_date=None,
+        analysis_date: date | None = None,
     ) -> DailyMarketAnalysisResult:
         stock_results: dict[str, StockAnalysisResult] = {}
         inputs_by_symbol = {item.symbol: item for item in inputs}
