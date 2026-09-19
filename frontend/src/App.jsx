@@ -553,6 +553,8 @@ function DashboardApp({ onLogout, identity }) {
             <input aria-label="Target user ID" placeholder="Target UUID" value={auditFilters.targetUserId} onChange={(event) => updateAuditFilter("targetUserId", event.target.value)} />
             <input aria-label="Action" placeholder="Action" value={auditFilters.action} onChange={(event) => updateAuditFilter("action", event.target.value)} />
             <input aria-label="Outcome" placeholder="Outcome" value={auditFilters.outcome} onChange={(event) => updateAuditFilter("outcome", event.target.value)} />
+            <input aria-label="From time" type="datetime-local" value={auditFilters.fromTime} onChange={(event) => updateAuditFilter("fromTime", event.target.value)} />
+            <input aria-label="To time" type="datetime-local" value={auditFilters.toTime} onChange={(event) => updateAuditFilter("toTime", event.target.value)} />
             <button type="submit" disabled={auditLoading}>{auditLoading ? "Loading..." : "Load Audit"}</button>
           </form>
 
