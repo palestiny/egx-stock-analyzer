@@ -50,7 +50,7 @@ describe("Dashboard", () => {
   });
 
   async function renderAuthenticatedApp() {
-    await renderAuthenticatedApp();
+    render(<App />);
     await waitFor(() =>
       expect(screen.getByLabelText("Stock Symbol")).toBeInTheDocument(),
     );
