@@ -15,6 +15,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getReport: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
+  getUserAuditHistory: vi.fn(),
 }));
 
 const report = {
