@@ -486,6 +486,36 @@ Deferred from M14: ranking, watchlists, history, concurrency, distributed execut
 
 ---
 
+# 37. M37 — Authentication & Authorization Boundary
+
+## Status
+
+M37 is **complete**. The accepted design in `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md` has been implemented and merged to `main` through PR #70. GitHub Actions Run #1159 passed on implementation head `d160b916` before merge.
+
+### Accepted security boundary
+
+```
+HTTP
+  ↓
+Bearer Token Authentication Adapter
+  ↓
+AuthenticatedIdentity(operator)
+  ↓
+Authorization Boundary
+  ↓
+Application Capability
+  ↓
+Domain
+```
+
+`GET /health` remains public. All other application/API endpoints are protected by a configured bearer operator token. The MVP uses one operator permission and does not introduce users, password storage, sessions, external identity providers, ownership, or permission administration.
+
+Authentication failures use HTTP 401; authenticated callers lacking the required operator permission use HTTP 403. The token is configuration-only, never persisted, logged, or returned.
+
+Multi-user identity and ownership remain future design gates.
+
+---
+
 # 38. M38 — Multi-User Identity & Ownership
 
 ## Status
@@ -532,36 +562,6 @@ The accepted M38 work establishes durable identity and one concrete ownership pr
 The next capability requires a new design gate rather than expanding M38 opportunistically.
 
 ---
-
----
-
-# 37. M37 — Authentication & Authorization Boundary
-
-## Status
-
-M37 is **complete**. The accepted design in `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md` has been implemented and merged to `main` through PR #70. GitHub Actions Run #1159 passed on implementation head `d160b916` before merge.
-
-### Accepted security boundary
-
-```
-HTTP
-  ↓
-Bearer Token Authentication Adapter
-  ↓
-AuthenticatedIdentity(operator)
-  ↓
-Authorization Boundary
-  ↓
-Application Capability
-  ↓
-Domain
-```
-
-`GET /health` remains public. All other application/API endpoints are protected by a configured bearer operator token. The MVP uses one operator permission and does not introduce users, password storage, sessions, external identity providers, ownership, or permission administration.
-
-Authentication failures use HTTP 401; authenticated callers lacking the required operator permission use HTTP 403. The token is configuration-only, never persisted, logged, or returned.
-
-Multi-user identity and ownership remain future design gates.
 
 ---
 
