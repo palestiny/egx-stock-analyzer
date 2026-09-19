@@ -53,6 +53,10 @@ class GetManagementAudit:
             )
         if offset < 0:
             raise ValueError("offset cannot be negative")
+        if from_time is not None and from_time.tzinfo is None:
+            raise ValueError("from_time must include a timezone")
+        if to_time is not None and to_time.tzinfo is None:
+            raise ValueError("to_time must include a timezone")
         if from_time is not None and to_time is not None and from_time >= to_time:
             raise ValueError("from_time must be earlier than to_time")
 
