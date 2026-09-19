@@ -136,8 +136,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M33 | Scheduled Workflow Operational Visibility | 🟢 Complete | Provide a provider-neutral read-side capability over persisted scheduled workflow executions |
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
-| M36 | Scheduled Workflow Recovery Control | 🟡 Design Accepted | Provide an explicit operator-triggered recovery command and dashboard action for one INTERRUPTED execution |
-| M36 | Scheduled Workflow Recovery Control | 🟡 Design Proposed | Give operators an explicit, provider-neutral recovery command for one interrupted scheduled workflow execution |
+| M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1109,7 +1108,7 @@ Workflow control, recovery actions, automatic polling, real-time streaming, pagi
 
 ## Status
 
-The M36 design gate is **accepted** in `docs/DEC-095-M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
+The M36 design gate is **accepted** in `docs/DEC-095-M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-DESIGN-GATE.md`. The implementation was merged through PR #67. GitHub Actions Run #1043 completed successfully for implementation head `06b671937a9730ead07793cc6cd9acd4c62dc2a9`, validating Python unit tests plus frontend tests and production build.
 
 ### Accepted boundary
 
@@ -1130,6 +1129,8 @@ ScheduledWorkflowExecutionStore
 The command is synchronous and explicit. Only `INTERRUPTED` executions are recoverable. Missing execution maps to 404; an existing non-recoverable execution maps to 409; successful recovery returns the resulting persisted workflow model. The dashboard exposes an inline Recover action only for interrupted rows, disables only the clicked row while pending, and updates the row from the command response.
 
 M36 does not add authentication, replacement occurrences, new persistence schema, retry policy, polling, bulk recovery, concurrency, or new workflow semantics.
+
+Completion record: `docs/M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-MVP-COMPLETION.md`.
 
 ---
 
