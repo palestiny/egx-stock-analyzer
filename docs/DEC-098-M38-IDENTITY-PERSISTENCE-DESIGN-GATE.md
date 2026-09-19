@@ -1,6 +1,6 @@
 # DEC-098 — M38 Identity Persistence & Capability Migration Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M38 — Multi-User Identity & Ownership
 
@@ -64,9 +64,9 @@ Store users beside analytical data.
 
 ### B — Dedicated identity persistence boundary on existing SQLite
 
-Introduce a UserRepository application contract and dedicated infrastructure implementation using the existing SQLite deployment, with separate tables and mapping code.
+Introduce a UserStore application contract and dedicated infrastructure implementation using the existing SQLite deployment, with a separate `users` table and explicit mapper.
 
-**Trade-offs:** adds a small component, but preserves identity/analytical boundaries and keeps the database technology unchanged.
+**Trade-offs:** adds a small component, but preserves identity/analytical boundaries and keeps the database technology unchanged. Ownership fields remain on the concrete user-owned capability rather than being folded into the user persistence schema.
 
 ### C — External identity persistence
 
@@ -84,18 +84,28 @@ No password, token, or provider-specific credential material is persisted by thi
 
 ## 7. Concrete Capability Migration
 
-The first user-owned capability should be the smallest existing or newly introduced durable application resource that can establish ownership without retrofitting historical analytical records.
+The first user-owned capability is the existing **ScheduledWorkflowExecution** application resource.
 
-It must explicitly define:
+This is selected because it is already a durable application resource with a repository boundary, lifecycle semantics, API visibility, and dashboard visibility. It provides a concrete ownership proof without modifying analytical domain entities.
+
+Ownership is represented by:
+
+`owner_user_id: UUID | None`
+
+For this capability, `NULL` means **system/global legacy ownership**. A non-null value must reference an existing application user.
+
+The migration does not invent ownership for historical executions. Existing persisted scheduled-workflow executions remain system/global (`owner_user_id = NULL`) until a separate explicit migration operation is designed.
+
+The migrated capability must explicitly define:
 
 - owner reference;
-- global/system classification;
+- system/global legacy classification;
 - create/read authorization;
 - cross-user access;
 - reload behavior;
 - compatibility behavior for legacy records.
 
-Existing historical analytical/workflow records must not be silently reassigned to a user.
+New user-owned scheduled-workflow executions require an active authenticated user. Legacy operator access remains compatible only with system/global records and does not implicitly become ownership of another user's records.
 
 ## 8. Legacy M37 Mapping
 
@@ -136,16 +146,14 @@ The application authorization boundary remains the single owner of ownership che
 
 Controllers and dashboard code must not implement ownership comparisons. Analytical domain services remain identity-agnostic.
 
-## 11. Open Questions
+## 11. Resolved Decisions
 
-These require explicit resolution before implementation:
-
-1. Which concrete existing or newly introduced small application resource is the first user-owned capability?
-2. Should global resources use owner_user_id = NULL or an explicit ownership classification?
-3. Should disabled/deleted users retain historical ownership metadata while being denied active access?
-4. What exact bootstrap/migration operation creates the designated legacy/system user?
-5. Should lifecycle and ownership-resource writes share one transaction when both change together?
-6. What compatibility behavior should existing APIs expose while the first user-owned capability is migrated?
+1. **First user-owned capability:** `ScheduledWorkflowExecution` is the first migrated durable resource.
+2. **Global/system classification:** `owner_user_id = NULL` means system/global legacy ownership for this capability. Non-null means explicit user ownership. No arbitrary user is used as a global owner.
+3. **Disabled/deleted users:** ownership metadata remains persisted for historical attribution, but disabled/deleted identities cannot access protected owned resources.
+4. **Legacy bootstrap:** the existing deterministic `LEGACY_OPERATOR_USER_ID` is materialized idempotently in the users store as the designated compatibility identity. Existing historical scheduled-workflow records are not reassigned to it; they remain system/global.
+5. **Transactions:** user lifecycle writes and scheduled-workflow ownership writes remain repository-local atomic operations in this slice. A cross-repository transaction is not introduced because no current command changes both aggregates atomically. If a future command must change both, a unit-of-work/transaction design gate is required.
+6. **Compatibility:** existing legacy APIs continue to expose system/global scheduled-workflow records through the M37 operator path. New user-owned scheduled-workflow operations require an active authenticated identity and must pass the ownership authorization boundary. No endpoint may infer ownership from URL shape or dashboard state.
 
 ## 12. TDD Acceptance Shape
 
@@ -166,9 +174,25 @@ At minimum:
 
 ## 13. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M38 persistence/capability-migration slice defined here.**
 
-The next step is to resolve the open questions and explicitly accept the persistence/migration boundary before production changes are made.
+The implementation boundary is:
+
+```
+Authentication Adapter
+        ↓
+AuthenticatedIdentity
+        ↓
+Ownership Authorization Boundary
+        ↓
+ScheduledWorkflowExecution Capability
+        ↓
+UserStore + ScheduledWorkflowExecutionStore
+        ↓
+SQLite
+```
+
+Identity persistence is separate from analytical persistence. Historical scheduled-workflow executions remain system/global unless an explicit future migration assigns ownership.
 
 ## 14. Revisit Conditions
 
