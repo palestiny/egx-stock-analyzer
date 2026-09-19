@@ -50,10 +50,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
     DeliverAlertBySymbol,
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
-from app.infrastructure.security.bearer_token_authenticator import (
-    AuthenticationError,
-    BearerTokenAuthenticator,
-)
+from app.application.security.authentication import AuthenticationError, Authenticator
 
 logger = logging.getLogger(__name__)
 
@@ -71,14 +68,9 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
-    operator_token: str | None = None,
+    authenticator: Authenticator | None = None,
 ) -> FastAPI:
     security = HTTPBearer(auto_error=False)
-    authenticator = (
-        BearerTokenAuthenticator(operator_token)
-        if operator_token is not None
-        else None
-    )
 
     async def require_authenticated_operator(
         request: Request,
