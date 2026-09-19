@@ -141,7 +141,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
 | M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
-| M41 | User Management & Credential Administration | 🟡 Design Proposed | Define operator/self-service user lifecycle and credential administration boundaries |
+| M41 | User Management & Credential Administration | 🟡 Design Accepted | Add operator user lifecycle administration and self-service credential rotation within the existing identity/ownership boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -226,6 +226,8 @@ M38 — Multi-User Identity & Ownership
 M39 — Multi-User Authentication & Identity Transport
         ↓
 M40 — Frontend Authentication & Session UX
+        ↓
+M41 — User Management & Credential Administration
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1287,7 +1289,25 @@ The first concrete authentication mechanism is intentionally controlled-deployme
 - distributed session storage;
 - automatic retirement of M37 operator compatibility.
 
-## M40 — Frontend Authentication & User Credential Lifecycle
+## M40 — Frontend Authentication & User Credential Lifecycle## M41 — User Management & Credential Administration
+
+### Status
+
+The M41 design gate is **accepted** in `docs/DEC-102-M41-USER-MANAGEMENT-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+M41 adopts self-service credential administration plus operator-controlled user lifecycle administration. Operators create, disable, reactivate, delete, and administer users and credentials. Users may rotate their own credential atomically with replacement.
+
+Deletion is a `DELETED` lifecycle transition; historical ownership remains attributable and is never silently reassigned. User profile data beyond UUID and lifecycle state is deferred.
+
+A minimal durable management-audit boundary is required for security-sensitive lifecycle and credential commands, without storing raw credentials.
+
+The first user-management implementation must preserve the existing authentication → authenticated identity → application authorization boundary and keep analytical domain modules identity-agnostic.
+
+Deferred: registration, passwords, MFA/SSO, external identity providers, profile fields, delegated access, organizations, richer roles, audit query UI, and automatic credential expiration.
+
+---
+
+
 
 ### Status
 
