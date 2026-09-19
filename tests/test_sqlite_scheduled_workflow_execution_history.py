@@ -58,3 +58,59 @@ def test_history_query_supports_sequence_cursor_and_limit(tmp_path: Path):
 
     assert [item[0] for item in first] == [1, 2]
     assert [item[0] for item in second] == [3]
+
+
+def test_history_filters_before_limit(tmp_path: Path):
+    database = tmp_path / "workflow.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    failed = running.fail(
+        datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+        reason="failed",
+    )
+    store.save(failed)
+    interrupted = failed.interrupt(
+        datetime(2026, 9, 19, 10, 3, tzinfo=timezone.utc),
+        reason="interrupted",
+    )
+    store.save(interrupted)
+
+    rows = store.get_history(
+        execution.id,
+        to_state="failed",
+        limit=1,
+    )
+
+    assert [row[0] for row in rows] == [3]
+    assert rows[0][2] == "failed"
+
+
+def test_history_supports_exact_transition_filter(tmp_path: Path):
+    database = tmp_path / "workflow.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-transition-filter", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    completed = running.complete(
+        datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+        reason="finished",
+    )
+    store.save(completed)
+
+    rows = store.get_history(
+        execution.id,
+        from_state="running",
+        to_state="completed",
+    )
+
+    assert [row[0] for row in rows] == [3]
