@@ -100,7 +100,11 @@ def create_app(
             authorizer.require(identity, Permission.OPERATOR)
             return identity
         except AuthenticationError as error:
-            raise HTTPException(status_code=401, detail="Authentication required") from error
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
         except AuthorizationError as error:
             raise HTTPException(status_code=403, detail="Forbidden") from error
 
