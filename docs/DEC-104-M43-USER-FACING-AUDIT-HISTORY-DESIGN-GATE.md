@@ -251,21 +251,23 @@ The implementation must prove at application and API boundaries that:
 10. Unknown audit actions are not exposed by default.
 11. Actor/target UUIDs for unrelated identities never appear in the user-facing read model.
 12. Analytical modules remain independent of audit history.
+
 ## 9. TDD Acceptance Shape
 
 After acceptance, tests should cover at least:
 
 - empty history;
 - own-target event visibility;
-- own-actor event visibility if accepted;
-- operator action visibility if accepted;
+- self-performed credential event visibility;
+- operator action visibility when the authenticated user is the target;
 - unrelated-user isolation;
 - deleted-user historical behavior;
 - action/outcome redaction;
 - filters;
 - deterministic ordering;
 - bounded pagination;
-- API 401/403 semantics;
+- API 401 semantics;
+- authenticated non-operator access succeeds without requiring operator permission;
 - dashboard loading/empty/error states;
 - regression protection for M42 operator reporting.
 
