@@ -33,7 +33,7 @@ from app.infrastructure.notifications.telegram_provider import TelegramNotificat
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
-from app.infrastructure.security.bearer_token_authenticator import BearerTokenAuthenticator
+from app.application.security.authentication import BearerTokenAuthenticator
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -53,7 +53,6 @@ class InfrastructureRuntime:
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     authenticator: BearerTokenAuthenticator | None = None
-    operator_token: str | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
