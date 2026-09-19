@@ -1328,6 +1328,30 @@ Completion record: `docs/M40-USER-AUTHENTICATION-CREDENTIAL-LIFECYCLE-MVP-COMPLE
 
 ---
 
+# 33.9. M42 — Management Audit Reporting
+
+## Status
+
+The M42 design gate is **accepted** in `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted boundary
+
+```
+React Dashboard
+      ↓
+HTTP API
+      ↓
+GetManagementAudit
+      ↓
+ManagementAuditStore
+      ↓
+SQLite
+```
+
+The MVP is operator-only and read-only. It exposes actor/target UUIDs, action, outcome, and stored UTC timestamp; supports actor, target, action, outcome, and time-range filters; orders deterministically by `occurred_at DESC, audit_id DESC`; and uses bounded pagination with a default page size of 50 and maximum of 100.
+
+Retention remains unchanged. No audit-write behavior, credentials, lifecycle semantics, new permission model, real-time streaming, SIEM integration, analytics, or user self-service audit history is introduced.
+
 # 33. Cross-Cutting Requirements
 
 These apply across milestones.
