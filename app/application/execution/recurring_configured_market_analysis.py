@@ -115,7 +115,14 @@ class RecurringConfiguredMarketAnalysis:
 
         self._running = True
         try:
-            self._scheduled_operation.execute(occurrence.date())
+            self._scheduled_operation.execute(self._occurrence_id(identity), occurrence.date())
         finally:
             self._running = False
             self._schedule_occurrence(self._next_occurrence(occurrence + timedelta(seconds=1)))
+
+    @staticmethod
+    def _occurrence_id(identity: OccurrenceIdentity) -> str:
+        return (
+            f"{identity.schedule_id}:{identity.scheduled_date.isoformat()}:"
+            f"{identity.scheduled_time.isoformat()}"
+        )
