@@ -114,6 +114,14 @@ export function recoverScheduledWorkflowExecution(executionId) {
 }
 
 
+export function getScheduledWorkflowExecutionHistory(executionId) {
+  return getJson(
+    "/api/v1/workflows/executions/" + encodeURIComponent(executionId) + "/history",
+    "Scheduled workflow execution history request",
+  );
+}
+
+
 export function getCurrentIdentity() {
   return getJson("/api/v1/auth/me", "Authentication request");
 }
