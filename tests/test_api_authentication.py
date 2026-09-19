@@ -73,3 +73,27 @@ def test_operator_token_is_not_returned_in_error_response():
 
     assert "wrong-token" not in response.text
     assert "test-token" not in response.text
+
+
+def test_authenticated_identity_endpoint_returns_identity_without_credentials():
+    app = create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["subject"] == "operator"
+    assert response.json()["status"] == "active"
+    assert response.json()["user_id"] == "00000000-0000-0000-0000-000000000001"
+
+
+def test_authenticated_identity_endpoint_rejects_missing_credentials():
+    app = create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401
