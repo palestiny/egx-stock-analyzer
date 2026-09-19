@@ -145,8 +145,6 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     });
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   });
-});
-
 
   it("passes lifecycle filters and preserves them for pagination", async () => {
     const getHistory = vi.fn()
@@ -211,3 +209,5 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       toState: "running",
     });
   });
+
+});
