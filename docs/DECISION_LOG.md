@@ -2030,13 +2030,13 @@ See docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md for the full trade
 
 ## DEC-091 — M32 Automatic Scheduled Workflow Resume
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
-M32 opens a design gate for automatic recovery of persisted INTERRUPTED scheduled workflow executions during application startup.
+M32 accepts startup-triggered automatic recovery of persisted INTERRUPTED scheduled workflow executions. Startup inspects eligible executions, delegates recovery to the existing M31 capability, preserves workflow execution identity and existing analysis/alert-delivery idempotency, and remains sequential and process-local.
 
-The proposed direction is to reuse the existing M31 recovery capability rather than introduce a second recovery state machine. Startup would inspect eligible interrupted executions, recover them sequentially in deterministic order, isolate individual recovery failures, and preserve existing workflow execution identity and analysis/alert-delivery idempotency.
+Durable-store inspection failure is an application startup failure. Individual recovery failures are isolated and do not prevent later eligible executions from being attempted. Terminal executions are ignored and no replacement scheduled occurrence is created.
 
-The proposal keeps scheduler timing separate from recovery and does not introduce checkpoints, distributed coordination, queues, workers, provider retry, recovery HTTP endpoints, or new notification behavior.
+No recovery HTTP endpoint, checkpointing, distributed coordination, queue/worker model, provider retry, or new notification behavior is introduced.
 
 See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`.
