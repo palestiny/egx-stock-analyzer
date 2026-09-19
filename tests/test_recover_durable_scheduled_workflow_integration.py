@@ -79,7 +79,9 @@ def test_terminal_recovery_is_idempotent_by_rejection(tmp_path):
     store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
     clock = FakeClock()
     created = store.create_or_get("occurrence-1", clock.now())
-    completed = created.start(clock.now()).complete(clock.now())
+    running = created.start(clock.now())
+    store.save(running)
+    completed = running.complete(clock.now())
     store.save(completed)
 
     operation = Mock()
