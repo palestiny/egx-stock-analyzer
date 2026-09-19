@@ -160,6 +160,49 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 )
 
             existing = self._to_execution(row)
+            if existing.request_fingerprint is None and fingerprint is not None:
+                updated = connection.execute(
+                    """
+                    UPDATE scheduled_workflow_executions
+                    SET request_fingerprint = ?
+                    WHERE execution_id = ? AND revision = ? AND request_fingerprint IS NULL
+                    """,
+                    (
+                        fingerprint,
+                        str(existing.id),
+                        existing.revision,
+                    ),
+                ).rowcount
+                if updated == 1:
+                    return ScheduledWorkflowExecution(
+                        id=existing.id,
+                        occurrence_id=existing.occurrence_id,
+                        state=existing.state,
+                        created_at=existing.created_at,
+                        updated_at=existing.updated_at,
+                        owner_user_id=existing.owner_user_id,
+                        analysis_state=existing.analysis_state,
+                        delivery_state=existing.delivery_state,
+                        request_fingerprint=fingerprint,
+                        revision=existing.revision,
+                    )
+                row = connection.execute(
+                    """
+                    SELECT execution_id, occurrence_id, state, created_at,
+                           updated_at, analysis_state, delivery_state,
+                           owner_user_id, request_fingerprint, revision
+                    FROM scheduled_workflow_executions
+                    WHERE occurrence_id = ?
+                    """,
+                    (normalized,),
+                ).fetchone()
+                if row is None:
+                    raise RuntimeError(
+                        "Scheduled workflow reservation conflict could not resolve "
+                        f"occurrence: {normalized}"
+                    )
+                existing = self._to_execution(row)
+
             if (
                 existing.request_fingerprint is not None
                 and existing.request_fingerprint != fingerprint
