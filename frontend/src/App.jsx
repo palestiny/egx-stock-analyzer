@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "./api/analysisApi";
+import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 
 function Metric({ label, value }) {
   return (
@@ -25,7 +26,7 @@ function DetailPanel({ title, items }) {
   );
 }
 
-function App() {
+function DashboardApp({ onLogout }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -204,6 +205,7 @@ function App() {
           <p className="subtitle">
             Read the latest stored analysis for an EGX stock.
           </p>
+          <button type="button" onClick={onLogout}>Log out</button>
         </div>
 
         <form className="symbol-form" onSubmit={handleAnalyze}>
@@ -566,6 +568,131 @@ function App() {
       )}
     </main>
   );
+}
+
+
+function LoginScreen({ onAuthenticated }) {
+  const [token, setToken] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const normalizedToken = token.trim();
+    if (!normalizedToken) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      setSessionToken(normalizedToken);
+      const identity = await getCurrentIdentity();
+      onAuthenticated(identity);
+    } catch (requestError) {
+      clearSessionToken();
+      setError(requestError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="app-shell">
+      <section className="panel" aria-label="login">
+        <p className="eyebrow">EGX STOCK ANALYZER</p>
+        <h1>Sign in</h1>
+        <p className="muted">Enter your configured bearer credential to access the dashboard.</p>
+        <form className="symbol-form" onSubmit={handleSubmit}>
+          <label htmlFor="access-token">Access token</label>
+          <input
+            id="access-token"
+            name="access-token"
+            type="password"
+            value={token}
+            onChange={(event) => setToken(event.target.value)}
+            autoComplete="current-password"
+          />
+          <button type="submit" disabled={loading || !token.trim()}>
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+        {error && (
+          <p className="state-card error" role="alert">
+            {error.status === 401 ? "Invalid authentication credential." : error.message}
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function App() {
+  const [identity, setIdentity] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  function logout() {
+    clearSessionToken();
+    setIdentity(null);
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      const token = getSessionToken();
+      if (!token) {
+        if (active) {
+          setAuthLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const currentIdentity = await getCurrentIdentity();
+        if (active) {
+          setIdentity(currentIdentity);
+        }
+      } catch {
+        clearSessionToken();
+        if (active) {
+          setIdentity(null);
+        }
+      } finally {
+        if (active) {
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    restoreSession();
+
+    const handleExpired = () => {
+      if (active) {
+        setIdentity(null);
+      }
+    };
+    window.addEventListener("egx:auth-expired", handleExpired);
+
+    return () => {
+      active = false;
+      window.removeEventListener("egx:auth-expired", handleExpired);
+    };
+  }, []);
+
+  if (authLoading) {
+    return (
+      <main className="app-shell">
+        <section className="state-card" role="status">Checking authentication...</section>
+      </main>
+    );
+  }
+
+  if (!identity) {
+    return <LoginScreen onAuthenticated={setIdentity} />;
+  }
+
+  return <DashboardApp onLogout={logout} />;
 }
 
 export default App;

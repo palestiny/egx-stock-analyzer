@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 describe("analysis API client", () => {
+  beforeEach(() => {
+    clearSessionToken();
+  });
   it("requests analysis for the requested symbol and returns the response", async () => {
     const analysis = {
       symbol: "EGAL",
@@ -139,4 +143,36 @@ it("requests scheduled workflow recovery with POST", async () => {
     "/api/v1/workflows/executions/workflow-1/recover",
     { method: "POST" },
   );
+});
+
+
+it("adds the current session token as a bearer authorization header", async () => {
+  setSessionToken("session-token");
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue({ subject: "user-1" }),
+  });
+
+  const { getCurrentIdentity } = await import("../src/api/analysisApi");
+  await expect(getCurrentIdentity()).resolves.toEqual({ subject: "user-1" });
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/auth/me",
+    { headers: { Authorization: "Bearer session-token" } },
+  );
+});
+
+it("clears the session and emits auth expiry on HTTP 401", async () => {
+  setSessionToken("expired-token");
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: false,
+    status: 401,
+  });
+  const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+
+  const { getCurrentIdentity } = await import("../src/api/analysisApi");
+  await expect(getCurrentIdentity()).rejects.toMatchObject({ status: 401 });
+
+  expect(window.sessionStorage.getItem("egx-stock-analyzer.session-token")).toBeNull();
+  expect(dispatchSpy).toHaveBeenCalled();
 });

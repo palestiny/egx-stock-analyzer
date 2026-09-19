@@ -2,6 +2,26 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
+from app.application.security.identity import LEGACY_OPERATOR_USER_ID
+from app.domain.identity.user import User, UserStatus
+
+
+class InMemoryUserStore:
+    def __init__(self, users):
+        self._users = {user.id: user for user in users}
+
+    def get(self, user_id):
+        return self._users.get(user_id)
+
+
+def configured_test_authenticator():
+    store = InMemoryUserStore([User(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)])
+    return ConfiguredBearerTokenAuthenticator(
+        {},
+        user_store=store,
+        legacy_operator_token="test-token",
+    )
 
 
 def test_health_is_public_without_credentials():
@@ -73,3 +93,33 @@ def test_operator_token_is_not_returned_in_error_response():
 
     assert "wrong-token" not in response.text
     assert "test-token" not in response.text
+
+
+def test_authenticated_identity_endpoint_returns_identity_without_credentials():
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        authenticator=configured_test_authenticator(),
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["subject"] == "operator"
+    assert response.json()["status"] == "active"
+    assert response.json()["user_id"] == "00000000-0000-0000-0000-000000000001"
+
+
+def test_authenticated_identity_endpoint_rejects_missing_credentials():
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        authenticator=configured_test_authenticator(),
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/auth/me")
+
+    assert response.status_code == 401

@@ -18,4 +18,13 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Authentication
 
-Set `VITE_OPERATOR_TOKEN` to the same operator token configured as `EGX_OPERATOR_TOKEN` for the API. The dashboard API client sends it as `Authorization: Bearer <token>` for protected API requests.
+The dashboard uses the M39 backend bearer-credential boundary.
+
+- Login validates the credential through `GET /api/v1/auth/me`.
+- The credential is stored only in browser `sessionStorage`.
+- API requests send it through the `Authorization: Bearer <token>` header.
+- HTTP 401 clears the session and returns to the login screen.
+- Logout clears the session.
+- The frontend no longer uses `VITE_OPERATOR_TOKEN`.
+
+M40 does not implement credential issuance, password authentication, refresh tokens, MFA, SSO, or persistent browser sessions.

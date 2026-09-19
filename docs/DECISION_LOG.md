@@ -2275,3 +2275,19 @@ See `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`.
 
 
 
+
+
+## DEC-100 — M40 Frontend Authentication & Session UX
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M40 adds browser login/session UX over the existing M39 multi-user bearer authentication boundary.
+
+The frontend accepts a configured bearer credential, stores it in `sessionStorage`, validates it through `GET /api/v1/auth/me`, sends the credential only in the HTTP Authorization header, and clears the session on explicit logout or HTTP 401. HTTP 403 remains an authorization error and does not silently log the user out.
+
+M40 removes the previous build-time `VITE_OPERATOR_TOKEN` dependency from the frontend. The browser does not issue credentials, manage passwords, refresh tokens, or implement identity-provider flows.
+
+The new `GET /api/v1/auth/me` endpoint returns only the authenticated subject, immutable user ID, and lifecycle status; it never returns raw credentials.
+
+See `docs/DEC-100-M40-FRONTEND-AUTHENTICATION-DESIGN-GATE.md`.
