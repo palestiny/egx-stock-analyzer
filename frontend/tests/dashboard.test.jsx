@@ -2,10 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
+  getCurrentIdentity: vi.fn(),
   getAnalysisHistory: vi.fn(),
   getAnalysisComparison: vi.fn(),
   getSnapshotPerformance: vi.fn(),
@@ -38,6 +40,13 @@ const report = {
 describe("Dashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSessionToken();
+    setSessionToken("test-token");
+    getCurrentIdentity.mockResolvedValue({
+      subject: "operator",
+      user_id: "00000000-0000-0000-0000-000000000001",
+      status: "active",
+    });
   });
 
   it("renders the analysis symbol input and action", () => {
