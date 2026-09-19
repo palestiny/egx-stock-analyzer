@@ -91,6 +91,8 @@ class RunDurableScheduledWorkflow:
         if identity is None:
             return
         if execution.owner_user_id is None:
+            if Permission.OPERATOR in identity.permissions:
+                return
             raise PermissionError("Resource is system-owned")
         self._ownership_authorizer.require_owner(identity, execution.owner_user_id)
 
