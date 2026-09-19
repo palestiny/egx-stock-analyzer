@@ -1,6 +1,8 @@
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
+
+import pytest
 from uuid import uuid4
 
 from app.application.execution.get_scheduled_workflow_executions import (
@@ -46,10 +48,28 @@ def test_returns_all_executions_newest_first(tmp_path: Path):
     stored_second = store.get_by_occurrence(second.occurrence_id)
     assert stored_first is not None
     assert stored_second is not None
+    query = GetScheduledWorkflowExecutions(store)
 
     result = query.execute()
 
     assert [item.occurrence_id for item in result] == ["occ-2", "occ-1"]
+
+
+def test_one_persisted_execution_is_projected_without_mutation(tmp_path: Path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    execution = make_execution(
+        "occ-1",
+        datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc),
+    )
+    stored = store.create_or_get(execution.occurrence_id, execution.created_at)
+    before = store.get(stored.id)
+
+    result = GetScheduledWorkflowExecutions(store).execute()
+    after = store.get(stored.id)
+
+    assert len(result) == 1
+    assert result[0].id == stored.id
+    assert after == before
 
 
 def test_preserves_lifecycle_and_outcome_fields(tmp_path: Path):
@@ -95,3 +115,17 @@ def test_non_matching_occurrence_returns_empty_collection(tmp_path: Path):
     result = GetScheduledWorkflowExecutions(store).execute(occurrence_id="missing")
 
     assert result == ()
+
+
+def test_store_failure_propagates(tmp_path: Path):
+    class FailingStore:
+        def list_all(self):
+            raise RuntimeError("workflow store unavailable")
+
+        def get_by_occurrence(self, occurrence_id):
+            raise RuntimeError("workflow store unavailable")
+
+    query = GetScheduledWorkflowExecutions(FailingStore())
+
+    with pytest.raises(RuntimeError, match="workflow store unavailable"):
+        query.execute()
