@@ -51,6 +51,7 @@ class InfrastructureRuntime:
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
+    operator_token: str | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -162,4 +163,5 @@ def create_infrastructure_runtime(
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
+        operator_token=config.operator_token,
     )
