@@ -1,6 +1,6 @@
 # DEC-094 — M35 Scheduled Workflow Operational Dashboard Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M35 — Scheduled Workflow Operational Dashboard
 
@@ -154,14 +154,14 @@ Rejected for M35. Visibility and control have different safety and authorization
 
 Deferred. M35 should first establish a correct read-only view. Automatic refresh requires a separate freshness and load decision.
 
-## 9. Open Questions
+## 9. Accepted Decisions
 
-1. Should the panel show a fixed number of latest executions or all API results?
-2. Should timestamps use the browser's local timezone or a project-defined timezone?
-3. Should lifecycle states receive presentation labels distinct from persisted enum values?
-4. Should the occurrence filter be applied on each request or only when the user submits the form?
-5. Should the operational panel load automatically on dashboard startup or only after an explicit user action?
-6. Should the panel be shown when the workflow feature is unavailable (503), or hidden behind an unavailable-state message?
+1. **History scope:** Render all executions returned by the M34 API. The current operational history is intentionally small, and pagination is deferred.
+2. **Timestamp presentation:** Render timestamps in the browser's local timezone while preserving the original ISO timestamp value in the API contract.
+3. **Lifecycle labels:** Use human-readable presentation labels while mapping directly from the existing state value. The dashboard does not create new state semantics.
+4. **Occurrence filter:** Apply the filter only when the user submits the form, matching the explicit-action pattern already used by the dashboard's market opportunities view.
+5. **Initial loading:** The operational panel is loaded only after the user explicitly requests it. No automatic startup request or polling is introduced.
+6. **Unavailable feature:** Keep the panel visible and show an explicit unavailable state when the API returns 503. This makes configuration status visible without hiding the feature.
 
 ## 10. Proposed Invariants
 
@@ -193,9 +193,7 @@ Before implementation is authorized, tests should establish:
 
 ## 12. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
-
-Resolve the open questions and accept this presentation boundary before implementation.
+**Status: Accepted — implementation is authorized for the M35 dashboard presentation slice defined here.**
 
 ## 13. Revisit Conditions
 
