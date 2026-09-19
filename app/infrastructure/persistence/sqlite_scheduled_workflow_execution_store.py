@@ -407,17 +407,28 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
     def get_history(
         self,
         execution_id: UUID,
+        after_sequence: int | None = None,
+        limit: int | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
+        query = """
+            SELECT sequence, from_state, to_state, occurred_at, reason
+            FROM scheduled_workflow_execution_history
+            WHERE execution_id = ?
+        """
+        parameters: list[object] = [str(execution_id)]
+
+        if after_sequence is not None:
+            query += " AND sequence > ?"
+            parameters.append(after_sequence)
+
+        query += " ORDER BY sequence ASC"
+
+        if limit is not None:
+            query += " LIMIT ?"
+            parameters.append(limit)
+
         with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT sequence, from_state, to_state, occurred_at, reason
-                FROM scheduled_workflow_execution_history
-                WHERE execution_id = ?
-                ORDER BY sequence ASC
-                """,
-                (str(execution_id),),
-            ).fetchall()
+            rows = connection.execute(query, parameters).fetchall()
 
         return tuple(
             (
