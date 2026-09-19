@@ -49,8 +49,15 @@ describe("Dashboard", () => {
     });
   });
 
-  it("renders the analysis symbol input and action", () => {
-    render(<App />);
+  async function renderAuthenticatedApp() {
+    await renderAuthenticatedApp();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Stock Symbol")).toBeInTheDocument(),
+    );
+  }
+
+  it("renders the analysis symbol input and action", async () => {
+    await renderAuthenticatedApp();
     expect(screen.getByLabelText("Stock Symbol")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load Analysis" })).toBeInTheDocument();
   });
@@ -59,7 +66,7 @@ describe("Dashboard", () => {
     getReport.mockResolvedValue(report);
     getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "egal" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -101,7 +108,7 @@ describe("Dashboard", () => {
       ],
     });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "egal" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -141,7 +148,7 @@ describe("Dashboard", () => {
       metrics: { price_change: 25, price_change_percent: 25 },
     });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -163,7 +170,7 @@ describe("Dashboard", () => {
     getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
     getAnalysisHistory.mockRejectedValue(new Error("Analysis history request failed"));
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -186,7 +193,7 @@ describe("Dashboard", () => {
       missing_symbols: ["IEEC"],
     });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.click(screen.getByRole("button", { name: "Load Opportunities" }));
 
     const symbol = await screen.findByText("EGAL");
@@ -226,7 +233,7 @@ describe("Dashboard", () => {
       ],
     });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
 
     const firstOccurrence = await screen.findByText(/occ-2/);
@@ -240,7 +247,7 @@ describe("Dashboard", () => {
   it("passes the submitted occurrence filter to the workflow API", async () => {
     getScheduledWorkflowExecutions.mockResolvedValue({ items: [] });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Occurrence ID"), { target: { value: "occ-42" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
 
@@ -253,7 +260,7 @@ describe("Dashboard", () => {
       Object.assign(new Error("Scheduled workflow executions request failed with status 503"), { status: 503 }),
     );
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
 
     expect(await screen.findByText("Scheduled workflow visibility is not configured.")).toBeInTheDocument();
@@ -263,7 +270,7 @@ describe("Dashboard", () => {
     let resolveReport;
     getReport.mockReturnValue(new Promise((resolve) => { resolveReport = resolve; }));
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -278,7 +285,7 @@ describe("Dashboard", () => {
     getReport.mockResolvedValue(report);
     getAlert.mockRejectedValue(Object.assign(new Error("not found"), { status: 404 }));
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -288,7 +295,7 @@ describe("Dashboard", () => {
   it("shows a not-found message when the report is unavailable", async () => {
     getReport.mockRejectedValue(Object.assign(new Error("Report request failed with status 404"), { status: 404 }));
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "UNKNOWN" } });
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
@@ -329,7 +336,7 @@ describe("Dashboard", () => {
       delivery_state: "completed",
     });
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
 
     const recover = await screen.findByRole("button", { name: "Recover" });
@@ -362,7 +369,7 @@ describe("Dashboard", () => {
       Object.assign(new Error("conflict"), { status: 409 }),
     );
 
-    render(<App />);
+    await renderAuthenticatedApp();
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
     fireEvent.click(await screen.findByRole("button", { name: "Recover" }));
 
