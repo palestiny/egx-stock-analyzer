@@ -2382,3 +2382,35 @@ This keeps security-management evidence separate from workflow operational visib
 M42 adds a dedicated read model and pagination contract but does not change M41 audit writes. No new permission, retention policy, real-time stream, SIEM integration, analytics, or user self-service audit history is introduced.
 
 See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
+
+
+## DEC-104 — M43 User-Facing Audit History
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M43 defines a read-only personal audit-history capability over the durable M41 ManagementAuditStore without changing M41 audit writes or M42 operator reporting.
+
+### Decision
+
+Visibility is target-only: the authenticated user's immutable user ID is always the target scope. Operator actions targeting that user are visible; events concerning unrelated users are excluded.
+
+The user-facing read model redacts raw actor/target UUIDs. The actor is represented as self when the actor is the authenticated user and operator when the actor is another operator. The target is represented as self.
+
+The MVP allowlists M41 actions that concern the authenticated account: user_created, user_active, user_disabled, user_deleted, credential_rotated, and credential_rotated_by_operator. Unknown future actions are excluded by default.
+
+Safe filters are action, outcome, and UTC time range. Actor/target UUID filters are not exposed. Pagination reuses M42 bounds: default 50, maximum 100, deterministic occurred_at DESC / audit_id DESC ordering.
+
+Deleted users retain immutable audit history for operators but cannot retrieve personal history after deletion because the existing lifecycle prevents deleted identities from authenticating.
+
+The API boundary is a dedicated GET /api/v1/users/me/audit endpoint backed by a dedicated GetUserAuditHistory capability. The dashboard remains presentation-only.
+
+### Reasoning
+
+Target-only visibility provides a strong personal-ownership boundary and avoids creating an identity-enumeration channel through actor-based filtering. Reusing M42 pagination and ordering keeps operational behavior consistent while the dedicated read capability prevents M42 operator semantics from leaking into the user surface.
+
+### Consequences
+
+M43 adds a user-scoped read model and endpoint but does not add a permission model, alter audit persistence, expose unrelated identities, or change M42 operator reporting.
+
+See docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md.
