@@ -98,7 +98,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         if not normalized:
             raise ValueError("occurrence_id cannot be empty")
 
-        fingerprint = request_fingerprint or normalized
+        fingerprint = request_fingerprint
         with self._connect() as connection:
             execution = ScheduledWorkflowExecution.create(
                 normalized,
@@ -160,7 +160,10 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 )
 
             existing = self._to_execution(row)
-            if existing.request_fingerprint != fingerprint:
+            if (
+                existing.request_fingerprint is not None
+                and existing.request_fingerprint != fingerprint
+            ):
                 raise ScheduledWorkflowExecutionIdempotencyConflictError(
                     "Idempotency key is already bound to a different request: "
                     f"{normalized}"
