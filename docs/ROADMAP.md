@@ -145,7 +145,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M42 | Management Audit Reporting | 🟢 Complete | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
 | M43 | User-Facing Audit History | 🟢 Complete | Add controlled authenticated-user visibility over the durable management-audit boundary |
 | M44 | Execution Reliability & History | 🟢 Complete | Harden durable workflow idempotency, concurrent claiming, optimistic revisions, lifecycle history, and atomic state/history persistence |
-| M45 | Scheduled Workflow Lifecycle History Visibility | 🟡 Design Accepted | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
+| M45 | Scheduled Workflow Lifecycle History Visibility | 🟢 Complete | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1428,6 +1428,38 @@ New strategies and indicators should not require rewriting unrelated modules.
 ## Observability
 
 Important failures and system decisions must eventually be visible.
+
+---
+
+# 33.11. M45 — Scheduled Workflow Lifecycle History Visibility
+
+## Status
+
+M45 is **complete**. The accepted design is documented in `docs/DEC-106-M45-SCHEDULED-WORKFLOW-LIFECYCLE-HISTORY-VISIBILITY-DESIGN-GATE.md`, and the implementation was merged through PR #104.
+
+The implementation head `292d12bacb6a84cf8a102c6b816bd2bac8a7b0fc` passed GitHub Actions Run #1738 with:
+
+- Python unit tests: **success**
+- Frontend tests: **success**
+- Frontend production build: **success**
+
+Completion record: `docs/M45-SCHEDULED-WORKFLOW-LIFECYCLE-HISTORY-VISIBILITY-MVP-COMPLETION.md`.
+
+### Accepted boundary
+
+```
+HTTP / Dashboard
+       ↓
+GetScheduledWorkflowExecutionHistory
+       ↓
+ScheduledWorkflowExecutionStore
+       ↓
+SQLite lifecycle history
+```
+
+The MVP exposes one execution's persisted lifecycle history through a dedicated immutable read model, preserves authoritative ascending sequence order, exposes persisted transition reasons, represents the initial transition with `from_state = null`, and reuses the existing owner-or-global authorization boundary.
+
+The API endpoint and dashboard are read-only presentation surfaces. No lifecycle mutation, replay, analytics, pagination, schema change, or new authentication model was introduced.
 
 ---
 
