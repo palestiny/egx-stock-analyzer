@@ -142,3 +142,12 @@ export function rotateOwnCredential() {
     { method: "POST" },
   );
 }
+
+
+export function rotateUserCredential(userId) {
+  return getJson(
+    "/api/v1/users/" + encodeURIComponent(userId) + "/credentials/rotate",
+    "User credential rotation request",
+    { method: "POST" },
+  );
+}
