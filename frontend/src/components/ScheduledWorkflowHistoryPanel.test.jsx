@@ -5,7 +5,7 @@ import { ScheduledWorkflowHistoryPanel } from "./ScheduledWorkflowHistoryPanel";
 
 describe("ScheduledWorkflowHistoryPanel", () => {
   it("loads and renders persisted lifecycle history", async () => {
-        const getHistory = vi.fn().mockResolvedValue({
+    const getHistory = vi.fn().mockResolvedValue({
       execution_id: "execution-1",
       occurrence_id: "occ-45",
       history: [
@@ -24,6 +24,8 @@ describe("ScheduledWorkflowHistoryPanel", () => {
           reason: "started",
         },
       ],
+      has_more: false,
+      next_cursor: null,
     });
 
     render(
@@ -47,6 +49,8 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       execution_id: "execution-1",
       occurrence_id: "occ-45",
       history: [],
+      has_more: false,
+      next_cursor: null,
     });
 
     render(
@@ -84,8 +88,6 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       ).toBeInTheDocument();
     });
   });
-});
-
 
   it("loads the next page and appends history", async () => {
     const getHistory = vi.fn()
