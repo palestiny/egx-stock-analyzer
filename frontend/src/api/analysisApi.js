@@ -88,3 +88,12 @@ export function getScheduledWorkflowExecutions(occurrenceId) {
   const url = "/api/v1/workflows/executions" + (query ? "?" + query : "");
   return getJson(url, "Scheduled workflow executions request");
 }
+
+
+export function recoverScheduledWorkflowExecution(executionId) {
+  return getJson(
+    "/api/v1/workflows/executions/" + encodeURIComponent(executionId) + "/recover",
+    "Scheduled workflow recovery request",
+    { method: "POST" },
+  );
+}
