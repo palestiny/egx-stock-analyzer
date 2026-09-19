@@ -2006,3 +2006,23 @@ The MVP uses stable workflow execution UUIDs plus the scheduler occurrence ident
 SQLite is the first implementation technology behind a dedicated ScheduledWorkflowExecutionStore. The MVP remains process-local and sequential and does not introduce queues, workers, distributed locks, provider retry, multiple channels, user-specific schedules, or automatic replay.
 
 See `docs/DEC-089-M30-DURABLE-SCHEDULED-WORKFLOW-DESIGN-GATE.md`.
+
+
+## DEC-090 — M31 Durable Scheduled Workflow Recovery
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+### Decision
+
+Add an explicit, application-level recovery capability for one persisted INTERRUPTED scheduled workflow execution. Recovery reuses the existing workflow execution identity and existing M29 workflow rather than creating a new scheduled occurrence.
+
+### Key constraints
+
+- Only INTERRUPTED executions are recoverable.
+- Recovery transitions through RUNNING and uses existing terminal states.
+- No automatic startup replay is introduced.
+- Existing analysis persistence and alert-delivery idempotency remain authoritative.
+- No step-level checkpointing, distributed coordination, queues, or new retry layer are introduced.
+
+See docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md for the full trade-offs and acceptance criteria.
