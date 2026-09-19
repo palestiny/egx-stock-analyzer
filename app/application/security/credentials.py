@@ -32,6 +32,16 @@ class CredentialStore:
     def find_active_user_id(self, secret: str) -> UUID | None:
         raise NotImplementedError
 
+    def replace(
+        self,
+        credential_id: UUID,
+        user_id: UUID,
+        replacement: StoredCredential,
+        replacement_verifier: str,
+        revoked_at: datetime,
+    ) -> None:
+        raise NotImplementedError
+
     def revoke(
         self,
         credential_id: UUID,
@@ -62,13 +72,22 @@ class CredentialService:
         )
 
     def rotate(self, credential_id: UUID, user_id: UUID) -> IssuedCredential:
-        replacement = self.provision(user_id)
-        self._store.revoke(
-            credential_id,
-            revoked_at=datetime.now(timezone.utc),
-            replacement_id=replacement.id,
+        replacement_id = uuid4()
+        secret = token_urlsafe(32)
+        replacement = StoredCredential(
+            id=replacement_id,
+            user_id=user_id,
+            status="active",
+            created_at=datetime.now(timezone.utc),
         )
-        return replacement
+        self._store.replace(
+            credential_id=credential_id,
+            user_id=user_id,
+            replacement=replacement,
+            replacement_verifier=_derive_verifier(secret),
+            revoked_at=datetime.now(timezone.utc),
+        )
+        return IssuedCredential(id=replacement_id, user_id=user_id, secret=secret)
 
     def revoke(self, credential_id: UUID) -> None:
         self._store.revoke(
