@@ -114,6 +114,7 @@ class RunDurableScheduledWorkflow:
             )
 
         execution = execution.start_recovery(self._clock.now(), reason="recovery")
+        self._store.save(execution)
         return self._run(execution, as_of)
 
     def _authorize_existing_execution(
