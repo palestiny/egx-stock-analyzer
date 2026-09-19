@@ -2487,13 +2487,19 @@ Implementation validation: GitHub Actions Run #1772 passed on implementation hea
 
 ## DEC-108 — M47 Scheduled Workflow History Filtering
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20
 
 M47 proposes a narrow read-side extension to the M45/M46 scheduled workflow lifecycle-history capability: typed filtering by persisted lifecycle states, with filtering applied before sequence-cursor pagination.
 
 The current candidate is optional from_state and to_state filters, deterministic ascending persisted-sequence ordering, reuse of existing opaque M46 cursors, and unchanged ownership authorization. Free-text transition-reason filtering, cross-execution queries, history mutation/retention, and event replay remain out of scope.
 
-No implementation is authorized until the M47 design gate is explicitly accepted.
+Implementation is authorized within the accepted scope in the design gate.
+
+### Implementation validation
+
+M47 was implemented through PR #113 and merged into `main` at merge commit `1123b54f9945194b7594717c234221897060f7e8`. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936`.
+
+The implementation keeps filtering server-side before pagination, binds filtered continuation cursors to the effective filter shape, preserves legacy unfiltered cursors, and exposes the same read model through API and dashboard.
 
 See docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md.
