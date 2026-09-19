@@ -407,6 +407,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
     def get_history(
         self,
         execution_id: UUID,
+        from_state: str | None = None,
+        to_state: str | None = None,
         after_sequence: int | None = None,
         limit: int | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
@@ -416,6 +418,14 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             WHERE execution_id = ?
         """
         parameters: list[object] = [str(execution_id)]
+
+        if from_state is not None:
+            query += " AND from_state = ?"
+            parameters.append(from_state)
+
+        if to_state is not None:
+            query += " AND to_state = ?"
+            parameters.append(to_state)
 
         if after_sequence is not None:
             query += " AND sequence > ?"
