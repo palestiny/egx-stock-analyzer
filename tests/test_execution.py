@@ -151,3 +151,12 @@ def test_execution_completes_when_no_stocks_are_requested():
     execution.finish()
 
     assert execution.state == ExecutionState.COMPLETED
+
+
+def test_empty_execution_finishes_as_completed():
+    execution = Execution.create()
+    execution.start()
+
+    execution.finish()
+
+    assert execution.state == ExecutionState.COMPLETED
