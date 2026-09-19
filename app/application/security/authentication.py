@@ -23,6 +23,6 @@ class BearerTokenAuthenticator:
             raise AuthenticationError("Authentication credentials are invalid")
 
         if not compare_digest(token.strip(), self._expected_token):
-            raise AuthenticationError("Invalid authentication credentials")
+            raise AuthenticationError("Authentication credentials are invalid")
 
         return AuthenticatedIdentity.operator()
