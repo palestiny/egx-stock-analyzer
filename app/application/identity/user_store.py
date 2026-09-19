@@ -10,3 +10,6 @@ class UserStore(Protocol):
 
     def get(self, user_id: UUID) -> User | None:
         ...
+
+    def get_or_create(self, user_id: UUID, status) -> User:
+        ...
