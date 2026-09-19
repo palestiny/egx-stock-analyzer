@@ -153,3 +153,40 @@ def test_returns_503_when_history_query_is_not_configured():
     assert response.json() == {
         "detail": "Scheduled workflow execution history is not configured"
     }
+
+
+def test_api_reads_history_from_real_sqlite_store(tmp_path):
+    from datetime import datetime, timezone
+
+    from app.application.execution.get_scheduled_workflow_execution_history import (
+        GetScheduledWorkflowExecutionHistory,
+    )
+    from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
+        SQLiteScheduledWorkflowExecutionStore,
+    )
+
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    execution = store.create_or_get("occ-real", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    store.save(
+        running.complete(
+            datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+            reason="finished",
+        )
+    )
+
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=GetScheduledWorkflowExecutionHistory(store),
+    )
+
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/workflows/executions/{execution.id}/history")
+
+    assert response.status_code == 200
+    assert [item["sequence"] for item in response.json()["history"]] == [1, 2, 3]
