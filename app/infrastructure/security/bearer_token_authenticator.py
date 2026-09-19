@@ -1,10 +1,7 @@
 from secrets import compare_digest
 
+from app.application.security.authentication import AuthenticationError
 from app.application.security.identity import AuthenticatedIdentity
-
-
-class AuthenticationError(ValueError):
-    """Raised when bearer authentication cannot establish an identity."""
 
 
 class BearerTokenAuthenticator:
