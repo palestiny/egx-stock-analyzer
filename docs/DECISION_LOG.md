@@ -2386,15 +2386,31 @@ See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
 
 ## DEC-104 — M43 User-Facing Audit History
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
-M43 opens a design gate for controlled audit-history visibility to authenticated users after M42 established operator-only management-audit reporting.
+M43 defines a read-only personal audit-history capability over the durable M41 ManagementAuditStore without changing M41 audit writes or M42 operator reporting.
 
-The preferred problem boundary is a dedicated user-facing read capability over the existing ManagementAuditStore, with application-owned visibility and redaction semantics.
+### Decision
 
-Open decisions cover target-only versus actor-or-target visibility, operator actions concerning a user, actor/target representation, user-visible action/outcome allowlists, safe filters, pagination reuse, deleted-user behavior, API shape, dashboard placement, and cross-user authorization isolation.
+Visibility is target-only: the authenticated user's immutable user ID is always the target scope. Operator actions targeting that user are visible; events concerning unrelated users are excluded.
 
-Implementation is not authorized until these decisions are explicitly accepted.
+The user-facing read model redacts raw actor/target UUIDs. The actor is represented as self when the actor is the authenticated user and operator when the actor is another operator. The target is represented as self.
+
+The MVP allowlists M41 actions that concern the authenticated account: user_created, user_active, user_disabled, user_deleted, credential_rotated, and credential_rotated_by_operator. Unknown future actions are excluded by default.
+
+Safe filters are action, outcome, and UTC time range. Actor/target UUID filters are not exposed. Pagination reuses M42 bounds: default 50, maximum 100, deterministic occurred_at DESC / audit_id DESC ordering.
+
+Deleted users retain immutable audit history for operators but cannot retrieve personal history after deletion because the existing lifecycle prevents deleted identities from authenticating.
+
+The API boundary is a dedicated GET /api/v1/users/me/audit endpoint backed by a dedicated GetUserAuditHistory capability. The dashboard remains presentation-only.
+
+### Reasoning
+
+Target-only visibility provides a strong personal-ownership boundary and avoids creating an identity-enumeration channel through actor-based filtering. Reusing M42 pagination and ordering keeps operational behavior consistent while the dedicated read capability prevents M42 operator semantics from leaking into the user surface.
+
+### Consequences
+
+M43 adds a user-scoped read model and endpoint but does not add a permission model, alter audit persistence, expose unrelated identities, or change M42 operator reporting.
 
 See docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md.
