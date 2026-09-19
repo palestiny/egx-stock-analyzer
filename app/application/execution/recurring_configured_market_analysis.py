@@ -38,13 +38,14 @@ class RecurringConfiguredMarketAnalysis:
         clock: Clock,
         schedule_time: time,
         timezone: ZoneInfo = CAIRO_TIMEZONE,
+        schedule_id: UUID | None = None,
     ) -> None:
         self._scheduled_operation = scheduled_operation
         self._scheduler = scheduler
         self._clock = clock
         self._schedule_time = schedule_time.replace(tzinfo=None)
         self._timezone = timezone
-        self._schedule_id = uuid4()
+        self._schedule_id = schedule_id or uuid4()
         self._consumed_occurrences: set[OccurrenceIdentity] = set()
         self._running = False
         self._started = False
@@ -115,10 +116,15 @@ class RecurringConfiguredMarketAnalysis:
 
         self._running = True
         try:
-            self._scheduled_operation.execute(self._occurrence_id(identity), occurrence.date())
+            self._scheduled_operation.execute(
+                self._occurrence_id(identity),
+                occurrence.date(),
+            )
         finally:
             self._running = False
-            self._schedule_occurrence(self._next_occurrence(occurrence + timedelta(seconds=1)))
+            self._schedule_occurrence(
+                self._next_occurrence(occurrence + timedelta(seconds=1))
+            )
 
     @staticmethod
     def _occurrence_id(identity: OccurrenceIdentity) -> str:
