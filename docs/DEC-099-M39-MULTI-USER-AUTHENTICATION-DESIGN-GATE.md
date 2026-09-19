@@ -158,20 +158,118 @@ Transport maps authentication failures to 401 and authorization failures to 403.
 - no raw token/password reaches application domain entities;
 - replacing the authentication adapter does not require changing ownership semantics.
 
-## 12. Open Decisions Before Implementation
+## 12. Accepted Decisions
 
-1. Concrete authentication mechanism: configured per-user bearer credentials, external IdP, or application-boundary-only in this milestone?
-2. User provisioning: if configured credentials are selected, where are mappings configured and how are they rotated/revoked?
-3. API scope: which existing endpoints become user-scoped in the first slice?
-4. Legacy compatibility duration: what explicit condition ends M37 operator-token compatibility?
-5. Frontend scope: login/session UX or API/application only?
-6. Identity lookup frequency: every authenticated request or bounded caching?
+### 12.1 Concrete Authentication Mechanism
 
-## 13. Design Gate Decision
+M39 will use **configured per-user bearer credentials** as the first concrete transport adapter.
 
-Status: Proposed — implementation is not authorized by this document.
+The application boundary remains adapter-based so an external identity provider can replace this adapter later without changing ownership semantics.
 
-M39 implementation must wait until the concrete authentication mechanism, provisioning boundary, endpoint scope, and legacy compatibility policy are explicitly accepted.
+Credentials are configuration/infrastructure data. They are never represented by domain entities and are never passed into application capabilities.
+
+### 12.2 Provisioning, Rotation, and Revocation
+
+M39 will not build a user-management product or password system.
+
+For the first slice, credential-to-user mappings are supplied through deployment configuration and resolved by the authentication adapter. A configured credential maps to one immutable internal user UUID.
+
+The mapping is authoritative for authentication. Changing or removing a mapping revokes that credential after the application's configuration is reloaded/restarted according to the deployment model.
+
+Durable user lifecycle state remains authoritative for whether the mapped user may authenticate.
+
+This is intentionally a controlled-deployment mechanism, not a complete identity-management product. A later identity-provider decision may replace it.
+
+### 12.3 First API/Application Scope
+
+The first migrated user-owned capability is the **scheduled workflow execution read/recovery surface**:
+
+- `GET /api/v1/workflows/executions`
+- `POST /api/v1/workflows/executions/{execution_id}/recover`
+
+The application layer receives `AuthenticatedIdentity` and applies the existing ownership authorization boundary.
+
+Other analytical, reporting, notification, and administrative endpoints remain on the M37 operator compatibility path until separate migration decisions are made.
+
+### 12.4 Legacy Operator Compatibility
+
+M37 operator-token compatibility remains supported during M39.
+
+It ends only through a separate explicit decision after all endpoints that depend on operator compatibility have either been migrated to user identity or intentionally remain system/operator-only.
+
+M39 therefore does not introduce a time-based or automatic removal of the legacy credential.
+
+The legacy operator maps only to `LEGACY_OPERATOR_USER_ID` and cannot select or impersonate another user.
+
+### 12.5 Frontend Scope
+
+M39 is **API/application focused**.
+
+The frontend is not required to implement login/session UX in this milestone. Existing dashboard behavior may continue using the compatibility path while the backend identity boundary is established and tested.
+
+A separate frontend authentication design/implementation slice will be required before user-facing login is considered complete.
+
+### 12.6 Identity Lookup Frequency
+
+M39 resolves identity on every authenticated request.
+
+No authentication-result cache is introduced in the first slice.
+
+This keeps lifecycle changes deterministic: disabling or deleting a user is reflected without waiting for a cache expiry.
+
+## 13. Accepted Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M39 MVP defined here.**
+
+The accepted boundary is:
+
+```
+HTTP Request
+    ↓
+Bearer Authentication Adapter
+    ↓
+AuthenticatedIdentity
+    ↓
+Application Capability
+    ↓
+Ownership Authorization Boundary
+    ↓
+User-Owned Resource
+```
+
+M39 concrete adapter details are infrastructure/configuration concerns. The application contract consumes only `AuthenticatedIdentity`.
+
+### Accepted invariants
+
+- raw credentials never reach domain entities;
+- client-supplied user IDs never establish identity;
+- ACTIVE users may authenticate;
+- DISABLED and DELETED users cannot authenticate;
+- unknown mapped users cannot authenticate;
+- legacy operator credentials resolve only to `LEGACY_OPERATOR_USER_ID`;
+- authentication failure maps to HTTP 401;
+- authorization failure maps to HTTP 403;
+- missing resources remain HTTP 404;
+- ownership checks remain in the application authorization boundary;
+- replacing the bearer adapter later does not change ownership semantics;
+- identity is resolved on every protected request.
+
+### TDD acceptance criteria
+
+- valid configured user credential resolves to the expected `AuthenticatedIdentity`;
+- disabled user credential is rejected;
+- deleted user credential is rejected;
+- credential mapped to a missing user is rejected;
+- legacy operator credential resolves deterministically to `LEGACY_OPERATOR_USER_ID`;
+- legacy operator cannot select another user;
+- user A can read/recover user A's scheduled workflow execution;
+- user A cannot read/recover user B's scheduled workflow execution;
+- global/legacy records follow the explicit compatibility path;
+- missing workflow execution remains 404;
+- invalid/missing credentials remain 401;
+- authenticated non-owner remains 403;
+- no raw credential reaches domain/application capability contracts;
+- replacing the authentication adapter leaves ownership tests unchanged.
 
 ## 14. Revisit Conditions
 
