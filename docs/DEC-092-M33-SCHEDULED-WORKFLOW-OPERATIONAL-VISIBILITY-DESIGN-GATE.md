@@ -1,6 +1,6 @@
 # DEC-092 — M33 Scheduled Workflow Operational Visibility Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M33 — Scheduled Workflow Operational Visibility
 
@@ -82,16 +82,16 @@ Preferred candidate because it creates an explicit application boundary while re
 
 Rejected for M33 because there is no demonstrated need for a second source of truth.
 
-## 7. Open Questions
+## 7. Accepted Decisions
 
-1. Should the MVP expose all persisted executions or only recent executions?
-2. What is the canonical deterministic ordering?
-3. Which filters are justified by current use cases?
-4. Should recovery metadata be represented directly or only through lifecycle state/timestamps?
-5. What is the minimum read model that remains useful without becoming an operational dashboard contract?
-6. Should an empty result be a valid empty collection?
-7. Does the current persistence schema already contain every required field?
-8. Should HTTP exposure be part of M33 or a separate transport gate?
+1. **History scope:** The MVP exposes all persisted scheduled workflow executions. The current store is a small operational history and there is no demonstrated need for pagination or retention semantics yet.
+2. **Ordering:** Results are ordered by `created_at DESC, execution_id DESC`. This makes the newest execution first while the UUID provides a deterministic tie-breaker.
+3. **Filtering:** The MVP supports an optional exact `occurrence_id` filter because occurrence identity is already a persisted domain concept. A workflow filter is deferred because the current persistence model does not persist a separate workflow identifier.
+4. **Recovery metadata:** Recovery is represented only through the persisted lifecycle state and timestamps already owned by `ScheduledWorkflowExecution`. M33 does not add a synthetic recovery flag or reconstruct historical transitions that are not persisted.
+5. **Read model:** The minimum read model preserves execution id, occurrence id, lifecycle state, created/updated timestamps, analysis state, and delivery state. It is an application read model, not an operational dashboard contract.
+6. **Empty result:** No matching executions is a valid empty collection.
+7. **Persistence sufficiency:** The existing SQLite schema already contains the fields required by the accepted read model. M33 only adds a read/query operation to the existing store boundary; no schema migration or second operational store is required.
+8. **HTTP boundary:** HTTP exposure is deferred to a separate transport design gate. M33 establishes the application read capability only.
 
 ## 8. Proposed Invariants
 
@@ -100,11 +100,12 @@ Rejected for M33 because there is no demonstrated need for a second source of tr
 3. It does not recalculate workflow outcomes.
 4. It does not execute or recover workflows.
 5. It does not depend on FastAPI, React, or scheduler implementation details.
-6. It preserves persisted execution identity.
+6. It preserves persisted execution identity and occurrence identity.
 7. Ordering is deterministic.
 8. Missing executions produce an empty result rather than an exception.
 9. Persistence remains the source of truth.
 10. No second operational source of truth is introduced.
+11. M33 does not invent recovery history that the persistence model does not record.
 
 ## 9. TDD Acceptance Shape
 
@@ -112,20 +113,30 @@ Before implementation is authorized, tests should define:
 
 - empty execution history;
 - one persisted execution;
-- multiple executions with deterministic ordering;
+- multiple executions with deterministic newest-first ordering;
 - lifecycle-state preservation;
 - execution and occurrence identity preservation;
-- failure information preservation where already available;
-- filtering behavior if accepted;
+- analysis and delivery state preservation;
+- exact occurrence filtering;
+- behavior when a filter matches nothing;
 - no mutation of persisted state;
-- behavior when a requested filter matches nothing;
 - store failure propagation semantics.
 
 ## 10. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M33 application read capability defined here.**
 
-The open questions above must be resolved and recorded before implementation.
+The implementation boundary is:
+
+```
+ScheduledWorkflowExecutionStore
+          ↓
+GetScheduledWorkflowExecutions
+          ↓
+Read Model
+```
+
+The capability remains provider-neutral and read-only. It does not introduce HTTP, dashboard, scheduler, notification, recovery, or persistence-schema behavior.
 
 ## 11. Revisit Conditions
 
