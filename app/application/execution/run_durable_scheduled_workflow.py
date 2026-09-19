@@ -13,6 +13,9 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionStore,
 )
 from app.application.security.authorization import OwnershipAuthorizer
+from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
+    ScheduledWorkflowExecutionIdempotencyConflictError,
+)
 from app.application.security.identity import AuthenticatedIdentity, Permission
 
 
@@ -55,12 +58,22 @@ class RunDurableScheduledWorkflow:
             as_of,
             owner_user_id,
         )
-        execution = self._store.create_or_get(
-            normalized_occurrence,
-            self._clock.now(),
-            owner_user_id,
-            request_fingerprint,
-        )
+        existing = self._store.get_by_occurrence(normalized_occurrence)
+        if existing is not None:
+            self._authorize_existing_execution(existing, identity)
+
+        try:
+            execution = self._store.create_or_get(
+                normalized_occurrence,
+                self._clock.now(),
+                owner_user_id,
+                request_fingerprint,
+            )
+        except ScheduledWorkflowExecutionIdempotencyConflictError:
+            raced = self._store.get_by_occurrence(normalized_occurrence)
+            if raced is not None:
+                self._authorize_existing_execution(raced, identity)
+            raise
 
         if execution.state is not ScheduledWorkflowExecutionState.CREATED:
             self._authorize_existing_execution(execution, identity)
