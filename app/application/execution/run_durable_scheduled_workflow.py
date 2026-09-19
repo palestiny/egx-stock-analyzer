@@ -1,4 +1,6 @@
 from datetime import date, datetime, timezone
+import hashlib
+import json
 from typing import Protocol
 from uuid import UUID
 
@@ -47,19 +49,37 @@ class RunDurableScheduledWorkflow:
             self._ownership_authorizer.require_authenticated(identity)
             owner_user_id = identity.user_id
 
+        normalized_occurrence = occurrence_id.strip()
+        request_fingerprint = self._request_fingerprint(
+            normalized_occurrence,
+            as_of,
+            owner_user_id,
+        )
         execution = self._store.create_or_get(
-            occurrence_id,
+            normalized_occurrence,
             self._clock.now(),
             owner_user_id,
+            request_fingerprint,
         )
 
         if execution.state is not ScheduledWorkflowExecutionState.CREATED:
             self._authorize_existing_execution(execution, identity)
             return execution
 
-        execution = execution.start(self._clock.now())
-        self._store.save(execution)
-        return self._run(execution, as_of)
+        started = self._store.start_if_created(
+            execution.id,
+            self._clock.now(),
+        )
+        if started is None:
+            existing = self._store.get(execution.id)
+            if existing is None:
+                raise ValueError(
+                    f"Scheduled workflow execution disappeared: {execution.id}"
+                )
+            self._authorize_existing_execution(existing, identity)
+            return existing
+
+        return self._run(started, as_of)
 
     def recover(
         self,
@@ -96,13 +116,25 @@ class RunDurableScheduledWorkflow:
             raise PermissionError("Resource is system-owned")
         self._ownership_authorizer.require_owner(identity, execution.owner_user_id)
 
+    @staticmethod
+    def _request_fingerprint(
+        occurrence_id: str,
+        as_of: date,
+        owner_user_id: UUID | None,
+    ) -> str:
+        payload = {
+            "occurrence_id": occurrence_id,
+            "as_of": as_of.isoformat(),
+            "owner_user_id": str(owner_user_id) if owner_user_id is not None else None,
+        }
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
     def _run(
         self,
         execution: ScheduledWorkflowExecution,
         as_of: date,
     ) -> ScheduledWorkflowExecution:
-        self._store.save(execution)
-
         try:
             result: ConfiguredMarketAnalysisDeliveryResult = (
                 self._scheduled_operation.execute(as_of)
