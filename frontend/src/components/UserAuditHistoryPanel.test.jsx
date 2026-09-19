@@ -27,7 +27,7 @@ it("loads and renders redacted personal audit history", async () => {
     expect(screen.getByText("credential_rotated_by_operator")).toBeInTheDocument();
   });
 
-  expect(screen.getByText("operator", { exact: true })).toBeInTheDocument();
+  expect(screen.getByText(/success.*operator/)).toBeInTheDocument();
   expect(getUserAuditHistory).toHaveBeenCalledWith({
     action: undefined,
     outcome: undefined,
