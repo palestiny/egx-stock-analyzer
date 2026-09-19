@@ -306,6 +306,12 @@ def create_app(
                 detail="Scheduled workflow execution reporting failed",
             ) from error
 
+        if occurrence_id is not None and not items:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Scheduled workflow execution not found for {occurrence_id}",
+            )
+
         response = ScheduledWorkflowExecutionsResponse.from_items(items)
         return asdict(response)
 
