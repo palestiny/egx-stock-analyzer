@@ -2309,3 +2309,47 @@ M39 configured credentials remain a compatibility path. Their raw values are nev
 Credential lifecycle remains separate from identity and authorization: authentication produces AuthenticatedIdentity, while ownership authorization remains unchanged.
 
 See docs/DEC-101-M40-USER-CREDENTIAL-LIFECYCLE-DESIGN-GATE.md.
+
+
+## DEC-102 — M41 User Management & Credential Administration
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+### Decision
+
+M41 adopts self-service credential administration plus operator-controlled user lifecycle administration.
+
+Operators may create, disable, reactivate, and delete users and administer credentials for users. Authenticated users may rotate their own credential atomically with replacement. Full self-service registration is deferred.
+
+The designated legacy/system operator identity is the bootstrap administrator for creating the first non-legacy users.
+
+Deletion is represented by the existing `DELETED` lifecycle state rather than physical identity removal. Historical ownership remains attributable to the deleted UUID and is never silently reassigned.
+
+M41 does not introduce profile fields beyond the existing immutable UUID and lifecycle state.
+
+Security-sensitive lifecycle and credential commands emit minimal durable audit records containing actor, action, target, timestamp, and outcome metadata. Raw credentials and credential hashes are never stored in audit records.
+
+Management is exposed as application capabilities with thin API/dashboard transport. Operator authorization remains centralized; dashboard code does not implement identity or authorization rules.
+
+### Alternatives Considered
+
+- Operator-only administration: smaller surface, but requires operator intervention for routine credential changes.
+- Self-service credential administration: selected; preserves controlled account lifecycle while giving users routine credential autonomy.
+- Full self-service user management: deferred because registration, recovery, abuse protection, and profile lifecycle would expand the security/product scope substantially.
+
+### Trade-offs
+
+The selected model adds a small self-service capability while retaining controlled provisioning and lifecycle changes. It requires explicit authorization separation, atomic credential replacement, and minimal durable auditability.
+
+The model does not solve registration, password recovery, MFA/SSO, external identity integration, or organizational administration.
+
+### Consequences
+
+The existing M38/M39/M40 identity, ownership, and credential boundaries remain authoritative. Credentials remain outside domain entities. Management commands become reusable application capabilities that can later support additional transports without moving policy into FastAPI or React.
+
+### Revisit Conditions
+
+Revisit when public registration, external identity providers, richer roles, organizations, recovery workflows, or user-facing audit reporting become requirements.
+
+See `docs/DEC-102-M41-USER-MANAGEMENT-DESIGN-GATE.md`.
