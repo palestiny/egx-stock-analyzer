@@ -24,6 +24,7 @@ class ManagementAuditQuery:
     actor_user_id: UUID | None = None
     target_user_id: UUID | None = None
     action: str | None = None
+    actions: tuple[str, ...] | None = None
     outcome: str | None = None
     from_time: datetime | None = None
     to_time: datetime | None = None
