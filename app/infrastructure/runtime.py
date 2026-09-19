@@ -169,5 +169,4 @@ def create_infrastructure_runtime(
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
         authenticator=authenticator,
-        operator_token=config.operator_token,
     )
