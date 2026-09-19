@@ -135,6 +135,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M32 | Automatic Scheduled Workflow Resume | 🟢 Complete | Automatically recover eligible interrupted scheduled workflow executions during application startup |
 | M33 | Scheduled Workflow Operational Visibility | 🟢 Complete | Provide a provider-neutral read-side capability over persisted scheduled workflow executions |
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
+| M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -207,6 +208,8 @@ M32 — Automatic Scheduled Workflow Resume
 M33 — Scheduled Workflow Operational Visibility
         ↓
 M34 — Scheduled Workflow Operational Visibility API
+        ↓
+M35 — Scheduled Workflow Operational Dashboard
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1081,6 +1084,20 @@ ScheduledWorkflowExecutionStore
 The endpoint is read-only, supports exact occurrence filtering, returns a stable `items` envelope, and preserves the persisted workflow execution read model. Workflow execution/recovery semantics remain outside the transport layer.
 
 Deferred: workflow mutation/replay, dashboard presentation, real-time streaming, pagination/retention, authentication, metrics/tracing, scheduler control, notification changes, and distributed execution.
+
+---
+
+# 33.6. M35 — Scheduled Workflow Operational Dashboard
+
+## Status
+
+M35 is **complete**. The accepted design is documented in `docs/DEC-094-M35-WORKFLOW-OPERATIONAL-DASHBOARD-DESIGN-GATE.md`, and the implementation was merged through PR #64.
+
+GitHub Actions Run #1003 completed successfully for implementation head `3ba0ec660470f2a5ee47b886c4df36aed0185033`, validating Python unit tests, frontend tests, and the frontend production build.
+
+The dashboard now presents scheduled workflow executions through the M34 API as a read-only operational panel with explicit loading, empty, unavailable, and error states. Occurrence filtering is explicit and API ordering is preserved.
+
+Workflow control, recovery actions, automatic polling, real-time streaming, pagination, authentication, metrics/tracing, and notification controls remain deferred.
 
 ---
 
