@@ -25,25 +25,17 @@ class ScheduledWorkflowExecution:
     delivery_state: str | None = None
 
     @classmethod
-    def create(
-        cls,
-        occurrence_id: str,
-        now: datetime,
-    ) -> "ScheduledWorkflowExecution":
+    def create(cls, occurrence_id: str, now: datetime) -> "ScheduledWorkflowExecution":
         if not occurrence_id.strip():
             raise ValueError("occurrence_id cannot be empty")
-        return cls(
-            id=uuid4(),
-            occurrence_id=occurrence_id,
-            state=ScheduledWorkflowExecutionState.CREATED,
-            created_at=now,
-            updated_at=now,
-            analysis_state=None,
-            delivery_state=None,
-        )
+        return cls(uuid4(), occurrence_id, ScheduledWorkflowExecutionState.CREATED, now, now)
 
     def start(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.CREATED)
+        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
+
+    def start_recovery(self, now: datetime) -> "ScheduledWorkflowExecution":
+        self._require_state(ScheduledWorkflowExecutionState.INTERRUPTED)
         return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
 
     def complete(self, now: datetime) -> "ScheduledWorkflowExecution":
@@ -52,10 +44,7 @@ class ScheduledWorkflowExecution:
 
     def complete_with_errors(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(
-            ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS,
-            now,
-        )
+        return self._with_state(ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS, now)
 
     def fail(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
@@ -65,68 +54,21 @@ class ScheduledWorkflowExecution:
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return self._with_state(ScheduledWorkflowExecutionState.INTERRUPTED, now)
 
-    def with_outcomes(
-        self,
-        analysis_state: str,
-        delivery_state: str | None,
-        now: datetime,
-    ) -> "ScheduledWorkflowExecution":
+    def with_outcomes(self, analysis_state: str, delivery_state: str | None, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return ScheduledWorkflowExecution(
-            id=self.id,
-            occurrence_id=self.occurrence_id,
-            state=self.state,
-            created_at=self.created_at,
-            updated_at=now,
-            analysis_state=analysis_state,
-            delivery_state=delivery_state,
-        )
+        return ScheduledWorkflowExecution(self.id, self.occurrence_id, self.state, self.created_at, now, analysis_state, delivery_state)
 
-    def _with_state(
-        self,
-        state: ScheduledWorkflowExecutionState,
-        now: datetime,
-    ) -> "ScheduledWorkflowExecution":
-        return ScheduledWorkflowExecution(
-            id=self.id,
-            occurrence_id=self.occurrence_id,
-            state=state,
-            created_at=self.created_at,
-            updated_at=now,
-            analysis_state=self.analysis_state,
-            delivery_state=self.delivery_state,
-        )
+    def _with_state(self, state: ScheduledWorkflowExecutionState, now: datetime) -> "ScheduledWorkflowExecution":
+        return ScheduledWorkflowExecution(self.id, self.occurrence_id, state, self.created_at, now, self.analysis_state, self.delivery_state)
 
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
         if self.state is not expected:
-            raise ValueError(
-                f"Workflow execution must be {expected.value}, "
-                f"but is {self.state.value}"
-            )
+            raise ValueError(f"Workflow execution must be {expected.value}, but is {self.state.value}")
 
 
 class ScheduledWorkflowExecutionStore(Protocol):
-    def create_or_get(
-        self,
-        occurrence_id: str,
-        now: datetime,
-    ) -> ScheduledWorkflowExecution:
-        ...
-
-    def save(self, execution: ScheduledWorkflowExecution) -> None:
-        ...
-
-    def get_by_occurrence(
-        self,
-        occurrence_id: str,
-    ) -> ScheduledWorkflowExecution | None:
-        ...
-
-    def get(self, execution_id: UUID) -> ScheduledWorkflowExecution | None:
-        ...
-
-    def recover_running(
-        self,
-        now: datetime,
-    ) -> tuple[ScheduledWorkflowExecution, ...]:
-        ...
+    def create_or_get(self, occurrence_id: str, now: datetime) -> ScheduledWorkflowExecution: ...
+    def save(self, execution: ScheduledWorkflowExecution) -> None: ...
+    def get_by_occurrence(self, occurrence_id: str) -> ScheduledWorkflowExecution | None: ...
+    def get(self, execution_id: UUID) -> ScheduledWorkflowExecution | None: ...
+    def recover_running(self, now: datetime) -> tuple[ScheduledWorkflowExecution, ...]: ...
