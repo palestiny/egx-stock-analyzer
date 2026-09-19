@@ -509,7 +509,7 @@ def create_app(
         return asdict(response)
 
     @app.get("/api/v1/workflows/executions/{execution_id}/history")
-    def get_scheduled_workflow_execution_history(
+    def get_workflow_execution_history(
         execution_id: UUID,
         identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
