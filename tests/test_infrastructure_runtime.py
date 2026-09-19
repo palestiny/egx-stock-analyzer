@@ -244,6 +244,7 @@ def test_infrastructure_runtime_requires_operator_token() -> None:
 
 
 def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> None:
+    from app.application.security.credentials import CredentialService
     from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
     from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
 
@@ -261,7 +262,7 @@ def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> Non
     )
 
     assert isinstance(runtime.authenticator, DurableBearerTokenAuthenticator)
-    assert isinstance(runtime.credential_service, object)
+    assert isinstance(runtime.credential_service, CredentialService)
     assert SQLiteCredentialStore(database_path)
 
     runtime.close()
