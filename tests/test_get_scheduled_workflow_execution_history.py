@@ -26,9 +26,22 @@ class FakeStore:
             return self.execution
         return None
 
-    def get_history(self, execution_id, after_sequence=None, limit=None):
+    def get_history(
+        self,
+        execution_id,
+        from_state=None,
+        to_state=None,
+        after_sequence=None,
+        limit=None,
+    ):
         self.history_calls += 1
-        rows = tuple(row for row in self.history if after_sequence is None or row[0] > after_sequence)
+        rows = tuple(
+            row
+            for row in self.history
+            if (from_state is None or row[1] == from_state)
+            and (to_state is None or row[2] == to_state)
+            and (after_sequence is None or row[0] > after_sequence)
+        )
         return rows if limit is None else rows[:limit]
 
 
@@ -206,3 +219,133 @@ def test_legacy_query_without_pagination_returns_complete_history():
     assert [item.sequence for item in result.history] == [1, 2, 3]
     assert result.has_more is False
     assert result.next_cursor is None
+
+
+def test_filters_by_to_state():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+        (3, "running", "completed", execution.updated_at, "finished"),
+        (4, "completed", "interrupted", execution.updated_at, "recovered"),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        to_state="completed",
+    )
+
+    assert [item.sequence for item in result.history] == [3]
+
+
+def test_filters_by_from_state():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+        (3, "running", "completed", execution.updated_at, "finished"),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        from_state="created",
+    )
+
+    assert [item.sequence for item in result.history] == [2]
+
+
+def test_combined_filters_match_exact_transition():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+        (3, "running", "completed", execution.updated_at, "finished"),
+        (4, "created", "completed", execution.updated_at, "shortcut"),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        from_state="created",
+        to_state="completed",
+    )
+
+    assert [item.sequence for item in result.history] == [4]
+
+
+@pytest.mark.parametrize("parameter", ["from_state", "to_state"])
+def test_invalid_state_filter_is_rejected(parameter):
+    execution = make_execution()
+
+    with pytest.raises(ValueError, match=parameter):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            **{parameter: "not-a-state"},
+        )
+
+
+def test_filter_with_no_matches_returns_empty_history():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+    )
+
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        to_state="failed",
+    )
+
+    assert result.history == ()
+
+
+def test_filtered_pagination_uses_filtered_sequence_cursor():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "completed", execution.updated_at, None)
+        for sequence in range(1, 5)
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+
+    first = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=2,
+        to_state="completed",
+    )
+    second = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=2,
+        to_state="completed",
+        cursor=first.next_cursor,
+    )
+
+    assert [item.sequence for item in first.history] == [1, 2]
+    assert [item.sequence for item in second.history] == [3, 4]
+
+
+def test_filtered_cursor_cannot_be_reused_with_different_filter():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "completed", execution.updated_at, None)
+        for sequence in range(1, 4)
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+
+    first = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        to_state="completed",
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        query.execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            page_size=1,
+            to_state="failed",
+            cursor=first.next_cursor,
+        )
