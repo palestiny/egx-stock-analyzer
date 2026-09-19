@@ -227,14 +227,6 @@ class GetScheduledWorkflowExecutionHistory:
             )
         return sequence
 
-            return sequence
-
-        if sequence < 1:
-            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
-                "cursor sequence must be positive"
-            )
-        return sequence
-
     @staticmethod
     def _to_read_model(
         execution: ScheduledWorkflowExecution,
