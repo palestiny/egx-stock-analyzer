@@ -73,7 +73,7 @@ def test_returns_workflow_lifecycle_history():
                 "sequence": 1,
                 "from_state": None,
                 "to_state": "created",
-                "occurred_at": "2026-09-19T10:00:00+00:00",
+                "occurred_at": "2026-09-19T10:00:00Z",
                 "reason": None,
             },
             {
