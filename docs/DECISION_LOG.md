@@ -2382,3 +2382,19 @@ This keeps security-management evidence separate from workflow operational visib
 M42 adds a dedicated read model and pagination contract but does not change M41 audit writes. No new permission, retention policy, real-time stream, SIEM integration, analytics, or user self-service audit history is introduced.
 
 See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
+
+
+## DEC-104 — M43 User-Facing Audit History
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M43 opens a design gate for controlled audit-history visibility to authenticated users after M42 established operator-only management-audit reporting.
+
+The preferred problem boundary is a dedicated user-facing read capability over the existing ManagementAuditStore, with application-owned visibility and redaction semantics.
+
+Open decisions cover target-only versus actor-or-target visibility, operator actions concerning a user, actor/target representation, user-visible action/outcome allowlists, safe filters, pagination reuse, deleted-user behavior, API shape, dashboard placement, and cross-user authorization isolation.
+
+Implementation is not authorized until these decisions are explicitly accepted.
+
+See docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md.
