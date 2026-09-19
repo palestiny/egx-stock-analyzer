@@ -139,7 +139,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
-| M39 | Multi-User Authentication & Identity Transport | 🟡 Design Gate Accepted | Connect configured user bearer credentials to application identities and the existing ownership boundary; migrate scheduled workflow read/recovery first |
+| M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1254,7 +1254,11 @@ Deferred: commercial identity-provider selection, social login, MFA, SSO, organi
 
 ### Status
 
-The M39 design gate is **accepted** in `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`.
+M39 is **complete** for the accepted MVP scope. The design gate is documented in `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`, and the implementation was merged through PR #81.
+
+GitHub Actions Run #1346 completed successfully for the M39 implementation head, validating Python unit tests, frontend tests, and the frontend production build.
+
+Completion record: `docs/M39-MULTI-USER-AUTHENTICATION-MVP-COMPLETION.md`.
 
 ### Accepted first slice
 
