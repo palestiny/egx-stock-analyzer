@@ -308,7 +308,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
 
             current = self._to_execution(current_row)
             if execution.revision == current.revision:
-                if execution == current:
+                if self._same_persisted_state(execution, current):
                     return
                 raise ScheduledWorkflowExecutionConflictError(
                     f"Execution revision already exists: {execution.id}"
@@ -489,6 +489,24 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             ).fetchall()
 
         return tuple(self._to_execution(row) for row in rows)
+
+    @staticmethod
+    def _same_persisted_state(
+        left: ScheduledWorkflowExecution,
+        right: ScheduledWorkflowExecution,
+    ) -> bool:
+        return (
+            left.id == right.id
+            and left.occurrence_id == right.occurrence_id
+            and left.state is right.state
+            and left.created_at == right.created_at
+            and left.updated_at == right.updated_at
+            and left.owner_user_id == right.owner_user_id
+            and left.analysis_state == right.analysis_state
+            and left.delivery_state == right.delivery_state
+            and left.request_fingerprint == right.request_fingerprint
+            and left.revision == right.revision
+        )
 
     @staticmethod
     def _insert_created_history(
