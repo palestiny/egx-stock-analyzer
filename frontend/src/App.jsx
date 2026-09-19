@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 
 function Metric({ label, value }) {
@@ -26,7 +26,7 @@ function DetailPanel({ title, items }) {
   );
 }
 
-function DashboardApp({ onLogout }) {
+function DashboardApp({ onLogout, identity }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -52,6 +52,11 @@ function DashboardApp({ onLogout }) {
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [recoveringWorkflowId, setRecoveringWorkflowId] = useState(null);
   const [workflowRecoveryErrors, setWorkflowRecoveryErrors] = useState({});
+  const [users, setUsers] = useState(null);
+  const [userAdminError, setUserAdminError] = useState(null);
+  const [userAdminLoading, setUserAdminLoading] = useState(false);
+  const [rotatedCredential, setRotatedCredential] = useState(null);
+  const [credentialRotationError, setCredentialRotationError] = useState(null);
 
   async function handleAnalyze(event) {
     event.preventDefault();
@@ -189,6 +194,57 @@ function DashboardApp({ onLogout }) {
       }));
     } finally {
       setRecoveringWorkflowId(null);
+    }
+  }
+
+  async function handleUserAdministration() {
+    setUserAdminLoading(true);
+    setUserAdminError(null);
+    try {
+      setUsers(await getUsers());
+    } catch (requestError) {
+      setUsers(null);
+      setUserAdminError(requestError);
+    } finally {
+      setUserAdminLoading(false);
+    }
+  }
+
+  async function handleCreateUser() {
+    setUserAdminLoading(true);
+    setUserAdminError(null);
+    try {
+      const created = await createUser();
+      setRotatedCredential(created.credential);
+      setUsers(await getUsers());
+    } catch (requestError) {
+      setUserAdminError(requestError);
+    } finally {
+      setUserAdminLoading(false);
+    }
+  }
+
+  async function handleUserStatus(userId, status) {
+    setUserAdminLoading(true);
+    setUserAdminError(null);
+    try {
+      await updateUserStatus(userId, status);
+      setUsers(await getUsers());
+    } catch (requestError) {
+      setUserAdminError(requestError);
+    } finally {
+      setUserAdminLoading(false);
+    }
+  }
+
+  async function handleRotateOwnCredential() {
+    setCredentialRotationError(null);
+    setRotatedCredential(null);
+    try {
+      const result = await rotateOwnCredential();
+      setRotatedCredential(result.credential);
+    } catch (requestError) {
+      setCredentialRotationError(requestError);
     }
   }
 
@@ -391,6 +447,53 @@ function DashboardApp({ onLogout }) {
           </div>
         )}
       </section>
+
+      <section className="panel" aria-label="account security">
+        <div>
+          <p className="eyebrow">ACCOUNT</p>
+          <h3>Credential security</h3>
+          <p className="muted">Rotate your current durable credential. The new credential is shown once.</p>
+        </div>
+        <button type="button" onClick={handleRotateOwnCredential}>Rotate credential</button>
+        {rotatedCredential && (
+          <p className="state-card" role="status">New credential: {rotatedCredential}</p>
+        )}
+        {credentialRotationError && (
+          <p className="state-card error" role="alert">{credentialRotationError.message}</p>
+        )}
+      </section>
+
+      {identity?.subject === "operator" && (
+        <section className="panel" aria-label="user administration">
+          <div>
+            <p className="eyebrow">ADMINISTRATION</p>
+            <h3>Users</h3>
+            <button type="button" onClick={handleUserAdministration} disabled={userAdminLoading}>
+              {userAdminLoading ? "Loading..." : "Load Users"}
+            </button>
+            <button type="button" onClick={handleCreateUser} disabled={userAdminLoading}>
+              Create User
+            </button>
+          </div>
+          {userAdminError && <p className="state-card error" role="alert">{userAdminError.message}</p>}
+          {users && users.items.map((user) => (
+            <div className="detail-row" key={user.user_id}>
+              <strong>{user.user_id}</strong>
+              <span>{user.status}</span>
+              {user.status === "active" && (
+                <button type="button" onClick={() => handleUserStatus(user.user_id, "disabled")} disabled={userAdminLoading}>
+                  Disable
+                </button>
+              )}
+              {user.status === "disabled" && (
+                <button type="button" onClick={() => handleUserStatus(user.user_id, "active")} disabled={userAdminLoading}>
+                  Reactivate
+                </button>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
 
       {report && (
         <>
@@ -692,7 +795,7 @@ function App() {
     return <LoginScreen onAuthenticated={setIdentity} />;
   }
 
-  return <DashboardApp onLogout={logout} />;
+  return <DashboardApp onLogout={logout} identity={identity} />;
 }
 
 export default App;
