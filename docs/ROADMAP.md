@@ -137,6 +137,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
+| M37 | Authentication & Authorization Boundary | 🟡 Design Proposed | Establish an explicit identity and authorization boundary before expanding protected operator or multi-user capabilities |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -213,6 +214,8 @@ M34 — Scheduled Workflow Operational Visibility API
 M35 — Scheduled Workflow Operational Dashboard
         ↓
 M36 — Scheduled Workflow Recovery Control
+        ↓
+M37 — Authentication & Authorization Boundary
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
