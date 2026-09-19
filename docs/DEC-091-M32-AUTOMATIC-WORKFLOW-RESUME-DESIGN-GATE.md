@@ -1,6 +1,6 @@
 # DEC-091 — M32 Automatic Scheduled Workflow Resume Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M32
 
@@ -111,6 +111,37 @@ Costs: startup time may increase when interrupted executions exist; recovery can
 
 Revisit when multiple application instances, concurrent recovery workers, step-level checkpoints, non-idempotent external side effects, configurable recovery policies, long-running startup recovery, or durable recovery history/operator controls become necessary.
 
+## Accepted Decisions
+
+The proposed decisions are accepted without expanding the M32 scope.
+
+1. Startup is the sole automatic trigger.
+2. Only persisted `INTERRUPTED` executions are eligible.
+3. Recovery order is scheduled occurrence identity ascending, then workflow execution UUID as a stable tie-breaker.
+4. Each execution is attempted independently; one failure does not block later executions.
+5. Recovery delegates to the existing M31 capability and never creates a replacement occurrence.
+6. Recovery remains sequential and process-local.
+7. Durable-store inspection failure fails application startup; an individual recovery failure does not.
+8. No HTTP endpoint is added.
+9. Existing analysis-result and alert-delivery idempotency remain authoritative.
+10. No second retry mechanism is introduced.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized until the decisions above are reviewed and accepted.**
+**Status: Accepted — implementation is authorized for the M32 MVP defined here.**
+
+The implementation boundary is:
+
+```
+Application Startup
+      ↓
+AutomaticWorkflowRecovery
+      ↓
+ScheduledWorkflowExecutionStore
+      ↓
+M31 Recovery Capability
+      ↓
+M29 Scheduled Analysis + Delivery Workflow
+```
+
+The implementation must not move workflow business rules into the startup lifecycle or scheduler.
