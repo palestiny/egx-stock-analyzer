@@ -27,6 +27,7 @@ class FakeApplicationRuntime:
     get_analysis_history: object | None = None
     compare_analysis_snapshots: object | None = None
     calculate_snapshot_performance: object | None = None
+    get_scheduled_workflow_executions: object | None = None
 
 
 class FakeRuntime:
@@ -43,6 +44,7 @@ class FakeRuntime:
             get_analysis_history=object(),
             compare_analysis_snapshots=object(),
             calculate_snapshot_performance=object(),
+            get_scheduled_workflow_executions=object(),
         )
         self.closed = False
 
