@@ -147,7 +147,7 @@ def test_overlapping_occurrence_is_not_started_concurrently():
     recurring.start()
     clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
 
-    def execute(_as_of):
+    def execute(_occurrence_id, _as_of):
         scheduler.scheduled[0][1]()
 
     workflow.execute.side_effect = execute
