@@ -65,7 +65,7 @@ def test_missing_mapped_user_cannot_authenticate():
 def test_legacy_operator_token_resolves_only_to_legacy_operator_identity():
     store = InMemoryUserStore([User(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)])
     authenticator = ConfiguredBearerTokenAuthenticator(
-        {"operator-token": LEGACY_OPERATOR_USER_ID},
+        {},
         user_store=store,
         legacy_operator_token="legacy-token",
     )
