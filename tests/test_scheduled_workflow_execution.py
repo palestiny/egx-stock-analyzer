@@ -123,6 +123,7 @@ def test_lifecycle_history_survives_restart(tmp_path):
         "interrupted",
         "running",
     ]
+    assert history[2][4] == "startup recovery"
 
 
 def test_reservation_history_failure_rolls_back_reservation(tmp_path, monkeypatch):
