@@ -133,6 +133,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
 | M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
 | M32 | Automatic Scheduled Workflow Resume | 🟢 Complete | Automatically recover eligible interrupted scheduled workflow executions during application startup |
+| M33 | Scheduled Workflow Operational Visibility | 🟢 Complete | Provide a provider-neutral read-side capability over persisted scheduled workflow executions |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -201,6 +202,8 @@ M30 — Durable Scheduled Workflow
 M31 — Durable Workflow Recovery
         ↓
 M32 — Automatic Scheduled Workflow Resume
+        ↓
+M33 — Scheduled Workflow Operational Visibility
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1027,6 +1030,30 @@ Startup now discovers persisted `INTERRUPTED` scheduled workflow executions and 
 GitHub Actions Run #937 completed successfully for implementation head `273d34f29af17341ce507b0e04c03e501c0fa138`, validating Python unit tests, frontend tests, and the frontend production build.
 
 See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
+
+---
+
+# 33. M33 — Scheduled Workflow Operational Visibility
+
+## Status
+
+M33 is **complete**. The accepted design is documented in `docs/DEC-092-M33-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-DESIGN-GATE.md`, and the implementation was merged through PR #60.
+
+GitHub Actions Run #963 completed successfully for implementation head `fd519751b69909ac8203cb3f39fd7ccc9dafc5da`, validating Python unit tests, frontend tests, and the frontend production build.
+
+The application boundary is:
+
+```
+ScheduledWorkflowExecutionStore
+          ↓
+GetScheduledWorkflowExecutions
+          ↓
+ScheduledWorkflowExecutionReadModel
+```
+
+The MVP exposes all persisted scheduled workflow executions, uses deterministic newest-first ordering, supports exact occurrence filtering, and preserves persisted lifecycle/outcome fields without mutating workflow state.
+
+HTTP/dashboard exposure, real-time streaming, pagination/retention, authentication, metrics/tracing, workflow replay, and distributed execution remain deferred.
 
 ---
 
