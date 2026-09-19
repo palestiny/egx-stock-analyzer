@@ -240,3 +240,28 @@ def test_infrastructure_runtime_requires_operator_token() -> None:
         assert str(error) == "EGX_OPERATOR_TOKEN must be configured"
     else:
         raise AssertionError("Expected ValueError")
+
+
+
+def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> None:
+    from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
+    from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "auth.db"
+    config = InfrastructureConfig(
+        operator_token="test-token",
+        analysis_database_path=str(database_path),
+    )
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert isinstance(runtime.authenticator, DurableBearerTokenAuthenticator)
+    assert isinstance(runtime.credential_service, object)
+    assert SQLiteCredentialStore(database_path)
+
+    runtime.close()
