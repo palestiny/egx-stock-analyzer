@@ -74,6 +74,56 @@ class RunDurableScheduledWorkflow:
         self._store.save(execution)
         return execution
 
+    def recover(
+        self,
+        execution_id,
+        as_of: date,
+    ) -> ScheduledWorkflowExecution:
+        execution = self._store.get(execution_id)
+        if execution is None:
+            raise ValueError(f"Unknown scheduled workflow execution: {execution_id}")
+        if execution.state is not ScheduledWorkflowExecutionState.INTERRUPTED:
+            raise ValueError(
+                "Scheduled workflow execution is not interrupted: "
+                f"{execution.state.value}"
+            )
+
+        execution = execution.start_recovery(self._clock.now())
+        return self._run(execution, as_of)
+
+    def _run(
+        self,
+        execution: ScheduledWorkflowExecution,
+        as_of: date,
+    ) -> ScheduledWorkflowExecution:
+        self._store.save(execution)
+
+        try:
+            result: ConfiguredMarketAnalysisDeliveryResult = (
+                self._scheduled_operation.execute(as_of)
+            )
+        except Exception:
+            failed = execution.fail(self._clock.now())
+            self._store.save(failed)
+            raise
+
+        delivery_state = (
+            result.delivery_result.state.value
+            if result.delivery_result is not None
+            else None
+        )
+        execution = execution.with_outcomes(
+            analysis_state=result.analysis_execution.state.value,
+            delivery_state=delivery_state,
+            now=self._clock.now(),
+        )
+        self._store.save(execution)
+
+        terminal_state = self._terminal_state(result)
+        execution = getattr(execution, terminal_state)(self._clock.now())
+        self._store.save(execution)
+        return execution
+
     @staticmethod
     def _terminal_state(
         result: ConfiguredMarketAnalysisDeliveryResult,

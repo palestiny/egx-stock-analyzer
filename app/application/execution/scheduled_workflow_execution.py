@@ -46,6 +46,10 @@ class ScheduledWorkflowExecution:
         self._require_state(ScheduledWorkflowExecutionState.CREATED)
         return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
 
+    def start_recovery(self, now: datetime) -> "ScheduledWorkflowExecution":
+        self._require_state(ScheduledWorkflowExecutionState.INTERRUPTED)
+        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
+
     def complete(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return self._with_state(ScheduledWorkflowExecutionState.COMPLETED, now)
