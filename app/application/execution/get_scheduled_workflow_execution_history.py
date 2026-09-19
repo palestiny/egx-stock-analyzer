@@ -177,14 +177,12 @@ class GetScheduledWorkflowExecutionHistory:
                 (cursor + padding).encode("ascii")
             ).decode("utf-8")
             try:
-                payload = json.loads(decoded)
-            except json.JSONDecodeError:
-                if expected_from_state is not None or expected_to_state is not None:
-                    raise InvalidScheduledWorkflowExecutionHistoryQueryError(
-                        "cursor does not match the requested history filters"
-                    )
                 sequence = int(decoded)
-            else:
+            except ValueError:
+                try:
+                    payload = json.loads(decoded)
+                except json.JSONDecodeError:
+                    raise ValueError from None
                 if not isinstance(payload, dict) or set(payload) != {
                     "from_state",
                     "sequence",
@@ -199,40 +197,9 @@ class GetScheduledWorkflowExecutionHistory:
                         "cursor does not match the requested history filters"
                     )
                 sequence = int(payload["sequence"])
-        except InvalidScheduledWorkflowExecutionHistoryQueryError:
-            raise
-        except (Base64DecodeError, ValueError, UnicodeDecodeError, TypeError):
-            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
-                "cursor must be a valid history continuation cursor"
-            ) from None
+            else:
+                if expected_from_state is not None or expected_to_state is not None:
+                    raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                        "cursor does not match the requested history filters"
+                    )
 
-        if sequence < 1:
-            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
-                "cursor sequence must be positive"
-            )
-        return sequence
-
-    @staticmethod
-    def _to_read_model(
-        execution: ScheduledWorkflowExecution,
-        rows: tuple[tuple[int, str | None, str, datetime, str | None], ...],
-        has_more: bool = False,
-        next_cursor: str | None = None,
-    ) -> ScheduledWorkflowExecutionHistoryReadModel:
-        history = tuple(
-            ScheduledWorkflowExecutionHistoryItem(
-                sequence=sequence,
-                from_state=from_state,
-                to_state=to_state,
-                occurred_at=occurred_at,
-                reason=reason,
-            )
-            for sequence, from_state, to_state, occurred_at, reason in rows
-        )
-        return ScheduledWorkflowExecutionHistoryReadModel(
-            execution_id=execution.id,
-            occurrence_id=execution.occurrence_id,
-            history=history,
-            has_more=has_more,
-            next_cursor=next_cursor,
-        )
