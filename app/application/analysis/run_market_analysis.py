@@ -1,66 +1,48 @@
-from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 
-from app.application.analysis.run_stock_analysis import RunStockAnalysis
+from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.execution.orchestrator import ExecutionOrchestrator
+from app.application.execution.retry import RetryPolicy
 from app.application.stocks.catalog import StockCatalog
 from app.domain.execution import Execution
 
 
-class InvalidMarketUniverseError(ValueError):
-    """Raised when the requested market universe is invalid."""
+@dataclass(frozen=True)
+class RunMarketAnalysisResult:
+    execution: Execution
 
 
 class RunMarketAnalysis:
     def __init__(
         self,
         stock_catalog: StockCatalog,
-        run_stock_analysis: RunStockAnalysis,
+        run_stock_analysis,
+        retry_policy: RetryPolicy | None = None,
     ) -> None:
         self._stock_catalog = stock_catalog
-        self._run_stock_analysis = run_stock_analysis
+        self._run_stock_analysis_by_symbol = RunStockAnalysisBySymbol(
+            stock_catalog=stock_catalog,
+            run_stock_analysis=run_stock_analysis,
+        )
+        self._orchestrator = ExecutionOrchestrator(
+            retry_policy or RetryPolicy(max_attempts=1),
+        )
 
-    def execute(self, symbols: Iterable[str], as_of: date) -> Execution:
-        normalized_symbols = self._normalize_symbols(symbols)
+    def execute(self, symbols: list[str], as_of: date) -> RunMarketAnalysisResult:
+        normalized_symbols = [symbol.strip().upper() for symbol in symbols]
+        if any(not symbol for symbol in normalized_symbols):
+            raise ValueError("Stock symbol cannot be empty")
 
-        execution = Execution.create()
-        execution.start()
+        if len(normalized_symbols) != len(set(normalized_symbols)):
+            raise ValueError("Duplicate stock symbol in market analysis universe")
 
-        for symbol in normalized_symbols:
-            stock = self._stock_catalog.get(symbol)
+        execution = self._orchestrator.run(
+            normalized_symbols,
+            lambda symbol: self._run_stock_analysis_by_symbol.execute(symbol, as_of),
+        )
 
-            if stock is None:
-                execution.record_stock_failure(
-                    symbol,
-                    reason=f"Unknown stock symbol: {symbol}",
-                )
-                continue
+        if not normalized_symbols:
+            execution.complete()
 
-            try:
-                self._run_stock_analysis.execute(stock, as_of)
-            except Exception as error:
-                execution.record_stock_failure(symbol, reason=str(error))
-            else:
-                execution.record_stock_success(symbol)
-
-        execution.finish()
-        return execution
-
-    @staticmethod
-    def _normalize_symbols(symbols: Iterable[str]) -> list[str]:
-        normalized: list[str] = []
-        seen: set[str] = set()
-
-        for raw_symbol in symbols:
-            symbol = raw_symbol.strip().upper()
-            if not symbol:
-                raise InvalidMarketUniverseError(
-                    "Market universe cannot contain an empty stock symbol"
-                )
-            if symbol in seen:
-                raise InvalidMarketUniverseError(
-                    f"Duplicate stock symbol in market universe: {symbol}"
-                )
-            seen.add(symbol)
-            normalized.append(symbol)
-
-        return normalized
+        return RunMarketAnalysisResult(execution=execution)
