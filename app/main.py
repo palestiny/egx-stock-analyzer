@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.infrastructure.security.bearer_token_authenticator import BearerTokenAuthenticator
+
 from app.api.main import create_app
 from app.application.analysis.result_store import (
     AnalysisResultStore,
@@ -39,6 +41,7 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         getattr(runtime, "recover_durable_scheduled_workflow", None),
+        operator_token=getattr(runtime, "operator_token", None),
     )
     app.router.lifespan_context = lifespan
     return app
@@ -50,6 +53,7 @@ def create_application_from_environment(
     retry_policy: RetryPolicy | None = None,
 ) -> FastAPI:
     config = InfrastructureConfig.from_environment()
+    BearerTokenAuthenticator(config.operator_token or "")
 
     import yfinance as yf
 
