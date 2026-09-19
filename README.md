@@ -196,3 +196,9 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 M30 now persists scheduled workflow lifecycle state independently from analytical-result and alert-delivery persistence. Persisted RUNNING executions are detectable and recoverable as INTERRUPTED; they are not automatically replayed.
 
 M32 is the current completed milestone. On application startup, persisted INTERRUPTED scheduled workflow executions are discovered and delegated to the existing M31 recovery capability. Recovery is deterministic, sequential, process-local, and failure-isolated.
+
+## M37 Authentication
+
+The production application composition requires the environment variable `EGX_OPERATOR_TOKEN`. The `GET /health` endpoint remains public; all `/api/v1/*` endpoints require `Authorization: Bearer <token>`. Missing or invalid credentials return HTTP 401 without exposing token-validation details.
+
+The current M37 model is intentionally single-operator. It does not create user accounts, persist credentials, manage sessions, or define user ownership.
