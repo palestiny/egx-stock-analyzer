@@ -407,7 +407,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
     def get_history(
         self,
         execution_id: UUID,
-    ) -> tuple[tuple[int, str | None, str, datetime], ...]:
+    ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
         with self._connect() as connection:
             rows = connection.execute(
                 """
