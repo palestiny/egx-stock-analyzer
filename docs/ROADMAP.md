@@ -131,7 +131,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
-| M31 | Durable Workflow Recovery | 🟡 Design Accepted | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
+| M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1001,11 +1001,15 @@ The implementation uses SQLite behind a dedicated `ScheduledWorkflowExecutionSto
 
 ## Status
 
-The M31 design gate is accepted in docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md. Implementation is the next controlled step.
+M31 is **complete**. The accepted design is documented in docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md, and the implementation was merged through PR #56.
+
+GitHub Actions Run #899 completed successfully for implementation head `3a4fbc96f00dbc57ec5a929c8f2437df42ffc80d`, validating the M31 unit and integration test changes before merge.
 
 M31 introduces an explicit application recovery command for one persisted INTERRUPTED workflow execution. Recovery reuses the existing workflow execution identity and M29 workflow, relies on existing analysis and alert-delivery idempotency, and does not automatically replay on startup.
 
-The MVP remains sequential and process-local. Step-level checkpoints, automatic resume, distributed coordination, queues, and new provider retry policies remain deferred.
+The MVP remains sequential and process-local. Step-level checkpoints, automatic resume, distributed coordination, queues, new provider retry policies, and an HTTP recovery endpoint remain deferred.
+
+Completion record: `docs/M31-DURABLE-WORKFLOW-RECOVERY-MVP-COMPLETION.md`.
 
 ---
 
