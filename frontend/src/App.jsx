@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 
 function Metric({ label, value }) {
@@ -217,6 +217,19 @@ function DashboardApp({ onLogout, identity }) {
       const created = await createUser();
       setRotatedCredential(created.credential);
       setUsers(await getUsers());
+    } catch (requestError) {
+      setUserAdminError(requestError);
+    } finally {
+      setUserAdminLoading(false);
+    }
+  }
+
+  async function handleUserCredentialRotation(userId) {
+    setUserAdminLoading(true);
+    setUserAdminError(null);
+    try {
+      const result = await rotateUserCredential(userId);
+      setRotatedCredential(result.credential);
     } catch (requestError) {
       setUserAdminError(requestError);
     } finally {
@@ -489,6 +502,16 @@ function DashboardApp({ onLogout, identity }) {
                 <button type="button" onClick={() => handleUserStatus(user.user_id, "active")} disabled={userAdminLoading}>
                   Reactivate
                 </button>
+              )}
+              {user.user_id !== "00000000-0000-0000-0000-000000000001" && user.status !== "deleted" && (
+                <>
+                  <button type="button" onClick={() => handleUserStatus(user.user_id, "deleted")} disabled={userAdminLoading}>
+                    Delete
+                  </button>
+                  <button type="button" onClick={() => handleUserCredentialRotation(user.user_id)} disabled={userAdminLoading}>
+                    Rotate Credential
+                  </button>
+                </>
               )}
             </div>
           ))}
