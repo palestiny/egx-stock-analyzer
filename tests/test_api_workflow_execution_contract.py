@@ -8,18 +8,14 @@ from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.execution.get_scheduled_workflow_executions import (
     ScheduledWorkflowExecutionReadModel,
 )
-from app.domain.execution import ExecutionState
+from app.application.execution.scheduled_workflow_execution import ScheduledWorkflowExecutionState
 
 
 def make_item(
     occurrence_id: str,
-    state: ExecutionState = ExecutionState.COMPLETED,
+    state: ScheduledWorkflowExecutionState = ScheduledWorkflowExecutionState.COMPLETED,
 ) -> ScheduledWorkflowExecutionReadModel:
-    from app.application.execution.scheduled_workflow_execution import (
-        ScheduledWorkflowExecutionState,
-    )
-
-    workflow_state = ScheduledWorkflowExecutionState(state.value)
+    workflow_state = state
     now = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
     return ScheduledWorkflowExecutionReadModel(
         id=uuid4(),
