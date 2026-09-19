@@ -31,6 +31,7 @@ class FakeApplicationRuntime:
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
         self.deliver_alert_by_symbol = object()
+        self.automatic_workflow_recovery = None
         self.application_runtime = FakeApplicationRuntime(
             result_store,
             run_by_symbol=object(),
@@ -137,3 +138,18 @@ def test_create_development_application_from_environment_uses_development_catalo
 
     assert runtime.closed is True
 
+
+
+def test_create_application_runs_automatic_workflow_recovery_on_startup():
+    result_store = InMemoryAnalysisResultStore()
+    runtime = FakeRuntime(result_store)
+    recovery = __import__("unittest.mock", fromlist=["Mock"]).Mock()
+    runtime.automatic_workflow_recovery = recovery
+
+    app = create_application(runtime)
+
+    with TestClient(app):
+        pass
+
+    recovery.execute.assert_called_once()
+    assert runtime.closed is True
