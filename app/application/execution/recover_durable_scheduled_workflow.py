@@ -45,4 +45,6 @@ class RecoverDurableScheduledWorkflow:
                 f"{execution.state.value}"
             )
 
+        if identity is None:
+            return self._scheduled_workflow.recover(execution_id, as_of)
         return self._scheduled_workflow.recover(execution_id, as_of, identity)
