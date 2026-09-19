@@ -162,56 +162,136 @@ Protect the application with a configured secret token rather than implementing 
 - weak foundation for multi-user ownership;
 - rotation and distribution of shared credentials remain operational concerns.
 
-## 8. Open Questions
+## 8. Resolved Decisions
 
-1. Is M37 intended to establish a single-operator security boundary first, or a true multi-user identity model?
-2. Should the MVP use application-managed credentials, an external identity provider, or a configured operator token?
-3. Which endpoints remain public, if any, beyond health?
-4. Should read-only analysis/report/history endpoints require authentication?
-5. Which mutating operations require an explicit operator permission?
-6. What identity representation should application use cases receive?
-7. Should authorization be capability-level, role-based, or a minimal operator permission?
-8. What are the required credential/token expiration and rotation semantics?
-9. Where are secrets configured and how are they prevented from appearing in API responses/logs?
-10. What deterministic authentication mechanism should CI and local development use?
-11. What HTTP semantics should distinguish unauthenticated from authenticated-but-forbidden callers?
-12. What migration path is required if the project later introduces multiple users, ownership, or external identity?
+### 1. Security Posture
 
-## 9. Invariants
+M37 establishes a **single-operator security boundary**, not a multi-user ownership model.
 
-1. Authentication must remain outside domain analytical logic.
-2. Authorization must not be implemented by duplicating permission checks across dashboard components.
-3. HTTP transport must not become the owner of business authorization rules.
-4. Protected application capabilities must remain callable independently of FastAPI.
-5. Credentials and secrets must never be returned as API data.
-6. Authentication/authorization failures must not expose internal implementation details.
-7. Existing analysis semantics must not change because authentication is enabled.
-8. Deterministic tests must not depend on live external identity services.
-9. Health/readiness semantics must remain explicitly defined after authentication is introduced.
-10. M37 must not silently turn existing single-user assumptions into a multi-user data-ownership model without an explicit decision.
+The current product has one trusted operator and no user-owned resources. Multi-user identity, ownership, organizations, and external identity providers remain future design gates.
 
-## 10. TDD Acceptance Shape
+### 2. Authentication Mechanism
 
-Before implementation is considered complete, tests should establish at least:
+The MVP uses a **configured bearer operator token**.
 
-- unauthenticated request behavior;
-- authenticated request behavior;
-- forbidden request behavior;
-- protected endpoint coverage;
-- public endpoint coverage;
-- identity propagation into an application capability;
-- authorization enforcement at the application boundary;
-- deterministic test credentials/tokens;
-- invalid/expired credential behavior;
-- secret non-disclosure;
-- application capabilities remain independently testable without FastAPI;
+The token is supplied through the HTTP `Authorization: Bearer <token>` header. The application does not store passwords, create user accounts, or manage sessions.
+
+This is intentionally the smallest security boundary that protects the current operator controls without prematurely introducing a full identity system.
+
+### 3. Public vs Protected Endpoints
+
+`GET /health` remains public.
+
+All other application/API endpoints are protected by authentication in M37, including read-only analysis, report, alert, history, ranking, opportunity, and workflow endpoints.
+
+This establishes one consistent rule instead of allowing individual endpoints to drift into inconsistent security posture.
+
+### 4. Authorization Model
+
+M37 uses one application-level permission: **operator**.
+
+An authenticated bearer token produces an `OperatorIdentity` carrying the operator permission. Protected application capabilities receive an explicit identity/context object at their boundary.
+
+No role administration or permission database is introduced.
+
+### 5. Identity Representation
+
+The application boundary receives an immutable `AuthenticatedIdentity` value representing the authenticated operator.
+
+The domain remains unaware of authentication. Existing capabilities that do not need identity remain independently callable; protected HTTP/application entry points enforce the identity boundary.
+
+### 6. Authentication vs Authorization Failure Semantics
+
+- Missing or invalid bearer credentials → HTTP **401 Unauthorized**.
+- Valid authentication without the required operator permission → HTTP **403 Forbidden**.
+- Public health remains HTTP 200 without credentials.
+- Authentication errors use generic safe messages and do not reveal token-validation details.
+
+Because the M37 MVP has only one operator permission, 403 is primarily a forward-compatible application authorization contract.
+
+### 7. Credential Lifecycle
+
+The operator token is configured through environment/configuration and is never persisted in the application database.
+
+M37 requires a non-empty token in protected application environments. Rotation is operational: replace the configured token and restart/reload the application.
+
+The token must never appear in API responses, exception messages, logs, dashboard state, or persisted analytical/workflow records.
+
+Token hashing is not introduced because the configured token is treated as an infrastructure secret rather than an application-managed credential record.
+
+### 8. Deterministic Development and CI
+
+Tests use an explicit injected/configured test token and do not contact an external identity service.
+
+Application capabilities are tested directly with deterministic identity objects. HTTP tests cover the authentication adapter/boundary and protected endpoint behavior.
+
+### 9. Migration Path
+
+If the project later needs multiple users or user-owned resources, M37's bearer-token boundary is replaced or extended behind the authentication adapter.
+
+The application identity contract remains the seam for that migration. User ownership is **not** inferred from the current operator token.
+
+### 10. Security Boundary
+
+The intended M37 flow is:
+
+```
+HTTP
+  ↓
+Bearer Token Authentication Adapter
+  ↓
+AuthenticatedIdentity(operator)
+  ↓
+Authorization Boundary
+  ↓
+Application Capability
+  ↓
+Domain
+```
+
+The dashboard must send the configured bearer token but must not implement its own authorization rules.
+
+## 9. Trade-offs
+
+A static operator token is less expressive than user accounts or an external identity provider, but it minimizes security-sensitive application state and keeps the MVP deterministic and provider-neutral.
+
+Protecting all non-health API endpoints gives a simple, auditable rule at the cost of requiring authenticated access even for read-only dashboard data.
+
+The design deliberately accepts operational token rotation rather than introducing password/session lifecycle complexity.
+
+## 10. Invariants
+
+1. Authentication remains outside domain analytical logic.
+2. Authorization is enforced at the application/HTTP boundary, not duplicated in dashboard components.
+3. HTTP transport does not become the owner of business authorization rules.
+4. Protected application capabilities remain callable independently of FastAPI.
+5. Credentials and secrets are never returned as API data.
+6. Authentication/authorization failures do not expose internal implementation details.
+7. Existing analysis semantics do not change because authentication is enabled.
+8. Deterministic tests do not depend on live external identity services.
+9. Health remains public.
+10. M37 does not introduce multi-user ownership semantics.
+
+## 11. TDD Acceptance Shape
+
+Before implementation is complete, tests must establish:
+
+- missing credentials → 401;
+- invalid credentials → 401;
+- valid operator credentials → protected endpoint succeeds;
+- authorization boundary rejects an identity without the required operator permission → 403;
+- health remains public;
+- identity reaches a protected application capability;
+- deterministic test token configuration;
+- token is not disclosed in response bodies or safe error messages;
+- protected capabilities remain independently testable without FastAPI;
 - existing analytical behavior remains unchanged.
 
-## 11. Design Gate Decision
+## 12. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M37 single-operator bearer-token MVP defined above.**
 
-The next action is to resolve the open questions, record the accepted security model, and then create a separate implementation branch.
+Implementation must use a separate branch and preserve the existing application/domain boundaries.
 
 ## 12. Revisit Conditions
 
