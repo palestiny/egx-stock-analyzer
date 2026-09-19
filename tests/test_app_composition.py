@@ -88,6 +88,7 @@ def test_existing_create_app_contract_remains_unchanged() -> None:
 def test_create_application_from_environment_loads_config_at_composition_root(
     monkeypatch,
 ) -> None:
+    monkeypatch.setenv("EGX_OPERATOR_TOKEN", "test-operator-token")
     captured: dict[str, object] = {}
     runtime = FakeRuntime(InMemoryAnalysisResultStore())
 
@@ -103,7 +104,7 @@ def test_create_application_from_environment_loads_config_at_composition_root(
     assert app is not None
     assert captured["stock_catalog"] is stock_catalog
     assert isinstance(captured["config"], InfrastructureConfig)
-    assert captured["config"] == InfrastructureConfig()
+    assert captured["config"].operator_token == "test-operator-token"
     assert captured["yfinance_module"].__name__ == "yfinance"
 
     with TestClient(app):
