@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.identity.get_management_audit import GetManagementAudit
+from app.application.identity.get_user_audit_history import GetUserAuditHistory
 from app.application.identity.management_audit import ManagementAuditStore
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
@@ -34,7 +35,8 @@ class StockAnalysisRuntime:
     detect_analysis_changes: DetectAnalysisChanges
     calculate_snapshot_performance: CalculateSnapshotPerformance
     get_alert_candidate: GetAlertCandidate
-    get_management_audit: GetManagementAudit
+    get_management_audit: GetManagementAudit | None
+    get_user_audit_history: GetUserAuditHistory | None
     result_store: AnalysisResultStore
 
 
@@ -90,6 +92,11 @@ def create_stock_analysis_runtime(
     )
     get_management_audit = (
         GetManagementAudit(management_audit_store)
+        if management_audit_store is not None
+        else None
+    )
+    get_user_audit_history = (
+        GetUserAuditHistory(management_audit_store)
         if management_audit_store is not None
         else None
     )
