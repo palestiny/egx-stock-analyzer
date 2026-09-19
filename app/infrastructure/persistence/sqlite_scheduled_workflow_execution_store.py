@@ -70,7 +70,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     analysis_state,
                     delivery_state
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(execution.id),
@@ -114,7 +114,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT execution_id, occurrence_id, state, created_at, updated_at, analysis_state, delivery_state, analysis_state, delivery_state
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state
                 FROM scheduled_workflow_executions
                 WHERE occurrence_id = ?
                 """,
@@ -127,7 +128,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT execution_id, occurrence_id, state, created_at, updated_at
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state
                 FROM scheduled_workflow_executions
                 WHERE execution_id = ?
                 """,
@@ -143,7 +145,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT execution_id, occurrence_id, state, created_at, updated_at
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state
                 FROM scheduled_workflow_executions
                 WHERE state = ?
                 ORDER BY created_at ASC, execution_id ASC
@@ -162,9 +165,17 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
 
     @staticmethod
     def _to_execution(
-        row: tuple[str, str, str, str, str],
+        row: tuple[str, str, str, str, str, str | None, str | None],
     ) -> ScheduledWorkflowExecution:
-        execution_id, occurrence_id, state, created_at, updated_at = row
+        (
+            execution_id,
+            occurrence_id,
+            state,
+            created_at,
+            updated_at,
+            analysis_state,
+            delivery_state,
+        ) = row
         return ScheduledWorkflowExecution(
             id=UUID(execution_id),
             occurrence_id=occurrence_id,
