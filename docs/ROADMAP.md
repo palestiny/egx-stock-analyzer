@@ -140,7 +140,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
 | M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
-| M40 | Frontend Authentication & Session UX | 🟡 In Progress | Provide browser login/session UX over the existing M39 bearer identity boundary |
+| M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1285,6 +1285,24 @@ The first concrete authentication mechanism is intentionally controlled-deployme
 - user-management UI;
 - distributed session storage;
 - automatic retirement of M37 operator compatibility.
+
+## M40 — Frontend Authentication & User Credential Lifecycle
+
+### Status
+
+M40 is **complete** for the accepted DEC-100 and DEC-101 MVP scope.
+
+The frontend authentication/session slice was merged through PR #84. The durable credential lifecycle implementation was merged through PR #88.
+
+GitHub Actions Run #1420 completed successfully for the M40 credential-lifecycle implementation head, validating Python unit tests, frontend tests, and the frontend production build.
+
+The system now supports durable opaque bearer credentials behind a dedicated CredentialStore, one-time credential provisioning/rotation results, revocation, disabled/deleted user rejection, and M39 configured-credential compatibility. The existing frontend session UX remains the transport boundary.
+
+Deferred: passwords, password recovery, MFA/SSO, external identity providers, automatic credential expiration, self-service registration, user-management UI, organizations/teams, delegated access, and distributed session storage.
+
+Completion record: `docs/M40-USER-AUTHENTICATION-CREDENTIAL-LIFECYCLE-MVP-COMPLETION.md`.
+
+---
 
 # 33. Cross-Cutting Requirements
 
