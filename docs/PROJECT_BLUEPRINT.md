@@ -1117,6 +1117,6 @@ rather than relying on memory or conversation history.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M19 — Recurring Full-Market Scheduling complete
+**Current Implementation:** M32 — Automatic Scheduled Workflow Resume complete and CI-validated.
 
-**Next Step:** Resolve the proposed M20 Historical Analysis Result History design gate before implementation.
+**Next Step:** No next capability is committed yet. The next major capability must begin with a new design gate.
