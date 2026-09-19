@@ -2162,3 +2162,16 @@ M37 establishes a single-operator bearer-token security boundary. `GET /health` 
 Missing/invalid credentials map to HTTP 401; authenticated callers without the required permission map to HTTP 403. The operator token is configuration-only, never persisted or logged. Multi-user identity, ownership, password/session management, external identity providers, and permission administration remain deferred.
 
 See `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md`.
+
+## DEC-097 — M38 Multi-User Identity & Ownership
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M38 opens the next security/product design gate after M37. The goal is to define a stable multi-user identity and ownership boundary without moving authentication or authorization rules into the analytical domain.
+
+The gate must resolve identity source, immutable user identifiers, ownership semantics, credential/session responsibility, user lifecycle, persistence scoping, API authorization behavior, migration from the current single-operator token, and deterministic ownership-isolation testing.
+
+Implementation is not authorized until these decisions are accepted.
+
+See `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`.
