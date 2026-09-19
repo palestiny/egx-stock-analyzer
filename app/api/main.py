@@ -54,7 +54,14 @@ from app.application.notifications.deliver_alert_by_symbol import (
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 
-logger = logging.getLogger(__name__)\n\n\nclass _OperatorTokenNotProvided:\n    pass\n\n\n_OPERATOR_TOKEN_NOT_PROVIDED = _OperatorTokenNotProvided()
+logger = logging.getLogger(__name__)
+
+
+class _OperatorTokenNotProvided:
+    pass
+
+
+_OPERATOR_TOKEN_NOT_PROVIDED = _OperatorTokenNotProvided()
 
 
 def create_app(
