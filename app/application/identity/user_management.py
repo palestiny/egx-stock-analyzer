@@ -5,7 +5,7 @@ from app.application.identity.management_audit import ManagementAuditEvent, Mana
 from app.application.identity.user_store import UserStore
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer, OwnershipAuthorizer
 from app.application.security.credentials import CredentialService, IssuedCredential
-from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.security.identity import AuthenticatedIdentity, Permission, LEGACY_OPERATOR_USER_ID
 from app.domain.identity.user import User, UserStatus
 
 class UserManagementError(ValueError):
@@ -44,6 +44,8 @@ class UserManagementService:
             raise UserManagementError("User not found")
         if user.status is status:
             raise UserManagementError("Invalid user lifecycle transition")
+        if user.id == LEGACY_OPERATOR_USER_ID and status is not UserStatus.ACTIVE:
+            raise UserManagementError("Legacy operator cannot be disabled or deleted")
         if user.status is UserStatus.DELETED:
             raise UserManagementError("Deleted user cannot be reactivated or disabled")
         if status not in {UserStatus.DISABLED, UserStatus.DELETED, UserStatus.ACTIVE}:
