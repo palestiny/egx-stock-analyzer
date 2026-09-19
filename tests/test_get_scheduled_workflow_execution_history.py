@@ -26,7 +26,7 @@ class FakeStore:
             return self.execution
         return None
 
-        def get_history(
+    def get_history(
         self,
         execution_id,
         after_sequence=None,
