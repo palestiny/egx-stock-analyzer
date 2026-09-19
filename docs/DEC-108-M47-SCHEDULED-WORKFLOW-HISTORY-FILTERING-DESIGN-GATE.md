@@ -1,6 +1,6 @@
 # DEC-108 — M47 Scheduled Workflow History Filtering Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M47
 
@@ -127,8 +127,79 @@ If the design is accepted, tests should cover at minimum:
 - reads do not mutate workflow state;
 - API transport maps filters without reconstructing history.
 
-## 11. Design Gate Decision
+## 11. Accepted Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+M47 is accepted as a narrow read-side extension of the existing M45/M46 lifecycle-history capability.
 
-M46 remains complete and unchanged. M47 implementation requires explicit acceptance of the filtering contract and its interaction with existing pagination and ownership semantics.
+### Filter contract
+
+The query accepts optional typed `from_state` and `to_state` filters.
+
+- Each value uses the API's existing lowercase lifecycle-state representation.
+- If both are supplied, they use AND semantics and represent an exact transition match.
+- If only one is supplied, only that transition endpoint is constrained.
+- Invalid state values are rejected explicitly.
+- A valid filter matching no records returns an empty page, not an error.
+- Free-text transition-reason filtering is deferred.
+
+### Pagination and cursor safety
+
+Filtering is applied in the persistence query before pagination.
+
+The existing opaque sequence cursor remains the pagination mechanism. A continuation cursor is bound to the effective query shape, including the active filter values, so a cursor cannot silently be reused against a different filter.
+
+Ordering remains ascending by persisted sequence.
+
+### Compatibility
+
+When no filters are supplied, M45/M46 complete-history behavior remains unchanged.
+
+Ownership authorization remains exactly the existing owner-or-global boundary. The capability remains read-only and scoped to one execution.
+
+### Persistence and indexing
+
+The existing lifecycle-history persistence source remains authoritative. No new persistence schema or mandatory index is introduced in the MVP. Query performance is measured through tests/evidence before adding an index.
+
+### Presentation scope
+
+M47 exposes the filtering capability through the existing application and HTTP read boundary. The dashboard consumes the same API contract; it does not implement filtering locally or reconstruct lifecycle transitions.
+
+### Explicitly deferred
+
+- reason-text filtering;
+- cross-execution queries;
+- lifecycle mutation/replay;
+- retention/deletion;
+- analytics/aggregation;
+- new authorization semantics;
+- arbitrary ordering;
+- new persistence sources.
+
+## 12. TDD Acceptance Criteria
+
+The implementation must cover at minimum:
+
+- omitted filters preserve M46 behavior;
+- valid `to_state` filtering;
+- valid `from_state` filtering;
+- combined `from_state` + `to_state` exact-transition filtering;
+- invalid state values;
+- valid filters with no matches;
+- filtered results remain ascending by persisted sequence;
+- first-page filtering;
+- continuation pagination over filtered results;
+- cursor reuse with different filters is rejected;
+- empty history;
+- unknown execution;
+- owner/global authorization;
+- another-user rejection;
+- restart consistency;
+- filtered reads do not mutate workflow state;
+- API transport passes filter values through without reconstructing history.
+
+## 13. Design Gate Decision
+
+**Status: Accepted — M47 implementation is authorized within the scope above.**
+
+The implementation must extend the existing history read capability rather than create a second query path.
+
