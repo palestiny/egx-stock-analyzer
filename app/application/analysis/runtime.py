@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.identity.get_management_audit import GetManagementAudit
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.analysis.rank_market_opportunities import RankMarketOpportunities
 from app.application.analysis.result_store import AnalysisResultStore
@@ -32,6 +33,7 @@ class StockAnalysisRuntime:
     detect_analysis_changes: DetectAnalysisChanges
     calculate_snapshot_performance: CalculateSnapshotPerformance
     get_alert_candidate: GetAlertCandidate
+    get_management_audit: GetManagementAudit
     result_store: AnalysisResultStore
 
 
@@ -84,6 +86,8 @@ def create_stock_analysis_runtime(
         stock_catalog=stock_catalog,
         result_store=result_store,
     )
+    # Management-audit reporting is composed by infrastructure once the durable
+    # audit store is available; keep the runtime field optional until then.
 
     return StockAnalysisRuntime(
         run_by_symbol=run_by_symbol,
@@ -98,5 +102,6 @@ def create_stock_analysis_runtime(
         detect_analysis_changes=detect_analysis_changes,
         calculate_snapshot_performance=calculate_snapshot_performance,
         get_alert_candidate=get_alert_candidate,
+        get_management_audit=None,
         result_store=result_store,
     )
