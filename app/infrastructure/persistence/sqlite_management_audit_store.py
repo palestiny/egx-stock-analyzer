@@ -66,3 +66,75 @@ class SQLiteManagementAuditStore(ManagementAuditStore):
             )
             for row in rows
         ]
+
+    def read_page(
+        self,
+        query,
+        *,
+        offset: int,
+        limit: int,
+    ):
+        clauses = []
+        parameters = []
+
+        if query.actor_user_id is not None:
+            clauses.append("actor_user_id = ?")
+            parameters.append(str(query.actor_user_id))
+        if query.target_user_id is not None:
+            clauses.append("target_user_id = ?")
+            parameters.append(str(query.target_user_id))
+        if query.action is not None:
+            clauses.append("action = ?")
+            parameters.append(query.action)
+        if query.outcome is not None:
+            clauses.append("outcome = ?")
+            parameters.append(query.outcome)
+        if query.from_time is not None:
+            clauses.append("occurred_at >= ?")
+            parameters.append(query.from_time.isoformat())
+        if query.to_time is not None:
+            clauses.append("occurred_at < ?")
+            parameters.append(query.to_time.isoformat())
+
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+
+        with self._connect() as connection:
+            total_count = connection.execute(
+                f"SELECT COUNT(*) FROM management_audit{where}",
+                parameters,
+            ).fetchone()[0]
+            rows = connection.execute(
+                f"""
+                SELECT id, actor_user_id, action, target_user_id, occurred_at, outcome
+                FROM management_audit
+                {where}
+                ORDER BY occurred_at DESC, id DESC
+                LIMIT ? OFFSET ?
+                """,
+                [*parameters, limit, offset],
+            ).fetchall()
+
+        from app.application.identity.management_audit import (
+            ManagementAuditEvent,
+            ManagementAuditPage,
+            ManagementAuditRecord,
+        )
+
+        items = tuple(
+            ManagementAuditRecord(
+                audit_id=row[0],
+                event=ManagementAuditEvent(
+                    actor_user_id=UUID(row[1]),
+                    action=row[2],
+                    target_user_id=UUID(row[3]),
+                    occurred_at=datetime.fromisoformat(row[4]),
+                    outcome=row[5],
+                ),
+            )
+            for row in rows
+        )
+        return ManagementAuditPage(
+            items=items,
+            total_count=total_count,
+            has_more=offset + len(items) < total_count,
+        )
