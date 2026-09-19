@@ -115,5 +115,6 @@ def create_stock_analysis_runtime(
         calculate_snapshot_performance=calculate_snapshot_performance,
         get_alert_candidate=get_alert_candidate,
         get_management_audit=get_management_audit,
+        get_user_audit_history=get_user_audit_history,
         result_store=result_store,
     )
