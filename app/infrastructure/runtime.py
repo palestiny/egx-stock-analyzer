@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.identity.user_management import UserManagementService
+from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
@@ -61,6 +63,7 @@ class InfrastructureRuntime:
     authenticator: DurableBearerTokenAuthenticator | None = None
     credential_service: CredentialService | None = None
     user_store: SQLiteUserStore | None = None
+    user_management: UserManagementService | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -103,10 +106,17 @@ def create_infrastructure_runtime(
     configured_authenticator = ConfiguredBearerTokenAuthenticator(
         config.user_bearer_tokens,
         user_store=user_store,
+        user_management=user_management,
         legacy_operator_token=config.operator_token,
     )
     credential_store = SQLiteCredentialStore(config.analysis_database_path)
     credential_service = CredentialService(credential_store)
+    management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
+    user_management = UserManagementService(
+        user_store=user_store,
+        credential_service=credential_service,
+        audit_store=management_audit_store,
+    )
     authenticator = DurableBearerTokenAuthenticator(
         credential_store=credential_store,
         user_store=user_store,
