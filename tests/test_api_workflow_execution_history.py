@@ -80,7 +80,7 @@ def test_returns_workflow_lifecycle_history():
                 "sequence": 2,
                 "from_state": "created",
                 "to_state": "running",
-                "occurred_at": "2026-09-19T10:00:00+00:00",
+                "occurred_at": "2026-09-19T10:00:00Z",
                 "reason": "started",
             },
         ],
