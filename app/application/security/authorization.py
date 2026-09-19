@@ -32,8 +32,6 @@ class OwnershipAuthorizer:
 
     def require_global_access(self, identity: AuthenticatedIdentity) -> None:
         self.require_authenticated(identity)
-        if Permission.OPERATOR not in identity.permissions:
-            raise AuthorizationError("Operator permission is required for global resources")
 
     def require_owner_or_global(
         self,
@@ -41,6 +39,8 @@ class OwnershipAuthorizer:
         owner_user_id: UUID | None,
     ) -> None:
         if owner_user_id is None:
-            self.require_global_access(identity)
+            self.require_authenticated(identity)
+            if Permission.OPERATOR not in identity.permissions:
+                raise AuthorizationError("Operator permission is required for global resources")
             return
         self.require_owner(identity, owner_user_id)
