@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
@@ -12,6 +12,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
+  recoverScheduledWorkflowExecution: vi.fn(),
 }));
 
 const report = {
@@ -284,4 +285,78 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText("No stored analysis report was found.")).toBeInTheDocument();
   });
+
+
+  it("shows Recover only for interrupted workflows and updates the row from recovery response", async () => {
+    getScheduledWorkflowExecutions.mockResolvedValue({
+      items: [
+        {
+          id: "workflow-completed",
+          occurrence_id: "occ-completed",
+          state: "completed",
+          created_at: "2026-09-19T10:00:00Z",
+          updated_at: "2026-09-19T10:01:00Z",
+          analysis_state: "completed",
+          delivery_state: "completed",
+        },
+        {
+          id: "workflow-interrupted",
+          occurrence_id: "occ-interrupted",
+          state: "interrupted",
+          created_at: "2026-09-18T10:00:00Z",
+          updated_at: "2026-09-18T10:02:00Z",
+          analysis_state: "completed",
+          delivery_state: "failed",
+        },
+      ],
+    });
+    recoverScheduledWorkflowExecution.mockResolvedValue({
+      id: "workflow-interrupted",
+      occurrence_id: "occ-interrupted",
+      state: "completed",
+      created_at: "2026-09-18T10:00:00Z",
+      updated_at: "2026-09-19T11:00:00Z",
+      analysis_state: "completed",
+      delivery_state: "completed",
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
+
+    const recover = await screen.findByRole("button", { name: "Recover" });
+    expect(recover).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Recover" })).toHaveLength(1);
+
+    fireEvent.click(recover);
+
+    await waitFor(() => {
+      expect(recoverScheduledWorkflowExecution).toHaveBeenCalledWith("workflow-interrupted");
+    });
+    expect(await screen.findByText("completed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Recover" })).not.toBeInTheDocument();
+  });
+
+  it("shows an explicit recovery error for a non-recoverable workflow", async () => {
+    getScheduledWorkflowExecutions.mockResolvedValue({
+      items: [{
+        id: "workflow-interrupted",
+        occurrence_id: "occ-interrupted",
+        state: "interrupted",
+        created_at: "2026-09-18T10:00:00Z",
+        updated_at: "2026-09-18T10:02:00Z",
+        analysis_state: "completed",
+        delivery_state: "failed",
+      }],
+    });
+    recoverScheduledWorkflowExecution.mockRejectedValue(
+      Object.assign(new Error("conflict"), { status: 409 }),
+    );
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Recover" }));
+
+    expect(await screen.findByText("Workflow execution is no longer recoverable.")).toBeInTheDocument();
+  });
+
 });
