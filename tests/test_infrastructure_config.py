@@ -1,27 +1,17 @@
 from app.infrastructure.config import InfrastructureConfig
 
 
-def test_from_environment_does_not_require_external_credentials() -> None:
-    config = InfrastructureConfig.from_environment()
-
-    assert config == InfrastructureConfig()
-
-
-def test_from_environment_reads_telegram_configuration(monkeypatch) -> None:
-    monkeypatch.setenv("EGX_TELEGRAM_BOT_TOKEN", "token")
-    monkeypatch.setenv("EGX_TELEGRAM_CHAT_ID", "chat")
-    monkeypatch.setenv("EGX_TELEGRAM_TIMEOUT_SECONDS", "12.5")
+def test_operator_token_is_loaded_from_environment(monkeypatch):
+    monkeypatch.setenv("EGX_OPERATOR_TOKEN", "test-token")
 
     config = InfrastructureConfig.from_environment()
 
-    assert config.telegram_bot_token == "token"
-    assert config.telegram_chat_id == "chat"
-    assert config.telegram_timeout_seconds == 12.5
+    assert config.operator_token == "test-token"
 
 
-def test_default_configuration_keeps_telegram_disabled() -> None:
-    config = InfrastructureConfig()
+def test_operator_token_is_optional_at_configuration_parsing_boundary(monkeypatch):
+    monkeypatch.delenv("EGX_OPERATOR_TOKEN", raising=False)
 
-    assert config.telegram_bot_token is None
-    assert config.telegram_chat_id is None
-    assert config.telegram_timeout_seconds == 10.0
+    config = InfrastructureConfig.from_environment()
+
+    assert config.operator_token is None
