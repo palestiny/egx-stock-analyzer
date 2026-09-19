@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getScheduledWorkflowExecutionHistory, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
@@ -14,6 +14,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
+  getScheduledWorkflowExecutionHistory: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
   getUserAuditHistory: vi.fn(),
 }));
