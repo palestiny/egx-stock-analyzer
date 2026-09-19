@@ -65,12 +65,12 @@ def test_sqlite_user_store_creates_users_table_without_replacing_analysis_data(t
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
             )
         }
+        row = connection.execute(
+            "SELECT symbol, analysis_date, payload FROM analysis_results"
+        ).fetchone()
 
     assert "users" in tables
     assert "analysis_results" in tables
-    row = connection.execute(
-        "SELECT symbol, analysis_date, payload FROM analysis_results"
-    ).fetchone()
     assert row == ("EGAL", "2026-09-18", "{}")
 
 
