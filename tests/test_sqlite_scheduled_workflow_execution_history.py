@@ -58,3 +58,68 @@ def test_history_query_supports_sequence_cursor_and_limit(tmp_path: Path):
 
     assert [item[0] for item in first] == [1, 2]
     assert [item[0] for item in second] == [3]
+
+
+def test_history_query_filters_before_pagination(tmp_path: Path):
+    database = tmp_path / "workflow-filter.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    completed = running.complete(
+        datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+        reason="finished",
+    )
+    store.save(completed)
+    interrupted = completed
+    # Use persisted rows already present; query constraints are validated independently.
+    result = store.get_history(
+        execution.id,
+        from_state="created",
+        to_state="running",
+    )
+
+    assert [item[0] for item in result] == [2]
+    assert result[0][1:] == (
+        "created",
+        "running",
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+        None,
+    )
+
+
+def test_history_filter_combines_with_sequence_cursor(tmp_path: Path):
+    database = tmp_path / "workflow-filter-cursor.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter-cursor", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    store.save(
+        running.complete(
+            datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+            reason="finished",
+        )
+    )
+
+    first = store.get_history(
+        execution.id,
+        to_state="completed",
+        limit=1,
+    )
+    second = store.get_history(
+        execution.id,
+        to_state="completed",
+        after_sequence=first[-1][0],
+        limit=1,
+    )
+
+    assert [item[0] for item in first] == [3]
+    assert second == ()
