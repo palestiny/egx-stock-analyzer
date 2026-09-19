@@ -59,19 +59,29 @@ class SQLiteCredentialStore(CredentialStore):
             )
 
     def find_active_user_id(self, secret: str) -> UUID | None:
+        credential = self.find_active_credential(secret)
+        return credential.user_id if credential is not None else None
+
+    def find_active_credential(self, secret: str) -> StoredCredential | None:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT user_id, verifier
+                SELECT id, user_id, status, created_at, revoked_at, replaced_by, verifier
                 FROM user_credentials
                 WHERE status = 'active'
                 """
             ).fetchall()
 
-        for raw_user_id, verifier in rows:
+        for raw_id, raw_user_id, status, created_at, revoked_at, replaced_by, verifier in rows:
             if verify_secret(secret, verifier):
-                return UUID(raw_user_id)
-
+                return StoredCredential(
+                    id=UUID(raw_id),
+                    user_id=UUID(raw_user_id),
+                    status=status,
+                    created_at=datetime.fromisoformat(created_at),
+                    revoked_at=datetime.fromisoformat(revoked_at) if revoked_at else None,
+                    replaced_by=UUID(replaced_by) if replaced_by else None,
+                )
         return None
 
     def replace(
