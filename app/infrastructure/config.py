@@ -6,14 +6,10 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class InfrastructureConfig:
-    """Configuration for infrastructure composition.
-
-    External data-source credentials are intentionally not required for the
-    current development vertical slice. Yahoo Finance is used as the live
-    data source for both market and fundamental data.
-    """
+    """Configuration for infrastructure composition."""
 
     analysis_database_path: str = "storage/analysis.db"
+    operator_token: str | None = None
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     telegram_timeout_seconds: float = 10.0
@@ -26,6 +22,7 @@ class InfrastructureConfig:
                 "EGX_ANALYSIS_DATABASE_PATH",
                 "storage/analysis.db",
             ),
+            operator_token=os.getenv("EGX_OPERATOR_TOKEN"),
             telegram_bot_token=os.getenv("EGX_TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
             telegram_timeout_seconds=float(

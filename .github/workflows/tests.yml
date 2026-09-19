@@ -8,6 +8,8 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    env:
+      EGX_OPERATOR_TOKEN: test-operator-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,10 +1,20 @@
 from app.infrastructure.config import InfrastructureConfig
 
 
-def test_from_environment_does_not_require_external_credentials() -> None:
+def test_from_environment_reads_operator_token(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_OPERATOR_TOKEN", "test-token")
+
     config = InfrastructureConfig.from_environment()
 
-    assert config == InfrastructureConfig()
+    assert config.operator_token == "test-token"
+
+
+def test_from_environment_allows_missing_operator_token_at_parse_boundary(monkeypatch) -> None:
+    monkeypatch.delenv("EGX_OPERATOR_TOKEN", raising=False)
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.operator_token is None
 
 
 def test_from_environment_reads_telegram_configuration(monkeypatch) -> None:

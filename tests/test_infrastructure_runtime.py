@@ -24,7 +24,7 @@ def test_create_infrastructure_runtime_composes_real_adapters() -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        config=InfrastructureConfig(),
+        config=InfrastructureConfig(operator_token="test-token", ),
         result_store=InMemoryAnalysisResultStore(),
         retry_policy=RetryPolicy(1),
     )
@@ -47,7 +47,7 @@ def test_infrastructure_runtime_owns_shared_result_store() -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        config=InfrastructureConfig(),
+        config=InfrastructureConfig(operator_token="test-token", ),
         result_store=result_store,
         retry_policy=RetryPolicy(1),
     )
@@ -61,7 +61,7 @@ def test_infrastructure_runtime_close_is_idempotent() -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        config=InfrastructureConfig(),
+        config=InfrastructureConfig(operator_token="test-token", ),
     )
 
     assert runtime.closed is False
@@ -144,7 +144,7 @@ def test_infrastructure_runtime_uses_sqlite_store_by_default(tmp_path) -> None:
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        config=InfrastructureConfig(analysis_database_path=str(database_path)),
+        config=InfrastructureConfig(operator_token="test-token", analysis_database_path=str(database_path)),
     )
 
     assert isinstance(
@@ -158,7 +158,7 @@ def test_infrastructure_runtime_uses_sqlite_store_by_default(tmp_path) -> None:
 def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_path) -> None:
     stock = Stock.create("EGAL", "Egypt Aluminum")
     database_path = tmp_path / "analysis.db"
-    config = InfrastructureConfig(analysis_database_path=str(database_path))
+    config = InfrastructureConfig(operator_token="test-token", analysis_database_path=str(database_path))
 
     first_runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
@@ -191,7 +191,7 @@ def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> 
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([stock]),
         yfinance_module=FakeYFinanceModule(),
-        config=InfrastructureConfig(
+        config=InfrastructureConfig(operator_token="test-token", 
             telegram_bot_token="token",
             telegram_chat_id="chat",
         ),
@@ -215,11 +215,28 @@ def test_infrastructure_runtime_rejects_partial_telegram_configuration() -> None
         create_infrastructure_runtime(
             stock_catalog=InMemoryStockCatalog([stock]),
             yfinance_module=FakeYFinanceModule(),
-            config=InfrastructureConfig(telegram_bot_token="token"),
+            config=InfrastructureConfig(operator_token="test-token", telegram_bot_token="token"),
             result_store=InMemoryAnalysisResultStore(),
             retry_policy=RetryPolicy(1),
         )
     except ValueError as error:
         assert str(error) == "Telegram bot token and chat ID must be configured together"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_infrastructure_runtime_requires_operator_token() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(operator_token=None),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "EGX_OPERATOR_TOKEN must be configured"
     else:
         raise AssertionError("Expected ValueError")

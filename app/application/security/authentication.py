@@ -1,0 +1,28 @@
+from secrets import compare_digest
+
+from app.application.security.identity import AuthenticatedIdentity
+
+
+class AuthenticationError(ValueError):
+    """Raised when supplied authentication credentials are missing or invalid."""
+
+
+class BearerTokenAuthenticator:
+    def __init__(self, expected_token: str) -> None:
+        normalized = expected_token.strip()
+        if not normalized:
+            raise ValueError("operator token cannot be empty")
+        self._expected_token = normalized
+
+    def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
+        if not authorization_header:
+            raise AuthenticationError("Authentication credentials are required")
+
+        scheme, separator, token = authorization_header.partition(" ")
+        if not separator or scheme.lower() != "bearer" or not token.strip():
+            raise AuthenticationError("Authentication credentials are invalid")
+
+        if not compare_digest(token.strip(), self._expected_token):
+            raise AuthenticationError("Authentication credentials are invalid")
+
+        return AuthenticatedIdentity.operator()

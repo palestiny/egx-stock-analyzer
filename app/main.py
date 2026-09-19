@@ -16,7 +16,7 @@ from app.infrastructure.runtime import (
 from app.infrastructure.stocks.development_catalog import create_development_stock_catalog
 
 
-def create_application(runtime: InfrastructureRuntime) -> FastAPI:
+def create_application(runtime: InfrastructureRuntime, operator_token: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         try:
@@ -25,6 +25,10 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
             yield
         finally:
             runtime.close()
+
+    create_app_kwargs = {}
+    if hasattr(runtime, "operator_token"):
+        create_app_kwargs["operator_token"] = runtime.operator_token
 
     app = create_app(
         runtime.application_runtime.result_store,
@@ -39,6 +43,7 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         getattr(runtime, "recover_durable_scheduled_workflow", None),
+        **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
     return app
@@ -60,7 +65,7 @@ def create_application_from_environment(
         result_store=result_store,
         retry_policy=retry_policy,
     )
-    return create_application(runtime)
+    return create_application(runtime, operator_token=config.operator_token)
 
 
 def create_development_application_from_environment(

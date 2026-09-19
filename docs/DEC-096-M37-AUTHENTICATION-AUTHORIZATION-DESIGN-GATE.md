@@ -1,6 +1,6 @@
 # DEC-096 — M37 Authentication & Authorization Boundary Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M37 — Authentication & Authorization Boundary
 
@@ -22,7 +22,7 @@ The project currently has no authentication or authorization boundary. M36 expli
 
 The system now exposes both read-only operational visibility and a mutating operational control. Before expanding operator controls or exposing the platform to multiple users, the project needs an explicit security boundary.
 
-This gate defines the problem and the decisions that must be resolved before implementation. It does not authorize an authentication implementation.
+This gate defines and records the accepted M37 security boundary. Implementation is tracked on the dedicated M37 implementation branch and PR.
 
 ## 2. Problem
 

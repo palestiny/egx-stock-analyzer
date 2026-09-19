@@ -13,7 +13,8 @@ The system currently supports:
 - opportunity classification;
 - automated analysis execution;
 - analysis reports and alert-candidate projections;
-- FastAPI analysis/report/alert endpoints;
+- FastAPI analysis/report/alert/market/opportunity/history/workflow endpoints;
+- single-operator bearer-token authentication for all non-health API endpoints;
 - React + Vite dashboard;
 - durable latest-analysis persistence with SQLite;
 - a read-only SQLite inspection tool;
@@ -70,6 +71,24 @@ Override it with:
 $env:EGX_ANALYSIS_DATABASE_PATH="storage/custom-analysis.db"
 ```
 
+## Authentication
+
+The M37 security boundary uses one configured operator bearer token. `GET /health` remains public; all other API endpoints require:
+
+```text
+Authorization: Bearer <operator-token>
+```
+
+Configure it before starting the API:
+
+```powershell
+$env:EGX_OPERATOR_TOKEN="replace-with-a-strong-secret"
+```
+
+The token is infrastructure configuration only. It is not persisted, returned by the API, or written to analytical/workflow records.
+
+Missing or invalid credentials return HTTP 401. The current MVP has one operator permission; multi-user identity, ownership, sessions, and external identity providers require a later design gate.
+
 ## Analysis Flow
 
 The dashboard reads stored analysis. It does not trigger a new analysis.
@@ -77,19 +96,20 @@ The dashboard reads stored analysis. It does not trigger a new analysis.
 To request analysis through the API:
 
 ```powershell
-Invoke-RestMethod -Method Post http://localhost:8000/api/v1/analysis/EGAL
+$headers = @{ Authorization = "Bearer $env:EGX_OPERATOR_TOKEN" }
+Invoke-RestMethod -Method Post http://localhost:8000/api/v1/analysis/EGAL -Headers $headers
 ```
 
 Then read the persisted report:
 
 ```powershell
-Invoke-RestMethod http://localhost:8000/api/v1/reports/EGAL
+Invoke-RestMethod http://localhost:8000/api/v1/reports/EGAL -Headers $headers
 ```
 
 And the alert candidate projection:
 
 ```powershell
-Invoke-RestMethod http://localhost:8000/api/v1/alerts/EGAL
+Invoke-RestMethod http://localhost:8000/api/v1/alerts/EGAL -Headers $headers
 ```
 
 A successful analysis is persisted to SQLite before the read-side report/alert projections use it.
@@ -132,7 +152,7 @@ npm install
 npm run dev
 ```
 
-Vite proxies `/api` requests to `http://localhost:8000`.
+Vite proxies `/api` requests to `http://localhost:8000`. Configure `VITE_OPERATOR_TOKEN` in the frontend environment with the same operator token used by `EGX_OPERATOR_TOKEN`; the dashboard API client sends it as a bearer credential.
 
 ## Persistence Contract
 
@@ -192,7 +212,12 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 - M30 — Durable scheduled workflow: complete and CI-validated through the recurring-scheduler integration.
 - M31 — Durable workflow recovery: complete and CI-validated through the interrupted-execution recovery path.
 - M32 — Automatic scheduled workflow resume: complete and CI-validated through startup recovery of persisted INTERRUPTED executions.
+- M33 — Scheduled workflow operational visibility: complete.
+- M34 — Scheduled workflow operational visibility API: complete.
+- M35 — Scheduled workflow operational dashboard: complete.
+- M36 — Scheduled workflow recovery control: complete.
+- M37 — Authentication & authorization boundary: design accepted; implementation in progress.
 
 M30 now persists scheduled workflow lifecycle state independently from analytical-result and alert-delivery persistence. Persisted RUNNING executions are detectable and recoverable as INTERRUPTED; they are not automatically replayed.
 
-M32 is the current completed milestone. On application startup, persisted INTERRUPTED scheduled workflow executions are discovered and delegated to the existing M31 recovery capability. Recovery is deterministic, sequential, process-local, and failure-isolated.
+M36 is the latest completed milestone on `main`. M37 implementation is currently under PR #70. On application startup, persisted INTERRUPTED scheduled workflow executions are discovered and delegated to the existing M31 recovery capability. Recovery is deterministic, sequential, process-local, and failure-isolated.

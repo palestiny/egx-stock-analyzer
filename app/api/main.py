@@ -1,9 +1,10 @@
 import logging
+import os
 from dataclasses import asdict
 from datetime import date
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
@@ -32,6 +33,9 @@ from app.application.reporting.compare_analysis_snapshots import (
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.security.authentication import AuthenticationError, BearerTokenAuthenticator
+from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
+from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import (
@@ -53,6 +57,13 @@ from app.application.reporting.get_analysis_report import GetAnalysisReport
 logger = logging.getLogger(__name__)
 
 
+class _OperatorTokenNotProvided:
+    pass
+
+
+_OPERATOR_TOKEN_NOT_PROVIDED = _OperatorTokenNotProvided()
+
+
 def create_app(
     result_store: AnalysisResultStore,
     run_stock_analysis_by_symbol: RunStockAnalysisBySymbol | None = None,
@@ -66,16 +77,43 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
+    operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
+    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided)
+    configured_token = (
+        None
+        if legacy_test_composition
+        else operator_token if operator_token is not None else os.getenv("EGX_OPERATOR_TOKEN")
+    )
+    authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
+    authorizer = OperatorAuthorizer()
+
+    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
+        if legacy_test_composition:
+            return AuthenticatedIdentity.operator()
+        if authenticator is None:
+            raise HTTPException(status_code=503, detail="Authentication is not configured")
+        try:
+            identity = authenticator.authenticate(authorization)
+            authorizer.require(identity, Permission.OPERATOR)
+            return identity
+        except AuthenticationError as error:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
 
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.get("/api/v1/analysis/{symbol}")
-    def get_analysis(symbol: str) -> dict[str, object]:
+    def get_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         result = get_analysis_result.execute(symbol)
 
         if result is None:
@@ -88,7 +126,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/analysis/{symbol}")
-    def run_analysis(symbol: str) -> dict[str, object]:
+    def run_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if run_stock_analysis_by_symbol is None:
             raise HTTPException(
                 status_code=503,
@@ -121,6 +159,7 @@ def create_app(
         symbol: str,
         from_date: date | None = None,
         to_date: date | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if get_analysis_history is None:
             raise HTTPException(status_code=503, detail="Analysis history is not configured")
@@ -138,6 +177,7 @@ def create_app(
         symbol: str,
         before: UUID,
         after: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if compare_analysis_snapshots is None:
             raise HTTPException(
@@ -163,6 +203,7 @@ def create_app(
         symbol: str,
         before: UUID,
         after: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if calculate_snapshot_performance is None:
             raise HTTPException(status_code=503, detail="Historical performance is not configured")
@@ -176,7 +217,7 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
     @app.get("/api/v1/reports/{symbol}")
-    def get_report(symbol: str) -> dict[str, object]:
+    def get_report(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if get_analysis_report is None:
             raise HTTPException(
                 status_code=503,
@@ -194,7 +235,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/market-analysis")
-    def run_market_analysis() -> dict[str, object]:
+    def run_market_analysis(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if run_configured_market_analysis is None:
             raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
 
@@ -208,7 +249,7 @@ def create_app(
         return asdict(response)
 
     @app.get("/api/v1/opportunities")
-    def get_opportunities(symbols: str = "") -> dict[str, object]:
+    def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if get_market_opportunity_ranking is None:
             raise HTTPException(status_code=503, detail="Market opportunity reporting is not configured")
 
@@ -228,6 +269,7 @@ def create_app(
     @app.get("/api/v1/workflows/executions")
     def get_scheduled_workflow_execution_history(
         occurrence_id: str | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if get_scheduled_workflow_executions is None:
             raise HTTPException(
@@ -251,7 +293,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/workflows/executions/{execution_id}/recover")
-    def recover_scheduled_workflow_execution(execution_id: UUID) -> dict[str, object]:
+    def recover_scheduled_workflow_execution(execution_id: UUID, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if recover_durable_scheduled_workflow is None:
             raise HTTPException(
                 status_code=503,
@@ -282,7 +324,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/alerts/{symbol}/deliver")
-    def deliver_alert(symbol: str, channel: str) -> dict[str, object]:
+    def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if deliver_alert_by_symbol is None:
             raise HTTPException(status_code=503, detail="Alert delivery is not configured")
 
@@ -297,7 +339,7 @@ def create_app(
         return asdict(response)
 
     @app.get("/api/v1/alerts/{symbol}")
-    def get_alert(symbol: str) -> dict[str, object]:
+    def get_alert(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if get_alert_candidate is None:
             raise HTTPException(
                 status_code=503,
