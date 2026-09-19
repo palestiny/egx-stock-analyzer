@@ -1,6 +1,6 @@
 # DEC-095 — M36 Scheduled Workflow Recovery Control Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M36 — Scheduled Workflow Recovery Control
 
@@ -100,12 +100,59 @@ No automatic polling or refresh timer is introduced.
 4. Disable only the clicked row while recovery is pending, or all recovery actions?
 5. Keep M36 unauthenticated because authentication does not yet exist, or block the feature until an auth boundary exists?
 
-## 11. Design Gate Status
+## 11. Resolved Decisions
 
-**Proposed — implementation is not authorized yet.**
+1. **Non-recoverable execution status:** use **409 Conflict**. The execution exists, but its current lifecycle state conflicts with the recovery command.
+2. **Dashboard action placement:** use an **inline Recover action on each INTERRUPTED row**. This keeps the operator's target explicit and avoids a second selection state.
+3. **Post-success UI state:** **update the row immediately from the command response**. No extra GET is required after a successful recovery.
+4. **Pending state:** **disable only the clicked row's Recover action**. Other interrupted executions remain independently actionable.
+5. **Authentication:** M36 proceeds **without authentication**, because no authentication boundary exists yet. This is an explicit current-system constraint, not a claim that recovery is safe for an authenticated multi-user production environment. Authentication remains a prerequisite before exposing this control to a multi-user deployment.
 
-The recommended direction is Alternative B. The open decisions above must be explicitly resolved before implementation.
+## 12. Accepted Design
 
-## 12. Revisit Conditions
+**Status: Accepted — implementation is authorized for the M36 MVP defined here.**
+
+The accepted boundary is:
+
+```
+React Dashboard
+      ↓
+POST /api/v1/workflows/executions/{execution_id}/recover
+      ↓
+RecoverScheduledWorkflowExecution
+      ↓
+RecoverDurableScheduledWorkflow
+      ↓
+RunDurableScheduledWorkflow.recover
+      ↓
+ScheduledWorkflowExecutionStore
+```
+
+The endpoint is a synchronous, explicit command. Only INTERRUPTED executions are eligible. A missing execution returns 404; an existing non-INTERRUPTED execution returns 409; successful recovery returns the resulting persisted workflow execution; unexpected failures follow the existing safe 500 pattern.
+
+The dashboard renders Recover inline only for INTERRUPTED rows, disables only the clicked row while pending, and replaces that row with the successful command response. It exposes explicit user-safe states for 404, 409, and transport failures. GET visibility remains side-effect free.
+
+No new occurrence, retry layer, persistence schema, recovery semantics, scheduler behavior, or authentication implementation is introduced.
+
+## 13. TDD Acceptance Criteria
+
+- interrupted execution can be recovered;
+- missing execution maps to 404;
+- non-interrupted execution maps to 409;
+- execution identity is preserved;
+- M31 recovery capability is delegated to;
+- HTTP recovery uses POST and the execution UUID path;
+- successful recovery returns the persisted workflow model;
+- dashboard shows Recover only for interrupted rows;
+- only the clicked dashboard row is disabled while pending;
+- dashboard updates the recovered row directly from the command response;
+- dashboard handles 404, 409, and transport failure;
+- no new occurrence is created.
+
+## 14. Design Gate Status
+
+**Accepted — implementation is authorized.**
+
+## 15. Revisit Conditions
 
 Revisit if workflow recovery semantics change, authentication becomes mandatory, recovery becomes asynchronous, bulk recovery becomes necessary, the dashboard architecture changes materially, or step-level checkpoints are introduced.
