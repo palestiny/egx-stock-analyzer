@@ -132,6 +132,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
 | M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
+| M32 | Automatic Scheduled Workflow Resume | 🟡 Design Proposed | Automatically recover eligible interrupted scheduled workflow executions during application startup |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -198,6 +199,8 @@ M29 — Scheduled Automatic Alert Delivery
 M30 — Durable Scheduled Workflow
         ↓
 M31 — Durable Workflow Recovery
+        ↓
+M32 — Automatic Scheduled Workflow Resume
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1013,7 +1016,25 @@ Completion record: `docs/M31-DURABLE-WORKFLOW-RECOVERY-MVP-COMPLETION.md`.
 
 ---
 
-# 32. Cross-Cutting Requirements
+# 32. M32 — Automatic Scheduled Workflow Resume
+
+## Status
+
+M32 design is **proposed** in `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`. Implementation is not authorized until the gate is accepted.
+
+The proposed capability closes the operational gap between M30 interruption detection and M31 explicit recovery by triggering the existing recovery capability during application startup. It will inspect persisted `INTERRUPTED` executions, recover them sequentially and deterministically, and isolate individual recovery failures.
+
+The proposal does not introduce a new recovery state machine, scheduler business logic, checkpoints, queues, workers, concurrency, provider retry, recovery API, or new notification behavior.
+
+### Proposed boundary
+
+Application Startup → AutomaticWorkflowRecovery → ScheduledWorkflowExecutionStore → M31 Recovery Capability → Existing M29 Scheduled Analysis + Delivery Workflow
+
+See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md` for the full proposed contract.
+
+---
+
+# 33. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -1047,7 +1068,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 33. Milestone Completion Rule
+# 34. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -1073,7 +1094,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 34. Changing the Roadmap
+# 35. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -1083,6 +1104,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 35. Guiding Principle
+# 36. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
