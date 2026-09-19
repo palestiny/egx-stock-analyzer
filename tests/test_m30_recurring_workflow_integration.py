@@ -67,8 +67,19 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
     clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     scheduler.scheduled[0][1]()
 
-    stored = store.get_by_occurrence(
-        scheduler.scheduled[0][1].__self__.occurrence_id
-        if hasattr(scheduler.scheduled[0][1], "__self__")
-        else next(iter([]))
-    )
+    import sqlite3
+
+    with sqlite3.connect(tmp_path / "workflow.db") as connection:
+        row = connection.execute(
+            "SELECT occurrence_id, state, analysis_state, delivery_state "
+            "FROM scheduled_workflow_executions"
+        ).fetchone()
+
+    assert row is not None
+    occurrence_id, state, analysis_state, delivery_state = row
+    assert state == "completed"
+    assert analysis_state == "completed"
+    assert delivery_state == "completed"
+    assert occurrence_id.startswith("")
+
+    scheduled_operation.execute.assert_called_once_with(date(2026, 9, 18))
