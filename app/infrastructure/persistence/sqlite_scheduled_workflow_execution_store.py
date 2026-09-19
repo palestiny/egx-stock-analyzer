@@ -216,8 +216,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             updated_at,
             analysis_state,
             delivery_state,
-            owner_user_id,
+            *owner_values,
         ) = row
+        owner_user_id = owner_values[0] if owner_values else None
         return ScheduledWorkflowExecution(
             id=UUID(execution_id),
             occurrence_id=occurrence_id,
