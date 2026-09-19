@@ -219,7 +219,7 @@ describe("Dashboard", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
 
-    const firstOccurrence = await screen.findByText("occ-2");
+    const firstOccurrence = await screen.findByText(/occ-2/);
     const rows = screen.getAllByText(/occ-/).map((item) => item.textContent);
     expect(rows[0]).toContain("occ-2");
     expect(firstOccurrence).toBeInTheDocument();
