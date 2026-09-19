@@ -1,5 +1,6 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from binascii import Error as Base64DecodeError
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -53,6 +54,8 @@ class GetScheduledWorkflowExecutionHistory:
         identity: AuthenticatedIdentity,
         page_size: int | None = None,
         cursor: str | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
     ) -> ScheduledWorkflowExecutionHistoryReadModel:
         execution = self._store.get(execution_id)
         if execution is None:
@@ -65,10 +68,20 @@ class GetScheduledWorkflowExecutionHistory:
             execution.owner_user_id,
         )
 
-        after_sequence = self._decode_cursor(cursor) if cursor is not None else None
+        normalized_from_state = self._normalize_state(from_state)
+        normalized_to_state = self._normalize_state(to_state)
+        after_sequence = (
+            self._decode_cursor(cursor, normalized_from_state, normalized_to_state)
+            if cursor is not None
+            else None
+        )
 
         if page_size is None and cursor is None:
-            rows = self._store.get_history(execution_id)
+            rows = self._store.get_history(
+                execution_id,
+                from_state=normalized_from_state,
+                to_state=normalized_to_state,
+            )
             return self._to_read_model(execution, rows)
 
         effective_page_size = (
@@ -80,12 +93,18 @@ class GetScheduledWorkflowExecutionHistory:
             execution_id,
             after_sequence=after_sequence,
             limit=effective_page_size + 1,
+            from_state=normalized_from_state,
+            to_state=normalized_to_state,
         )
         has_more = len(rows) > effective_page_size
         page_rows = rows[:effective_page_size]
 
         next_cursor = (
-            self._encode_cursor(page_rows[-1][0])
+            self._encode_cursor(
+                page_rows[-1][0],
+                normalized_from_state,
+                normalized_to_state,
+            )
             if has_more and page_rows
             else None
         )
@@ -105,23 +124,73 @@ class GetScheduledWorkflowExecutionHistory:
             )
 
     @staticmethod
-    def _encode_cursor(sequence: int) -> str:
-        return urlsafe_b64encode(str(sequence).encode("ascii")).decode("ascii").rstrip("=")
+    def _normalize_state(state: str | None) -> str | None:
+        if state is None:
+            return None
+        normalized = state.strip().lower()
+        from app.application.execution.scheduled_workflow_execution import (
+            ScheduledWorkflowExecutionState,
+        )
+        try:
+            ScheduledWorkflowExecutionState(normalized)
+        except ValueError:
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                f"invalid lifecycle state: {state}"
+            ) from None
+        return normalized
 
     @staticmethod
-    def _decode_cursor(cursor: str) -> int:
+    def _encode_cursor(
+        sequence: int,
+        from_state: str | None,
+        to_state: str | None,
+    ) -> str:
+        payload = json.dumps(
+            {"sequence": sequence, "from_state": from_state, "to_state": to_state},
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        return urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+    @staticmethod
+    def _decode_cursor(
+        cursor: str,
+        from_state: str | None,
+        to_state: str | None,
+    ) -> int:
         if not cursor.strip():
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor cannot be empty"
             )
         try:
             padding = "=" * (-len(cursor) % 4)
-            sequence = int(
-                urlsafe_b64decode((cursor + padding).encode("ascii")).decode("ascii")
-            )
-        except (Base64DecodeError, ValueError, UnicodeDecodeError):
+            decoded = urlsafe_b64decode(
+                (cursor + padding).encode("ascii")
+            ).decode("utf-8")
+            try:
+                payload = json.loads(decoded)
+            except json.JSONDecodeError:
+                if from_state is None and to_state is None:
+                    payload = {
+                        "sequence": int(decoded),
+                        "from_state": None,
+                        "to_state": None,
+                    }
+                else:
+                    raise ValueError
+            if not isinstance(payload, dict):
+                raise ValueError
+            sequence = int(payload["sequence"])
+            if (
+                payload.get("from_state") != from_state
+                or payload.get("to_state") != to_state
+            ):
+                raise ValueError
+        except (Base64DecodeError, KeyError, TypeError, ValueError, UnicodeDecodeError):
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
-                "cursor must be a valid history continuation cursor"
+                "cursor does not match the requested history filters"
+                if from_state is not None or to_state is not None
+                else "cursor must be a valid history continuation cursor"
             ) from None
 
         if sequence < 1:
