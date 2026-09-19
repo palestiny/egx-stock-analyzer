@@ -2150,3 +2150,15 @@ GET workflow visibility remains side-effect free. M36 does not create replacemen
 ### Revisit Conditions
 
 Revisit if recovery becomes asynchronous, bulk recovery is required, authentication becomes mandatory, or workflow recovery semantics change.
+
+
+## DEC-096 — M37 Authentication & Authorization Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M37 establishes a single-operator bearer-token security boundary. `GET /health` remains public; all other application/API endpoints are protected. Authentication produces an immutable operator identity, authorization uses one operator permission, and protected application capabilities remain independent of FastAPI.
+
+Missing/invalid credentials map to HTTP 401; authenticated callers without the required permission map to HTTP 403. The operator token is configuration-only, never persisted or logged. Multi-user identity, ownership, password/session management, external identity providers, and permission administration remain deferred.
+
+See `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md`.
