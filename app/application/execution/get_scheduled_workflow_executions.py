@@ -18,6 +18,7 @@ class ScheduledWorkflowExecutionReadModel:
     updated_at: datetime
     analysis_state: str | None
     delivery_state: str | None
+    owner_user_id: UUID | None
 
 
 class GetScheduledWorkflowExecutions:
@@ -48,4 +49,5 @@ class GetScheduledWorkflowExecutions:
             updated_at=execution.updated_at,
             analysis_state=execution.analysis_state,
             delivery_state=execution.delivery_state,
+            owner_user_id=execution.owner_user_id,
         )
