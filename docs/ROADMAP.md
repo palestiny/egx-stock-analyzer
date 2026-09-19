@@ -130,7 +130,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M27 | Alert Delivery Trigger & Transport Boundary | 🟢 Complete | Explicitly deliver an existing alert candidate through the provider-neutral delivery boundary |
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
-| M30 | Durable Scheduled Workflow | 🟡 Design Accepted | Persist scheduled workflow lifecycle and detect interrupted executions without introducing distributed execution |
+| M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -984,13 +984,13 @@ Deferred: independent delivery schedules, asynchronous delivery, queues/workers,
 
 ## Status
 
-The M30 design gate is **accepted** in `docs/DEC-089-M30-DURABLE-SCHEDULED-WORKFLOW-DESIGN-GATE.md`. Implementation is the next controlled step.
+The M30 design gate is **accepted** in `docs/DEC-089-M30-DURABLE-SCHEDULED-WORKFLOW-DESIGN-GATE.md`. The durable lifecycle implementation was merged through PR #52, and the recurring-scheduler integration was merged through PR #53. GitHub Actions Run #860 completed successfully for integration head `4115ebd793ae849f9c1b3e1cc8dc4b5537a4676e`.
 
 M30 will persist the lifecycle of one scheduled M29 workflow occurrence independently from analytical-result persistence and alert-delivery persistence.
 
 The MVP states are `CREATED`, `RUNNING`, `COMPLETED`, `COMPLETED_WITH_ERRORS`, `FAILED`, and `INTERRUPTED`. Duplicate occurrence starts are idempotent, and persisted RUNNING executions are recoverable as INTERRUPTED after restart. Interrupted executions are detected, not automatically replayed.
 
-The first implementation uses SQLite behind a dedicated `ScheduledWorkflowExecutionStore` boundary. Distributed locks, queues, workers, automatic resume, provider retry, multiple channels, and user-specific schedules remain deferred.
+The implementation uses SQLite behind a dedicated `ScheduledWorkflowExecutionStore` boundary. Recurring scheduler occurrences now receive deterministic occurrence IDs and are persisted through the durable workflow lifecycle. Restart recovery marks persisted RUNNING executions as INTERRUPTED; interrupted executions are not automatically replayed. Distributed locks, queues, workers, automatic resume, provider retry, multiple channels, and user-specific schedules remain deferred.
 
 ---
 
