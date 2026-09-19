@@ -13,7 +13,7 @@ from app.application.execution.run_durable_scheduled_workflow import (
 from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionState,
 )
-from app.domain.execution import Execution, ExecutionState
+from app.domain.execution import Execution
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
