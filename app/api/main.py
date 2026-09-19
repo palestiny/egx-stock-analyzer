@@ -160,6 +160,18 @@ def create_app(
             "status": identity.user_status.value if identity.user_status is not None else None,
         }
 
+    @app.get("/api/v1/users")
+    def list_users(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        users = user_management.list_users(_identity)
+        return {
+            "items": [
+                {"user_id": str(user.id), "status": user.status.value}
+                for user in users
+            ]
+        }
+
     @app.post("/api/v1/users")
     def create_user(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if user_management is None:
