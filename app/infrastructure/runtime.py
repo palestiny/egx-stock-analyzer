@@ -30,10 +30,13 @@ from app.infrastructure.notifications.sqlite_alert_delivery_store import (
     SQLiteAlertDeliveryStore,
 )
 from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
+from app.application.security.credentials import CredentialService
+from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -55,7 +58,8 @@ class InfrastructureRuntime:
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
-    authenticator: ConfiguredBearerTokenAuthenticator | None = None
+    authenticator: DurableBearerTokenAuthenticator | None = None
+    credential_service: CredentialService | None = None
     user_store: SQLiteUserStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -96,10 +100,17 @@ def create_infrastructure_runtime(
 
     user_store = SQLiteUserStore(config.analysis_database_path)
     user_store.get_or_create(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)
-    authenticator = ConfiguredBearerTokenAuthenticator(
+    configured_authenticator = ConfiguredBearerTokenAuthenticator(
         config.user_bearer_tokens,
         user_store=user_store,
         legacy_operator_token=config.operator_token,
+    )
+    credential_store = SQLiteCredentialStore(config.analysis_database_path)
+    credential_service = CredentialService(credential_store)
+    authenticator = DurableBearerTokenAuthenticator(
+        credential_store=credential_store,
+        user_store=user_store,
+        fallback=configured_authenticator,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -180,5 +191,6 @@ def create_infrastructure_runtime(
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
         authenticator=authenticator,
+        credential_service=credential_service,
         user_store=user_store,
     )

@@ -37,6 +37,7 @@ from app.application.security.authentication import (
     AuthenticationError,
     BearerTokenAuthenticator,
     ConfiguredBearerTokenAuthenticator,
+    Authenticator,
 )
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
@@ -82,7 +83,7 @@ def create_app(
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
-    authenticator: ConfiguredBearerTokenAuthenticator | None = None,
+    authenticator: Authenticator | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
