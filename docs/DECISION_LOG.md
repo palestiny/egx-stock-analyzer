@@ -2291,3 +2291,21 @@ M40 removes the previous build-time `VITE_OPERATOR_TOKEN` dependency from the fr
 The new `GET /api/v1/auth/me` endpoint returns only the authenticated subject, immutable user ID, and lifecycle status; it never returns raw credentials.
 
 See `docs/DEC-100-M40-FRONTEND-AUTHENTICATION-DESIGN-GATE.md`.
+
+
+## DEC-101 — M40 User Credential & Session Lifecycle
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M40 adopts durable application-managed opaque bearer credentials mapped to the existing immutable internal user UUID. Credential lifecycle state is persisted behind a dedicated CredentialStore using the existing SQLite deployment.
+
+Raw credentials are never persisted, logged, returned after provisioning, or placed in domain entities. Provisioning and rotation return a raw credential exactly once. Credentials are ACTIVE, REVOKED, or REPLACED; automatic expiration is deferred for this MVP. Rotation invalidates the previous credential.
+
+The existing M40 frontend session UX remains valid: the browser holds the bearer credential in sessionStorage for the browser session and validates it through GET /api/v1/auth/me. The server remains authoritative by resolving the presented credential against durable credential state on every protected request. No second server-side session store, local password system, MFA/SSO, or commercial identity provider is introduced in this slice.
+
+M39 configured credentials remain a compatibility path. Their raw values are never migrated into durable credential storage. Removal of M39 compatibility requires a separate decision.
+
+Credential lifecycle remains separate from identity and authorization: authentication produces AuthenticatedIdentity, while ownership authorization remains unchanged.
+
+See docs/DEC-101-M40-USER-CREDENTIAL-LIFECYCLE-DESIGN-GATE.md.
