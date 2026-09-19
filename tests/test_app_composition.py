@@ -154,3 +154,23 @@ def test_create_application_runs_automatic_workflow_recovery_on_startup():
 
     recovery.execute.assert_called_once()
     assert runtime.closed is True
+
+
+def test_create_application_surfaces_automatic_recovery_store_failure_on_startup():
+    result_store = InMemoryAnalysisResultStore()
+    runtime = FakeRuntime(result_store)
+    recovery = Mock()
+    recovery.execute.side_effect = RuntimeError("workflow store unavailable")
+    runtime.automatic_workflow_recovery = recovery
+
+    app = create_application(runtime)
+
+    try:
+        with TestClient(app):
+            pass
+    except RuntimeError as error:
+        assert str(error) == "workflow store unavailable"
+    else:
+        raise AssertionError("Expected startup recovery failure")
+
+    assert runtime.closed is True
