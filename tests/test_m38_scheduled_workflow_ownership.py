@@ -1,4 +1,5 @@
 import sqlite3
+from dataclasses import replace
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -98,7 +99,7 @@ def test_owner_is_immutable_when_lifecycle_state_is_saved(tmp_path):
     store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
 
     created = store.create_or_get("owned", NOW, owner_user_id=USER_A)
-    changed_owner = created.start(NOW).with_owner(USER_B)
+    changed_owner = replace(created.start(NOW), owner_user_id=USER_B)
     store.save(changed_owner)
 
     restored = store.get(created.id)
