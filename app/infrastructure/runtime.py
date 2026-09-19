@@ -33,6 +33,7 @@ from app.infrastructure.notifications.telegram_provider import TelegramNotificat
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+from app.infrastructure.security.bearer_token_authenticator import BearerTokenAuthenticator
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -51,6 +52,7 @@ class InfrastructureRuntime:
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
+    authenticator: BearerTokenAuthenticator | None = None
     operator_token: str | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -74,6 +76,10 @@ def create_infrastructure_runtime(
     result_store: AnalysisResultStore | None = None,
     retry_policy: RetryPolicy | None = None,
 ) -> InfrastructureRuntime:
+    if not config.operator_token or not config.operator_token.strip():
+        raise ValueError("EGX_OPERATOR_TOKEN must be configured")
+
+    authenticator = BearerTokenAuthenticator(config.operator_token)
     result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
     retry_policy = retry_policy or RetryPolicy(1)
 
@@ -163,5 +169,6 @@ def create_infrastructure_runtime(
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
+        authenticator=authenticator,
         operator_token=config.operator_token,
     )
