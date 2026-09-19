@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 
 function Metric({ label, value }) {
@@ -57,6 +57,10 @@ function DashboardApp({ onLogout, identity }) {
   const [userAdminLoading, setUserAdminLoading] = useState(false);
   const [rotatedCredential, setRotatedCredential] = useState(null);
   const [credentialRotationError, setCredentialRotationError] = useState(null);
+  const [auditFilters, setAuditFilters] = useState({ actorUserId: "", targetUserId: "", action: "", outcome: "", fromTime: "", toTime: "" });
+  const [auditPage, setAuditPage] = useState(null);
+  const [auditError, setAuditError] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   async function handleAnalyze(event) {
     event.preventDefault();
@@ -259,6 +263,24 @@ function DashboardApp({ onLogout, identity }) {
     } catch (requestError) {
       setCredentialRotationError(requestError);
     }
+  }
+
+  async function handleManagementAudit(event, nextOffset = 0) {
+    event?.preventDefault();
+    setAuditLoading(true);
+    setAuditError(null);
+    try {
+      setAuditPage(await getManagementAudit({ ...auditFilters, offset: nextOffset }));
+    } catch (requestError) {
+      setAuditPage(null);
+      setAuditError(requestError);
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  function updateAuditFilter(name, value) {
+    setAuditFilters((current) => ({ ...current, [name]: value }));
   }
 
   function formatWorkflowTimestamp(value) {
@@ -515,6 +537,45 @@ function DashboardApp({ onLogout, identity }) {
               )}
             </div>
           ))}
+        </section>
+      )}
+
+      {identity?.subject === "operator" && (
+        <section className="panel" aria-label="management audit">
+          <div>
+            <p className="eyebrow">SECURITY OPERATIONS</p>
+            <h3>Management audit</h3>
+            <p className="muted">Read-only security-management evidence. Audit identity is represented by UUID.</p>
+          </div>
+
+          <form className="symbol-form" onSubmit={(event) => handleManagementAudit(event, 0)}>
+            <input aria-label="Actor user ID" placeholder="Actor UUID" value={auditFilters.actorUserId} onChange={(event) => updateAuditFilter("actorUserId", event.target.value)} />
+            <input aria-label="Target user ID" placeholder="Target UUID" value={auditFilters.targetUserId} onChange={(event) => updateAuditFilter("targetUserId", event.target.value)} />
+            <input aria-label="Action" placeholder="Action" value={auditFilters.action} onChange={(event) => updateAuditFilter("action", event.target.value)} />
+            <input aria-label="Outcome" placeholder="Outcome" value={auditFilters.outcome} onChange={(event) => updateAuditFilter("outcome", event.target.value)} />
+            <button type="submit" disabled={auditLoading}>{auditLoading ? "Loading..." : "Load Audit"}</button>
+          </form>
+
+          {auditError && <p className="state-card error" role="alert">{auditError.message}</p>}
+          {auditPage && auditPage.items.length === 0 && <p className="muted">No management audit events were found.</p>}
+
+          {auditPage && auditPage.items.length > 0 && (
+            <>
+              <div className="opportunity-list">
+                {auditPage.items.map((item) => (
+                  <div className="detail-row" key={item.audit_id}>
+                    <strong>{item.action}</strong>
+                    <span>{item.outcome} · {item.actor_user_id} → {item.target_user_id} · {formatWorkflowTimestamp(item.occurred_at)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="symbol-form">
+                <button type="button" disabled={auditLoading || auditPage.offset === 0} onClick={() => handleManagementAudit(null, Math.max(0, auditPage.offset - auditPage.page_size))}>Previous</button>
+                <span className="muted">Showing {auditPage.offset + 1}–{Math.min(auditPage.offset + auditPage.items.length, auditPage.total_count)} of {auditPage.total_count}</span>
+                <button type="button" disabled={auditLoading || !auditPage.has_more} onClick={() => handleManagementAudit(null, auditPage.offset + auditPage.page_size)}>Next</button>
+              </div>
+            </>
+          )}
         </section>
       )}
 
