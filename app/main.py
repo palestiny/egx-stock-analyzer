@@ -47,6 +47,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         getattr(runtime, "recover_durable_scheduled_workflow", None),
+        getattr(runtime, "user_management", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
