@@ -9,6 +9,7 @@ from app.application.analysis.runtime import (
     create_stock_analysis_runtime,
 )
 from app.application.execution.automatic_workflow_recovery import AutomaticWorkflowRecovery
+from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import RecoverDurableScheduledWorkflow
 from app.application.execution.retry import RetryPolicy
 from app.application.execution.run_durable_scheduled_workflow import RunDurableScheduledWorkflow
@@ -48,6 +49,7 @@ class InfrastructureRuntime:
     run_configured_market_analysis_with_automatic_alert_delivery: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
+    get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -102,6 +104,8 @@ def create_infrastructure_runtime(
     automatic_alert_delivery = None
     run_configured_market_analysis_with_automatic_alert_delivery = None
     automatic_workflow_recovery = None
+    workflow_store = SQLiteScheduledWorkflowExecutionStore(config.analysis_database_path)
+    get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -128,9 +132,6 @@ def create_infrastructure_runtime(
                 automatic_alert_delivery=automatic_alert_delivery,
             )
         )
-        workflow_store = SQLiteScheduledWorkflowExecutionStore(
-            config.analysis_database_path
-        )
         durable_workflow = RunDurableScheduledWorkflow(
             scheduled_operation=run_configured_market_analysis_with_automatic_alert_delivery,
             store=workflow_store,
@@ -156,4 +157,5 @@ def create_infrastructure_runtime(
         ),
         telegram_notification_provider=telegram_notification_provider,
         automatic_workflow_recovery=automatic_workflow_recovery,
+        get_scheduled_workflow_executions=get_scheduled_workflow_executions,
     )
