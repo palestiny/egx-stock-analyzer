@@ -132,7 +132,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
 | M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
-| M32 | Automatic Scheduled Workflow Resume | 🟡 Design Accepted | Automatically recover eligible interrupted scheduled workflow executions during application startup |
+| M32 | Automatic Scheduled Workflow Resume | 🟢 Complete | Automatically recover eligible interrupted scheduled workflow executions during application startup |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1022,17 +1022,13 @@ Completion record: `docs/M31-DURABLE-WORKFLOW-RECOVERY-MVP-COMPLETION.md`.
 
 ## Status
 
-M32 design is **proposed** in `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`. Implementation is not authorized until the gate is accepted.
+M32 is **complete**. The accepted design is documented in `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`, and the implementation was merged through PR #58.
 
-The proposed capability closes the operational gap between M30 interruption detection and M31 explicit recovery by triggering the existing recovery capability during application startup. It will inspect persisted `INTERRUPTED` executions, recover them sequentially and deterministically, and isolate individual recovery failures.
+Startup now discovers persisted `INTERRUPTED` scheduled workflow executions and delegates recovery to the existing M31 capability. Recovery is deterministic, sequential, process-local, and failure-isolated. Durable-store inspection failure prevents application startup, while an individual recovery failure does not block later attempts.
 
-The proposal does not introduce a new recovery state machine, scheduler business logic, checkpoints, queues, workers, concurrency, provider retry, recovery API, or new notification behavior.
+GitHub Actions Run #937 completed successfully for implementation head `273d34f29af17341ce507b0e04c03e501c0fa138`, validating Python unit tests, frontend tests, and the frontend production build.
 
-### Proposed boundary
-
-Application Startup → AutomaticWorkflowRecovery → ScheduledWorkflowExecutionStore → M31 Recovery Capability → Existing M29 Scheduled Analysis + Delivery Workflow
-
-See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md` for the full proposed contract.
+See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
 
 ---
 
