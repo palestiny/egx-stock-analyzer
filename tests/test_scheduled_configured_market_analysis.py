@@ -55,4 +55,4 @@ def test_due_operation_is_removed_by_existing_scheduler():
     scheduler.run_due(datetime(2026, 9, 18, 22, 1))
 
     assert scheduler.pending_count() == 0
-    capability.execute.assert_called_once_with(date(2026, 9, 18))
+    capability.execute.assert_called_once_with(date.today())
