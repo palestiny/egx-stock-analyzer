@@ -2235,13 +2235,43 @@ See `docs/DEC-098-M38-IDENTITY-PERSISTENCE-DESIGN-GATE.md`.
 
 ## DEC-099 — M39 Multi-User Authentication & Identity Transport
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19
 
-M39 opens the next gate after M38. The goal is to connect protected HTTP requests to the existing application AuthenticatedIdentity and ownership boundary without moving credentials or ownership comparisons into domain code.
+### Decision
 
-The gate compares configured per-user bearer credentials, an external identity-provider adapter, and local username/password sessions. It also defines lifecycle checks, legacy M37 compatibility, API identity propagation, ownership-scoped access, and deterministic 401/403/404 behavior.
+M39 establishes the transport/application identity boundary using configured per-user bearer credentials as the first concrete authentication adapter.
 
-Implementation is not authorized until the concrete authentication mechanism, provisioning boundary, endpoint scope, and legacy compatibility policy are accepted.
+The adapter resolves credentials to an immutable internal user UUID, consults durable user lifecycle state on every protected request, and returns only `AuthenticatedIdentity` to application capabilities.
 
-See docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md.
+The first migrated user-owned API/application capability is scheduled workflow execution read/recovery:
+
+- `GET /api/v1/workflows/executions`
+- `POST /api/v1/workflows/executions/{execution_id}/recover`
+
+Ownership checks remain centralized in the existing application authorization boundary.
+
+M37 operator-token authentication remains temporarily supported as a compatibility path and maps only to `LEGACY_OPERATOR_USER_ID`. Its removal requires a separate explicit decision.
+
+M39 is API/application focused; frontend login/session UX is deferred to a separate slice.
+
+### Provisioning and lifecycle
+
+M39 does not introduce a local username/password system or user-management product. Credential-to-user mappings are deployment configuration. Removing or changing a mapping revokes that credential after configuration reload/restart. Durable user lifecycle state remains authoritative: ACTIVE may authenticate; DISABLED, DELETED, and missing users may not.
+
+### Trade-offs
+
+This approach keeps the first multi-user transport implementation deterministic and controlled without coupling the application to a commercial identity provider or introducing password/session infrastructure.
+
+The trade-off is that configuration-based credentials are not a complete identity-management solution. Credential rotation/revocation is deployment/configuration work, and external IdP integration remains a future boundary.
+
+### Consequences
+
+Credentials stay outside domain entities. Application capabilities receive an authenticated identity rather than raw credentials. Identity is resolved on every protected request, so lifecycle changes take effect without cache delay.
+
+The transport contract remains replaceable: a future external identity provider may implement the same identity-resolution boundary without changing ownership semantics.
+
+See `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`.
+
+
+
