@@ -91,7 +91,6 @@ def test_recovery_does_not_resume_execution(tmp_path):
         "occurrence",
         datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc),
     )
-    )
     store.save(created.start(datetime(2026, 9, 19, 8, 1, tzinfo=timezone.utc)))
 
     store.recover_running(datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc))
