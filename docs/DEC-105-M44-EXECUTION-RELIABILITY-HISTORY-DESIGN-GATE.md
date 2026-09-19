@@ -1,6 +1,6 @@
 # DEC-105 — Execution Idempotency & History Reliability Design Gate
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-19
 Milestone: M44 — Execution Reliability & History
 
@@ -178,7 +178,85 @@ M44 establishes persistence semantics first. A broad new dashboard/API surface i
 
 No distributed queues, brokers, event sourcing, multi-node locking service, new trading behavior, analytical changes, notification-provider changes, AI behavior, broad dashboard redesign, or speculative microservices.
 
+## Accepted M44 Decisions
+
+### 1. Durable idempotency boundary
+
+SQLite is the correctness boundary for restart-surviving idempotency. The in-memory ExecutionRegistry remains optional optimization/test infrastructure and is not authoritative.
+
+### 2. Atomic reservation
+
+The durable create-or-get operation will normalize the idempotency key and execute reservation in one SQLite transaction using the database UNIQUE constraint as the concurrency authority. The implementation will not depend on a separate SELECT-before-INSERT check.
+
+A uniqueness conflict resolves to the existing durable execution. A non-conflict database failure rolls back and is surfaced as a storage failure; it must never be interpreted as an unused key.
+
+### 3. Request fingerprint and conflict
+
+Every durable idempotent request stores a deterministic fingerprint of the request-defining parameters.
+
+For the scheduled workflow boundary, the fingerprint includes the normalized occurrence identity, requested analysis date, and owner identity. Same normalized key plus the same fingerprint is an idempotent replay. Same key plus a different fingerprint is an explicit conflict and must not start or mutate another execution.
+
+### 4. Current state plus append-only history
+
+M44 selects current-state persistence plus append-only lifecycle history rather than event sourcing.
+
+The current execution row remains the direct read model. Each lifecycle-changing transition creates exactly one history record. Current-state and history writes commit in the same SQLite transaction.
+
+### 5. Revision and stale-writer protection
+
+The current execution row gains a monotonic revision. Every lifecycle mutation supplies the expected revision and atomically increments it.
+
+An update affecting zero rows because the revision is stale is rejected as a concurrency conflict. The stale writer must not overwrite newer state.
+
+### 6. Transition ordering
+
+History ordering is defined by a monotonically increasing sequence scoped to the execution. Timestamps remain diagnostic metadata, not the ordering authority.
+
+### 7. Replay / repeated-save semantics
+
+A durable save that represents the same already-committed transition is idempotent and does not create duplicate history. A different transition using a stale revision is rejected.
+
+This makes transport/application retries safe without allowing silent state rewrites.
+
+### 8. Lifecycle evidence
+
+The following transitions must be durable history evidence when they occur:
+
+- CREATED → RUNNING;
+- RUNNING → COMPLETED;
+- RUNNING → COMPLETED_WITH_ERRORS;
+- RUNNING → FAILED;
+- RUNNING → INTERRUPTED;
+- INTERRUPTED → RUNNING during recovery.
+
+Retry/cancel operations are recorded when they change lifecycle state. Outcome-only field updates that do not change lifecycle state remain current-state updates and do not manufacture a lifecycle transition.
+
+### 9. Persistence-failure atomicity
+
+A current-state write and its required history write are one transaction. If either fails, neither becomes durable.
+
+The caller receives the persistence error and may retry against the last durable revision/state. No in-memory state is treated as committed merely because the domain object was created.
+
+### 10. Recovery and partial-failure evidence
+
+Recovery is a normal lifecycle transition, not an out-of-band mutation. A persisted INTERRUPTED execution followed by recovery produces both transition records.
+
+A duplicate request after response loss resolves the durable execution before any new work starts.
+
+### 11. Terminal replay policy
+
+For durable scheduled workflows, an existing execution for the same idempotency key and matching fingerprint is always replayed from durable state once it has left CREATED. Terminal states are therefore not silently replaced by a new execution under the same key.
+
+This removes the current in-memory-only distinction where some terminal states can be replaced and makes durable scheduled execution semantics explicit.
+
+### 12. History read boundary
+
+M44 establishes durable persistence semantics and an application-level history capability. A broad new HTTP/dashboard presentation surface is deferred to a separate design gate.
+
 ## Design Gate Status
+
+**Accepted — implementation is authorized for the M44 Execution Reliability & History MVP defined above.**
+
 
 Proposed. Implementation is not authorized until the concurrency, atomicity, idempotency-conflict, and history contracts are explicitly accepted.
 
