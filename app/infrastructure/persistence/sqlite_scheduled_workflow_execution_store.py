@@ -81,9 +81,10 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     created_at,
                     updated_at,
                     analysis_state,
-                    delivery_state
+                    delivery_state,
+                    owner_user_id
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(execution.id),
@@ -143,7 +144,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 WHERE execution_id = ?
                 """,
