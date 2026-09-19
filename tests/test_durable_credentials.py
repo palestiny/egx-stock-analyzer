@@ -100,3 +100,14 @@ def test_m39_fallback_remains_supported(tmp_path):
     identity = auth.authenticate("Bearer legacy-token")
 
     assert identity.user_id == legacy_user_id
+
+
+def test_credential_survives_store_recreation(tmp_path):
+    store, users, _, issued = make_auth(tmp_path)
+    reloaded_store = SQLiteCredentialStore(tmp_path / "auth.db")
+    reloaded_users = SQLiteUserStore(tmp_path / "auth.db")
+    auth = DurableBearerTokenAuthenticator(reloaded_store, reloaded_users)
+
+    identity = auth.authenticate("Bearer " + issued.secret)
+
+    assert identity.user_id == issued.user_id
