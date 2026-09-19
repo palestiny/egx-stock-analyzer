@@ -20,7 +20,7 @@ def test_missing_bearer_credentials_are_rejected():
 
 
 def test_invalid_bearer_credentials_are_rejected_without_disclosing_validation_details():
-    app = create_app(InMemoryAnalysisResultStore(), operator_token="secret")
+    app = create_app(InMemoryAnalysisResultStore(), authenticator=BearerTokenAuthenticator("secret"))
 
     with TestClient(app) as client:
         response = client.get(
