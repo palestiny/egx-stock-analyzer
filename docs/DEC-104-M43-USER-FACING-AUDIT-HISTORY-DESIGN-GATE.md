@@ -1,6 +1,6 @@
 # DEC-104 — M43 User-Facing Audit History Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M43
 
@@ -110,34 +110,147 @@ Audit events gain a read-side visibility classification determining whether an e
 - existing M41 records would need a deterministic interpretation;
 - increases implementation and migration complexity.
 
-## 7. Open Decisions
+## 7. Accepted Decisions
 
-1. **Visibility rule:** target-only, actor-or-target, or explicit event visibility classification?
-2. **Operator actions:** should a user see an operator action performed on their account?
-3. **Actor representation:** when another user is the actor, expose UUID only, a stable display identifier, or redact the actor?
-4. **Target representation:** should the authenticated user's own UUID be shown, and should unrelated target UUIDs ever appear?
-5. **Action allowlist:** which M41 actions are user-visible?
-6. **Outcome:** should failed management attempts be visible to the affected user?
-7. **Filters:** which filters are safe for users without allowing enumeration of unrelated identities?
-8. **Pagination:** reuse M42 page size limits and ordering?
-9. **Deleted users:** how should historical records behave when the authenticated identity is later deleted?
-10. **API shape:** separate endpoint from operator audit reporting or a shared capability with distinct authorization modes?
-11. **Dashboard:** where should user audit history appear without exposing operator-only controls?
-12. **Authorization tests:** what cross-user isolation matrix is required before implementation?
+### 7.1 Visibility rule
 
-## 8. Proposed Invariants
+M43 adopts **target-only visibility**.
+
+An authenticated user may see an audit event only when target_user_id equals the authenticated user's immutable user_id.
+
+This is deliberately narrower than actor-or-target visibility. The current M41 self-service operation (credential_rotated) already targets the authenticated user, while operator actions concerning the user are also target-scoped. Target-only visibility prevents a future action performed by a user against another identity from becoming an implicit cross-user history channel.
+
+### 7.2 Operator actions
+
+Operator actions targeting the authenticated user's account are visible.
+
+This includes account creation, lifecycle changes, and operator credential rotation when the target is the authenticated user.
+
+Operator actions concerning unrelated users are never visible through the user-facing capability.
+
+### 7.3 Actor representation
+
+The user-facing read model does not expose another user's UUID.
+
+For events targeting the authenticated user:
+
+- actor is represented as self when actor_user_id equals authenticated_user_id;
+- actor is represented as operator when the actor is a different identity with operator permission;
+- no raw actor UUID is exposed.
+
+This preserves useful context without turning the personal history into an identity-enumeration surface.
+
+### 7.4 Target representation
+
+The user-facing read model represents the target as self.
+
+The authenticated user's UUID is not required in the user-facing history because the endpoint is already scoped to that identity.
+
+No unrelated target UUID can appear.
+
+### 7.5 User-visible action allowlist
+
+The MVP exposes only M41 management actions that directly concern the authenticated user's account:
+
+- user_created;
+- user_active;
+- user_disabled;
+- user_deleted;
+- credential_rotated;
+- credential_rotated_by_operator.
+
+The application capability filters by target identity first and applies this allowlist explicitly. Unknown or future audit actions are not exposed by default.
+
+### 7.6 Outcome
+
+Both successful and failed events are permitted by the read model.
+
+The current M41 implementation records successful management events only, so the initial observable history will contain successful events. If failed audit events are introduced later, they remain subject to the same target-only visibility and action allowlist.
+
+### 7.7 Filters
+
+The user-facing MVP supports only safe filters that cannot select unrelated identities:
+
+- action;
+- outcome;
+- UTC from time, inclusive;
+- UTC to time, exclusive.
+
+Actor and target UUID filters from M42 are not exposed to users.
+
+The application capability always supplies the authenticated target identity itself.
+
+### 7.8 Pagination and ordering
+
+M43 reuses M42's bounded pagination contract:
+
+- default page size: 50;
+- maximum page size: 100;
+- invalid non-positive or over-maximum limits are rejected;
+- deterministic order remains occurred_at DESC, audit_id DESC.
+
+The user capability does not load the full audit table.
+
+### 7.9 Deleted users
+
+Deletion remains a lifecycle transition and does not erase audit records.
+
+A DELETED user cannot authenticate again under the existing M41 lifecycle semantics, so their personal history is no longer retrievable through the authenticated-user endpoint after deletion. Operators retain the M42 historical audit view.
+
+No historical audit record is reassigned or rewritten.
+
+### 7.10 API shape
+
+M43 uses a dedicated authenticated endpoint:
+
+GET /api/v1/users/me/audit
+
+The endpoint maps to a dedicated user-facing application read capability over ManagementAuditStore.
+
+M42's operator endpoint and application capability remain unchanged.
+
+### 7.11 Dashboard
+
+The existing authenticated user dashboard receives a read-only personal audit-history panel.
+
+The panel exposes:
+
+- event action;
+- outcome;
+- relative actor label (self / operator);
+- UTC event time;
+- bounded pagination;
+- loading, empty, unavailable, and error states.
+
+The dashboard does not implement visibility, filtering, authorization, ordering, or identity redaction.
+
+### 7.12 Authorization and isolation tests
+
+The implementation must prove at application and API boundaries that:
+
+- an authenticated user receives only events targeting that user;
+- events targeting another user are excluded even when the authenticated user is the actor;
+- operator audit reporting remains unchanged;
+- missing/invalid authentication returns 401;
+- authenticated access to the endpoint does not require operator permission;
+- deleted identities cannot bypass lifecycle authentication;
+- actor/target UUIDs and credential material are not leaked in the user-facing read model.
+
+
+## 8. Accepted Invariants
 
 1. A user can never retrieve another user's private audit history.
-2. Authorization is decided by the application capability, not the dashboard.
+2. Authorization and target scoping are decided by the application capability, not the dashboard.
 3. Raw credentials and credential hashes never appear in the user read model.
 4. M42 operator visibility remains unchanged.
 5. Existing M41 audit-write records remain immutable.
 6. Ordering remains deterministic.
 7. Pagination remains bounded.
-8. Deleted identities remain historically attributable without reassigning ownership.
-9. Analytical modules remain independent of audit history.
-10. User-visible audit reporting is read-only.
-
+8. Deleted identities remain historically attributable in durable audit storage without reassignment.
+9. User-facing history is read-only.
+10. Unknown audit actions are not exposed by default.
+11. Actor/target UUIDs for unrelated identities never appear in the user-facing read model.
+12. Analytical modules remain independent of audit history.
 ## 9. TDD Acceptance Shape
 
 After acceptance, tests should cover at least:
@@ -158,9 +271,33 @@ After acceptance, tests should cover at least:
 
 ## 10. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document.**
+**Status: Accepted — implementation is authorized for the M43 MVP defined here.**
 
-M43 implementation must wait until the visibility, redaction, authorization, API, and dashboard decisions above are explicitly accepted.
+The implementation boundary is:
+
+```
+AuthenticatedIdentity
+        ↓
+GetUserAuditHistory
+        ↓
+ManagementAuditStore
+        ↓
+SQLite
+```
+
+If exposed through HTTP:
+
+```
+Authenticated Dashboard
+        ↓
+GET /api/v1/users/me/audit
+        ↓
+GetUserAuditHistory
+        ↓
+ManagementAuditStore
+```
+
+M43 adds a user-scoped read capability only. It does not change M41 audit writes, M42 operator reporting, lifecycle semantics, credentials, or the authorization model.
 
 ## 11. Revisit Conditions
 
