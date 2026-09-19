@@ -61,4 +61,4 @@ def test_regular_user_cannot_create_user():
     app=create_app(InMemoryAnalysisResultStore(),user_management=service,authenticator=authenticator)
     with TestClient(app) as client:
         response=client.post("/api/v1/users",headers={"Authorization":"Bearer user-token"})
-    assert response.status_code == 503
+    assert response.status_code == 403
