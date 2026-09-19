@@ -1,17 +1,18 @@
+import { clearSessionToken, getSessionToken } from "../auth/session";
+
 async function parseError(response, operation) {
   const error = new Error(operation + " failed with status " + response.status);
   error.status = response.status;
   throw error;
 }
 
-const operatorToken = import.meta.env.VITE_OPERATOR_TOKEN;
-
 async function getJson(url, operation, options) {
   const requestOptions = options ? { ...options } : {};
-  if (operatorToken) {
+  const sessionToken = getSessionToken();
+  if (sessionToken) {
     requestOptions.headers = {
       ...(options?.headers ?? {}),
-      Authorization: "Bearer " + operatorToken,
+      Authorization: "Bearer " + sessionToken,
     };
   }
 
@@ -20,6 +21,10 @@ async function getJson(url, operation, options) {
     : await fetch(url, requestOptions);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearSessionToken();
+      window.dispatchEvent(new Event("egx:auth-expired"));
+    }
     await parseError(response, operation);
   }
 
@@ -106,4 +111,9 @@ export function recoverScheduledWorkflowExecution(executionId) {
     "Scheduled workflow recovery request",
     { method: "POST" },
   );
+}
+
+
+export function getCurrentIdentity() {
+  return getJson("/api/v1/auth/me", "Authentication request");
 }
