@@ -30,9 +30,17 @@ def test_list_interrupted_returns_only_interrupted_in_deterministic_order(tmp_pa
         now,
     )
 
-    store.save(first.start(now).interrupt(now))
-    store.save(second.start(now).interrupt(now))
-    store.save(completed.start(now).complete(now))
+    first_running = first.start(now)
+    store.save(first_running)
+    store.save(first_running.interrupt(now))
+
+    second_running = second.start(now)
+    store.save(second_running)
+    store.save(second_running.interrupt(now))
+
+    completed_running = completed.start(now)
+    store.save(completed_running)
+    store.save(completed_running.complete(now))
 
     result = store.list_interrupted()
 
