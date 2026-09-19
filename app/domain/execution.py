@@ -48,7 +48,9 @@ class Execution:
         if self.state != ExecutionState.RUNNING:
             raise ValueError("Execution can only be finished when RUNNING")
 
-        if self.successful_stock_ids and not self.failed_stock_ids:
+        if not self.successful_stock_ids and not self.failed_stock_ids:
+            self.state = ExecutionState.COMPLETED
+        elif self.successful_stock_ids and not self.failed_stock_ids:
             self.state = ExecutionState.COMPLETED
         elif self.successful_stock_ids and self.failed_stock_ids:
             self.state = ExecutionState.COMPLETED_WITH_ERRORS
