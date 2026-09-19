@@ -26,6 +26,10 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         finally:
             runtime.close()
 
+    create_app_kwargs = {}
+    if hasattr(runtime, "operator_token"):
+        create_app_kwargs["operator_token"] = runtime.operator_token
+
     app = create_app(
         runtime.application_runtime.result_store,
         runtime.application_runtime.run_by_symbol,
@@ -39,7 +43,7 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         getattr(runtime, "recover_durable_scheduled_workflow", None),
-        operator_token=runtime.operator_token,
+        **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
     return app
