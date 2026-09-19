@@ -73,12 +73,25 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     from_state TEXT NULL,
                     to_state TEXT NOT NULL,
                     occurred_at TEXT NOT NULL,
+                    reason TEXT NULL,
                     PRIMARY KEY (execution_id, sequence),
                     FOREIGN KEY (execution_id)
                         REFERENCES scheduled_workflow_executions(execution_id)
                 )
                 """
             )
+            history_columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(scheduled_workflow_execution_history)"
+                ).fetchall()
+            }
+            if "reason" not in history_columns:
+                connection.execute(
+                    "ALTER TABLE scheduled_workflow_execution_history "
+                    "ADD COLUMN reason TEXT NULL"
+                )
+
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS
@@ -261,9 +274,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             connection.execute(
                 """
                 INSERT INTO scheduled_workflow_execution_history (
-                    execution_id, sequence, from_state, to_state, occurred_at
+                    execution_id, sequence, from_state, to_state, occurred_at, reason
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(started.id),
@@ -339,9 +352,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 connection.execute(
                     """
                     INSERT INTO scheduled_workflow_execution_history (
-                        execution_id, sequence, from_state, to_state, occurred_at
+                        execution_id, sequence, from_state, to_state, occurred_at, reason
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (
                         str(execution.id),
@@ -349,6 +362,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                         current.state.value,
                         execution.state.value,
                         execution.updated_at.isoformat(),
+                        execution.transition_reason,
                     ),
                 )
 
@@ -396,7 +410,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT sequence, from_state, to_state, occurred_at
+                SELECT sequence, from_state, to_state, occurred_at, reason
                 FROM scheduled_workflow_execution_history
                 WHERE execution_id = ?
                 ORDER BY sequence ASC
@@ -410,8 +424,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 from_state,
                 to_state,
                 datetime.fromisoformat(occurred_at),
+                reason,
             )
-            for sequence, from_state, to_state, occurred_at in rows
+            for sequence, from_state, to_state, occurred_at, reason in rows
         )
 
     def recover_running(
