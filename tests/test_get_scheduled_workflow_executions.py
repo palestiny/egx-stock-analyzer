@@ -45,8 +45,6 @@ def test_returns_all_executions_newest_first(tmp_path: Path):
     stored_second = store.get_by_occurrence(second.occurrence_id)
     assert stored_first is not None
     assert stored_second is not None
-    store.save(first)
-    store.save(second)
 
     result = query.execute()
 
