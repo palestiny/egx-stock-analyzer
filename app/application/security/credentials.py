@@ -31,6 +31,10 @@ class CredentialStore(Protocol):
         raise NotImplementedError
 
     def find_active_user_id(self, secret: str) -> UUID | None:
+        credential = self.find_active_credential(secret)
+        return credential.user_id if credential is not None else None
+
+    def find_active_credential(self, secret: str) -> StoredCredential | None:
         raise NotImplementedError
 
     def replace(
