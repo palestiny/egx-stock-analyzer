@@ -139,6 +139,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
+| M39 | Multi-User Authentication & Identity Transport | 🟡 Design Gate Proposed | Connect authenticated HTTP requests to application identities and the existing ownership boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -219,6 +220,8 @@ M36 — Scheduled Workflow Recovery Control
 M37 — Authentication & Authorization Boundary
         ↓
 M38 — Multi-User Identity & Ownership
+        ↓
+M39 — Multi-User Authentication & Identity Transport
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
