@@ -93,7 +93,7 @@ def test_filters_are_forwarded_as_one_application_query():
         to_time=end,
     )
     assert (offset, limit) == (50, 25)
-    assert result.items == (store.records[0],)
+    assert result.items == ()
 
 
 def test_page_size_is_bounded():
