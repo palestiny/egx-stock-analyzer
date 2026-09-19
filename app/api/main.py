@@ -3,7 +3,8 @@ from dataclasses import asdict
 from datetime import date
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
@@ -49,6 +50,10 @@ from app.application.notifications.deliver_alert_by_symbol import (
     DeliverAlertBySymbol,
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
+from app.infrastructure.security.bearer_token_authenticator import (
+    AuthenticationError,
+    BearerTokenAuthenticator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +71,42 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
+    operator_token: str | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="EGX Stock Analyzer API")
+    security = HTTPBearer(auto_error=False)
+    authenticator = (
+        BearerTokenAuthenticator(operator_token)
+        if operator_token is not None
+        else None
+    )
+
+    async def require_authenticated_operator(
+        request: Request,
+        credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    ) -> None:
+        if request.url.path == "/health":
+            return
+        if authenticator is None:
+            return
+
+        authorization = (
+            f"Bearer {credentials.credentials}"
+            if credentials is not None
+            else None
+        )
+        try:
+            identity = authenticator.authenticate(authorization)
+        except AuthenticationError as error:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+
+        request.state.identity = identity
+
+    dependencies = [Depends(require_authenticated_operator)] if authenticator else []
+    app = FastAPI(title="EGX Stock Analyzer API", dependencies=dependencies)
     get_analysis_result = GetAnalysisResult(result_store)
 
     @app.get("/health")
