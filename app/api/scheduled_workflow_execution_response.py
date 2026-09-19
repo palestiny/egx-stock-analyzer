@@ -17,6 +17,7 @@ class ScheduledWorkflowExecutionResponse:
     updated_at: datetime
     analysis_state: str | None
     delivery_state: str | None
+    owner_user_id: UUID | None
 
     @classmethod
     def from_execution(
@@ -31,6 +32,7 @@ class ScheduledWorkflowExecutionResponse:
             updated_at=execution.updated_at,
             analysis_state=execution.analysis_state,
             delivery_state=execution.delivery_state,
+            owner_user_id=execution.owner_user_id,
         )
 
     @classmethod
@@ -46,6 +48,7 @@ class ScheduledWorkflowExecutionResponse:
             updated_at=item.updated_at,
             analysis_state=item.analysis_state,
             delivery_state=item.delivery_state,
+            owner_user_id=item.owner_user_id,
         )
 
 
