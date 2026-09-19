@@ -18,11 +18,6 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## Authentication
 
-Set `VITE_OPERATOR_TOKEN` to the same operator token configured as `EGX_OPERATOR_TOKEN` for the API. The dashboard API client sends it as `Authorization: Bearer <token>` for protected API requests.
-
-
-## Authentication
-
 The dashboard uses the M39 backend bearer-credential boundary.
 
 - Login validates the credential through `GET /api/v1/auth/me`.
