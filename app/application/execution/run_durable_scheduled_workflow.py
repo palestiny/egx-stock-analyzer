@@ -13,7 +13,7 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionStore,
 )
 from app.application.security.authorization import OwnershipAuthorizer
-from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
+from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionIdempotencyConflictError,
 )
 from app.application.security.identity import AuthenticatedIdentity, Permission
