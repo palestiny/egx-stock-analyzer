@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from uuid import UUID
 
@@ -6,6 +7,9 @@ from unittest.mock import Mock
 
 from app.application.execution.run_durable_scheduled_workflow import (
     RunDurableScheduledWorkflow,
+)
+from app.application.execution.scheduled_workflow_execution import (
+    ScheduledWorkflowExecutionIdempotencyConflictError,
 )
 from app.application.security.identity import AuthenticatedIdentity
 from app.application.notifications.automatic_alert_delivery import (
@@ -252,3 +256,48 @@ def test_legacy_operator_can_reload_system_owned_workflow(tmp_path):
     assert second.id == first.id
     assert second.owner_user_id is None
     assert operation.execute.call_count == 1
+
+
+def test_same_occurrence_with_different_request_parameters_is_conflict(tmp_path):
+    operation = Mock()
+    operation.execute.return_value = type(
+        "Result",
+        (),
+        {
+            "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
+        },
+    )()
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    workflow = RunDurableScheduledWorkflow(operation, store, FakeClock())
+
+    workflow.execute("occurrence-1", date(2026, 9, 19))
+
+    with pytest.raises(ScheduledWorkflowExecutionIdempotencyConflictError):
+        workflow.execute("occurrence-1", date(2026, 9, 20))
+
+    assert operation.execute.call_count == 1
+
+
+def test_concurrent_same_occurrence_executes_work_once(tmp_path):
+    path = tmp_path / "workflow.db"
+    operation = Mock()
+    operation.execute.return_value = type(
+        "Result",
+        (),
+        {
+            "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
+        },
+    )()
+
+    def run_once():
+        store = SQLiteScheduledWorkflowExecutionStore(path)
+        workflow = RunDurableScheduledWorkflow(operation, store, FakeClock())
+        return workflow.execute("concurrent-occurrence", date(2026, 9, 19)).id
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        ids = list(pool.map(lambda _: run_once(), range(2)))
+
+    assert ids[0] == ids[1]
+    operation.execute.assert_called_once()
