@@ -34,6 +34,28 @@ def test_sqlite_user_store_updates_lifecycle_status(tmp_path):
 
 def test_sqlite_user_store_creates_users_table_without_replacing_analysis_data(tmp_path):
     database_path = tmp_path / "analysis.db"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE analysis_results (
+                snapshot_id TEXT PRIMARY KEY,
+                symbol TEXT NOT NULL,
+                analysis_date TEXT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO analysis_results (
+                snapshot_id, symbol, analysis_date, payload
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            ("snapshot-1", "EGAL", "2026-09-18", "{}"),
+        )
+
     SQLiteUserStore(database_path)
 
     with sqlite3.connect(database_path) as connection:
@@ -45,6 +67,11 @@ def test_sqlite_user_store_creates_users_table_without_replacing_analysis_data(t
         }
 
     assert "users" in tables
+    assert "analysis_results" in tables
+    row = connection.execute(
+        "SELECT symbol, analysis_date, payload FROM analysis_results"
+    ).fetchone()
+    assert row == ("EGAL", "2026-09-18", "{}")
 
 
 def test_sqlite_user_store_returns_none_for_missing_user(tmp_path):
