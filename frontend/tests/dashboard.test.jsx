@@ -15,6 +15,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getReport: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
+  getUserAuditHistory: vi.fn(),
 }));
 
 const report = {
@@ -154,9 +155,10 @@ describe("Dashboard", () => {
 
     expect(await screen.findByRole("heading", { name: "EGAL" })).toBeInTheDocument();
 
-    const selects = screen.getAllByRole("combobox");
-    fireEvent.change(selects[0], { target: { value: "snapshot-1" } });
-    fireEvent.change(selects[1], { target: { value: "snapshot-2" } });
+    const beforeSelect = screen.getByLabelText("Before");
+    const afterSelect = screen.getByLabelText("After");
+    fireEvent.change(beforeSelect, { target: { value: "snapshot-1" } });
+    fireEvent.change(afterSelect, { target: { value: "snapshot-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Compare" }));
 
     const performancePanel = await screen.findByLabelText("historical performance");

@@ -15,6 +15,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getScheduledWorkflowExecutions: vi.fn(),
   getSnapshotPerformance: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
+  getUserAuditHistory: vi.fn(),
 }));
 
 describe("Frontend authentication", () => {

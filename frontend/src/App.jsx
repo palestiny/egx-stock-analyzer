@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
+import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 
 function Metric({ label, value }) {
   return (
@@ -497,6 +498,8 @@ function DashboardApp({ onLogout, identity }) {
           <p className="state-card error" role="alert">{credentialRotationError.message}</p>
         )}
       </section>
+
+      <UserAuditHistoryPanel getUserAuditHistory={getUserAuditHistory} />
 
       {identity?.subject === "operator" && (
         <section className="panel" aria-label="user administration">

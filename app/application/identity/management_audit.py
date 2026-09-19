@@ -27,6 +27,7 @@ class ManagementAuditQuery:
     outcome: str | None = None
     from_time: datetime | None = None
     to_time: datetime | None = None
+    actions: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
