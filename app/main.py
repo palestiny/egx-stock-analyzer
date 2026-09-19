@@ -41,7 +41,11 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         getattr(runtime, "recover_durable_scheduled_workflow", None),
-        operator_token=getattr(runtime, "operator_token", None),
+        authenticator=(
+            BearerTokenAuthenticator(runtime.operator_token)
+            if getattr(runtime, "operator_token", None) is not None
+            else None
+        ),
     )
     app.router.lifespan_context = lifespan
     return app
