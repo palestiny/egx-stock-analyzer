@@ -82,7 +82,10 @@ class UserManagementService:
             raise UserManagementError("User not found")
         if user.status is UserStatus.DELETED:
             raise UserManagementError("Deleted user cannot receive credentials")
-        issued = self._credentials.rotate_latest_for_user(user_id)
+        try:
+            issued = self._credentials.rotate_latest_for_user(user_id)
+        except ValueError as error:
+            raise UserManagementError(str(error)) from error
         self._record(actor, "credential_rotated_by_operator", user_id, "success")
         return issued
 
