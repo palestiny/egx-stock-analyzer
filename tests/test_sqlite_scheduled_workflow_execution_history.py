@@ -58,3 +58,53 @@ def test_history_query_supports_sequence_cursor_and_limit(tmp_path: Path):
 
     assert [item[0] for item in first] == [1, 2]
     assert [item[0] for item in second] == [3]
+
+
+def test_history_query_filters_by_state_before_pagination(tmp_path: Path):
+    database = tmp_path / "workflow-filter.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    store.save(
+        running.complete(
+            datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+            reason="finished",
+        )
+    )
+
+    filtered = store.get_history(
+        execution.id,
+        to_state="completed",
+        limit=1,
+    )
+
+    assert [item[0] for item in filtered] == [3]
+    assert filtered[0][2] == "completed"
+
+
+def test_filtered_history_survives_store_restart(tmp_path: Path):
+    database = tmp_path / "workflow-filter-restart.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter-restart", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    store.save(
+        running.complete(
+            datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+            reason="finished",
+        )
+    )
+
+    restarted = SQLiteScheduledWorkflowExecutionStore(database)
+    filtered = restarted.get_history(execution.id, from_state="running")
+
+    assert [item[0] for item in filtered] == [3]
