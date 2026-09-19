@@ -69,6 +69,8 @@ def test_returns_workflow_lifecycle_history():
     assert response.json() == {
         "execution_id": str(model.execution_id),
         "occurrence_id": "occ-45",
+        "has_more": False,
+        "next_cursor": None,
         "history": [
             {
                 "sequence": 1,
@@ -110,6 +112,8 @@ def test_returns_empty_history_for_valid_execution_without_transitions():
 
     assert response.status_code == 200
     assert response.json()["history"] == []
+    assert response.json()["has_more"] is False
+    assert response.json()["next_cursor"] is None
 
 
 def test_returns_404_for_unknown_execution():
