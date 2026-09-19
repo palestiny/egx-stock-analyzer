@@ -131,7 +131,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "History" }));
     await waitFor(() => {
-      expect(screen.getByText("created")).toBeInTheDocument();
+      expect(screen.getByText("created → running")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
@@ -190,7 +190,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("running → completed")).toBeInTheDocument();
     });
-    expect(getHistory).toHaveBeenNthCalledWith("execution-1", {
+    expect(getHistory).toHaveBeenCalledWith("execution-1", {
       pageSize: 50,
       fromState: "running",
       toState: "completed",
