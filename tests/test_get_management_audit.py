@@ -57,7 +57,7 @@ def test_empty_audit_result_is_supported():
 
 
 def test_audit_reader_requires_operator():
-    user = AuthenticatedIdentity(user_id=uuid4(), subject="user", permissions=frozenset())
+    user = AuthenticatedIdentity.user(uuid4())
     store = FakeAuditStore([])
 
     with pytest.raises(Exception):
