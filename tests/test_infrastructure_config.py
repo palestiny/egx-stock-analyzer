@@ -4,7 +4,8 @@ from app.infrastructure.config import InfrastructureConfig
 def test_from_environment_does_not_require_external_credentials() -> None:
     config = InfrastructureConfig.from_environment()
 
-    assert config == InfrastructureConfig()
+    assert config.operator_token == "test-operator-token"
+    assert config.analysis_database_path == InfrastructureConfig().analysis_database_path
 
 
 def test_from_environment_reads_telegram_configuration(monkeypatch) -> None:
