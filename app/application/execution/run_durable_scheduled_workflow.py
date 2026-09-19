@@ -113,7 +113,7 @@ class RunDurableScheduledWorkflow:
                 f"{execution.state.value}"
             )
 
-        execution = execution.start_recovery(self._clock.now())
+        execution = execution.start_recovery(self._clock.now(), reason="recovery")
         return self._run(execution, as_of)
 
     def _authorize_existing_execution(
@@ -153,7 +153,7 @@ class RunDurableScheduledWorkflow:
                 self._scheduled_operation.execute(as_of)
             )
         except Exception:
-            failed = execution.fail(self._clock.now())
+            failed = execution.fail(self._clock.now(), reason="scheduled operation failed")
             self._store.save(failed)
             raise
 
