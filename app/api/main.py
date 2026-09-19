@@ -94,9 +94,9 @@ def create_app(
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     user_management: UserManagementService | None = None,
     get_management_audit: GetManagementAudit | None = None,
-    get_user_audit_history: GetUserAuditHistory | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
     authenticator: Authenticator | None = None,
+    get_user_audit_history: GetUserAuditHistory | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
