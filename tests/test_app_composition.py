@@ -34,6 +34,7 @@ class FakeRuntime:
         self.deliver_alert_by_symbol = object()
         self.automatic_workflow_recovery = None
         self.get_scheduled_workflow_executions = object()
+        self.get_scheduled_workflow_execution_history = object()
         self.application_runtime = FakeApplicationRuntime(
             result_store,
             run_by_symbol=object(),
