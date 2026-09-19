@@ -184,10 +184,13 @@ class GetScheduledWorkflowExecutionHistory:
         try:
             parsed = json.loads(payload)
         except json.JSONDecodeError:
+            parsed = None
+
+        if not isinstance(parsed, dict):
             if from_state is None and to_state is None:
                 try:
-                    sequence = int(payload)
-                except ValueError:
+                    sequence = int(parsed if isinstance(parsed, int) else payload)
+                except (TypeError, ValueError):
                     sequence = -1
             else:
                 sequence = -1
@@ -199,7 +202,7 @@ class GetScheduledWorkflowExecutionHistory:
                 )
             return sequence
 
-        if not isinstance(parsed, dict) or parsed.get("version") != 1:
+        if parsed.get("version") != 1:
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor must be a valid history continuation cursor"
             )
