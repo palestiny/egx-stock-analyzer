@@ -223,3 +223,18 @@ def test_infrastructure_runtime_rejects_partial_telegram_configuration() -> None
         assert str(error) == "Telegram bot token and chat ID must be configured together"
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_infrastructure_runtime_carries_operator_token() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token"),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.operator_token == "test-token"
+    runtime.close()
