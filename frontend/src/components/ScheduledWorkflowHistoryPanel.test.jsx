@@ -1,13 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ScheduledWorkflowHistoryPanel } from "./ScheduledWorkflowHistoryPanel";
 
 describe("ScheduledWorkflowHistoryPanel", () => {
   it("loads and renders persisted lifecycle history", async () => {
-    const user = userEvent.setup();
-    const getHistory = vi.fn().mockResolvedValue({
+        const getHistory = vi.fn().mockResolvedValue({
       execution_id: "execution-1",
       occurrence_id: "occ-45",
       history: [
@@ -35,7 +33,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
 
     await waitFor(() => {
       expect(screen.getByText("started")).toBeInTheDocument();
