@@ -28,7 +28,8 @@ def test_provisioned_credential_authenticates(tmp_path):
 
     identity = auth.authenticate("Bearer " + issued.secret)
 
-    assert identity == AuthenticatedIdentity.user(issued.user_id)
+    assert identity.user_id == issued.user_id
+    assert identity.credential_id == issued.id
 
 
 def test_invalid_credential_is_rejected(tmp_path):
