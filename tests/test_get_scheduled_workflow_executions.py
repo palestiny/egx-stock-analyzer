@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from uuid import uuid4
 
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.execution.get_scheduled_workflow_executions import (
     GetScheduledWorkflowExecutions,
 )
@@ -129,3 +130,45 @@ def test_store_failure_propagates(tmp_path: Path):
 
     with pytest.raises(RuntimeError, match="workflow store unavailable"):
         query.execute()
+
+
+def test_authenticated_user_sees_only_owned_executions(tmp_path: Path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    user_a = uuid4()
+    user_b = uuid4()
+    now = datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc)
+    store.create_or_get("user-a", now, owner_user_id=user_a)
+    store.create_or_get("user-b", now, owner_user_id=user_b)
+
+    result = GetScheduledWorkflowExecutions(store).execute(
+        identity=AuthenticatedIdentity.user(user_a),
+    )
+
+    assert [item.occurrence_id for item in result] == ["user-a"]
+
+
+def test_authenticated_user_cannot_read_another_users_execution_by_occurrence(tmp_path: Path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    owner = uuid4()
+    now = datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc)
+    store.create_or_get("owned-by-other", now, owner_user_id=owner)
+
+    from app.application.security.authorization import AuthorizationError
+
+    with pytest.raises(AuthorizationError, match="another user"):
+        GetScheduledWorkflowExecutions(store).execute(
+            occurrence_id="owned-by-other",
+            identity=AuthenticatedIdentity.user(uuid4()),
+        )
+
+
+def test_legacy_operator_can_read_global_executions(tmp_path: Path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    now = datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc)
+    store.create_or_get("global", now)
+
+    result = GetScheduledWorkflowExecutions(store).execute(
+        identity=AuthenticatedIdentity.operator(),
+    )
+
+    assert [item.occurrence_id for item in result] == ["global"]
