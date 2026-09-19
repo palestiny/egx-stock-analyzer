@@ -1,6 +1,6 @@
 # DEC-102 — M41 User Management & Credential Administration Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M41
 
@@ -99,48 +99,68 @@ Users can register, manage their profile, and administer credentials, while oper
 - closer to a complete identity product;
 - substantially expands M41 security and operational scope.
 
-## 7. Open Decisions
+## 7. Accepted Decisions
 
-1. Which administration model should M41 adopt: operator-only, self-service credentials, or full self-service?
-2. Who may create the first non-legacy user?
-3. Should users be able to revoke their current credential without replacement?
-4. What should deletion mean for owned historical records?
-5. Should user profile data exist beyond UUID and lifecycle status?
-6. Which commands require operator authorization?
-7. Which commands require ownership authorization?
-8. Should management operations have an audit record in M41?
-9. What API surface, if any, should be introduced?
-10. What dashboard surface, if any, should be introduced?
+### 7.1 Administration model
 
-## 8. Required Invariants
+M41 adopts self-service credential administration plus operator-controlled user lifecycle administration.
 
-- user identity remains an immutable internal UUID;
-- authentication remains separate from authorization;
-- raw credentials remain outside domain entities and durable persistence;
-- disabled/deleted users cannot authenticate;
-- ownership isolation remains authoritative;
-- historical ownership is never silently reassigned;
-- operator authorization cannot silently become general user ownership;
-- credential lifecycle semantics remain behind CredentialStore;
-- management commands remain application capabilities rather than dashboard logic.
+Users may rotate their own credential. Operators may create users, disable/reactivate users, delete users, and administer credentials for users. Full self-service registration/profile management is deferred.
 
-## 9. TDD Acceptance Shape
+### 7.2 First-user provisioning
 
-Before implementation, tests should cover the selected management model for:
+The designated legacy/system operator identity is the bootstrap administrator. Creating the first non-legacy user is an authenticated operator operation.
 
-- user creation/provisioning;
-- lifecycle transitions;
-- credential administration;
-- authorization by operator/owner;
-- disabled/deleted authentication behavior;
-- historical ownership preservation;
-- API error semantics;
-- frontend authorization states if a dashboard surface is selected;
-- no credential leakage;
-- persistence/reload behavior.
+### 7.3 Credential revocation
 
-## 10. Design Gate Rule
+A user cannot revoke their only active credential without replacement. Self-service credential change is an atomic rotate operation: the new credential becomes active and the previous credential becomes replaced in one store transaction.
 
-M41 implementation is **not authorized** by this document.
+Operators retain explicit revoke/rotate controls.
 
-The next step is to select the administration model, resolve the open decisions, record the accepted choice in this document and docs/DECISION_LOG.md, then implement through TDD RED → GREEN on a separate implementation branch.
+### 7.4 Deletion semantics
+
+Deletion is a transition to DELETED, not physical removal of the user identity. Historical ownership remains attributable to the deleted UUID. Existing user-owned records are not reassigned or silently erased by M41.
+
+### 7.5 User profile
+
+M41 stores only the existing immutable UUID and lifecycle state. Display name, email, password, avatar, profile metadata, and recovery attributes are deferred.
+
+### 7.6 Authorization
+
+Operator-only commands: create/provision user, disable, reactivate, delete, and administer another user's credentials.
+
+Self-service commands: rotate own credential and inspect own authenticated identity.
+
+Ownership checks remain centralized in the application authorization boundary.
+
+### 7.7 Auditability
+
+M41 introduces a minimal durable management-audit boundary for security-sensitive lifecycle and credential commands. Audit records contain actor identity, action type, target user identity, timestamp, and outcome metadata. Raw credentials and credential hashes are not stored.
+
+Audit querying/UI is deferred.
+
+### 7.8 API and dashboard
+
+M41 exposes management through application capabilities, a thin HTTP transport, and a small dashboard administration/self-service surface. The API never returns a previously issued credential. The dashboard owns presentation only.
+
+### 7.9 Transport semantics
+
+- missing/invalid authentication → 401;
+- authenticated non-operator attempting an operator command → 403;
+- missing target user → 404;
+- invalid lifecycle transition → 409;
+- invalid command payload → 400;
+- successful credential provisioning/rotation → 200 with the newly issued raw credential exactly once.
+
+## 8. Deferred Decisions
+
+- external identity providers;
+- registration/self-service account creation;
+- profile fields;
+- password/MFA/SSO/recovery;
+- richer roles;
+- delegated access and organizations;
+- audit querying/reporting UI;
+- credential expiration policy.
+
+
