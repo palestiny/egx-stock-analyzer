@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketOpportunities } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions } from "../src/api/analysisApi";
 
 describe("analysis API client", () => {
   it("requests analysis for the requested symbol and returns the response", async () => {
@@ -105,5 +105,21 @@ it("requests historical performance by snapshot UUID", async () => {
 
   expect(globalThis.fetch).toHaveBeenCalledWith(
     "/api/v1/performance/EGAL?before=before-id&after=after-id",
+  );
+});
+
+
+it("requests scheduled workflow executions with an optional occurrence filter", async () => {
+  const executions = { items: [] };
+
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue(executions),
+  });
+
+  await expect(getScheduledWorkflowExecutions("occ-42")).resolves.toEqual(executions);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/workflows/executions?occurrence_id=occ-42",
   );
 });

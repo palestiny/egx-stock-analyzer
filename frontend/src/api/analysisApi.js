@@ -76,3 +76,15 @@ export function getSnapshotPerformance(symbol, beforeSnapshotId, afterSnapshotId
     "Historical performance request",
   );
 }
+
+
+export function getScheduledWorkflowExecutions(occurrenceId) {
+  const params = new URLSearchParams();
+  if (occurrenceId) {
+    params.set("occurrence_id", occurrenceId);
+  }
+
+  const query = params.toString();
+  const url = "/api/v1/workflows/executions" + (query ? "?" + query : "");
+  return getJson(url, "Scheduled workflow executions request");
+}

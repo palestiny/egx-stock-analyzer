@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getSnapshotPerformance } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance } from "./api/analysisApi";
 
 function Metric({ label, value }) {
   return (
@@ -45,6 +45,10 @@ function App() {
   const [marketView, setMarketView] = useState(null);
   const [marketError, setMarketError] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [workflowOccurrenceId, setWorkflowOccurrenceId] = useState("");
+  const [workflowExecutions, setWorkflowExecutions] = useState(null);
+  const [workflowError, setWorkflowError] = useState(null);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
 
   async function handleAnalyze(event) {
     event.preventDefault();
@@ -140,6 +144,26 @@ function App() {
     }
   }
 
+
+  async function handleWorkflowExecutions(event) {
+    event.preventDefault();
+    const occurrenceId = workflowOccurrenceId.trim();
+    setWorkflowLoading(true);
+    setWorkflowError(null);
+
+    try {
+      setWorkflowExecutions(await getScheduledWorkflowExecutions(occurrenceId || undefined));
+    } catch (requestError) {
+      setWorkflowExecutions(null);
+      setWorkflowError(requestError);
+    } finally {
+      setWorkflowLoading(false);
+    }
+  }
+
+  function formatWorkflowTimestamp(value) {
+    return new Date(value).toLocaleString();
+  }
 
   return (
     <main className="app-shell">
@@ -241,6 +265,70 @@ function App() {
           <p className="muted">
             Missing stored results: {marketView.missing_symbols.join(", ")}
           </p>
+        )}
+      </section>
+
+
+      <section className="panel workflow-operations-panel" aria-label="scheduled workflows">
+        <div>
+          <p className="eyebrow">OPERATIONS</p>
+          <h3>Scheduled workflows</h3>
+          <p className="muted">Read-only visibility into persisted scheduled workflow executions.</p>
+        </div>
+
+        <form className="symbol-form" onSubmit={handleWorkflowExecutions}>
+          <label className="sr-only" htmlFor="workflow-occurrence-id">
+            Occurrence ID
+          </label>
+          <input
+            id="workflow-occurrence-id"
+            name="workflow-occurrence-id"
+            type="text"
+            value={workflowOccurrenceId}
+            onChange={(event) => setWorkflowOccurrenceId(event.target.value)}
+            placeholder="Optional occurrence ID"
+            autoComplete="off"
+          />
+          <button type="submit" disabled={workflowLoading}>
+            {workflowLoading ? "Loading..." : "Load Workflows"}
+          </button>
+        </form>
+
+        {workflowError?.status === 503 && (
+          <p className="state-card error" role="alert">
+            Scheduled workflow visibility is not configured.
+          </p>
+        )}
+
+        {workflowError && workflowError.status !== 503 && (
+          <p className="state-card error" role="alert">
+            {workflowError.message}
+          </p>
+        )}
+
+        {workflowExecutions && workflowExecutions.items.length === 0 && (
+          <p className="muted">No scheduled workflow executions were found.</p>
+        )}
+
+        {workflowExecutions && workflowExecutions.items.length > 0 && (
+          <div className="opportunity-list">
+            {workflowExecutions.items.map((execution) => (
+              <div className="detail-row" key={execution.id}>
+                <strong>{execution.state}</strong>
+                <span>
+                  {execution.occurrence_id}
+                  {" · Created "}
+                  {formatWorkflowTimestamp(execution.created_at)}
+                  {" · Updated "}
+                  {formatWorkflowTimestamp(execution.updated_at)}
+                  {" · Analysis "}
+                  {execution.analysis_state ?? "—"}
+                  {" · Delivery "}
+                  {execution.delivery_state ?? "—"}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 

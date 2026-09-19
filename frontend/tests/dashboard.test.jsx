@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getSnapshotPerformance } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance } from "../src/api/analysisApi";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
@@ -11,6 +11,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getSnapshotPerformance: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
+  getScheduledWorkflowExecutions: vi.fn(),
 }));
 
 const report = {
@@ -188,6 +189,64 @@ describe("Dashboard", () => {
     expect(row).toHaveTextContent("Fundamental 2");
     expect(screen.getByText("Missing stored results: IEEC")).toBeInTheDocument();
     expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
+  });
+
+
+  it("loads and renders scheduled workflow executions in API order", async () => {
+    getScheduledWorkflowExecutions.mockResolvedValue({
+      items: [
+        {
+          id: "workflow-2",
+          occurrence_id: "occ-2",
+          state: "completed",
+          created_at: "2026-09-19T10:00:00Z",
+          updated_at: "2026-09-19T10:01:00Z",
+          analysis_state: "completed",
+          delivery_state: "completed",
+        },
+        {
+          id: "workflow-1",
+          occurrence_id: "occ-1",
+          state: "interrupted",
+          created_at: "2026-09-18T10:00:00Z",
+          updated_at: "2026-09-18T10:02:00Z",
+          analysis_state: "completed",
+          delivery_state: "failed",
+        },
+      ],
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
+
+    const firstOccurrence = await screen.findByText(/occ-2/);
+    const rows = screen.getAllByText(/occ-/).map((item) => item.textContent);
+    expect(rows[0]).toContain("occ-2");
+    expect(firstOccurrence).toBeInTheDocument();
+    expect(screen.getByText("interrupted")).toBeInTheDocument();
+    expect(getScheduledWorkflowExecutions).toHaveBeenCalledWith(undefined);
+  });
+
+  it("passes the submitted occurrence filter to the workflow API", async () => {
+    getScheduledWorkflowExecutions.mockResolvedValue({ items: [] });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Occurrence ID"), { target: { value: "occ-42" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
+
+    await waitFor(() => expect(getScheduledWorkflowExecutions).toHaveBeenCalledWith("occ-42"));
+    expect(screen.getByText("No scheduled workflow executions were found.")).toBeInTheDocument();
+  });
+
+  it("shows the workflow visibility unavailable state for HTTP 503", async () => {
+    getScheduledWorkflowExecutions.mockRejectedValue(
+      Object.assign(new Error("Scheduled workflow executions request failed with status 503"), { status: 503 }),
+    );
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Load Workflows" }));
+
+    expect(await screen.findByText("Scheduled workflow visibility is not configured.")).toBeInTheDocument();
   });
 
   it("shows a loading state while the report request is pending", async () => {
