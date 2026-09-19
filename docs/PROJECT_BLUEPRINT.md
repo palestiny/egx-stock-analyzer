@@ -635,11 +635,7 @@ The current project already has domain tests and the test suite is passing.
 
 Current known baseline:
 
-```text
-17 tests passing
-```
-
-This number is a project-state snapshot and should be updated when the test suite changes.
+The exact test count is maintained by CI; this document does not hard-code a stale baseline.
 
 ---
 
@@ -1117,6 +1113,8 @@ rather than relying on memory or conversation history.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M32 — Automatic Scheduled Workflow Resume complete and CI-validated.
+**Current Implementation:** M43 — User-Facing Audit History complete and CI-validated through PR #96.
+
+**Current Project State:** M43 completion is recorded in `docs/M43-USER-FACING-AUDIT-HISTORY-MVP-COMPLETION.md`. The M43 design and implementation are synchronized with the roadmap.
 
 **Next Step:** No next capability is committed yet. The next major capability must begin with a new design gate.
