@@ -139,7 +139,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
-| M39 | Multi-User Authentication & Identity Transport | 🟡 Design Gate Proposed | Connect authenticated HTTP requests to application identities and the existing ownership boundary |
+| M39 | Multi-User Authentication & Identity Transport | 🟡 Design Gate Accepted | Connect configured user bearer credentials to application identities and the existing ownership boundary; migrate scheduled workflow read/recovery first |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1249,6 +1249,35 @@ The MVP defines ACTIVE, DISABLED, and DELETED user lifecycle states and explicit
 Deferred: commercial identity-provider selection, social login, MFA, SSO, organizations/teams, role-management UI, billing, trading authorization, audit-log product design, rate limiting/WAF, notification preferences, and AI authorization policy.
 
 ---
+
+## M39 — Multi-User Authentication & Identity Transport
+
+### Status
+
+The M39 design gate is **accepted** in `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`.
+
+### Accepted first slice
+
+- configured per-user bearer credentials;
+- immutable internal user UUID resolution;
+- lifecycle validation on every protected request;
+- scheduled workflow execution read/recovery as the first user-owned API/application surface;
+- existing application ownership authorization remains authoritative;
+- M37 operator authentication remains as an explicit compatibility path;
+- frontend login/session UX remains deferred.
+
+The first concrete authentication mechanism is intentionally controlled-deployment infrastructure rather than a complete identity-management product. A future external identity provider can replace the adapter without changing ownership semantics.
+
+### Deferred
+
+- external identity-provider integration;
+- local username/password accounts;
+- MFA/SSO;
+- organizations/teams;
+- delegated access;
+- user-management UI;
+- distributed session storage;
+- automatic retirement of M37 operator compatibility.
 
 # 33. Cross-Cutting Requirements
 
