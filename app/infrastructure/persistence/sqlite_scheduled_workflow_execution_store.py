@@ -138,7 +138,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 WHERE execution_id = ?
                 """,
@@ -155,7 +155,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             rows = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 WHERE state = ?
                 ORDER BY created_at ASC, execution_id ASC
@@ -179,7 +179,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             rows = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 ORDER BY created_at DESC, execution_id DESC
                 """
@@ -194,7 +194,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             rows = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 WHERE state = ?
                 ORDER BY occurrence_id ASC, execution_id ASC
