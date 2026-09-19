@@ -1,6 +1,7 @@
 from datetime import date, datetime, time
 from types import SimpleNamespace
 from unittest.mock import Mock
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.application.execution.recurring_configured_market_analysis import (
@@ -61,6 +62,7 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
         scheduler,
         clock,
         schedule_time=time(21, 0),
+        schedule_id=UUID("11111111-1111-1111-1111-111111111111"),
     )
 
     recurring.start()
@@ -80,6 +82,6 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
     assert state == "completed"
     assert analysis_state == "completed"
     assert delivery_state == "completed"
-    assert ":2026-09-18:21:00:00" in occurrence_id
+    assert occurrence_id == "11111111-1111-1111-1111-111111111111:2026-09-18:21:00:00"
 
     scheduled_operation.execute.assert_called_once_with(date(2026, 9, 18))
