@@ -11,7 +11,7 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionStore,
 )
 from app.application.security.authorization import OwnershipAuthorizer
-from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import AuthenticatedIdentity, Permission
 
 
 class WorkflowClock(Protocol):
@@ -43,7 +43,7 @@ class RunDurableScheduledWorkflow:
         identity: AuthenticatedIdentity | None = None,
     ) -> ScheduledWorkflowExecution:
         owner_user_id: UUID | None = None
-        if identity is not None:
+        if identity is not None and Permission.OPERATOR not in identity.permissions:
             self._ownership_authorizer.require_authenticated(identity)
             owner_user_id = identity.user_id
 
