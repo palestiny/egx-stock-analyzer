@@ -37,6 +37,9 @@ from app.application.security.authentication import BearerTokenAuthenticator
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
+from app.application.security.identity import LEGACY_OPERATOR_USER_ID
+from app.domain.identity.user import UserStatus
 
 
 @dataclass
@@ -53,6 +56,7 @@ class InfrastructureRuntime:
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     authenticator: BearerTokenAuthenticator | None = None
+    user_store: SQLiteUserStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -112,6 +116,8 @@ def create_infrastructure_runtime(
     run_configured_market_analysis_with_automatic_alert_delivery = None
     automatic_workflow_recovery = None
     recover_durable_scheduled_workflow = None
+    user_store = SQLiteUserStore(config.analysis_database_path)
+    user_store.get_or_create(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)
     workflow_store = SQLiteScheduledWorkflowExecutionStore(config.analysis_database_path)
     get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
@@ -169,4 +175,5 @@ def create_infrastructure_runtime(
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
         authenticator=authenticator,
+        user_store=user_store,
     )

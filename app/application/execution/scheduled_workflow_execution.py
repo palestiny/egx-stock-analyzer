@@ -21,6 +21,7 @@ class ScheduledWorkflowExecution:
     state: ScheduledWorkflowExecutionState
     created_at: datetime
     updated_at: datetime
+    owner_user_id: UUID | None = None
     analysis_state: str | None = None
     delivery_state: str | None = None
 
@@ -29,6 +30,7 @@ class ScheduledWorkflowExecution:
         cls,
         occurrence_id: str,
         now: datetime,
+        owner_user_id: UUID | None = None,
     ) -> "ScheduledWorkflowExecution":
         if not occurrence_id.strip():
             raise ValueError("occurrence_id cannot be empty")
@@ -38,6 +40,7 @@ class ScheduledWorkflowExecution:
             state=ScheduledWorkflowExecutionState.CREATED,
             created_at=now,
             updated_at=now,
+            owner_user_id=owner_user_id,
             analysis_state=None,
             delivery_state=None,
         )
@@ -56,10 +59,7 @@ class ScheduledWorkflowExecution:
 
     def complete_with_errors(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(
-            ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS,
-            now,
-        )
+        return self._with_state(ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS, now)
 
     def fail(self, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
@@ -69,12 +69,7 @@ class ScheduledWorkflowExecution:
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return self._with_state(ScheduledWorkflowExecutionState.INTERRUPTED, now)
 
-    def with_outcomes(
-        self,
-        analysis_state: str,
-        delivery_state: str | None,
-        now: datetime,
-    ) -> "ScheduledWorkflowExecution":
+    def with_outcomes(self, analysis_state: str, delivery_state: str | None, now: datetime) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return ScheduledWorkflowExecution(
             id=self.id,
@@ -82,21 +77,19 @@ class ScheduledWorkflowExecution:
             state=self.state,
             created_at=self.created_at,
             updated_at=now,
+            owner_user_id=self.owner_user_id,
             analysis_state=analysis_state,
             delivery_state=delivery_state,
         )
 
-    def _with_state(
-        self,
-        state: ScheduledWorkflowExecutionState,
-        now: datetime,
-    ) -> "ScheduledWorkflowExecution":
+    def _with_state(self, state: ScheduledWorkflowExecutionState, now: datetime) -> "ScheduledWorkflowExecution":
         return ScheduledWorkflowExecution(
             id=self.id,
             occurrence_id=self.occurrence_id,
             state=state,
             created_at=self.created_at,
             updated_at=now,
+            owner_user_id=self.owner_user_id,
             analysis_state=self.analysis_state,
             delivery_state=self.delivery_state,
         )
@@ -104,8 +97,7 @@ class ScheduledWorkflowExecution:
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
         if self.state is not expected:
             raise ValueError(
-                f"Workflow execution must be {expected.value}, "
-                f"but is {self.state.value}"
+                f"Workflow execution must be {expected.value}, but is {self.state.value}"
             )
 
 
@@ -114,33 +106,24 @@ class ScheduledWorkflowExecutionStore(Protocol):
         self,
         occurrence_id: str,
         now: datetime,
+        owner_user_id: UUID | None = None,
     ) -> ScheduledWorkflowExecution:
         ...
 
     def save(self, execution: ScheduledWorkflowExecution) -> None:
         ...
 
-    def get_by_occurrence(
-        self,
-        occurrence_id: str,
-    ) -> ScheduledWorkflowExecution | None:
+    def get_by_occurrence(self, occurrence_id: str) -> ScheduledWorkflowExecution | None:
         ...
 
     def get(self, execution_id: UUID) -> ScheduledWorkflowExecution | None:
         ...
 
-    def recover_running(
-        self,
-        now: datetime,
-    ) -> tuple[ScheduledWorkflowExecution, ...]:
+    def recover_running(self, now: datetime) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
 
-    def list_all(
-        self,
-    ) -> tuple[ScheduledWorkflowExecution, ...]:
+    def list_all(self) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
 
-    def list_interrupted(
-        self,
-    ) -> tuple[ScheduledWorkflowExecution, ...]:
+    def list_interrupted(self) -> tuple[ScheduledWorkflowExecution, ...]:
         ...

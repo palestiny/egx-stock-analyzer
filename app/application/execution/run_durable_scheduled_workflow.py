@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 from typing import Protocol
+from uuid import UUID
 
 from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
     ConfiguredMarketAnalysisDeliveryResult,
@@ -9,6 +10,8 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionState,
     ScheduledWorkflowExecutionStore,
 )
+from app.application.security.authorization import OwnershipAuthorizer
+from app.application.security.identity import AuthenticatedIdentity, Permission
 
 
 class WorkflowClock(Protocol):
@@ -31,57 +34,46 @@ class RunDurableScheduledWorkflow:
         self._scheduled_operation = scheduled_operation
         self._store = store
         self._clock = clock or UtcWorkflowClock()
+        self._ownership_authorizer = OwnershipAuthorizer()
 
     def execute(
         self,
         occurrence_id: str,
         as_of: date,
+        identity: AuthenticatedIdentity | None = None,
     ) -> ScheduledWorkflowExecution:
+        owner_user_id: UUID | None = None
+        if identity is not None and Permission.OPERATOR not in identity.permissions:
+            self._ownership_authorizer.require_authenticated(identity)
+            owner_user_id = identity.user_id
+
         execution = self._store.create_or_get(
             occurrence_id,
             self._clock.now(),
+            owner_user_id,
         )
 
         if execution.state is not ScheduledWorkflowExecutionState.CREATED:
+            self._authorize_existing_execution(execution, identity)
             return execution
 
         execution = execution.start(self._clock.now())
         self._store.save(execution)
-
-        try:
-            result: ConfiguredMarketAnalysisDeliveryResult = (
-                self._scheduled_operation.execute(as_of)
-            )
-        except Exception:
-            failed = execution.fail(self._clock.now())
-            self._store.save(failed)
-            raise
-
-        delivery_state = (
-            result.delivery_result.state.value
-            if result.delivery_result is not None
-            else None
-        )
-        execution = execution.with_outcomes(
-            analysis_state=result.analysis_execution.state.value,
-            delivery_state=delivery_state,
-            now=self._clock.now(),
-        )
-        self._store.save(execution)
-
-        terminal_state = self._terminal_state(result)
-        execution = getattr(execution, terminal_state)(self._clock.now())
-        self._store.save(execution)
-        return execution
+        return self._run(execution, as_of)
 
     def recover(
         self,
         execution_id,
         as_of: date,
+        identity: AuthenticatedIdentity | None = None,
     ) -> ScheduledWorkflowExecution:
         execution = self._store.get(execution_id)
         if execution is None:
             raise ValueError(f"Unknown scheduled workflow execution: {execution_id}")
+
+        if identity is not None:
+            self._authorize_existing_execution(execution, identity)
+
         if execution.state is not ScheduledWorkflowExecutionState.INTERRUPTED:
             raise ValueError(
                 "Scheduled workflow execution is not interrupted: "
@@ -90,6 +82,19 @@ class RunDurableScheduledWorkflow:
 
         execution = execution.start_recovery(self._clock.now())
         return self._run(execution, as_of)
+
+    def _authorize_existing_execution(
+        self,
+        execution: ScheduledWorkflowExecution,
+        identity: AuthenticatedIdentity | None,
+    ) -> None:
+        if identity is None:
+            return
+        if execution.owner_user_id is None:
+            if Permission.OPERATOR in identity.permissions:
+                return
+            raise PermissionError("Resource is system-owned")
+        self._ownership_authorizer.require_owner(identity, execution.owner_user_id)
 
     def _run(
         self,
@@ -133,10 +138,14 @@ class RunDurableScheduledWorkflow:
 
         if (
             result.analysis_execution.state.value == "completed_with_errors"
-            or result.delivery_result is not None
-            and result.delivery_result.state.value == "completed_with_errors"
-            or result.delivery_result is not None
-            and result.delivery_result.state.value == "failed"
+            or (
+                result.delivery_result is not None
+                and result.delivery_result.state.value == "completed_with_errors"
+            )
+            or (
+                result.delivery_result is not None
+                and result.delivery_result.state.value == "failed"
+            )
         ):
             return "complete_with_errors"
 

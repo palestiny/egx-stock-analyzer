@@ -36,3 +36,41 @@ def test_list_interrupted_returns_only_interrupted_in_deterministic_order(tmp_pa
         item.state is ScheduledWorkflowExecutionState.INTERRUPTED
         for item in result
     )
+
+
+def test_existing_workflow_table_is_migrated_with_nullable_owner_column(tmp_path):
+    database_path = tmp_path / "workflow.db"
+
+    import sqlite3
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE scheduled_workflow_executions (
+                execution_id TEXT PRIMARY KEY,
+                occurrence_id TEXT NOT NULL UNIQUE,
+                state TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                analysis_state TEXT NULL,
+                delivery_state TEXT NULL
+            )
+            """
+        )
+
+    store = SQLiteScheduledWorkflowExecutionStore(database_path)
+    execution = store.create_or_get(
+        "legacy-occurrence",
+        datetime(2026, 9, 19, 7, 0, tzinfo=timezone.utc),
+    )
+
+    assert execution.owner_user_id is None
+
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute(
+                "PRAGMA table_info(scheduled_workflow_executions)"
+            )
+        }
+    assert "owner_user_id" in columns

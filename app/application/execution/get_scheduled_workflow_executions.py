@@ -18,16 +18,14 @@ class ScheduledWorkflowExecutionReadModel:
     updated_at: datetime
     analysis_state: str | None
     delivery_state: str | None
+    owner_user_id: UUID | None = None
 
 
 class GetScheduledWorkflowExecutions:
     def __init__(self, store: ScheduledWorkflowExecutionStore) -> None:
         self._store = store
 
-    def execute(
-        self,
-        occurrence_id: str | None = None,
-    ) -> tuple[ScheduledWorkflowExecutionReadModel, ...]:
+    def execute(self, occurrence_id: str | None = None) -> tuple[ScheduledWorkflowExecutionReadModel, ...]:
         if occurrence_id is None:
             executions = self._store.list_all()
         else:
@@ -37,15 +35,14 @@ class GetScheduledWorkflowExecutions:
         return tuple(self._to_read_model(item) for item in executions)
 
     @staticmethod
-    def _to_read_model(
-        execution: ScheduledWorkflowExecution,
-    ) -> ScheduledWorkflowExecutionReadModel:
+    def _to_read_model(execution: ScheduledWorkflowExecution) -> ScheduledWorkflowExecutionReadModel:
         return ScheduledWorkflowExecutionReadModel(
             id=execution.id,
             occurrence_id=execution.occurrence_id,
             state=execution.state,
             created_at=execution.created_at,
             updated_at=execution.updated_at,
+            owner_user_id=execution.owner_user_id,
             analysis_state=execution.analysis_state,
             delivery_state=execution.delivery_state,
         )
