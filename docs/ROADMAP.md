@@ -146,6 +146,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M43 | User-Facing Audit History | 🟢 Complete | Add controlled authenticated-user visibility over the durable management-audit boundary |
 | M44 | Execution Reliability & History | 🟢 Complete | Harden durable workflow idempotency, concurrent claiming, optimistic revisions, lifecycle history, and atomic state/history persistence |
 | M45 | Scheduled Workflow Lifecycle History Visibility | 🟢 Complete | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
+| M46 | Scheduled Workflow History Query Extensions | 🟡 Design Accepted | Add optional bounded sequence-cursor pagination without changing M45 complete-history compatibility |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -240,6 +241,8 @@ M43 — User-Facing Audit History
 M44 — Execution Reliability & History
         ↓
 M45 — Scheduled Workflow Lifecycle History Visibility
+        ↓
+M46 — Scheduled Workflow History Query Extensions
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
