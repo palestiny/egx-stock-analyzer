@@ -16,9 +16,9 @@ class ScheduledWorkflowExecutionReadModel:
     state: ScheduledWorkflowExecutionState
     created_at: datetime
     updated_at: datetime
-    owner_user_id: UUID | None
     analysis_state: str | None
     delivery_state: str | None
+    owner_user_id: UUID | None = None
 
 
 class GetScheduledWorkflowExecutions:
