@@ -33,6 +33,12 @@ from app.application.reporting.compare_analysis_snapshots import (
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
+from app.application.security.identity import Permission
+from app.infrastructure.security.bearer_token_authenticator import (
+    AuthenticationError,
+    BearerTokenAuthenticator,
+)
 from app.application.security.authentication import AuthenticationError, BearerTokenAuthenticator
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
