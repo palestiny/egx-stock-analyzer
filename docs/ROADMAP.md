@@ -201,6 +201,8 @@ M30 — Durable Scheduled Workflow
 M31 — Durable Workflow Recovery
         ↓
 M32 — Automatic Scheduled Workflow Resume
+        ↓
+M32 — Automatic Scheduled Workflow Resume
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1107,3 +1109,18 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 # 36. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
+
+# 32. M32 — Automatic Scheduled Workflow Resume
+
+### M32 — Automatic Scheduled Workflow Resume
+
+M32 is **complete**. The accepted design is documented in `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`, and the implementation was merged through PR #58.
+
+Startup now discovers persisted `INTERRUPTED` scheduled workflow executions and delegates recovery to the existing M31 capability. Recovery is deterministic, sequential, process-local, and failure-isolated. Durable-store inspection failure prevents application startup, while an individual recovery failure does not block later attempts.
+
+GitHub Actions Run #937 completed successfully for implementation head `273d34f29af17341ce507b0e04c03e501c0fa138`, validating Python unit tests, frontend tests, and the frontend production build.
+
+See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
+
+---
+
