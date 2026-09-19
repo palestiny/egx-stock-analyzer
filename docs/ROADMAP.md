@@ -142,7 +142,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
 | M41 | User Management & Credential Administration | 🟢 Complete | Operator user lifecycle administration, self-service durable credential rotation, audit boundary, API, and dashboard controls |
-| M42 | Management Audit Reporting | 🟡 Design Gate Accepted | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
+| M42 | Management Audit Reporting | 🟢 Complete | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1332,7 +1332,11 @@ Completion record: `docs/M40-USER-AUTHENTICATION-CREDENTIAL-LIFECYCLE-MVP-COMPLE
 
 ## Status
 
-The M42 design gate is **accepted** in `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`. Implementation is the next controlled step.
+M42 is **complete**. The accepted design is documented in `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`, and the implementation was merged through PR #93.
+
+GitHub Actions Run #1544 completed successfully for the implementation head, validating Python unit tests, frontend tests, and the frontend production build.
+
+Completion record: `docs/M42-MANAGEMENT-AUDIT-REPORTING-MVP-COMPLETION.md`.
 
 ### Accepted boundary
 
