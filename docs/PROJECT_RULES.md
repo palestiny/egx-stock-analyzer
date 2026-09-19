@@ -738,7 +738,7 @@ At the time of establishing these rules:
 - Local project is connected to GitHub.
 - Domain tests are passing.
 - The exact passing test count is maintained by the repository CI pipeline and may evolve as coverage grows.
-- Current implementation is through **M31 — Durable Workflow Recovery**. The project remains under active development; new capabilities require an explicit design gate.
+- Current implementation is through **M32 — Automatic Scheduled Workflow Resume**. The project remains under active development; new capabilities require an explicit design gate.
 - The project remains under active development; new capabilities require an explicit design gate.
 - Market Data validation responsibilities remain under design.
 
