@@ -20,12 +20,12 @@ class DurableBearerTokenAuthenticator:
 
     def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
         token = self._extract_token(authorization_header)
-        user_id = self._credential_store.find_active_user_id(token)
+        credential = self._credential_store.find_active_credential(token)
 
-        if user_id is not None:
-            user = self._user_store.get(user_id)
+        if credential is not None:
+            user = self._user_store.get(credential.user_id)
             if user is not None and user.status is UserStatus.ACTIVE:
-                return AuthenticatedIdentity.user(user.id, user.status)
+                return AuthenticatedIdentity.user(user.id, user.status, credential.id)
 
         if self._fallback is not None:
             return self._fallback.authenticate("Bearer " + token)

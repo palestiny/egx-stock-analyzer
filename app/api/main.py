@@ -41,6 +41,8 @@ from app.application.security.authentication import (
 )
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.identity.user_management import UserManagementError, UserManagementService
+from app.domain.identity.user import UserStatus
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import (
@@ -82,6 +84,7 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
+    user_management: UserManagementService | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
     authenticator: Authenticator | None = None,
 ) -> FastAPI:
@@ -115,6 +118,19 @@ def create_app(
     def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
+        if authenticator is not None:
+            try:
+                identity = authenticator.authenticate(authorization)
+                authorizer.require(identity, Permission.OPERATOR)
+                return identity
+            except AuthenticationError as error:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication required",
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from error
+            except AuthorizationError as error:
+                raise HTTPException(status_code=403, detail="Forbidden") from error
         if operator_authenticator is None:
             raise HTTPException(status_code=503, detail="Authentication is not configured")
         try:
@@ -143,6 +159,79 @@ def create_app(
             "user_id": str(identity.user_id) if identity.user_id is not None else None,
             "status": identity.user_status.value if identity.user_status is not None else None,
         }
+
+    @app.get("/api/v1/users")
+    def list_users(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        users = user_management.list_users(_identity)
+        return {
+            "items": [
+                {"user_id": str(user.id), "status": user.status.value}
+                for user in users
+            ]
+        }
+
+    @app.post("/api/v1/users")
+    def create_user(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        try:
+            user, credential = user_management.create_user(_identity)
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
+        return {
+            "user_id": str(user.id),
+            "status": user.status.value,
+            "credential": credential.secret,
+        }
+
+    @app.patch("/api/v1/users/{user_id}/status")
+    def change_user_status(
+        user_id: UUID,
+        status: str,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        try:
+            requested = UserStatus(status)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail="Invalid user status") from error
+        try:
+            user = user_management.set_status(_identity, user_id, requested)
+        except UserManagementError as error:
+            if str(error) == "User not found":
+                raise HTTPException(status_code=404, detail=str(error)) from error
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"user_id": str(user.id), "status": user.status.value}
+
+    @app.post("/api/v1/users/{user_id}/credentials/rotate")
+    def rotate_user_credential(
+        user_id: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        try:
+            credential = user_management.rotate_user_credential(_identity, user_id)
+        except UserManagementError as error:
+            if str(error) == "User not found":
+                raise HTTPException(status_code=404, detail=str(error)) from error
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"user_id": str(credential.user_id), "credential": credential.secret}
+
+    @app.post("/api/v1/users/me/credentials/rotate")
+    def rotate_own_credential(
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if user_management is None:
+            raise HTTPException(status_code=503, detail="User management is not configured")
+        try:
+            credential = user_management.rotate_own_credential(identity)
+        except UserManagementError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"user_id": str(credential.user_id), "credential": credential.secret}
 
     @app.get("/api/v1/analysis/{symbol}")
     def get_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:

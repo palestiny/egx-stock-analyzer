@@ -117,3 +117,37 @@ export function recoverScheduledWorkflowExecution(executionId) {
 export function getCurrentIdentity() {
   return getJson("/api/v1/auth/me", "Authentication request");
 }
+
+
+export function getUsers() {
+  return getJson("/api/v1/users", "User administration request");
+}
+
+export function createUser() {
+  return getJson("/api/v1/users", "User creation request", { method: "POST" });
+}
+
+export function updateUserStatus(userId, status) {
+  return getJson(
+    "/api/v1/users/" + encodeURIComponent(userId) + "/status?status=" + encodeURIComponent(status),
+    "User lifecycle request",
+    { method: "PATCH" },
+  );
+}
+
+export function rotateOwnCredential() {
+  return getJson(
+    "/api/v1/users/me/credentials/rotate",
+    "Credential rotation request",
+    { method: "POST" },
+  );
+}
+
+
+export function rotateUserCredential(userId) {
+  return getJson(
+    "/api/v1/users/" + encodeURIComponent(userId) + "/credentials/rotate",
+    "User credential rotation request",
+    { method: "POST" },
+  );
+}

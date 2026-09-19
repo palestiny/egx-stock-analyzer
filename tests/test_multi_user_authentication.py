@@ -34,6 +34,7 @@ def test_user_bearer_token_resolves_to_active_user():
     assert identity.subject == str(user_id)
     assert identity.permissions == frozenset()
     assert identity.user_status is UserStatus.ACTIVE
+    assert identity.credential_id is None
     assert store.lookups == [user_id]
 
 

@@ -31,6 +31,13 @@ class CredentialStore(Protocol):
         raise NotImplementedError
 
     def find_active_user_id(self, secret: str) -> UUID | None:
+        credential = self.find_active_credential(secret)
+        return credential.user_id if credential is not None else None
+
+    def find_active_credential(self, secret: str) -> StoredCredential | None:
+        raise NotImplementedError
+
+    def find_active_for_user(self, user_id: UUID) -> list[StoredCredential]:
         raise NotImplementedError
 
     def replace(
@@ -89,6 +96,12 @@ class CredentialService:
             revoked_at=datetime.now(timezone.utc),
         )
         return IssuedCredential(id=replacement_id, user_id=user_id, secret=secret)
+
+    def rotate_latest_for_user(self, user_id: UUID) -> IssuedCredential:
+        active = self._store.find_active_for_user(user_id)
+        if not active:
+            raise ValueError("No durable credential is available for this user")
+        return self.rotate(active[-1].id, user_id)
 
     def revoke(self, credential_id: UUID) -> None:
         self._store.revoke(

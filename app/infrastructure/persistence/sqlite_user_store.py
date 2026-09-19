@@ -56,3 +56,11 @@ class SQLiteUserStore:
             return None
 
         return User(id=UUID(row[0]), status=UserStatus(row[1]))
+
+
+    def list(self) -> list[User]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id, status FROM users ORDER BY id ASC"
+            ).fetchall()
+        return [User(id=UUID(row[0]), status=UserStatus(row[1])) for row in rows]
