@@ -450,7 +450,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         recovered = []
         for row in rows:
             execution = self._to_execution(row)
-            interrupted = execution.interrupt(now)
+            interrupted = execution.interrupt(now, reason="startup recovery")
             self.save(interrupted)
             recovered.append(interrupted)
 
