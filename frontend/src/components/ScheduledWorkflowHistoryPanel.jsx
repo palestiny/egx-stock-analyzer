@@ -1,16 +1,18 @@
 import { useState } from "react";
 
+const PAGE_SIZE = 50;
+
 export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleLoad() {
+  async function handleLoad(options = {}) {
     setLoading(true);
     setError(null);
 
     try {
-      setHistory(await getHistory(execution.id));
+      setHistory(await getHistory(execution.id, options));
     } catch (requestError) {
       setHistory(null);
       setError(requestError);
@@ -19,9 +21,33 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
     }
   }
 
+  async function handleLoadMore() {
+    if (!history?.next_cursor) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const nextPage = await getHistory(execution.id, {
+        pageSize: PAGE_SIZE,
+        cursor: history.next_cursor,
+      });
+      setHistory((current) => ({
+        ...nextPage,
+        history: [...(current?.history ?? []), ...nextPage.history],
+      }));
+    } catch (requestError) {
+      setError(requestError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="workflow-history">
-      <button type="button" onClick={handleLoad} disabled={loading}>
+      <button type="button" onClick={() => handleLoad({ pageSize: PAGE_SIZE })} disabled={loading}>
         {loading ? "Loading history..." : "History"}
       </button>
 
@@ -42,18 +68,26 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
       )}
 
       {history && history.history.length > 0 && (
-        <div className="history-list" aria-label="workflow lifecycle history">
-          {history.history.map((item) => (
-            <div className="history-row" key={item.sequence}>
-              <strong>{item.to_state}</strong>
-              <span>
-                {item.from_state ?? "—"} → {item.to_state}
-              </span>
-              <span>{item.reason ?? "No reason recorded"}</span>
-              <span>{new Date(item.occurred_at).toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="history-list" aria-label="workflow lifecycle history">
+            {history.history.map((item) => (
+              <div className="history-row" key={item.sequence}>
+                <strong>{item.to_state}</strong>
+                <span>
+                  {item.from_state ?? "—"} → {item.to_state}
+                </span>
+                <span>{item.reason ?? "No reason recorded"}</span>
+                <span>{new Date(item.occurred_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+
+          {history.has_more && (
+            <button type="button" onClick={handleLoadMore} disabled={loading}>
+              {loading ? "Loading..." : "Load more"}
+            </button>
+          )}
+        </>
       )}
     </div>
   );
