@@ -22,8 +22,8 @@ def make_auth(tmp_path: Path):
     return store, users, service, issued
 
 
-def test_provisioned_credential_authenticates():
-    store, users, _, issued = make_auth(Path(pytest.ensuretemp("m40-auth")))
+def test_provisioned_credential_authenticates(tmp_path):
+    store, users, _, issued = make_auth(tmp_path)
     auth = DurableBearerTokenAuthenticator(store, users)
 
     identity = auth.authenticate("Bearer " + issued.secret)
