@@ -54,7 +54,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)\n\n\nclass _OperatorTokenNotProvided:\n    pass\n\n\n_OPERATOR_TOKEN_NOT_PROVIDED = _OperatorTokenNotProvided()
 
 
 def create_app(
@@ -70,7 +70,7 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
-    operator_token: str | None = None,
+    operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
