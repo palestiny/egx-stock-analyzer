@@ -1,6 +1,6 @@
 # DEC-097 — M38 Multi-User Identity & Ownership Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M38 — Multi-User Identity & Ownership
 
@@ -135,26 +135,117 @@ Keep an application-level identity/ownership contract while allowing the authent
 - larger initial boundary;
 - requires explicit identity mapping and lifecycle rules.
 
-## 8. Open Decisions
+## 8. Accepted Decisions
 
-The following must be resolved before implementation:
+### 8.1 Identity Source — Hybrid Application Identity Boundary
 
-1. **User identity source:** application-local, external provider, or hybrid.
-2. **User identifier:** immutable internal UUID versus externally supplied identifier.
-3. **Ownership model:** direct user ownership versus an intermediate principal/resource-owner abstraction.
-4. **Existing data migration:** how current operator-owned analytical/workflow data is classified during migration.
-5. **Authorization semantics:** whether ownership is the only authorization rule or whether roles are introduced with users.
-6. **Credential/session model:** bearer tokens, sessions, short-lived access tokens, or provider-issued claims.
-7. **User lifecycle:** creation, disablement, deletion, and recovery semantics.
-8. **API behavior:** distinction between missing resources and resources owned by another user.
-9. **Persistence boundary:** which records become user-scoped and which remain global/system-scoped.
-10. **Compatibility:** how existing non-user-aware application capabilities evolve without duplicating authorization logic.
-11. **Testing:** deterministic identity fixtures and ownership isolation tests.
-12. **Migration path:** whether M37 remains temporarily available during rollout.
+M38 adopts the hybrid boundary.
+
+The application owns the stable identity and ownership contracts. Authentication remains an adapter concern and may be backed by the current local mechanism or a future external provider.
+
+This preserves application portability while avoiding coupling user ownership to a specific authentication vendor.
+
+### 8.2 User Identifier — Internal UUID
+
+Each application user has an immutable internal UUID.
+
+External authentication identifiers, if introduced later, are mapped to this internal identity rather than becoming the application's primary identity.
+
+### 8.3 Ownership — Explicit User Ownership
+
+M38 uses direct ownership for user-owned resources:
+
+```
+Resource.owner_user_id → User.id
+```
+
+An intermediate principal/resource-owner abstraction is deferred because there is no current requirement for teams, organizations, delegated access, or service principals.
+
+System/global resources remain explicitly unowned rather than being assigned to an arbitrary user.
+
+### 8.4 Existing Data Migration
+
+Existing M37 data is classified as **system-owned legacy data** during the first migration.
+
+No historical analytical or workflow record is silently reassigned to a newly created user. User-specific ownership of those records requires an explicit future migration operation.
+
+This preserves existing semantics and avoids inventing ownership from incomplete historical context.
+
+### 8.5 Authorization — Ownership First, Roles Deferred
+
+For M38, authorization is based on:
+
+- authenticated user identity;
+- explicit resource ownership;
+- explicit system/global access policy.
+
+No general role-management model is introduced yet. The current single-operator permission model is treated as a compatibility policy during migration, not as the long-term multi-user authorization model.
+
+### 8.6 Credential / Session Model — Adapter-Owned Authentication
+
+The application-level contract receives an authenticated application identity, not raw credentials.
+
+The authentication adapter owns credential validation and session/token mechanics.
+
+The M38 implementation does not commit to passwords, browser sessions, JWTs, or a commercial provider as domain/application concepts.
+
+### 8.7 User Lifecycle
+
+M38 defines these lifecycle states:
+
+- ACTIVE — may authenticate and access resources according to authorization policy.
+- DISABLED — identity remains persisted but cannot authenticate/access protected user-owned resources.
+- DELETED — identity is logically removed from active use while ownership references remain historically attributable.
+
+Physical deletion of user-owned historical records is not part of M38.
+
+Account recovery and credential reset remain authentication-adapter concerns.
+
+### 8.8 API Semantics
+
+For protected user-owned resources:
+
+- unauthenticated request → HTTP 401;
+- authenticated request for another user's resource → HTTP 403;
+- authenticated request for a non-existent resource → HTTP 404.
+
+The application authorization boundary decides ownership. HTTP maps the resulting application outcomes to transport semantics.
+
+### 8.9 Persistence Boundary
+
+User identity and ownership metadata are persisted separately from analytical domain calculations.
+
+Records that become user-owned must carry an explicit owner reference. Global/system records remain explicitly global.
+
+M38 does not retrofit every existing record immediately; ownership is added as each user-owned capability is migrated.
+
+### 8.10 Compatibility
+
+Existing application capabilities continue to operate behind their current interfaces.
+
+User context is introduced at the application authorization boundary and passed only to capabilities that require ownership decisions. Domain analytical services remain identity-agnostic.
+
+Authorization logic is not duplicated in controllers, dashboard components, or domain entities.
+
+### 8.11 Testing
+
+Tests use deterministic application-user fixtures with stable UUIDs.
+
+The minimum contract includes positive ownership, cross-user isolation, global-resource policy, persistence/reload, disabled/deleted identities, alternate API-path isolation, and authentication-adapter replacement.
+
+### 8.12 M37 Migration Path
+
+M37's single-operator token remains temporarily supported as a compatibility authentication adapter during M38 rollout.
+
+It maps to a designated legacy/system operator identity.
+
+New user-owned capabilities must use the M38 application identity contract. The M37 compatibility path must not grant ownership of another user's resources.
+
+The M37 compatibility path can be removed only through a later explicit migration/completion decision.
 
 ## 9. Required Invariants
 
-Before implementation is authorized:
+The accepted design must preserve:
 
 1. Domain analytical rules remain identity-agnostic.
 2. Ownership is represented explicitly rather than inferred from HTTP routes.
@@ -183,10 +274,42 @@ The accepted design should require tests covering at minimum:
 
 ## 11. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M38 MVP defined here.**
 
-The next step is to resolve the open decisions and record the accepted architecture before implementing multi-user identity or ownership.
+The implementation boundary is:
 
-## 12. Revisit Conditions
+```
+HTTP / Authentication Adapter
+          ↓
+AuthenticatedIdentity
+          ↓
+Application Authorization Boundary
+          ↓
+User-Owned Application Capability
+          ↓
+Domain / Persistence
+```
+
+Authentication mechanisms remain replaceable. Ownership is explicit. Domain analytical behavior remains identity-agnostic. M37 remains only as a temporary compatibility authentication path during rollout.
+
+## 12. TDD Acceptance Criteria
+
+Implementation must establish at least:
+
+- authenticated identity reaches a protected application capability;
+- user A can access user A owned resources;
+- user A receives forbidden behavior for user B owned resources;
+- global resources follow an explicit policy;
+- ownership survives persistence and reload;
+- disabled identities cannot access protected resources;
+- deleted identities cannot access protected resources;
+- alternate API paths cannot bypass ownership checks;
+- legacy M37 operator identity mapping is deterministic;
+- raw credentials never reach domain entities;
+- authentication adapters can be replaced without changing ownership semantics.
+
+## 13. Revisit Conditions
+
+## 14. Revisit Conditions
 
 Revisit this gate if the product remains permanently single-operator, if an external identity requirement becomes mandatory, or if a concrete user-owned feature changes the ownership model.
