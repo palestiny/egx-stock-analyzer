@@ -135,6 +135,11 @@ class ScheduledWorkflowExecutionStore(Protocol):
     ) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
 
+    def list_all(
+        self,
+    ) -> tuple[ScheduledWorkflowExecution, ...]:
+        ...
+
     def list_interrupted(
         self,
     ) -> tuple[ScheduledWorkflowExecution, ...]:
