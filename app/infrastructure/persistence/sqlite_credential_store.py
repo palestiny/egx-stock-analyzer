@@ -74,6 +74,47 @@ class SQLiteCredentialStore(CredentialStore):
 
         return None
 
+    def replace(
+        self,
+        credential_id: UUID,
+        user_id: UUID,
+        replacement: StoredCredential,
+        replacement_verifier: str,
+        revoked_at: datetime,
+    ) -> None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT user_id, status FROM user_credentials WHERE id = ?",
+                (str(credential_id),),
+            ).fetchone()
+            if row is None or row[1] != "active" or UUID(row[0]) != user_id:
+                raise ValueError("Credential is missing, inactive, or owned by another user")
+
+            connection.execute(
+                """
+                INSERT INTO user_credentials
+                    (id, user_id, status, verifier, created_at, revoked_at, replaced_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(replacement.id),
+                    str(replacement.user_id),
+                    replacement.status,
+                    replacement_verifier,
+                    replacement.created_at.isoformat(),
+                    None,
+                    None,
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE user_credentials
+                SET status = 'replaced', revoked_at = ?, replaced_by = ?
+                WHERE id = ?
+                """,
+                (revoked_at.isoformat(), str(replacement.id), str(credential_id)),
+            )
+
     def revoke(
         self,
         credential_id: UUID,
