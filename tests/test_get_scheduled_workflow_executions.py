@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -58,8 +59,9 @@ def test_preserves_lifecycle_and_outcome_fields(tmp_path: Path):
         datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc),
         ScheduledWorkflowExecutionState.INTERRUPTED,
     )
-    store.create_or_get(execution.occurrence_id, execution.created_at)
-    store.save(execution)
+    stored = store.create_or_get(execution.occurrence_id, execution.created_at)
+    assert stored is not None
+    store.save(replace(stored, state=execution.state, analysis_state=execution.analysis_state, delivery_state=execution.delivery_state))
 
     result = GetScheduledWorkflowExecutions(store).execute()
 
@@ -81,7 +83,6 @@ def test_occurrence_filter_returns_matching_execution_only(tmp_path: Path):
             datetime(2026, 9, 19, 9 if occurrence_id == "occ-1" else 10, 0, tzinfo=timezone.utc),
         )
         store.create_or_get(occurrence_id, execution.created_at)
-        store.save(execution)
 
     result = GetScheduledWorkflowExecutions(store).execute(occurrence_id="occ-2")
 
