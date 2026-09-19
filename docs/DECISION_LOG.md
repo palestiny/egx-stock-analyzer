@@ -1746,7 +1746,7 @@ See `docs/DEC-077-M18-SCHEDULED-FULL-MARKET-ANALYSIS-DESIGN-GATE.md`.
 
 ## DEC-078 — M19 Recurring Market Scheduling
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-18
 
 M19 opens a design gate for recurring full-market analysis after the one-shot M18 scheduling capability. The gate will define recurrence representation, timezone and trading-calendar semantics, missed-run behavior, overlap policy, occurrence identity/idempotency, persistence scope, deterministic clock behavior, and failure continuation before implementation begins.
@@ -2494,6 +2494,6 @@ M47 proposes a narrow read-side extension to the M45/M46 scheduled workflow life
 
 The current candidate is optional from_state and to_state filters, deterministic ascending persisted-sequence ordering, reuse of existing opaque M46 cursors, and unchanged ownership authorization. Free-text transition-reason filtering, cross-execution queries, history mutation/retention, and event replay remain out of scope.
 
-No implementation is authorized until the M47 design gate is explicitly accepted.
+The design gate is accepted. Implementation extends the existing history read capability with typed optional from_state/to_state filters, applies filtering before sequence-cursor pagination, and binds filtered continuation cursors to their effective filter shape. No new persistence source or authorization model is introduced.
 
 See docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md.
