@@ -24,6 +24,8 @@ class ScheduledWorkflowExecution:
     owner_user_id: UUID | None = None
     analysis_state: str | None = None
     delivery_state: str | None = None
+    request_fingerprint: str | None = None
+    revision: int = 0
 
     @classmethod
     def create(
@@ -31,6 +33,7 @@ class ScheduledWorkflowExecution:
         occurrence_id: str,
         now: datetime,
         owner_user_id: UUID | None = None,
+        request_fingerprint: str | None = None,
     ) -> "ScheduledWorkflowExecution":
         if not occurrence_id.strip():
             raise ValueError("occurrence_id cannot be empty")
@@ -43,6 +46,8 @@ class ScheduledWorkflowExecution:
             owner_user_id=owner_user_id,
             analysis_state=None,
             delivery_state=None,
+            request_fingerprint=request_fingerprint,
+            revision=0,
         )
 
     def start(self, now: datetime) -> "ScheduledWorkflowExecution":
@@ -80,6 +85,8 @@ class ScheduledWorkflowExecution:
             owner_user_id=self.owner_user_id,
             analysis_state=analysis_state,
             delivery_state=delivery_state,
+            request_fingerprint=self.request_fingerprint,
+            revision=self.revision + 1,
         )
 
     def _with_state(self, state: ScheduledWorkflowExecutionState, now: datetime) -> "ScheduledWorkflowExecution":
@@ -92,6 +99,8 @@ class ScheduledWorkflowExecution:
             owner_user_id=self.owner_user_id,
             analysis_state=self.analysis_state,
             delivery_state=self.delivery_state,
+            request_fingerprint=self.request_fingerprint,
+            revision=self.revision + 1,
         )
 
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
@@ -107,6 +116,7 @@ class ScheduledWorkflowExecutionStore(Protocol):
         occurrence_id: str,
         now: datetime,
         owner_user_id: UUID | None = None,
+        request_fingerprint: str | None = None,
     ) -> ScheduledWorkflowExecution:
         ...
 
