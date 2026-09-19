@@ -133,6 +133,16 @@ def create_app(
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/api/v1/auth/me")
+    def get_authenticated_identity(
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        return {
+            "subject": identity.subject,
+            "user_id": str(identity.user_id) if identity.user_id is not None else None,
+            "status": identity.user_status.value if identity.user_status is not None else None,
+        }
+
     @app.get("/api/v1/analysis/{symbol}")
     def get_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         result = get_analysis_result.execute(symbol)
