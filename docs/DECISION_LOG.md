@@ -2356,23 +2356,6 @@ See `docs/DEC-102-M41-USER-MANAGEMENT-DESIGN-GATE.md`.
 
 ## DEC-103 — M42 Management Audit Reporting
 
-**Status:** Proposed  
-**Date:** 2026-09-19
-
-M42 opens a read-only management-audit reporting design gate over the durable audit boundary introduced by M41.
-
-The capability is intended to expose security-sensitive management evidence without returning raw credentials or credential hashes and without changing identity, credential, lifecycle, ownership, or audit-write semantics.
-
-The preferred architectural direction is a dedicated application read capability (`GetManagementAudit`) over `ManagementAuditStore`, exposed later through thin API/dashboard boundaries if accepted.
-
-Open decisions cover visibility scope, actor/target semantics, filters, deterministic ordering, pagination, limits, retention, API shape, dashboard exposure, and authorization timing.
-
-Implementation is not authorized until these decisions are resolved and recorded as accepted.
-
-See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
-\n
-## DEC-103 — M42 Management Audit Reporting
-
 **Status:** Accepted  
 **Date:** 2026-09-19
 
