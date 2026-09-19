@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
@@ -143,7 +144,7 @@ def test_create_development_application_from_environment_uses_development_catalo
 def test_create_application_runs_automatic_workflow_recovery_on_startup():
     result_store = InMemoryAnalysisResultStore()
     runtime = FakeRuntime(result_store)
-    recovery = __import__("unittest.mock", fromlist=["Mock"]).Mock()
+    recovery = Mock()
     runtime.automatic_workflow_recovery = recovery
 
     app = create_application(runtime)
