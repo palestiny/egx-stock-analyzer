@@ -232,6 +232,8 @@ M40 — Frontend Authentication & Session UX
 M41 — User Management & Credential Administration
         ↓
 M42 — Management Audit Reporting
+        ↓
+M43 — User-Facing Audit History
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
