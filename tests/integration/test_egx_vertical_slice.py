@@ -9,7 +9,8 @@ def test_egal_real_data_vertical_slice() -> None:
     app = create_development_application_from_environment()
 
     with TestClient(app) as client:
-        analysis_response = client.post("/api/v1/analysis/EGAL")
+        headers = {"Authorization": "Bearer test-operator-token"}
+        analysis_response = client.post("/api/v1/analysis/EGAL", headers=headers)
 
         assert analysis_response.status_code == 200, analysis_response.text
 
@@ -21,7 +22,7 @@ def test_egal_real_data_vertical_slice() -> None:
         assert isinstance(analysis_body["entry_quality"], int)
         assert analysis_body["opportunity"] in {"buy", "watch", "hold", "avoid"}
 
-        report_response = client.get("/api/v1/reports/EGAL")
+        report_response = client.get("/api/v1/reports/EGAL", headers=headers)
         assert report_response.status_code == 200, report_response.text
 
         report_body = report_response.json()
@@ -33,7 +34,7 @@ def test_egal_real_data_vertical_slice() -> None:
         assert isinstance(report_body["entry_quality"], int)
         assert report_body["opportunity"] in {"buy", "watch", "hold", "avoid"}
 
-        alert_response = client.get("/api/v1/alerts/EGAL")
+        alert_response = client.get("/api/v1/alerts/EGAL", headers=headers)
         assert alert_response.status_code in {200, 404}, alert_response.text
 
         if alert_response.status_code == 200:
