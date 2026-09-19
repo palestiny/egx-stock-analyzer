@@ -26,9 +26,22 @@ class FakeStore:
             return self.execution
         return None
 
-    def get_history(self, execution_id, after_sequence=None, limit=None):
+        def get_history(
+        self,
+        execution_id,
+        after_sequence=None,
+        limit=None,
+        from_state=None,
+        to_state=None,
+    ):
         self.history_calls += 1
-        rows = tuple(row for row in self.history if after_sequence is None or row[0] > after_sequence)
+        rows = tuple(
+            row
+            for row in self.history
+            if (after_sequence is None or row[0] > after_sequence)
+            and (from_state is None or row[1] == from_state)
+            and (to_state is None or row[2] == to_state)
+        )
         return rows if limit is None else rows[:limit]
 
 
@@ -206,3 +219,95 @@ def test_legacy_query_without_pagination_returns_complete_history():
     assert [item.sequence for item in result.history] == [1, 2, 3]
     assert result.has_more is False
     assert result.next_cursor is None
+
+
+def test_filters_by_to_state_before_pagination():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+        (3, "running", "failed", execution.updated_at, "failed"),
+        (4, "failed", "interrupted", execution.updated_at, "interrupted"),
+    )
+
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        to_state="FAILED",
+    )
+
+    assert [item.sequence for item in result.history] == [3]
+    assert result.has_more is False
+
+
+def test_filters_by_from_and_to_state_as_exact_transition():
+    execution = make_execution()
+    history = (
+        (1, None, "created", execution.updated_at, None),
+        (2, "created", "running", execution.updated_at, "started"),
+        (3, "running", "completed", execution.updated_at, "finished"),
+        (4, "completed", "running", execution.updated_at, "restarted"),
+    )
+
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        from_state="running",
+        to_state="completed",
+    )
+
+    assert [item.sequence for item in result.history] == [3]
+
+
+def test_invalid_filter_state_is_rejected():
+    execution = make_execution()
+
+    with pytest.raises(ValueError, match="invalid lifecycle state"):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            to_state="not-a-state",
+        )
+
+
+def test_filtered_cursor_cannot_be_reused_with_different_filters():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", state, execution.updated_at, None)
+        for sequence, state in [(1, "completed"), (2, "failed"), (3, "completed")]
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+
+    first = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        to_state="completed",
+    )
+
+    with pytest.raises(ValueError, match="cursor does not match"):
+        query.execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            page_size=1,
+            cursor=first.next_cursor,
+            to_state="failed",
+        )
+
+
+def test_legacy_m46_cursor_remains_usable_without_filters():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "running", execution.updated_at, None)
+        for sequence in range(1, 4)
+    )
+
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=2,
+        cursor="Mg",
+    )
+
+    assert [item.sequence for item in result.history] == [3]
