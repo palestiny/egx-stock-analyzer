@@ -176,6 +176,8 @@ class ScheduledWorkflowExecutionStore(Protocol):
     def get_history(
         self,
         execution_id: UUID,
+        from_state: str | None = None,
+        to_state: str | None = None,
         after_sequence: int | None = None,
         limit: int | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
