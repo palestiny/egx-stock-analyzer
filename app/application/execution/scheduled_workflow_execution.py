@@ -177,6 +177,8 @@ class ScheduledWorkflowExecutionStore(Protocol):
         self,
         execution_id: UUID,
         after_sequence: int | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
         limit: int | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
         ...
