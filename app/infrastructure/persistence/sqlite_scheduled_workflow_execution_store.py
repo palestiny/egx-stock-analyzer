@@ -170,6 +170,68 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 )
             return existing
 
+    def start_if_created(
+        self,
+        execution_id: UUID,
+        now: datetime,
+    ) -> ScheduledWorkflowExecution | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state,
+                       owner_user_id, request_fingerprint, revision
+                FROM scheduled_workflow_executions
+                WHERE execution_id = ?
+                """,
+                (str(execution_id),),
+            ).fetchone()
+            if row is None:
+                raise ValueError(
+                    f"Unknown scheduled workflow execution: {execution_id}"
+                )
+
+            current = self._to_execution(row)
+            if current.state is not ScheduledWorkflowExecutionState.CREATED:
+                return None
+
+            started = current.start(now)
+            updated = connection.execute(
+                """
+                UPDATE scheduled_workflow_executions
+                SET state = ?, updated_at = ?, revision = ?
+                WHERE execution_id = ? AND state = ? AND revision = ?
+                """,
+                (
+                    started.state.value,
+                    started.updated_at.isoformat(),
+                    started.revision,
+                    str(started.id),
+                    ScheduledWorkflowExecutionState.CREATED.value,
+                    current.revision,
+                ),
+            ).rowcount
+            if updated != 1:
+                return None
+
+            sequence = self._next_history_sequence(connection, started.id)
+            connection.execute(
+                """
+                INSERT INTO scheduled_workflow_execution_history (
+                    execution_id, sequence, from_state, to_state, occurred_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(started.id),
+                    sequence,
+                    current.state.value,
+                    started.state.value,
+                    started.updated_at.isoformat(),
+                ),
+            )
+            return started
+
     def save(self, execution: ScheduledWorkflowExecution) -> None:
         with self._connect() as connection:
             current_row = connection.execute(
