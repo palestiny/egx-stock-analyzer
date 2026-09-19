@@ -1,7 +1,7 @@
 from app.infrastructure.config import InfrastructureConfig
 
 
-def test_from_environment_does_not_require_external_credentials() -> None:
+def test_from_environment_reads_operator_token() -> None:
     config = InfrastructureConfig.from_environment()
 
     assert config.operator_token == "test-operator-token"
