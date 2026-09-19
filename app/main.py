@@ -27,8 +27,9 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
             runtime.close()
 
     create_app_kwargs = {}
-    if runtime.authenticator is not None:
-        create_app_kwargs["authenticator"] = runtime.authenticator
+    runtime_authenticator = getattr(runtime, "authenticator", None)
+    if runtime_authenticator is not None:
+        create_app_kwargs["authenticator"] = runtime_authenticator
 
     app = create_app(
         runtime.application_runtime.result_store,
