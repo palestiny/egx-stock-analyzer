@@ -76,11 +76,7 @@ class UserManagementService:
             raise UserManagementError("User not found")
         if user.status is UserStatus.DELETED:
             raise UserManagementError("Deleted user cannot receive credentials")
-        active = self._credentials._store.find_active_for_user(user_id)
-        if not active:
-            issued = self._credentials.provision(user_id)
-        else:
-            issued = self._credentials.rotate(active[-1].id, user_id)
+        issued = self._credentials.rotate_latest_for_user(user_id)
         self._record(actor, "credential_rotated_by_operator", user_id, "success")
         return issued
 
