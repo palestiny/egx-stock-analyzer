@@ -175,3 +175,16 @@ def test_create_application_surfaces_automatic_recovery_store_failure_on_startup
         raise AssertionError("Expected startup recovery failure")
 
     assert runtime.closed is True
+
+
+def test_create_application_from_environment_rejects_missing_operator_token(monkeypatch):
+    monkeypatch.delenv("EGX_OPERATOR_TOKEN", raising=False)
+
+    stock_catalog = InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")])
+
+    try:
+        create_application_from_environment(stock_catalog)
+    except ValueError as error:
+        assert str(error) == "Operator token must be configured"
+    else:
+        raise AssertionError("Expected missing operator token to fail composition")
