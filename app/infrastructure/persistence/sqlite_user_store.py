@@ -37,6 +37,14 @@ class SQLiteUserStore:
                 (str(user.id), user.status.value),
             )
 
+    def get_or_create(self, user_id: UUID, status: UserStatus) -> User:
+        existing = self.get(user_id)
+        if existing is not None:
+            return existing
+        user = User(id=user_id, status=status)
+        self.save(user)
+        return user
+
     def get(self, user_id: UUID) -> User | None:
         with self._connect() as connection:
             row = connection.execute(
