@@ -2070,3 +2070,17 @@ The scheduled-workflow store and read capability are composed independently of o
 The endpoint does not execute, recover, schedule, notify, or recalculate workflows. Pagination, retention, authentication, real-time streaming, workflow mutation, and dashboard presentation remain deferred.
 
 See `docs/DEC-093-M34-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-API-DESIGN-GATE.md`.
+
+
+## DEC-094 — M35 Scheduled Workflow Operational Dashboard
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M35 adds a read-only scheduled-workflow operations panel to the existing React dashboard over the M34 HTTP read boundary.
+
+The MVP loads executions explicitly, preserves API ordering, supports exact occurrence filtering, formats timestamps in the browser's local timezone, and exposes lifecycle/analysis/delivery state without creating new workflow semantics.
+
+No automatic polling or workflow control is introduced. Empty, unavailable, and transport-error states are explicit presentation states. Workflow mutation, recovery controls, real-time streaming, pagination, authentication, metrics/tracing, and notification controls remain deferred.
+
+See `docs/DEC-094-M35-WORKFLOW-OPERATIONAL-DASHBOARD-DESIGN-GATE.md`.
