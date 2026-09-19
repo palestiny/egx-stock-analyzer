@@ -409,6 +409,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         execution_id: UUID,
         after_sequence: int | None = None,
         limit: int | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
         query = """
             SELECT sequence, from_state, to_state, occurred_at, reason
@@ -420,6 +422,14 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         if after_sequence is not None:
             query += " AND sequence > ?"
             parameters.append(after_sequence)
+
+        if from_state is not None:
+            query += " AND from_state = ?"
+            parameters.append(from_state)
+
+        if to_state is not None:
+            query += " AND to_state = ?"
+            parameters.append(to_state)
 
         query += " ORDER BY sequence ASC"
 
