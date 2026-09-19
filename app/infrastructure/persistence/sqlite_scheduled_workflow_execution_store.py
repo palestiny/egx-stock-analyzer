@@ -31,10 +31,22 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     analysis_state TEXT NULL,
-                    delivery_state TEXT NULL
+                    delivery_state TEXT NULL,
+                    owner_user_id TEXT NULL
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(scheduled_workflow_executions)"
+                )
+            }
+            if "owner_user_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE scheduled_workflow_executions "
+                    "ADD COLUMN owner_user_id TEXT NULL"
+                )
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS
@@ -47,6 +59,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         self,
         occurrence_id: str,
         now: datetime,
+        owner_user_id: UUID | None = None,
     ) -> ScheduledWorkflowExecution:
         normalized = occurrence_id.strip()
         if not normalized:
@@ -56,7 +69,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         if existing is not None:
             return existing
 
-        execution = ScheduledWorkflowExecution.create(normalized, now)
+        execution = ScheduledWorkflowExecution.create(normalized, now, owner_user_id=owner_user_id)
 
         with self._connect() as connection:
             connection.execute(
@@ -80,6 +93,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     execution.updated_at.isoformat(),
                     execution.analysis_state,
                     execution.delivery_state,
+                    str(execution.owner_user_id) if execution.owner_user_id is not None else None,
                 ),
             )
 
@@ -115,7 +129,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state
+                       updated_at, analysis_state, delivery_state, owner_user_id
                 FROM scheduled_workflow_executions
                 WHERE occurrence_id = ?
                 """,
@@ -163,6 +177,24 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
 
         return tuple(recovered)
 
+    def list_by_owner(
+        self,
+        owner_user_id: UUID,
+    ) -> tuple[ScheduledWorkflowExecution, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state, owner_user_id
+                FROM scheduled_workflow_executions
+                WHERE owner_user_id = ?
+                ORDER BY created_at DESC, execution_id DESC
+                """,
+                (str(owner_user_id),),
+            ).fetchall()
+
+        return tuple(self._to_execution(row) for row in rows)
+
     def list_all(
         self,
     ) -> tuple[ScheduledWorkflowExecution, ...]:
@@ -197,7 +229,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
 
     @staticmethod
     def _to_execution(
-        row: tuple[str, str, str, str, str, str | None, str | None],
+        row: tuple[str, str, str, str, str, str | None, str | None, str | None],
     ) -> ScheduledWorkflowExecution:
         (
             execution_id,
@@ -207,6 +239,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             updated_at,
             analysis_state,
             delivery_state,
+            owner_user_id,
         ) = row
         return ScheduledWorkflowExecution(
             id=UUID(execution_id),
@@ -216,4 +249,5 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             updated_at=datetime.fromisoformat(updated_at),
             analysis_state=analysis_state,
             delivery_state=delivery_state,
+            owner_user_id=UUID(owner_user_id) if owner_user_id is not None else None,
         )
