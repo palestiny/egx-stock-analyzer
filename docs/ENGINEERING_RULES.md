@@ -918,7 +918,7 @@ And the developer remains responsible for understanding all of them.
 
 This document is currently:
 
-**Maintained — M31**
+**Maintained — M32**
 
 The rules remain active and may evolve only through intentional project-level decisions.
 
