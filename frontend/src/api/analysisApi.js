@@ -159,8 +159,8 @@ export function getManagementAudit(filters = {}) {
   if (filters.targetUserId) params.set("target_user_id", filters.targetUserId);
   if (filters.action) params.set("action", filters.action);
   if (filters.outcome) params.set("outcome", filters.outcome);
-  if (filters.fromTime) params.set("from_time", filters.fromTime);
-  if (filters.toTime) params.set("to_time", filters.toTime);
+  if (filters.fromTime) params.set("from_time", new Date(filters.fromTime).toISOString());
+  if (filters.toTime) params.set("to_time", new Date(filters.toTime).toISOString());
   params.set("page_size", String(filters.pageSize ?? 50));
   params.set("offset", String(filters.offset ?? 0));
 
