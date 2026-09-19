@@ -14,6 +14,7 @@ from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
+from app.api.scheduled_workflow_execution_response import ScheduledWorkflowExecutionsResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
@@ -29,6 +30,7 @@ from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
     UnknownStockSymbolError,
@@ -54,6 +56,7 @@ def create_app(
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
     calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
+    get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -213,6 +216,31 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
+    @app.get("/api/v1/workflows/executions")
+    def get_scheduled_workflow_execution_history(
+        occurrence_id: str | None = None,
+    ) -> dict[str, object]:
+        if get_scheduled_workflow_executions is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Scheduled workflow execution reporting is not configured",
+            )
+
+        if occurrence_id is not None and not occurrence_id.strip():
+            raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
+
+        try:
+            items = get_scheduled_workflow_executions.execute(occurrence_id=occurrence_id)
+        except Exception as error:
+            logger.exception("Scheduled workflow execution history failed", exc_info=error)
+            raise HTTPException(
+                status_code=500,
+                detail="Scheduled workflow execution reporting failed",
+            ) from error
+
+        response = ScheduledWorkflowExecutionsResponse.from_items(items)
+        return asdict(response)
+
     @app.post("/api/v1/alerts/{symbol}/deliver")
     def deliver_alert(symbol: str, channel: str) -> dict[str, object]:
         if deliver_alert_by_symbol is None:
