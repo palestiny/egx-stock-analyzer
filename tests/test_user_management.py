@@ -27,6 +27,8 @@ class InMemoryCredentialStore:
         return None
     def find_active_credential(self, secret):
         return None
+    def find_active_for_user(self, user_id):
+        return list(self.issued.values())
     def replace(self, credential_id, user_id, replacement, replacement_verifier, revoked_at):
         assert credential_id in self.issued
         self.issued[replacement.id] = replacement
@@ -72,3 +74,15 @@ def test_deleted_user_cannot_be_reactivated():
     service, _, _ = make_service([target])
     with pytest.raises(UserManagementError, match="Deleted user"):
         service.set_status(AuthenticatedIdentity.operator(), target.id, UserStatus.ACTIVE)
+
+def test_user_can_rotate_own_durable_credential():
+    user_id=uuid4()
+    target=User(user_id, UserStatus.ACTIVE)
+    credential_store=InMemoryCredentialStore()
+    credentials=CredentialService(credential_store)
+    issued=credentials.provision(user_id)
+    service=UserManagementService(InMemoryUserStore([target]), credentials, AuditStore())
+    identity=AuthenticatedIdentity.user(user_id, credential_id=issued.id)
+    replacement=service.rotate_own_credential(identity)
+    assert replacement.user_id == user_id
+    assert replacement.secret
