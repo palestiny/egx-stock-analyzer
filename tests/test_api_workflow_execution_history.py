@@ -20,8 +20,8 @@ class FakeHistoryQuery:
         self.error = error
         self.calls = []
 
-    def execute(self, execution_id, identity, page_size=None, cursor=None):
-        self.calls.append((execution_id, identity, page_size, cursor))
+    def execute(self, execution_id, identity, page_size=None, cursor=None, from_state=None, to_state=None):
+        self.calls.append((execution_id, identity, page_size, cursor, from_state, to_state))
         if self.error is not None:
             raise self.error
         return self.read_model
@@ -89,7 +89,7 @@ def test_returns_workflow_lifecycle_history():
         ],
     }
     assert len(query.calls) == 1
-    assert query.calls[0][2:] == (None, None)
+    assert query.calls[0][2:] == (None, None, None, None)
 
 
 def test_returns_empty_history_for_valid_execution_without_transitions():
@@ -212,7 +212,7 @@ def test_api_passes_history_pagination_parameters():
         )
 
     assert response.status_code == 200
-    assert query.calls[0][2:] == (2, "Mg")
+    assert query.calls[0][2:] == (2, "Mg", None, None)
 
 
 def test_api_maps_invalid_history_query_to_400():
@@ -229,6 +229,43 @@ def test_api_maps_invalid_history_query_to_400():
     with TestClient(app) as client:
         response = client.get(
             f"/api/v1/workflows/executions/{uuid4()}/history?page_size=101"
+        )
+
+    assert response.status_code == 400
+
+
+def test_api_passes_history_state_filters():
+    model = make_model()
+    query = FakeHistoryQuery(model)
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=query,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/workflows/executions/{model.execution_id}/history"
+            "?from_state=created&to_state=running"
+        )
+
+    assert response.status_code == 200
+    assert query.calls[0][4:] == ("created", "running")
+
+
+def test_api_maps_invalid_filter_to_400():
+    query = FakeHistoryQuery(
+        error=InvalidScheduledWorkflowExecutionHistoryQueryError(
+            "invalid lifecycle state: invalid"
+        )
+    )
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=query,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/workflows/executions/{uuid4()}/history?to_state=invalid"
         )
 
     assert response.status_code == 400
