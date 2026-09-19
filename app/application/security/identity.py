@@ -18,6 +18,7 @@ class AuthenticatedIdentity:
     permissions: frozenset[Permission]
     user_id: UUID | None = None
     user_status: UserStatus | None = None
+    credential_id: UUID | None = None
 
     @classmethod
     def operator(cls) -> "AuthenticatedIdentity":
@@ -33,10 +34,12 @@ class AuthenticatedIdentity:
         cls,
         user_id: UUID,
         status: UserStatus = UserStatus.ACTIVE,
+        credential_id: UUID | None = None,
     ) -> "AuthenticatedIdentity":
         return cls(
             subject=str(user_id),
             permissions=frozenset(),
             user_id=user_id,
             user_status=status,
+            credential_id=credential_id,
         )
