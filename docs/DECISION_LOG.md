@@ -2482,3 +2482,5 @@ The first page preserves ascending persisted sequence order, the default page si
 The existing M45 complete-history behavior remains compatible when pagination is omitted. M46 is pagination-only; filtering, history mutation, retention, replay, and cross-execution queries remain deferred. The existing primary key on execution_id and sequence is sufficient for the selected query shape.
 
 See docs/DEC-107-M46-SCHEDULED-WORKFLOW-HISTORY-QUERY-DESIGN-GATE.md.
+
+Implementation validation: GitHub Actions Run #1772 passed on implementation head `dbb17c8b3691a274b133782f63c487a573b91924` before merge through PR #107. Python unit tests and frontend tests/build both succeeded.
