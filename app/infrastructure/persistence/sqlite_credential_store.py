@@ -84,6 +84,29 @@ class SQLiteCredentialStore(CredentialStore):
                 )
         return None
 
+    def find_active_for_user(self, user_id: UUID) -> list[StoredCredential]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, user_id, status, created_at, revoked_at, replaced_by
+                FROM user_credentials
+                WHERE user_id = ? AND status = 'active'
+                ORDER BY created_at ASC, id ASC
+                """,
+                (str(user_id),),
+            ).fetchall()
+        return [
+            StoredCredential(
+                id=UUID(row[0]),
+                user_id=UUID(row[1]),
+                status=row[2],
+                created_at=datetime.fromisoformat(row[3]),
+                revoked_at=datetime.fromisoformat(row[4]) if row[4] else None,
+                replaced_by=UUID(row[5]) if row[5] else None,
+            )
+            for row in rows
+        ]
+
     def replace(
         self,
         credential_id: UUID,
