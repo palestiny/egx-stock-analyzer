@@ -169,3 +169,19 @@ export function getManagementAudit(filters = {}) {
     "Management audit request",
   );
 }
+
+
+export function getUserAuditHistory(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.action) params.set("action", filters.action);
+  if (filters.outcome) params.set("outcome", filters.outcome);
+  if (filters.fromTime) params.set("from_time", new Date(filters.fromTime).toISOString());
+  if (filters.toTime) params.set("to_time", new Date(filters.toTime).toISOString());
+  params.set("page_size", String(filters.pageSize ?? 50));
+  params.set("offset", String(filters.offset ?? 0));
+
+  return getJson(
+    "/api/v1/users/me/audit?" + params.toString(),
+    "User audit history request",
+  );
+}
