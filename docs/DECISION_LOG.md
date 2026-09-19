@@ -2084,3 +2084,69 @@ The MVP loads executions explicitly, preserves API ordering, supports exact occu
 No automatic polling or workflow control is introduced. Empty, unavailable, and transport-error states are explicit presentation states. Workflow mutation, recovery controls, real-time streaming, pagination, authentication, metrics/tracing, and notification controls remain deferred.
 
 See `docs/DEC-094-M35-WORKFLOW-OPERATIONAL-DASHBOARD-DESIGN-GATE.md`.
+
+
+## DEC-095 — M36 Scheduled Workflow Recovery Control
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M36 proposes an explicit operator-triggered recovery boundary for one persisted INTERRUPTED scheduled workflow execution. The preferred direction is a dedicated POST command that delegates to the existing M31 RecoverDurableScheduledWorkflow capability and preserves execution identity.
+
+The dashboard would expose recovery only for interrupted rows. It would not mutate workflow state locally, create replacement occurrences, or introduce automatic polling.
+
+Open decisions cover the non-recoverable HTTP status, dashboard action placement, post-recovery presentation, concurrent-click behavior, and whether recovery should remain available before an authentication boundary exists.
+
+See docs/DEC-095-M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-DESIGN-GATE.md.
+
+
+---
+
+# DEC-095 — M36 Scheduled Workflow Recovery Control
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+### Context
+
+M31 established explicit recovery for one persisted INTERRUPTED scheduled workflow execution. M33–M35 exposed operational state through the application, API, and dashboard, but the dashboard remained read-only.
+
+### Decision
+
+M36 adds an explicit operator-triggered recovery command:
+
+```
+React Dashboard
+      ↓
+POST /api/v1/workflows/executions/{execution_id}/recover
+      ↓
+RecoverScheduledWorkflowExecution
+      ↓
+RecoverDurableScheduledWorkflow
+      ↓
+RunDurableScheduledWorkflow.recover
+      ↓
+ScheduledWorkflowExecutionStore
+```
+
+Only INTERRUPTED executions are eligible. The existing M31 recovery capability remains authoritative.
+
+### Resolved Decisions
+
+- Use **409 Conflict** for an existing execution that is not recoverable.
+- Show an **inline Recover action** only on INTERRUPTED dashboard rows.
+- Update the row immediately from the successful command response.
+- Disable only the clicked row while recovery is pending.
+- Proceed without authentication because no authentication boundary exists yet; authentication remains a prerequisite for multi-user exposure.
+
+### Trade-offs
+
+This adds a mutating HTTP/UI surface and therefore more state handling, but keeps workflow semantics in the application layer and makes recovery explicit, testable, and reusable outside the dashboard.
+
+### Consequences
+
+GET workflow visibility remains side-effect free. M36 does not create replacement occurrences, add a retry layer, change M31 recovery semantics, add a persistence schema, or introduce authentication.
+
+### Revisit Conditions
+
+Revisit if recovery becomes asynchronous, bulk recovery is required, authentication becomes mandatory, or workflow recovery semantics change.
