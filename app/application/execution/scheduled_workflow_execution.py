@@ -139,6 +139,12 @@ class ScheduledWorkflowExecutionStore(Protocol):
     ) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
 
+    def list_by_owner(
+        self,
+        owner_user_id: UUID,
+    ) -> tuple[ScheduledWorkflowExecution, ...]:
+        ...
+
     def list_all(
         self,
     ) -> tuple[ScheduledWorkflowExecution, ...]:
