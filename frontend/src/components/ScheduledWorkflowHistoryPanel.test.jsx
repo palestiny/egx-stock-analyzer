@@ -146,3 +146,68 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   });
 });
+
+
+  it("passes lifecycle filters and preserves them for pagination", async () => {
+    const getHistory = vi.fn()
+      .mockResolvedValueOnce({
+        execution_id: "execution-1",
+        occurrence_id: "occ-45",
+        history: [
+          {
+            sequence: 2,
+            from_state: "created",
+            to_state: "running",
+            occurred_at: "2026-09-19T10:01:00Z",
+            reason: "started",
+          },
+        ],
+        has_more: true,
+        next_cursor: "Mg",
+      })
+      .mockResolvedValueOnce({
+        execution_id: "execution-1",
+        occurrence_id: "occ-45",
+        history: [],
+        has_more: false,
+        next_cursor: null,
+      });
+
+    render(
+      <ScheduledWorkflowHistoryPanel
+        execution={{ id: "execution-1" }}
+        getHistory={getHistory}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("From state"), {
+      target: { value: "created" },
+    });
+    fireEvent.change(screen.getByLabelText("To state"), {
+      target: { value: "running" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("created → running")).toBeInTheDocument();
+    });
+
+    expect(getHistory).toHaveBeenLastCalledWith("execution-1", {
+      pageSize: 50,
+      fromState: "created",
+      toState: "running",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("No lifecycle history is available.")).toBeInTheDocument();
+    });
+
+    expect(getHistory).toHaveBeenLastCalledWith("execution-1", {
+      pageSize: 50,
+      cursor: "Mg",
+      fromState: "created",
+      toState: "running",
+    });
+  });
