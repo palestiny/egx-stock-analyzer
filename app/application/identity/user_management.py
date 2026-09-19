@@ -24,6 +24,10 @@ class UserManagementService:
         self._operator = OperatorAuthorizer()
         self._ownership = OwnershipAuthorizer()
 
+    def list_users(self, actor: AuthenticatedIdentity) -> list[User]:
+        self._operator.require(actor, Permission.OPERATOR)
+        return self._users.list()
+
     def create_user(self, actor: AuthenticatedIdentity) -> tuple[User, IssuedCredential]:
         self._operator.require(actor, Permission.OPERATOR)
         user = User(id=uuid4(), status=UserStatus.ACTIVE)
