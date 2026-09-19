@@ -1,5 +1,5 @@
 from datetime import datetime, time, timezone
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -91,7 +91,7 @@ def test_due_occurrence_delegates_to_workflow_and_registers_next_occurrence():
     clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
     scheduler.scheduled[0][1]()
 
-    workflow.execute.assert_called_once_with(clock.current.date())
+    workflow.execute.assert_called_once_with(ANY, clock.current.date())
     assert len(scheduler.scheduled) == 2
 
 
@@ -119,7 +119,7 @@ def test_same_occurrence_cannot_execute_twice():
     operation()
     operation()
 
-    workflow.execute.assert_called_once()
+    workflow.execute.assert_called_once_with(ANY, clock.current.date())
 
 
 def test_failed_occurrence_does_not_disable_future_recurrence():
@@ -147,7 +147,7 @@ def test_overlapping_occurrence_is_not_started_concurrently():
     recurring.start()
     clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
 
-    def execute(_as_of):
+    def execute(_occurrence_id, _as_of):
         scheduler.scheduled[0][1]()
 
     workflow.execute.side_effect = execute
