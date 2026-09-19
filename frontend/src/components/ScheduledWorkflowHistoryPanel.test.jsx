@@ -66,7 +66,6 @@ describe("ScheduledWorkflowHistoryPanel", () => {
   });
 
   it("renders a not-found error", async () => {
-    const user = userEvent.setup();
     const error = Object.assign(new Error("not found"), { status: 404 });
     const getHistory = vi.fn().mockRejectedValue(error);
 
@@ -77,7 +76,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
 
     await waitFor(() => {
       expect(
