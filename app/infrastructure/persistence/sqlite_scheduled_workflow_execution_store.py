@@ -284,6 +284,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     current.state.value,
                     started.state.value,
                     started.updated_at.isoformat(),
+                    started.transition_reason,
                 ),
             )
             return started
@@ -497,9 +498,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         connection.execute(
             """
             INSERT INTO scheduled_workflow_execution_history (
-                execution_id, sequence, from_state, to_state, occurred_at
+                execution_id, sequence, from_state, to_state, occurred_at, reason
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 str(execution.id),
@@ -507,6 +508,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 None,
                 execution.state.value,
                 execution.created_at.isoformat(),
+                execution.transition_reason,
             ),
         )
 
