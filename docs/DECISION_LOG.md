@@ -2503,3 +2503,17 @@ M47 was implemented through PR #113 and merged into `main` at merge commit `1123
 The implementation keeps filtering server-side before pagination, binds filtered continuation cursors to the effective filter shape, preserves legacy unfiltered cursors, and exposes the same read model through API and dashboard.
 
 See docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md.
+
+
+## DEC-109 — M48 Scheduled Workflow Cross-Execution History
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M48 proposes a dedicated, bounded, read-only cross-execution lifecycle-history query over the existing durable scheduled workflow history.
+
+The proposal evaluates ownership isolation, deterministic ordering, bounded opaque pagination, reuse of M47 typed lifecycle-state filters, SQLite query/index evidence, and dashboard scope without changing lifecycle state or authorization semantics.
+
+No implementation is authorized until the M48 design gate is explicitly accepted.
+
+See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
