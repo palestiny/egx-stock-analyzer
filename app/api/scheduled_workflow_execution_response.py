@@ -5,6 +5,7 @@ from uuid import UUID
 from app.application.execution.get_scheduled_workflow_executions import (
     ScheduledWorkflowExecutionReadModel,
 )
+from app.application.execution.scheduled_workflow_execution import ScheduledWorkflowExecution
 
 
 @dataclass(frozen=True)
@@ -16,6 +17,21 @@ class ScheduledWorkflowExecutionResponse:
     updated_at: datetime
     analysis_state: str | None
     delivery_state: str | None
+
+    @classmethod
+    def from_execution(
+        cls,
+        execution: ScheduledWorkflowExecution,
+    ) -> "ScheduledWorkflowExecutionResponse":
+        return cls(
+            id=execution.id,
+            occurrence_id=execution.occurrence_id,
+            state=execution.state.value,
+            created_at=execution.created_at,
+            updated_at=execution.updated_at,
+            analysis_state=execution.analysis_state,
+            delivery_state=execution.delivery_state,
+        )
 
     @classmethod
     def from_read_model(
