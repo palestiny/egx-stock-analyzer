@@ -118,6 +118,19 @@ def create_app(
     def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
+        if authenticator is not None:
+            try:
+                identity = authenticator.authenticate(authorization)
+                authorizer.require(identity, Permission.OPERATOR)
+                return identity
+            except AuthenticationError as error:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication required",
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from error
+            except AuthorizationError as error:
+                raise HTTPException(status_code=403, detail="Forbidden") from error
         if operator_authenticator is None:
             raise HTTPException(status_code=503, detail="Authentication is not configured")
         try:
