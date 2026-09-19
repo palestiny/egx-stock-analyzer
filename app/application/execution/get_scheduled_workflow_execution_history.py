@@ -1,6 +1,6 @@
+import json
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from binascii import Error as Base64DecodeError
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
