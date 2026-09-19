@@ -7,15 +7,12 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecution,
     ScheduledWorkflowExecutionState,
     ScheduledWorkflowExecutionStore,
+    ScheduledWorkflowExecutionIdempotencyConflictError,
 )
 
 
 class ScheduledWorkflowExecutionConflictError(ValueError):
     """Raised when a stale execution revision attempts to overwrite newer state."""
-
-
-class ScheduledWorkflowExecutionIdempotencyConflictError(ValueError):
-    """Raised when an idempotency key is reused with a different request fingerprint."""
 
 
 class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
