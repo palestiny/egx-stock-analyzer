@@ -257,19 +257,15 @@ M44 establishes durable persistence semantics and an application-level history c
 
 **Accepted — implementation is authorized for the M44 Execution Reliability & History MVP defined above.**
 
-
-Proposed. Implementation is not authorized until the concurrency, atomicity, idempotency-conflict, and history contracts are explicitly accepted.
-
 ## 13. Repository-Level Gap Assessment
 
-The current tests establish sequential idempotency for an in-memory registry and sequential create-or-get behavior for scheduled workflow occurrences. They do not yet establish the concurrency contract across two SQLite connections.
+The repository currently provides sequential in-memory idempotency and durable scheduled-workflow occurrence uniqueness, but it does not yet establish the accepted SQLite concurrency, fingerprint-conflict, revision, or append-only history invariants.
 
-The current scheduled-workflow tests prove that final lifecycle state survives restart, but they do not prove an append-only transition trail exists or that transition evidence survives a history-write failure.
+The implementation must therefore add those invariants at the persistence boundary rather than compensate in application code.
 
-The current persistence implementation updates the execution row by execution ID without a revision predicate. Therefore stale-writer protection is not currently an implemented invariant.
+The existing scheduled-workflow lifecycle model remains the domain state machine. M44 adds durable evidence and concurrency protection around it without converting the system to event sourcing.
 
-The current in-memory ExecutionRegistry treats FAILED and COMPLETED_WITH_ERRORS as eligible for a new execution. That policy is a semantic choice and must not be assumed to be correct for every durable workflow operation. M44 must define which terminal states are replayable and which are terminal/idempotent.
+The current in-memory ExecutionRegistry terminal-state replacement behavior remains outside the durable scheduled-workflow contract. M44 does not broaden that registry into the persistence boundary.
 
-The current durable occurrence identity is tied to scheduled occurrence_id. It is useful idempotency evidence for recurring scheduling, but it is not by itself a general request idempotency contract with request-parameter conflict detection.
+The current durable occurrence identity remains the logical idempotency key for scheduled workflow execution. The new fingerprint makes request-parameter conflicts explicit instead of assuming occurrence_id alone is sufficient.
 
-These gaps are the reason this work is a design gate rather than an immediate refactor.
