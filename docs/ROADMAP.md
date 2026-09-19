@@ -137,6 +137,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
+| M37 | Authentication & Authorization Boundary | 🟡 Design Accepted | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 | M37 | Authentication & Authorization Boundary | 🟡 Design Proposed | Establish an explicit identity and authorization boundary before expanding protected operator or multi-user capabilities |
 
 
@@ -480,6 +481,36 @@ The merged implementation includes focused TDD coverage for empty input, success
 The aggregate run reuses the existing `Execution` aggregate and its `Execution.id`; M14 does not add aggregate persistence. Per-stock retry remains inside the existing single-stock capability.
 
 Deferred from M14: ranking, watchlists, history, concurrency, distributed execution, notification delivery, dashboard changes, trading decisions, portfolio allocation, provider failover, and AI-based selection.
+
+---
+
+# 37. M37 — Authentication & Authorization Boundary
+
+## Status
+
+The M37 design gate is **accepted** in `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted security boundary
+
+```
+HTTP
+  ↓
+Bearer Token Authentication Adapter
+  ↓
+AuthenticatedIdentity(operator)
+  ↓
+Authorization Boundary
+  ↓
+Application Capability
+  ↓
+Domain
+```
+
+`GET /health` remains public. All other application/API endpoints are protected by a configured bearer operator token. The MVP uses one operator permission and does not introduce users, password storage, sessions, external identity providers, ownership, or permission administration.
+
+Authentication failures use HTTP 401; authenticated callers lacking the required operator permission use HTTP 403. The token is configuration-only, never persisted, logged, or returned.
+
+Multi-user identity and ownership remain future design gates.
 
 ---
 
