@@ -122,6 +122,12 @@ export function getScheduledWorkflowExecutionHistory(executionId, options = {}) 
   if (options.cursor) {
     params.set("cursor", options.cursor);
   }
+  if (options.fromState) {
+    params.set("from_state", options.fromState);
+  }
+  if (options.toState) {
+    params.set("to_state", options.toState);
+  }
 
   const query = params.toString();
   return getJson(

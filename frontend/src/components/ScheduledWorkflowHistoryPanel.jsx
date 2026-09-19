@@ -1,11 +1,21 @@
 import { useState } from "react";
 
 const PAGE_SIZE = 50;
+const STATE_OPTIONS = [
+  "created",
+  "running",
+  "completed",
+  "completed_with_errors",
+  "failed",
+  "interrupted",
+];
 
 export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fromState, setFromState] = useState("");
+  const [toState, setToState] = useState("");
 
   async function handleLoad(options = {}) {
     setLoading(true);
@@ -21,6 +31,14 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
     }
   }
 
+  function getFilterOptions() {
+    return {
+      pageSize: PAGE_SIZE,
+      ...(fromState ? { fromState } : {}),
+      ...(toState ? { toState } : {}),
+    };
+  }
+
   async function handleLoadMore() {
     if (!history?.next_cursor) {
       return;
@@ -31,7 +49,7 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
 
     try {
       const nextPage = await getHistory(execution.id, {
-        pageSize: PAGE_SIZE,
+        ...getFilterOptions(),
         cursor: history.next_cursor,
       });
       setHistory((current) => ({
@@ -47,7 +65,40 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
 
   return (
     <div className="workflow-history">
-      <button type="button" onClick={() => handleLoad({ pageSize: PAGE_SIZE })} disabled={loading}>
+      <div className="workflow-history-filters">
+        <label>
+          From state
+          <select
+            aria-label="From state"
+            value={fromState}
+            onChange={(event) => setFromState(event.target.value)}
+          >
+            <option value="">Any</option>
+            {STATE_OPTIONS.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          To state
+          <select
+            aria-label="To state"
+            value={toState}
+            onChange={(event) => setToState(event.target.value)}
+          >
+            <option value="">Any</option>
+            {STATE_OPTIONS.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => handleLoad(getFilterOptions())}
+        disabled={loading}
+      >
         {loading ? "Loading history..." : "History"}
       </button>
 

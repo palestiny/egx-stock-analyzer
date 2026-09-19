@@ -40,7 +40,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("started")).toBeInTheDocument();
     });
-    expect(screen.getByText("created → running")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === "created → running")).toBeInTheDocument();
     expect(getHistory).toHaveBeenCalledWith("execution-1", { pageSize: 50 });
   });
 
@@ -131,13 +131,16 @@ describe("ScheduledWorkflowHistoryPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "History" }));
     await waitFor(() => {
-      expect(screen.getByText("created")).toBeInTheDocument();
+      const historyList = screen.getByLabelText("workflow lifecycle history");
+      expect(historyList.querySelector("strong")).toHaveTextContent("created");
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
 
     await waitFor(() => {
-      expect(screen.getByText("created → running")).toBeInTheDocument();
+      expect(
+        screen.getByText((_, element) => element?.textContent === "created → running"),
+      ).toBeInTheDocument();
     });
     expect(getHistory).toHaveBeenLastCalledWith("execution-1", {
       pageSize: 50,
@@ -145,4 +148,68 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     });
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   });
+
+
+  it("passes selected state filters and keeps them for pagination", async () => {
+    const getHistory = vi.fn()
+      .mockResolvedValueOnce({
+        execution_id: "execution-1",
+        occurrence_id: "occ-45",
+        history: [
+          {
+            sequence: 3,
+            from_state: "running",
+            to_state: "completed",
+            occurred_at: "2026-09-19T10:02:00Z",
+            reason: "finished",
+          },
+        ],
+        has_more: true,
+        next_cursor: "eyJzZXF1ZW5jZSI6M30",
+      })
+      .mockResolvedValueOnce({
+        execution_id: "execution-1",
+        occurrence_id: "occ-45",
+        history: [],
+        has_more: false,
+        next_cursor: null,
+      });
+
+    render(
+      <ScheduledWorkflowHistoryPanel
+        execution={{ id: "execution-1" }}
+        getHistory={getHistory}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "From state" }), {
+      target: { value: "running" },
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: "To state" }), {
+      target: { value: "completed" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("running → completed")).toBeInTheDocument();
+    });
+    expect(getHistory).toHaveBeenCalledWith("execution-1", {
+      pageSize: 50,
+      fromState: "running",
+      toState: "completed",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "running → completed")).toBeInTheDocument();
+    });
+    expect(getHistory).toHaveBeenLastCalledWith("execution-1", {
+      pageSize: 50,
+      cursor: "eyJzZXF1ZW5jZSI6M30",
+      fromState: "running",
+      toState: "completed",
+    });
+  });
+
 });

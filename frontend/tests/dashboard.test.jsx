@@ -243,7 +243,7 @@ describe("Dashboard", () => {
     const rows = screen.getAllByText(/occ-/).map((item) => item.textContent);
     expect(rows[0]).toContain("occ-2");
     expect(firstOccurrence).toBeInTheDocument();
-    expect(screen.getByText("interrupted")).toBeInTheDocument();
+    expect(screen.getAllByText("interrupted").length).toBeGreaterThan(0);
     expect(getScheduledWorkflowExecutions).toHaveBeenCalledWith(undefined);
   });
 
