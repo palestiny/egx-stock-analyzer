@@ -141,6 +141,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
 | M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
+| M41 | User Management & Credential Administration | 🟡 Design Proposed | Define operator/self-service user lifecycle and credential administration boundaries |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
