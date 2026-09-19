@@ -17,7 +17,7 @@ class ScheduledWorkflowExecutionResponse:
     updated_at: datetime
     analysis_state: str | None
     delivery_state: str | None
-    owner_user_id: UUID | None
+    owner_user_id: UUID | None = None
 
     @classmethod
     def from_execution(
