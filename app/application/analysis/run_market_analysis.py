@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 
+from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.execution.orchestrator import ExecutionOrchestrator
 from app.application.execution.retry import RetryPolicy
@@ -17,8 +18,8 @@ class RunMarketAnalysis:
     def __init__(
         self,
         stock_catalog: StockCatalog,
-        run_stock_analysis,
-        retry_policy: RetryPolicy | None = None,
+        run_stock_analysis: RunStockAnalysis,
+        retry_policy: RetryPolicy,
     ) -> None:
         self._stock_catalog = stock_catalog
         self._run_stock_analysis_by_symbol = RunStockAnalysisBySymbol(
@@ -26,7 +27,7 @@ class RunMarketAnalysis:
             run_stock_analysis=run_stock_analysis,
         )
         self._orchestrator = ExecutionOrchestrator(
-            retry_policy or RetryPolicy(max_attempts=1),
+            retry_policy,
         )
 
     def execute(self, symbols: list[str], as_of: date) -> RunMarketAnalysisResult:
@@ -41,8 +42,4 @@ class RunMarketAnalysis:
             normalized_symbols,
             lambda symbol: self._run_stock_analysis_by_symbol.execute(symbol, as_of),
         )
-
-        if not normalized_symbols:
-            execution.complete()
-
         return RunMarketAnalysisResult(execution=execution)
