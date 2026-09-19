@@ -302,7 +302,12 @@ def create_app(
             raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
 
         try:
-            items = get_scheduled_workflow_executions.execute(occurrence_id=occurrence_id, identity=identity)
+            items = get_scheduled_workflow_executions.execute(
+                occurrence_id=occurrence_id,
+                identity=identity,
+            )
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:
             logger.exception("Scheduled workflow execution history failed", exc_info=error)
             raise HTTPException(
