@@ -1,3 +1,4 @@
+import json
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from binascii import Error as Base64DecodeError
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from app.application.execution.scheduled_workflow_execution import (
 )
 from app.application.security.authorization import AuthorizationError, OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
+from app.application.execution.scheduled_workflow_execution import ScheduledWorkflowExecutionState
 
 
 DEFAULT_HISTORY_PAGE_SIZE = 50
@@ -21,7 +23,7 @@ class ScheduledWorkflowExecutionHistoryNotFoundError(ValueError):
 
 
 class InvalidScheduledWorkflowExecutionHistoryQueryError(ValueError):
-    """Raised when history pagination parameters are invalid."""
+    """Raised when history pagination or filter parameters are invalid."""
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,8 @@ class GetScheduledWorkflowExecutionHistory:
         identity: AuthenticatedIdentity,
         page_size: int | None = None,
         cursor: str | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
     ) -> ScheduledWorkflowExecutionHistoryReadModel:
         execution = self._store.get(execution_id)
         if execution is None:
@@ -65,10 +69,24 @@ class GetScheduledWorkflowExecutionHistory:
             execution.owner_user_id,
         )
 
-        after_sequence = self._decode_cursor(cursor) if cursor is not None else None
+        normalized_from_state = self._normalize_state(from_state, "from_state")
+        normalized_to_state = self._normalize_state(to_state, "to_state")
+        after_sequence = (
+            self._decode_cursor(
+                cursor,
+                from_state=normalized_from_state,
+                to_state=normalized_to_state,
+            )
+            if cursor is not None
+            else None
+        )
 
         if page_size is None and cursor is None:
-            rows = self._store.get_history(execution_id)
+            rows = self._store.get_history(
+                execution_id,
+                from_state=normalized_from_state,
+                to_state=normalized_to_state,
+            )
             return self._to_read_model(execution, rows)
 
         effective_page_size = (
@@ -78,6 +96,8 @@ class GetScheduledWorkflowExecutionHistory:
 
         rows = self._store.get_history(
             execution_id,
+            from_state=normalized_from_state,
+            to_state=normalized_to_state,
             after_sequence=after_sequence,
             limit=effective_page_size + 1,
         )
@@ -85,7 +105,11 @@ class GetScheduledWorkflowExecutionHistory:
         page_rows = rows[:effective_page_size]
 
         next_cursor = (
-            self._encode_cursor(page_rows[-1][0])
+            self._encode_cursor(
+                page_rows[-1][0],
+                from_state=normalized_from_state,
+                to_state=normalized_to_state,
+            )
             if has_more and page_rows
             else None
         )
@@ -105,26 +129,88 @@ class GetScheduledWorkflowExecutionHistory:
             )
 
     @staticmethod
-    def _encode_cursor(sequence: int) -> str:
-        return urlsafe_b64encode(str(sequence).encode("ascii")).decode("ascii").rstrip("=")
+    def _normalize_state(state: str | None, parameter: str) -> str | None:
+        if state is None:
+            return None
+        normalized = state.strip().lower()
+        valid_states = {item.value for item in ScheduledWorkflowExecutionState}
+        if normalized not in valid_states:
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                f"{parameter} must be one of: {', '.join(sorted(valid_states))}"
+            )
+        return normalized
 
     @staticmethod
-    def _decode_cursor(cursor: str) -> int:
+    def _encode_cursor(
+        sequence: int,
+        *,
+        from_state: str | None,
+        to_state: str | None,
+    ) -> str:
+        if from_state is None and to_state is None:
+            payload = str(sequence)
+        else:
+            payload = json.dumps(
+                {
+                    "version": 1,
+                    "sequence": sequence,
+                    "from_state": from_state,
+                    "to_state": to_state,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+        return urlsafe_b64encode(payload.encode("utf-8")).decode("ascii").rstrip("=")
+
+    @staticmethod
+    def _decode_cursor(
+        cursor: str,
+        *,
+        from_state: str | None,
+        to_state: str | None,
+    ) -> int:
         if not cursor.strip():
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor cannot be empty"
             )
         try:
             padding = "=" * (-len(cursor) % 4)
-            sequence = int(
-                urlsafe_b64decode((cursor + padding).encode("ascii")).decode("ascii")
-            )
-        except (Base64DecodeError, ValueError, UnicodeDecodeError):
+            payload = urlsafe_b64decode((cursor + padding).encode("ascii")).decode("utf-8")
+        except (Base64DecodeError, UnicodeDecodeError):
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor must be a valid history continuation cursor"
             ) from None
 
-        if sequence < 1:
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            if from_state is None and to_state is None:
+                try:
+                    sequence = int(payload)
+                except ValueError:
+                    sequence = -1
+            else:
+                sequence = -1
+            if sequence < 1:
+                raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                    "cursor does not match the requested history filters"
+                    if from_state is not None or to_state is not None
+                    else "cursor must be a valid history continuation cursor"
+                )
+            return sequence
+
+        if not isinstance(parsed, dict) or parsed.get("version") != 1:
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                "cursor must be a valid history continuation cursor"
+            )
+
+        if parsed.get("from_state") != from_state or parsed.get("to_state") != to_state:
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                "cursor does not match the requested history filters"
+            )
+
+        sequence = parsed.get("sequence")
+        if not isinstance(sequence, int) or isinstance(sequence, bool) or sequence < 1:
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor sequence must be positive"
             )
