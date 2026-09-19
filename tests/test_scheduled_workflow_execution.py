@@ -96,3 +96,55 @@ def test_recovery_does_not_resume_execution(tmp_path):
     store.recover_running(datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc))
 
     assert store.get(created.id).state is ScheduledWorkflowExecutionState.INTERRUPTED
+
+
+def test_lifecycle_history_survives_restart(tmp_path):
+    path = tmp_path / "workflow.db"
+    store = SQLiteScheduledWorkflowExecutionStore(path)
+    created = store.create_or_get(
+        "history-restart",
+        datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc),
+    )
+    running = created.start(datetime(2026, 9, 19, 8, 1, tzinfo=timezone.utc))
+    store.save(running)
+    interrupted = running.interrupt(datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc))
+    store.save(interrupted)
+    recovered = interrupted.start_recovery(
+        datetime(2026, 9, 19, 9, 1, tzinfo=timezone.utc),
+        reason="startup recovery",
+    )
+    store.save(recovered)
+
+    restored_store = SQLiteScheduledWorkflowExecutionStore(path)
+    history = restored_store.get_history(created.id)
+
+    assert [item[2] for item in history] == [
+        "created",
+        "running",
+        "interrupted",
+        "running",
+    ]
+    assert history[3][4] == "startup recovery"
+
+
+def test_reservation_history_failure_rolls_back_reservation(tmp_path, monkeypatch):
+    path = tmp_path / "workflow.db"
+    store = SQLiteScheduledWorkflowExecutionStore(path)
+    now = datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc)
+
+    def fail_history(connection, execution):
+        raise RuntimeError("history failure")
+
+    monkeypatch.setattr(
+        SQLiteScheduledWorkflowExecutionStore,
+        "_insert_created_history",
+        staticmethod(fail_history),
+    )
+
+    with pytest.raises(RuntimeError, match="history failure"):
+        store.create_or_get("atomic-reservation", now)
+
+    restored = SQLiteScheduledWorkflowExecutionStore(path).get_by_occurrence(
+        "atomic-reservation"
+    )
+    assert restored is None

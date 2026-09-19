@@ -1,4 +1,6 @@
 from datetime import date, datetime, timezone
+import hashlib
+import json
 from typing import Protocol
 from uuid import UUID
 
@@ -11,6 +13,9 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionStore,
 )
 from app.application.security.authorization import OwnershipAuthorizer
+from app.application.execution.scheduled_workflow_execution import (
+    ScheduledWorkflowExecutionIdempotencyConflictError,
+)
 from app.application.security.identity import AuthenticatedIdentity, Permission
 
 
@@ -47,19 +52,47 @@ class RunDurableScheduledWorkflow:
             self._ownership_authorizer.require_authenticated(identity)
             owner_user_id = identity.user_id
 
-        execution = self._store.create_or_get(
-            occurrence_id,
-            self._clock.now(),
+        normalized_occurrence = occurrence_id.strip()
+        request_fingerprint = self._request_fingerprint(
+            normalized_occurrence,
+            as_of,
             owner_user_id,
         )
+        existing = self._store.get_by_occurrence(normalized_occurrence)
+        if existing is not None:
+            self._authorize_existing_execution(existing, identity)
+
+        try:
+            execution = self._store.create_or_get(
+                normalized_occurrence,
+                self._clock.now(),
+                owner_user_id,
+                request_fingerprint,
+            )
+        except ScheduledWorkflowExecutionIdempotencyConflictError:
+            raced = self._store.get_by_occurrence(normalized_occurrence)
+            if raced is not None:
+                self._authorize_existing_execution(raced, identity)
+            raise
 
         if execution.state is not ScheduledWorkflowExecutionState.CREATED:
             self._authorize_existing_execution(execution, identity)
             return execution
 
-        execution = execution.start(self._clock.now())
-        self._store.save(execution)
-        return self._run(execution, as_of)
+        started = self._store.start_if_created(
+            execution.id,
+            self._clock.now(),
+        )
+        if started is None:
+            existing = self._store.get(execution.id)
+            if existing is None:
+                raise ValueError(
+                    f"Scheduled workflow execution disappeared: {execution.id}"
+                )
+            self._authorize_existing_execution(existing, identity)
+            return existing
+
+        return self._run(started, as_of)
 
     def recover(
         self,
@@ -80,7 +113,8 @@ class RunDurableScheduledWorkflow:
                 f"{execution.state.value}"
             )
 
-        execution = execution.start_recovery(self._clock.now())
+        execution = execution.start_recovery(self._clock.now(), reason="recovery")
+        self._store.save(execution)
         return self._run(execution, as_of)
 
     def _authorize_existing_execution(
@@ -96,19 +130,31 @@ class RunDurableScheduledWorkflow:
             raise PermissionError("Resource is system-owned")
         self._ownership_authorizer.require_owner(identity, execution.owner_user_id)
 
+    @staticmethod
+    def _request_fingerprint(
+        occurrence_id: str,
+        as_of: date,
+        owner_user_id: UUID | None,
+    ) -> str:
+        payload = {
+            "occurrence_id": occurrence_id,
+            "as_of": as_of.isoformat(),
+            "owner_user_id": str(owner_user_id) if owner_user_id is not None else None,
+        }
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
     def _run(
         self,
         execution: ScheduledWorkflowExecution,
         as_of: date,
     ) -> ScheduledWorkflowExecution:
-        self._store.save(execution)
-
         try:
             result: ConfiguredMarketAnalysisDeliveryResult = (
                 self._scheduled_operation.execute(as_of)
             )
         except Exception:
-            failed = execution.fail(self._clock.now())
+            failed = execution.fail(self._clock.now(), reason="scheduled operation failed")
             self._store.save(failed)
             raise
 

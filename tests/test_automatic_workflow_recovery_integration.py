@@ -41,9 +41,11 @@ def test_startup_recovery_resumes_persisted_interrupted_execution(tmp_path):
         "00000000-0000-0000-0000-000000000001:2026-09-19:08:30:00",
         datetime(2026, 9, 19, 7, 0, tzinfo=timezone.utc),
     )
-    interrupted = created.start(
+    running = created.start(
         datetime(2026, 9, 19, 7, 1, tzinfo=timezone.utc)
-    ).interrupt(
+    )
+    store.save(running)
+    interrupted = running.interrupt(
         datetime(2026, 9, 19, 7, 2, tzinfo=timezone.utc)
     )
     store.save(interrupted)

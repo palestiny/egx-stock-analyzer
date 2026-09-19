@@ -82,7 +82,16 @@ def test_preserves_lifecycle_and_outcome_fields(tmp_path: Path):
     )
     stored = store.create_or_get(execution.occurrence_id, execution.created_at)
     assert stored is not None
-    store.save(replace(stored, state=execution.state, analysis_state=execution.analysis_state, delivery_state=execution.delivery_state))
+    running = stored.start(execution.updated_at)
+    store.save(running)
+    interrupted = running.interrupt(execution.updated_at)
+    store.save(
+        replace(
+            interrupted,
+            analysis_state=execution.analysis_state,
+            delivery_state=execution.delivery_state,
+        )
+    )
 
     result = GetScheduledWorkflowExecutions(store).execute()
 
