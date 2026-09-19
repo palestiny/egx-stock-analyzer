@@ -114,9 +114,21 @@ export function recoverScheduledWorkflowExecution(executionId) {
 }
 
 
-export function getScheduledWorkflowExecutionHistory(executionId) {
+export function getScheduledWorkflowExecutionHistory(executionId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.pageSize != null) {
+    params.set("page_size", String(options.pageSize));
+  }
+  if (options.cursor) {
+    params.set("cursor", options.cursor);
+  }
+
+  const query = params.toString();
   return getJson(
-    "/api/v1/workflows/executions/" + encodeURIComponent(executionId) + "/history",
+    "/api/v1/workflows/executions/" +
+      encodeURIComponent(executionId) +
+      "/history" +
+      (query ? "?" + query : ""),
     "Scheduled workflow execution history request",
   );
 }

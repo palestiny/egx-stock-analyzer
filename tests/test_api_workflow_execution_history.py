@@ -9,6 +9,7 @@ from app.application.execution.get_scheduled_workflow_execution_history import (
     ScheduledWorkflowExecutionHistoryReadModel,
     ScheduledWorkflowExecutionHistoryItem,
     ScheduledWorkflowExecutionHistoryNotFoundError,
+    InvalidScheduledWorkflowExecutionHistoryQueryError,
 )
 from app.application.security.authorization import AuthorizationError
 
@@ -19,8 +20,8 @@ class FakeHistoryQuery:
         self.error = error
         self.calls = []
 
-    def execute(self, execution_id, identity):
-        self.calls.append((execution_id, identity))
+    def execute(self, execution_id, identity, page_size=None, cursor=None):
+        self.calls.append((execution_id, identity, page_size, cursor))
         if self.error is not None:
             raise self.error
         return self.read_model
@@ -68,6 +69,8 @@ def test_returns_workflow_lifecycle_history():
     assert response.json() == {
         "execution_id": str(model.execution_id),
         "occurrence_id": "occ-45",
+        "has_more": False,
+        "next_cursor": None,
         "history": [
             {
                 "sequence": 1,
@@ -86,6 +89,7 @@ def test_returns_workflow_lifecycle_history():
         ],
     }
     assert len(query.calls) == 1
+    assert query.calls[0][2:] == (None, None)
 
 
 def test_returns_empty_history_for_valid_execution_without_transitions():
@@ -108,6 +112,8 @@ def test_returns_empty_history_for_valid_execution_without_transitions():
 
     assert response.status_code == 200
     assert response.json()["history"] == []
+    assert response.json()["has_more"] is False
+    assert response.json()["next_cursor"] is None
 
 
 def test_returns_404_for_unknown_execution():
@@ -190,3 +196,39 @@ def test_api_reads_history_from_real_sqlite_store(tmp_path):
 
     assert response.status_code == 200
     assert [item["sequence"] for item in response.json()["history"]] == [1, 2, 3]
+
+
+def test_api_passes_history_pagination_parameters():
+    model = make_model()
+    query = FakeHistoryQuery(model)
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=query,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/workflows/executions/{model.execution_id}/history?page_size=2&cursor=Mg"
+        )
+
+    assert response.status_code == 200
+    assert query.calls[0][2:] == (2, "Mg")
+
+
+def test_api_maps_invalid_history_query_to_400():
+    query = FakeHistoryQuery(
+        error=InvalidScheduledWorkflowExecutionHistoryQueryError(
+            "page_size must be between 1 and 100"
+        )
+    )
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=query,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/workflows/executions/{uuid4()}/history?page_size=101"
+        )
+
+    assert response.status_code == 400

@@ -26,9 +26,10 @@ class FakeStore:
             return self.execution
         return None
 
-    def get_history(self, execution_id):
+    def get_history(self, execution_id, after_sequence=None, limit=None):
         self.history_calls += 1
-        return self.history
+        rows = tuple(row for row in self.history if after_sequence is None or row[0] > after_sequence)
+        return rows if limit is None else rows[:limit]
 
 
 def make_execution(owner_user_id=None):
@@ -125,3 +126,83 @@ def test_read_capability_does_not_mutate_execution():
     )
 
     assert execution == before
+
+
+def test_bounded_query_returns_first_page_and_cursor():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "running", execution.updated_at, None)
+        for sequence in range(1, 4)
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=2,
+    )
+
+    assert [item.sequence for item in result.history] == [1, 2]
+    assert result.has_more is True
+    assert result.next_cursor is not None
+
+
+def test_cursor_continues_after_last_returned_sequence():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "running", execution.updated_at, None)
+        for sequence in range(1, 4)
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+
+    first = query.execute(execution.id, AuthenticatedIdentity.operator(), page_size=2)
+    second = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=2,
+        cursor=first.next_cursor,
+    )
+
+    assert [item.sequence for item in second.history] == [3]
+    assert second.has_more is False
+    assert second.next_cursor is None
+
+
+@pytest.mark.parametrize("page_size", [0, -1, 101])
+def test_invalid_page_size_is_rejected(page_size):
+    execution = make_execution()
+
+    with pytest.raises(ValueError, match="page_size"):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            page_size=page_size,
+        )
+
+
+@pytest.mark.parametrize("cursor", ["", "invalid", "MA=="])
+def test_invalid_cursor_is_rejected(cursor):
+    execution = make_execution()
+
+    with pytest.raises(ValueError, match="cursor"):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            page_size=2,
+            cursor=cursor,
+        )
+
+
+def test_legacy_query_without_pagination_returns_complete_history():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "running", execution.updated_at, None)
+        for sequence in range(1, 4)
+    )
+
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+    )
+
+    assert [item.sequence for item in result.history] == [1, 2, 3]
+    assert result.has_more is False
+    assert result.next_cursor is None

@@ -34,3 +34,27 @@ def test_missing_execution_has_empty_history(tmp_path: Path):
     assert store.get_history(
         __import__("uuid").uuid4()
     ) == ()
+
+
+def test_history_query_supports_sequence_cursor_and_limit(tmp_path: Path):
+    database = tmp_path / "workflow.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-pagination", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    store.save(
+        running.complete(
+            datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+            reason="finished",
+        )
+    )
+
+    first = store.get_history(execution.id, limit=2)
+    second = store.get_history(execution.id, after_sequence=first[-1][0], limit=2)
+
+    assert [item[0] for item in first] == [1, 2]
+    assert [item[0] for item in second] == [3]

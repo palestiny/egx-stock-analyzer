@@ -56,6 +56,7 @@ from app.application.analysis.run_configured_market_analysis import RunConfigure
 from app.application.execution.get_scheduled_workflow_execution_history import (
     GetScheduledWorkflowExecutionHistory,
     ScheduledWorkflowExecutionHistoryNotFoundError,
+    InvalidScheduledWorkflowExecutionHistoryQueryError,
 )
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import (
@@ -511,6 +512,8 @@ def create_app(
     @app.get("/api/v1/workflows/executions/{execution_id}/history")
     def get_scheduled_workflow_execution_history_route(
         execution_id: UUID,
+        page_size: int | None = None,
+        cursor: str | None = None,
         identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_scheduled_workflow_execution_history is None:
@@ -523,9 +526,13 @@ def create_app(
             history = get_scheduled_workflow_execution_history.execute(
                 execution_id,
                 identity,
+                page_size=page_size,
+                cursor=cursor,
             )
         except ScheduledWorkflowExecutionHistoryNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
+        except InvalidScheduledWorkflowExecutionHistoryQueryError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
         except AuthorizationError as error:
             raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 describe("analysis API client", () => {
@@ -197,6 +197,29 @@ describe("getManagementAudit", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/v1/management/audit?actor_user_id=actor-id&target_user_id=target-id&action=user_created&outcome=success&page_size=50&offset=100",
+    );
+  });
+});
+
+
+describe("scheduled workflow history API client", () => {
+  it("requests a bounded history page with an optional cursor", async () => {
+    const history = { history: [], has_more: false, next_cursor: null };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(history),
+    });
+
+    await expect(
+      getScheduledWorkflowExecutionHistory("workflow-1", {
+        pageSize: 50,
+        cursor: "MQ",
+      }),
+    ).resolves.toEqual(history);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/v1/workflows/executions/workflow-1/history?page_size=50&cursor=MQ",
     );
   });
 });
