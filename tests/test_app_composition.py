@@ -27,13 +27,13 @@ class FakeApplicationRuntime:
     get_analysis_history: object | None = None
     compare_analysis_snapshots: object | None = None
     calculate_snapshot_performance: object | None = None
-    get_scheduled_workflow_executions: object | None = None
 
 
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
         self.deliver_alert_by_symbol = object()
         self.automatic_workflow_recovery = None
+        self.get_scheduled_workflow_executions = object()
         self.application_runtime = FakeApplicationRuntime(
             result_store,
             run_by_symbol=object(),
@@ -44,7 +44,6 @@ class FakeRuntime:
             get_analysis_history=object(),
             compare_analysis_snapshots=object(),
             calculate_snapshot_performance=object(),
-            get_scheduled_workflow_executions=object(),
         )
         self.closed = False
 
