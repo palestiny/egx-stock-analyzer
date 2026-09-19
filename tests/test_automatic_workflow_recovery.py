@@ -59,7 +59,7 @@ def test_recovery_uses_occurrence_date_and_preserves_identity():
     assert result.failed == ()
     recover.execute.assert_called_once_with(
         execution.id,
-        execution.created_at.date(),
+        datetime(2026, 9, 18).date(),
     )
 
 
