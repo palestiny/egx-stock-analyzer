@@ -106,7 +106,6 @@ def create_infrastructure_runtime(
     configured_authenticator = ConfiguredBearerTokenAuthenticator(
         config.user_bearer_tokens,
         user_store=user_store,
-        user_management=user_management,
         legacy_operator_token=config.operator_token,
     )
     credential_store = SQLiteCredentialStore(config.analysis_database_path)
