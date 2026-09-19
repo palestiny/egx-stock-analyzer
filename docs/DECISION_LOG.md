@@ -2026,3 +2026,17 @@ Add an explicit, application-level recovery capability for one persisted INTERRU
 - No step-level checkpointing, distributed coordination, queues, or new retry layer are introduced.
 
 See docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md for the full trade-offs and acceptance criteria.
+
+
+## DEC-091 — M32 Automatic Scheduled Workflow Resume
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M32 opens a design gate for automatic recovery of persisted INTERRUPTED scheduled workflow executions during application startup.
+
+The proposed direction is to reuse the existing M31 recovery capability rather than introduce a second recovery state machine. Startup would inspect eligible interrupted executions, recover them sequentially in deterministic order, isolate individual recovery failures, and preserve existing workflow execution identity and analysis/alert-delivery idempotency.
+
+The proposal keeps scheduler timing separate from recovery and does not introduce checkpoints, distributed coordination, queues, workers, provider retry, recovery HTTP endpoints, or new notification behavior.
+
+See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`.
