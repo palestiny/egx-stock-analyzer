@@ -33,7 +33,7 @@ from app.application.reporting.compare_analysis_snapshots import (
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.security.authentication import AuthenticationError, BearerTokenAuthenticator
+from app.application.security.authentication import (\n    AuthenticationError,\n    BearerTokenAuthenticator,\n    ConfiguredBearerTokenAuthenticator,\n)
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
@@ -269,7 +269,7 @@ def create_app(
     @app.get("/api/v1/workflows/executions")
     def get_scheduled_workflow_execution_history(
         occurrence_id: str | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_scheduled_workflow_executions is None:
             raise HTTPException(
@@ -281,7 +281,7 @@ def create_app(
             raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
 
         try:
-            items = get_scheduled_workflow_executions.execute(occurrence_id=occurrence_id)
+            items = get_scheduled_workflow_executions.execute(occurrence_id=occurrence_id, identity=identity)
         except Exception as error:
             logger.exception("Scheduled workflow execution history failed", exc_info=error)
             raise HTTPException(
@@ -293,7 +293,10 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/workflows/executions/{execution_id}/recover")
-    def recover_scheduled_workflow_execution(execution_id: UUID, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def recover_scheduled_workflow_execution(
+        execution_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
         if recover_durable_scheduled_workflow is None:
             raise HTTPException(
                 status_code=503,
@@ -304,11 +307,14 @@ def create_app(
             execution = recover_durable_scheduled_workflow.execute(
                 execution_id,
                 date.today(),
+                identity,
             )
         except WorkflowExecutionNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except WorkflowExecutionNotRecoverableError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:
             logger.exception(
                 "Scheduled workflow recovery failed for %s",
