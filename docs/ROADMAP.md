@@ -142,6 +142,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M39 | Multi-User Authentication & Identity Transport | 🟢 Complete | Configured multi-user bearer authentication with lifecycle validation and ownership-scoped scheduled workflow read/recovery |
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
 | M41 | User Management & Credential Administration | 🟢 Complete | Operator user lifecycle administration, self-service durable credential rotation, audit boundary, API, and dashboard controls |
+| M42 | Management Audit Reporting | 🟡 Design Gate Proposed | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -228,6 +229,8 @@ M39 — Multi-User Authentication & Identity Transport
 M40 — Frontend Authentication & Session UX
         ↓
 M41 — User Management & Credential Administration
+        ↓
+M42 — Management Audit Reporting
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
