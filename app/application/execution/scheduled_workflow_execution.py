@@ -171,3 +171,10 @@ class ScheduledWorkflowExecutionStore(Protocol):
 
     def list_interrupted(self) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
+
+
+    def get_history(
+        self,
+        execution_id: UUID,
+    ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
+        ...
