@@ -89,7 +89,7 @@ def create_app(
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
         None
-        if legacy_test_composition
+        if isinstance(operator_token, _OperatorTokenNotProvided)
         else operator_token if operator_token is not None else os.getenv("EGX_OPERATOR_TOKEN")
     )
     operator_authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
@@ -302,10 +302,15 @@ def create_app(
             raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
 
         try:
-            items = get_scheduled_workflow_executions.execute(
-                occurrence_id=occurrence_id,
-                identity=identity,
-            )
+            if authenticator is None:
+                items = get_scheduled_workflow_executions.execute(
+                    occurrence_id=occurrence_id,
+                )
+            else:
+                items = get_scheduled_workflow_executions.execute(
+                    occurrence_id=occurrence_id,
+                    identity=identity,
+                )
         except AuthorizationError as error:
             raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:
@@ -336,11 +341,17 @@ def create_app(
             )
 
         try:
-            execution = recover_durable_scheduled_workflow.execute(
-                execution_id,
-                date.today(),
-                identity,
-            )
+            if authenticator is None:
+                execution = recover_durable_scheduled_workflow.execute(
+                    execution_id,
+                    date.today(),
+                )
+            else:
+                execution = recover_durable_scheduled_workflow.execute(
+                    execution_id,
+                    date.today(),
+                    identity,
+                )
         except WorkflowExecutionNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except WorkflowExecutionNotRecoverableError as error:
