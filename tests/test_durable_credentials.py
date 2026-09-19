@@ -76,3 +76,27 @@ def test_raw_secret_is_not_stored(tmp_path):
 
     assert issued.secret not in repr(rows)
     assert issued.secret not in rows[0][0]
+
+
+
+def test_rotation_requires_credential_owner(tmp_path):
+    store, users, service, issued = make_auth(tmp_path)
+    with pytest.raises(ValueError, match="owned by another user"):
+        service.rotate(issued.id, uuid4())
+
+
+def test_m39_fallback_remains_supported(tmp_path):
+    from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
+
+    store, users, _, _ = make_auth(tmp_path)
+    legacy_user_id = uuid4()
+    users.save(User(legacy_user_id, UserStatus.ACTIVE))
+    fallback = ConfiguredBearerTokenAuthenticator(
+        {"legacy-token": legacy_user_id},
+        user_store=users,
+    )
+    auth = DurableBearerTokenAuthenticator(store, users, fallback=fallback)
+
+    identity = auth.authenticate("Bearer legacy-token")
+
+    assert identity.user_id == legacy_user_id
