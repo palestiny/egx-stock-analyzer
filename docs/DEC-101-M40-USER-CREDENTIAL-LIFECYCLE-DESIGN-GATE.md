@@ -1,6 +1,6 @@
 # DEC-101 — M40 User Credential & Session Lifecycle Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M40
 
@@ -125,47 +125,131 @@ The selected design must keep:
 
 A design that changes the identity contract merely to accommodate one authentication provider is not acceptable.
 
-## 8. Open Decisions
+## 8. Accepted Decisions
 
-1. Should M40 choose durable application-managed credentials or an external identity-provider adapter?
-2. If application-managed, should the first credential be password-based, token-based, or both?
-3. What session model is required: server-side session, signed stateless session, or continued bearer-token transport?
-4. What are the explicit expiration, revocation, and rotation semantics?
-5. How are initial users provisioned?
-6. How does M39 configuration authentication coexist during migration?
-7. Is frontend login part of M40 or a separate milestone after the backend lifecycle boundary?
-8. Which currently operator-only capabilities become user-owned first after the authentication lifecycle is established?
+### 1. Credential Model
 
-## 9. Required Invariants
+M40 uses **durable application-managed opaque bearer credentials** mapped to the existing internal user UUID.
 
-- authenticated identity remains an internal UUID-backed `AuthenticatedIdentity`;
-- raw credentials never enter domain entities;
-- disabled/deleted users cannot establish authenticated identity;
+The credential record is infrastructure/application state, not a domain entity. Raw credential values are never persisted, logged, or returned after the provisioning operation.
+
+A credential is represented durably by:
+- credential ID;
+- owner user UUID;
+- one-way credential verifier;
+- lifecycle state;
+- creation timestamp;
+- optional revocation timestamp;
+- optional replacement/revocation metadata.
+
+### 2. Passwords and External Identity Providers
+
+M40 does **not** introduce local passwords, password reset flows, MFA, SSO, or a commercial identity provider.
+
+This keeps the accepted M39 bearer transport while adding durable lifecycle control. An external OIDC/OAuth2 adapter remains replaceable future infrastructure and does not alter the application identity or ownership authorization boundary.
+
+### 3. Session Model
+
+The M40 MVP continues the existing bearer transport rather than introducing a second server-side session system.
+
+The browser session is represented by the current frontend sessionStorage credential. The server remains authoritative by resolving the presented credential against durable credential state on every protected request.
+
+### 4. Expiration, Revocation, and Rotation
+
+Credentials do not expire automatically in the M40 MVP.
+
+A credential can be ACTIVE, REVOKED, or REPLACED. Rotation creates a new credential and invalidates the old credential as one application-level operation.
+
+User lifecycle remains authoritative: DISABLED and DELETED users cannot authenticate even when an owned credential is still marked ACTIVE.
+
+### 5. Provisioning
+
+Credential provisioning is an explicit application capability intended for controlled operator/development tooling, not a public self-service endpoint.
+
+The provisioning operation creates credential metadata, returns the raw credential exactly once, and never makes the raw value retrievable later.
+
+Initial user creation remains behind the existing controlled application/user-store boundary; M40 does not add a public registration flow.
+
+### 6. M39 Migration
+
+M39 configured bearer credentials remain supported during the M40 migration boundary.
+
+Durable credentials and M39 configured credentials resolve through the same application identity contract. M39 remains a compatibility adapter and may be removed only through a separate explicit decision.
+
+No automatic copying of raw M39 credentials into durable storage is permitted.
+
+### 7. Frontend Scope
+
+The M40 frontend login/session UX implemented under DEC-100 remains valid. It accepts a bearer credential, stores it only for the browser session, validates it through GET /api/v1/auth/me, and clears it on explicit logout or HTTP 401.
+
+Credential lifecycle work does not expose raw credentials through the identity endpoint.
+
+### 8. Authorization and Identity
+
+AuthenticatedIdentity remains the application identity contract.
+
+Authentication resolves a credential to the internal UUID; authorization remains centralized in the existing application boundary. Owner/non-owner and global/operator semantics remain unchanged.
+
+### 9. Storage and Security Boundary
+
+Credential persistence uses a dedicated CredentialStore boundary backed by the existing SQLite deployment.
+
+Credential verifiers use a one-way cryptographic derivation suitable for secret verification. Raw bearer credentials are excluded from domain entities, API response models, logs, and durable persistence.
+
+The first implementation should prefer standard-library primitives where they provide an appropriate secret-verification construction, avoiding unnecessary dependency expansion.
+
+## 10. Required Invariants
+
+- authenticated identity remains an internal UUID-backed AuthenticatedIdentity;
+- raw credentials never enter domain entities or durable storage;
+- raw credentials are returned only once by provisioning/rotation;
+- disabled/deleted users cannot authenticate;
+- revoked/replaced credentials cannot authenticate;
 - authorization remains independent from authentication transport;
 - user A cannot access user B's owned resources;
 - global resources require explicit global/operator authorization;
-- M39 credentials remain usable until an explicit migration boundary is reached;
+- M39 credentials remain usable until the explicit compatibility removal boundary;
 - authentication failure remains 401;
 - authorization failure remains 403;
-- missing resources remain 404.
+- missing resources remain 404;
+- credential lifecycle operations do not change ownership semantics.
 
-## 10. TDD Acceptance Shape
+## 11. TDD Acceptance Shape
 
-Before implementation is authorized, tests must cover:
-
-- credential provisioning;
+Before implementation, tests must cover:
+- credential provisioning and one-time raw credential return;
 - valid authentication;
 - invalid authentication;
-- disabled/deleted lifecycle rejection;
-- credential rotation;
+- disabled/deleted user rejection;
 - credential revocation;
-- session expiration if sessions are selected;
-- migration from M39 configured credentials;
+- credential rotation and invalidation of the previous credential;
+- persistence/reload of credential state;
+- M39 configured-credential compatibility;
 - identity propagation into an existing user-owned capability;
 - owner/non-owner authorization;
 - global/operator authorization;
-- no raw credential leakage;
+- no raw credential leakage into persisted records or API responses;
 - adapter replacement without ownership-rule changes.
+
+## 12. Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M40 credential-lifecycle MVP defined here.**
+
+The implementation boundary is:
+
+Credential Provisioning / Rotation / Revocation
+                  ↓
+            CredentialStore
+                  ↓
+        Authentication Adapter
+                  ↓
+        AuthenticatedIdentity
+                  ↓
+        Authorization Boundary
+                  ↓
+        User-Owned Capability
+
+The credential lifecycle layer owns credential secrets and lifecycle state. It does not own user identity, resource ownership, analytical domain rules, or authorization policy.
 
 ## 11. Design Gate Rule
 
