@@ -23,12 +23,14 @@ class ScheduledWorkflowExecution:
     updated_at: datetime
     analysis_state: str | None = None
     delivery_state: str | None = None
+    owner_user_id: UUID | None = None
 
     @classmethod
     def create(
         cls,
         occurrence_id: str,
         now: datetime,
+        owner_user_id: UUID | None = None,
     ) -> "ScheduledWorkflowExecution":
         if not occurrence_id.strip():
             raise ValueError("occurrence_id cannot be empty")
@@ -40,6 +42,7 @@ class ScheduledWorkflowExecution:
             updated_at=now,
             analysis_state=None,
             delivery_state=None,
+            owner_user_id=owner_user_id,
         )
 
     def start(self, now: datetime) -> "ScheduledWorkflowExecution":
@@ -99,6 +102,7 @@ class ScheduledWorkflowExecution:
             updated_at=now,
             analysis_state=self.analysis_state,
             delivery_state=self.delivery_state,
+            owner_user_id=self.owner_user_id,
         )
 
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
