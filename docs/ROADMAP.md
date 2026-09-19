@@ -138,7 +138,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
-| M38 | Multi-User Identity & Ownership | 🟡 Persistence Design Accepted | Identity foundation is complete; dedicated SQLite user persistence and ScheduledWorkflowExecution ownership migration are the accepted next implementation slice |
+| M38 | Multi-User Identity & Ownership | 🟢 Persistence + Capability Ownership Slice Complete | Persist application users, migrate ScheduledWorkflowExecution ownership, preserve legacy system/global records, and validate ownership across restart |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -483,6 +483,55 @@ The merged implementation includes focused TDD coverage for empty input, success
 The aggregate run reuses the existing `Execution` aggregate and its `Execution.id`; M14 does not add aggregate persistence. Per-stock retry remains inside the existing single-stock capability.
 
 Deferred from M14: ranking, watchlists, history, concurrency, distributed execution, notification delivery, dashboard changes, trading decisions, portfolio allocation, provider failover, and AI-based selection.
+
+---
+
+# 38. M38 — Multi-User Identity & Ownership
+
+## Status
+
+M38 persistence/capability migration is **complete** for the accepted DEC-098 slice.
+
+The implementation was merged through PR #76 at merge commit `aa102e4b87c197882ed329fe085601a2be8d7e62`. GitHub Actions Run #1294 completed successfully for implementation head `77f05c1eebf99226b2ac464e87d5c0d4dce09068`, with both the Python unit-tests and frontend-tests jobs successful.
+
+### Implemented boundary
+
+```
+Authentication Adapter
+        ↓
+AuthenticatedIdentity
+        ↓
+Ownership Authorization Boundary
+        ↓
+ScheduledWorkflowExecution
+        ↓
+UserStore + ScheduledWorkflowExecutionStore
+        ↓
+SQLite
+```
+
+### Completed behavior
+
+- dedicated `UserStore` persistence on the existing SQLite deployment;
+- deterministic legacy operator identity bootstrap;
+- immutable user lifecycle persistence/reload;
+- nullable `owner_user_id` on `ScheduledWorkflowExecution`;
+- explicit distinction between user-owned and system/global legacy workflow executions;
+- ownership persistence across repository/application restart;
+- ownership checks for user-owned workflow execution operations;
+- legacy operator compatibility limited to system/global records;
+- schema migration for existing workflow tables without silently assigning historical ownership;
+- deterministic ownership-isolation and persistence tests.
+
+M38 does not add passwords, sessions, external identity providers, organizations, roles, delegated access, or bulk historical ownership migration.
+
+### Completion boundary
+
+The accepted M38 work establishes durable identity and one concrete ownership proof. It does **not** imply that the product is now a general-purpose multi-user management system or that every existing resource has been migrated to user ownership.
+
+The next capability requires a new design gate rather than expanding M38 opportunistically.
+
+---
 
 ---
 
