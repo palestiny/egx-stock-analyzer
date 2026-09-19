@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { vi } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import { UserAuditHistoryPanel } from "./UserAuditHistoryPanel";
 
-test("loads and renders redacted personal audit history", async () => {
+it("loads and renders redacted personal audit history", async () => {
   const getUserAuditHistory = vi.fn().mockResolvedValue({
     items: [
       {
@@ -35,7 +35,7 @@ test("loads and renders redacted personal audit history", async () => {
   });
 });
 
-test("renders empty state", async () => {
+it("renders empty state", async () => {
   const getUserAuditHistory = vi.fn().mockResolvedValue({
     items: [],
     total_count: 0,
