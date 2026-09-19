@@ -135,10 +135,85 @@ If the design is accepted, tests should cover at minimum:
 - no mutation caused by reads;
 - API transport mapping without reconstructing history.
 
-## 11. Design Gate Decision
+## 11. Accepted Decisions
 
-**Status: Proposed — implementation is not authorized yet.**
+### 1. First-page direction
 
-The next action is to resolve the open questions and record an accepted M46 decision before implementation.
+The first page returns the earliest persisted transitions in ascending sequence order.
 
-M45 remains complete and unchanged while this gate is evaluated.
+This preserves the exact M45 ordering contract for existing clients and makes the first paginated page a stable prefix of the current complete-history response.
+
+### 2. Cursor contract
+
+The continuation cursor represents the last returned persisted sequence.
+
+The API uses an opaque string cursor rather than exposing a store-specific integer contract. The application decodes and validates it; the store receives the resulting sequence boundary.
+
+### 3. Page-size bounds
+
+The M46 default page size is 50 and the maximum is 100.
+
+A requested size must be a positive integer and must not exceed the maximum. Invalid values are rejected explicitly.
+
+### 4. Response metadata
+
+The read model exposes the returned items, has_more, and next_cursor.
+
+A total-history count is not required for the MVP. Avoiding an unconditional count keeps the primary read path bounded.
+
+### 5. Dashboard behavior
+
+The dashboard uses an explicit Load more interaction and consumes the same API read model.
+
+The dashboard does not construct cursors from persisted sequence data itself and does not query the store directly.
+
+### 6. Filtering
+
+M46 is pagination-only. Filtering by transition state or reason is deferred.
+
+### 7. SQLite indexing
+
+The existing primary key (execution_id, sequence) is sufficient for WHERE execution_id = ? AND sequence > ? ORDER BY sequence ASC LIMIT ?. No additional history index is introduced.
+
+### 8. Compatibility
+
+The existing history endpoint remains compatible for callers that omit pagination parameters: it continues to return the complete history in ascending sequence order.
+
+M46 adds an explicitly bounded mode rather than silently changing established response semantics.
+
+## 12. Proposed Invariants
+
+- persisted sequence remains the sole ordering authority;
+- no lifecycle history is synthesized or rewritten;
+- authorization remains identical to M45;
+- one execution remains the query scope;
+- page size is bounded;
+- invalid pagination input fails explicitly;
+- pagination does not mutate workflow state;
+- existing clients are not silently given a different ordering;
+- store-level retrieval remains the source of truth.
+
+## 13. TDD Acceptance Criteria
+
+- default legacy retrieval remains complete and ascending;
+- default bounded mode returns at most 50 items;
+- explicit page size is honored within 1..100;
+- first page starts at the earliest sequence;
+- continuation uses the last returned sequence;
+- final page has has_more=false and no continuation cursor;
+- invalid/negative/zero cursors are rejected;
+- page size above 100 and non-positive sizes are rejected;
+- empty history remains empty and does not create a cursor;
+- unknown execution remains not-found;
+- owner/global authorization semantics remain unchanged;
+- another-user access remains forbidden;
+- repeated reads with the same cursor return stable sequence order;
+- restart preserves pagination results;
+- reads do not mutate workflow state;
+- API transport maps pagination without reconstructing history.
+
+## 14. Design Gate Decision
+
+**Status: Accepted — implementation is authorized for the M46 MVP defined here.**
+
+M45 remains complete and unchanged. M46 extends the existing read-side capability with an optional bounded pagination mode; lifecycle mutation, persistence ownership, authorization, and ordering authority remain unchanged.
