@@ -14,13 +14,10 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
     setError(null);
 
     try {
-      setHistory(
-        await getHistory(execution.id, {
-          ...options,
-          fromState: fromState || undefined,
-          toState: toState || undefined,
-        }),
-      );
+      const filters = {};
+      if (fromState) filters.fromState = fromState;
+      if (toState) filters.toState = toState;
+      setHistory(await getHistory(execution.id, { ...options, ...filters }));
     } catch (requestError) {
       setHistory(null);
       setError(requestError);
@@ -41,8 +38,8 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
       const nextPage = await getHistory(execution.id, {
         pageSize: PAGE_SIZE,
         cursor: history.next_cursor,
-        fromState: fromState || undefined,
-        toState: toState || undefined,
+        ...(fromState ? { fromState } : {}),
+        ...(toState ? { toState } : {}),
       });
       setHistory((current) => ({
         ...nextPage,
