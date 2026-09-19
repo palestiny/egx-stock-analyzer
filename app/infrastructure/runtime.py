@@ -33,7 +33,11 @@ from app.infrastructure.notifications.telegram_provider import TelegramNotificat
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 from app.application.security.authentication import BearerTokenAuthenticator
+from app.application.identity.user_store import UserStore
+from app.application.security.identity import LEGACY_OPERATOR_USER_ID
+from app.domain.identity.user import User, UserStatus
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -53,6 +57,7 @@ class InfrastructureRuntime:
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     authenticator: BearerTokenAuthenticator | None = None
+    user_store: UserStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -80,6 +85,9 @@ def create_infrastructure_runtime(
 
     authenticator = BearerTokenAuthenticator(config.operator_token)
     result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
+    user_store: UserStore = SQLiteUserStore(config.analysis_database_path)
+    if user_store.get(LEGACY_OPERATOR_USER_ID) is None:
+        user_store.save(User(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE))
     retry_policy = retry_policy or RetryPolicy(1)
 
     yahoo_history_client = YahooFinanceHistoryClient(yfinance_module)
@@ -169,4 +177,5 @@ def create_infrastructure_runtime(
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
         authenticator=authenticator,
+        user_store=user_store,
     )
