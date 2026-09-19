@@ -2026,3 +2026,17 @@ Add an explicit, application-level recovery capability for one persisted INTERRU
 - No step-level checkpointing, distributed coordination, queues, or new retry layer are introduced.
 
 See docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md for the full trade-offs and acceptance criteria.
+
+
+## DEC-091 — M32 Automatic Scheduled Workflow Resume
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M32 accepts startup-triggered automatic recovery of persisted INTERRUPTED scheduled workflow executions. Startup inspects eligible executions, delegates recovery to the existing M31 capability, preserves workflow execution identity and existing analysis/alert-delivery idempotency, and remains sequential and process-local.
+
+Durable-store inspection failure is an application startup failure. Individual recovery failures are isolated and do not prevent later eligible executions from being attempted. Terminal executions are ignored and no replacement scheduled occurrence is created.
+
+No recovery HTTP endpoint, checkpointing, distributed coordination, queue/worker model, provider retry, or new notification behavior is introduced.
+
+See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`.
