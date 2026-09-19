@@ -467,7 +467,7 @@ def create_app(
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
     @app.get("/api/v1/workflows/executions")
-    def get_scheduled_workflow_execution_history(
+    def list_scheduled_workflow_executions(
         occurrence_id: str | None = None,
         identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
