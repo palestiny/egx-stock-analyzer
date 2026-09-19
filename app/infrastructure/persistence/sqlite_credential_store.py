@@ -1,9 +1,6 @@
-import base64
-import hashlib
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from secrets import compare_digest
 from uuid import UUID
 
 from app.application.security.credentials import (
