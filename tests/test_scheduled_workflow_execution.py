@@ -1,6 +1,4 @@
 from datetime import datetime, timezone
-from uuid import UUID
-
 import pytest
 
 from app.application.execution.scheduled_workflow_execution import (
@@ -42,8 +40,9 @@ def test_lifecycle_transitions_survive_store_recreation(tmp_path):
     assert restored == completed
 
 
-def test_invalid_transition_is_rejected():
-    execution = SQLiteScheduledWorkflowExecutionStore(":memory:").create_or_get(
+def test_invalid_transition_is_rejected(tmp_path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    execution = store.create_or_get(
         "occurrence",
         datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc),
     )
