@@ -132,7 +132,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
 | M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
-| M32 | Automatic Scheduled Workflow Resume | 🟡 Design Proposed | Automatically recover eligible interrupted scheduled workflow executions during application startup |
+| M32 | Automatic Scheduled Workflow Resume | 🟡 Design Accepted | Automatically recover eligible interrupted scheduled workflow executions during application startup |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
