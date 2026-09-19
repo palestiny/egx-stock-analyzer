@@ -2444,3 +2444,27 @@ Scheduled workflow execution now has durable semantics for idempotency, concurre
 GitHub Actions Run #1686 passed for implementation head `bd74921e9c789e95b2198ab82acdded6bab689bc` before merge through PR #102.
 
 See `docs/M44-EXECUTION-RELIABILITY-AND-HISTORY-MVP-COMPLETION.md`.
+
+
+## DEC-106 — M45 Scheduled Workflow Lifecycle History Visibility
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M45 adds a read-only lifecycle-history projection over the durable M44 scheduled-workflow history.
+
+### Decision
+
+The capability is dedicated: `GetScheduledWorkflowExecutionHistory`. It reads one execution and its persisted lifecycle history through `ScheduledWorkflowExecutionStore`, reusing the existing ownership boundary for both system/global and user-owned executions.
+
+A missing execution is an explicit application not-found condition and maps to HTTP 404. A valid execution with no persisted history returns an empty immutable history collection.
+
+The read model exposes the persisted sequence, `from_state`, `to_state`, timestamp, and stored transition reason without reconstructing or rewriting history. The initial CREATED transition therefore has `from_state = null`.
+
+The M45 MVP exposes both a read-only API endpoint and dashboard presentation. History ordering is fixed ascending by persisted sequence. Pagination is deferred; the complete history for one execution is returned.
+
+### Consequences
+
+M45 does not modify lifecycle transitions, persistence schema, authentication, recovery semantics, or history records. API and dashboard code remain presentation/transport boundaries and do not access SQLite directly.
+
+See `docs/DEC-106-M45-SCHEDULED-WORKFLOW-LIFECYCLE-HISTORY-VISIBILITY-DESIGN-GATE.md`.
