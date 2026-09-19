@@ -134,3 +134,8 @@ class ScheduledWorkflowExecutionStore(Protocol):
         now: datetime,
     ) -> tuple[ScheduledWorkflowExecution, ...]:
         ...
+
+    def list_interrupted(
+        self,
+    ) -> tuple[ScheduledWorkflowExecution, ...]:
+        ...

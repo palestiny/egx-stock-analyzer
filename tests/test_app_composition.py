@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
@@ -31,6 +32,7 @@ class FakeApplicationRuntime:
 class FakeRuntime:
     def __init__(self, result_store: InMemoryAnalysisResultStore) -> None:
         self.deliver_alert_by_symbol = object()
+        self.automatic_workflow_recovery = None
         self.application_runtime = FakeApplicationRuntime(
             result_store,
             run_by_symbol=object(),
@@ -137,3 +139,38 @@ def test_create_development_application_from_environment_uses_development_catalo
 
     assert runtime.closed is True
 
+
+
+def test_create_application_runs_automatic_workflow_recovery_on_startup():
+    result_store = InMemoryAnalysisResultStore()
+    runtime = FakeRuntime(result_store)
+    recovery = Mock()
+    runtime.automatic_workflow_recovery = recovery
+
+    app = create_application(runtime)
+
+    with TestClient(app):
+        pass
+
+    recovery.execute.assert_called_once()
+    assert runtime.closed is True
+
+
+def test_create_application_surfaces_automatic_recovery_store_failure_on_startup():
+    result_store = InMemoryAnalysisResultStore()
+    runtime = FakeRuntime(result_store)
+    recovery = Mock()
+    recovery.execute.side_effect = RuntimeError("workflow store unavailable")
+    runtime.automatic_workflow_recovery = recovery
+
+    app = create_application(runtime)
+
+    try:
+        with TestClient(app):
+            pass
+    except RuntimeError as error:
+        assert str(error) == "workflow store unavailable"
+    else:
+        raise AssertionError("Expected startup recovery failure")
+
+    assert runtime.closed is True

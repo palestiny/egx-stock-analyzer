@@ -163,6 +163,23 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
 
         return tuple(recovered)
 
+    def list_interrupted(
+        self,
+    ) -> tuple[ScheduledWorkflowExecution, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT execution_id, occurrence_id, state, created_at,
+                       updated_at, analysis_state, delivery_state
+                FROM scheduled_workflow_executions
+                WHERE state = ?
+                ORDER BY occurrence_id ASC, execution_id ASC
+                """,
+                (ScheduledWorkflowExecutionState.INTERRUPTED.value,),
+            ).fetchall()
+
+        return tuple(self._to_execution(row) for row in rows)
+
     @staticmethod
     def _to_execution(
         row: tuple[str, str, str, str, str, str | None, str | None],
