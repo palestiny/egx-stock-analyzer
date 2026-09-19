@@ -33,7 +33,7 @@ from app.infrastructure.notifications.telegram_provider import TelegramNotificat
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
-from app.application.security.authentication import BearerTokenAuthenticator
+from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -55,7 +55,7 @@ class InfrastructureRuntime:
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
-    authenticator: BearerTokenAuthenticator | None = None
+    authenticator: ConfiguredBearerTokenAuthenticator | None = None
     user_store: SQLiteUserStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
@@ -82,7 +82,6 @@ def create_infrastructure_runtime(
     if not config.operator_token or not config.operator_token.strip():
         raise ValueError("EGX_OPERATOR_TOKEN must be configured")
 
-    authenticator = BearerTokenAuthenticator(config.operator_token)
     result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
     retry_policy = retry_policy or RetryPolicy(1)
 
@@ -93,6 +92,14 @@ def create_infrastructure_runtime(
     input_assembler = AnalysisInputAssembler(
         market_data_provider=market_data_provider,
         fundamental_data_provider=fundamental_data_provider,
+    )
+
+    user_store = SQLiteUserStore(config.analysis_database_path)
+    user_store.get_or_create(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)
+    authenticator = ConfiguredBearerTokenAuthenticator(
+        config.user_bearer_tokens,
+        user_store=user_store,
+        legacy_operator_token=config.operator_token,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -116,8 +123,6 @@ def create_infrastructure_runtime(
     run_configured_market_analysis_with_automatic_alert_delivery = None
     automatic_workflow_recovery = None
     recover_durable_scheduled_workflow = None
-    user_store = SQLiteUserStore(config.analysis_database_path)
-    user_store.get_or_create(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)
     workflow_store = SQLiteScheduledWorkflowExecutionStore(config.analysis_database_path)
     get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     if has_telegram_token and has_telegram_chat_id:

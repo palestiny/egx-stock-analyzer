@@ -2,6 +2,7 @@ from datetime import date
 from uuid import UUID
 
 from app.application.execution.run_durable_scheduled_workflow import RunDurableScheduledWorkflow
+from app.application.security.authorization import OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
 from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecution,
@@ -26,6 +27,7 @@ class RecoverDurableScheduledWorkflow:
     ) -> None:
         self._scheduled_workflow = scheduled_workflow
         self._store = store
+        self._authorizer = OwnershipAuthorizer()
 
     def execute(
         self,
@@ -47,4 +49,6 @@ class RecoverDurableScheduledWorkflow:
 
         if identity is None:
             return self._scheduled_workflow.recover(execution_id, as_of)
+
+        self._authorizer.require_owner_or_global(identity, execution.owner_user_id)
         return self._scheduled_workflow.recover(execution_id, as_of, identity)

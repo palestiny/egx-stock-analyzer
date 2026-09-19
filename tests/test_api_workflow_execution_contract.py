@@ -79,7 +79,7 @@ def test_workflow_execution_history_supports_exact_occurrence_filter():
     assert query.calls == ["occ-2"]
 
 
-def test_workflow_execution_history_returns_empty_items_for_missing_occurrence():
+def test_workflow_execution_history_returns_404_for_missing_occurrence():
     query = FakeWorkflowExecutionQuery([make_item("occ-1")])
     app = create_app(
         InMemoryAnalysisResultStore(),
@@ -92,8 +92,7 @@ def test_workflow_execution_history_returns_empty_items_for_missing_occurrence()
             params={"occurrence_id": "missing"},
         )
 
-    assert response.status_code == 200
-    assert response.json() == {"items": []}
+    assert response.status_code == 404
 
 
 def test_workflow_execution_history_rejects_blank_occurrence_filter():

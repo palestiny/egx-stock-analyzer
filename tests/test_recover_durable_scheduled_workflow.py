@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.execution.recover_durable_scheduled_workflow import (
     RecoverDurableScheduledWorkflow,
     WorkflowExecutionNotFoundError,
@@ -113,3 +114,72 @@ def test_recovery_does_not_create_new_execution_identity():
 
     assert result.id == original.id
     assert result.state is ScheduledWorkflowExecutionState.COMPLETED
+
+
+def test_user_can_recover_owned_execution():
+    owner = uuid4()
+    original = ScheduledWorkflowExecution.create(
+        "owned",
+        datetime(2026, 9, 19, 7, 0, tzinfo=timezone.utc),
+        owner_user_id=owner,
+    ).start(
+        datetime(2026, 9, 19, 7, 1, tzinfo=timezone.utc)
+    ).interrupt(
+        datetime(2026, 9, 19, 7, 2, tzinfo=timezone.utc)
+    )
+    store = FakeStore(original)
+    workflow = Mock()
+    workflow.recover.return_value = original
+
+    RecoverDurableScheduledWorkflow(workflow, store).execute(
+        original.id,
+        date(2026, 9, 19),
+        AuthenticatedIdentity.user(owner),
+    )
+
+    workflow.recover.assert_called_once_with(
+        original.id,
+        date(2026, 9, 19),
+        AuthenticatedIdentity.user(owner),
+    )
+
+
+def test_user_cannot_recover_another_users_execution():
+    owner = uuid4()
+    original = ScheduledWorkflowExecution.create(
+        "owned",
+        datetime(2026, 9, 19, 7, 0, tzinfo=timezone.utc),
+        owner_user_id=owner,
+    ).start(
+        datetime(2026, 9, 19, 7, 1, tzinfo=timezone.utc)
+    ).interrupt(
+        datetime(2026, 9, 19, 7, 2, tzinfo=timezone.utc)
+    )
+    store = FakeStore(original)
+    workflow = Mock()
+
+    from app.application.security.authorization import AuthorizationError
+
+    with pytest.raises(AuthorizationError, match="another user"):
+        RecoverDurableScheduledWorkflow(workflow, store).execute(
+            original.id,
+            date(2026, 9, 19),
+            AuthenticatedIdentity.user(uuid4()),
+        )
+
+    workflow.recover.assert_not_called()
+
+
+def test_legacy_operator_can_recover_global_execution():
+    original = interrupted_execution()
+    store = FakeStore(original)
+    workflow = Mock()
+    workflow.recover.return_value = original
+
+    RecoverDurableScheduledWorkflow(workflow, store).execute(
+        original.id,
+        date(2026, 9, 19),
+        AuthenticatedIdentity.operator(),
+    )
+
+    workflow.recover.assert_called_once()

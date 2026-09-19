@@ -33,7 +33,11 @@ from app.application.reporting.compare_analysis_snapshots import (
 from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.security.authentication import AuthenticationError, BearerTokenAuthenticator
+from app.application.security.authentication import (
+    AuthenticationError,
+    BearerTokenAuthenticator,
+    ConfiguredBearerTokenAuthenticator,
+)
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
@@ -78,25 +82,42 @@ def create_app(
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
+    authenticator: ConfiguredBearerTokenAuthenticator | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
-    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided)
+    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
         None
-        if legacy_test_composition
+        if isinstance(operator_token, _OperatorTokenNotProvided)
         else operator_token if operator_token is not None else os.getenv("EGX_OPERATOR_TOKEN")
     )
-    authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
+    operator_authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
     authorizer = OperatorAuthorizer()
 
-    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
+    def require_authenticated(
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedIdentity:
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
         if authenticator is None:
             raise HTTPException(status_code=503, detail="Authentication is not configured")
         try:
-            identity = authenticator.authenticate(authorization)
+            return authenticator.authenticate(authorization)
+        except AuthenticationError as error:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+
+    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
+        if legacy_test_composition:
+            return AuthenticatedIdentity.operator()
+        if operator_authenticator is None:
+            raise HTTPException(status_code=503, detail="Authentication is not configured")
+        try:
+            identity = operator_authenticator.authenticate(authorization)
             authorizer.require(identity, Permission.OPERATOR)
             return identity
         except AuthenticationError as error:
@@ -269,7 +290,7 @@ def create_app(
     @app.get("/api/v1/workflows/executions")
     def get_scheduled_workflow_execution_history(
         occurrence_id: str | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_scheduled_workflow_executions is None:
             raise HTTPException(
@@ -281,7 +302,17 @@ def create_app(
             raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
 
         try:
-            items = get_scheduled_workflow_executions.execute(occurrence_id=occurrence_id)
+            if authenticator is None:
+                items = get_scheduled_workflow_executions.execute(
+                    occurrence_id=occurrence_id,
+                )
+            else:
+                items = get_scheduled_workflow_executions.execute(
+                    occurrence_id=occurrence_id,
+                    identity=identity,
+                )
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:
             logger.exception("Scheduled workflow execution history failed", exc_info=error)
             raise HTTPException(
@@ -289,11 +320,20 @@ def create_app(
                 detail="Scheduled workflow execution reporting failed",
             ) from error
 
+        if occurrence_id is not None and not items:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Scheduled workflow execution not found for {occurrence_id}",
+            )
+
         response = ScheduledWorkflowExecutionsResponse.from_items(items)
         return asdict(response)
 
     @app.post("/api/v1/workflows/executions/{execution_id}/recover")
-    def recover_scheduled_workflow_execution(execution_id: UUID, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def recover_scheduled_workflow_execution(
+        execution_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
         if recover_durable_scheduled_workflow is None:
             raise HTTPException(
                 status_code=503,
@@ -301,14 +341,23 @@ def create_app(
             )
 
         try:
-            execution = recover_durable_scheduled_workflow.execute(
-                execution_id,
-                date.today(),
-            )
+            if authenticator is None:
+                execution = recover_durable_scheduled_workflow.execute(
+                    execution_id,
+                    date.today(),
+                )
+            else:
+                execution = recover_durable_scheduled_workflow.execute(
+                    execution_id,
+                    date.today(),
+                    identity,
+                )
         except WorkflowExecutionNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except WorkflowExecutionNotRecoverableError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
         except Exception as error:
             logger.exception(
                 "Scheduled workflow recovery failed for %s",
