@@ -131,6 +131,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M28 | Automatic Alert Delivery Policy | 🟢 Complete | Automatically deliver existing eligible alert candidates after completed analysis without coupling delivery to analytical execution |
 | M29 | Scheduled Automatic Alert Delivery | 🟢 Complete | Connect recurring full-market analysis to the existing automatic-delivery capability through an explicit workflow boundary |
 | M30 | Durable Scheduled Workflow | 🟢 Complete | Persist scheduled workflow lifecycle, integrate recurring occurrences, and detect interrupted executions without introducing distributed execution |
+| M31 | Durable Workflow Recovery | 🟡 Design Accepted | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -195,6 +196,8 @@ M28 — Automatic Alert Delivery Policy
 M29 — Scheduled Automatic Alert Delivery
         ↓
 M30 — Durable Scheduled Workflow
+        ↓
+M31 — Durable Workflow Recovery
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -994,7 +997,19 @@ The implementation uses SQLite behind a dedicated `ScheduledWorkflowExecutionSto
 
 ---
 
-# 31. Cross-Cutting Requirements
+# 31. M31 — Durable Workflow Recovery
+
+## Status
+
+The M31 design gate is accepted in docs/DEC-090-M31-DURABLE-WORKFLOW-RECOVERY-DESIGN-GATE.md. Implementation is the next controlled step.
+
+M31 introduces an explicit application recovery command for one persisted INTERRUPTED workflow execution. Recovery reuses the existing workflow execution identity and M29 workflow, relies on existing analysis and alert-delivery idempotency, and does not automatically replay on startup.
+
+The MVP remains sequential and process-local. Step-level checkpoints, automatic resume, distributed coordination, queues, and new provider retry policies remain deferred.
+
+---
+
+# 32. Cross-Cutting Requirements
 
 These apply across milestones.
 
@@ -1028,7 +1043,7 @@ Important failures and system decisions must eventually be visible.
 
 ---
 
-# 32. Milestone Completion Rule
+# 33. Milestone Completion Rule
 
 Every milestone follows:
 
@@ -1054,7 +1069,7 @@ No milestone is considered complete merely because code exists.
 
 ---
 
-# 33. Changing the Roadmap
+# 34. Changing the Roadmap
 
 The roadmap may change when requirements change, an architectural assumption proves incorrect, new evidence becomes available, a dependency becomes unavailable, or a milestone reveals a better sequence.
 
@@ -1064,6 +1079,6 @@ The current execution-order change is recorded in `docs/DEC-047-EXECUTION-SEQUEN
 
 ---
 
-# 34. Guiding Principle
+# 35. Guiding Principle
 
 > **Build the analytical brain first. Add the reliability, acquisition, automation, and interface layers around a core whose behavior is already understood.**
