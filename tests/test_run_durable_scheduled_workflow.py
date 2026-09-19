@@ -208,3 +208,25 @@ def test_legacy_workflow_execution_remains_system_owned(tmp_path):
     restored = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db").get(execution.id)
     assert restored is not None
     assert restored.owner_user_id is None
+
+
+def test_legacy_operator_identity_does_not_claim_new_user_ownership(tmp_path):
+    operation = Mock()
+    operation.execute.return_value = type(
+        "Result",
+        (),
+        {
+            "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
+        },
+    )()
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    workflow = RunDurableScheduledWorkflow(operation, store, FakeClock())
+
+    result = workflow.execute(
+        "legacy-occurrence",
+        date(2026, 9, 19),
+        AuthenticatedIdentity.operator(),
+    )
+
+    assert result.owner_user_id is None
