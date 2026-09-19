@@ -145,6 +145,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M42 | Management Audit Reporting | 🟢 Complete | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
 | M43 | User-Facing Audit History | 🟢 Complete | Add controlled authenticated-user visibility over the durable management-audit boundary |
 | M44 | Execution Reliability & History | 🟢 Complete | Harden durable workflow idempotency, concurrent claiming, optimistic revisions, lifecycle history, and atomic state/history persistence |
+| M45 | Scheduled Workflow Lifecycle History Visibility | 🟡 Design Accepted | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -237,6 +238,8 @@ M42 — Management Audit Reporting
 M43 — User-Facing Audit History
         ↓
 M44 — Execution Reliability & History
+        ↓
+M45 — Scheduled Workflow Lifecycle History Visibility
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
