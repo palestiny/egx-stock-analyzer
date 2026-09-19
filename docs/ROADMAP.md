@@ -138,7 +138,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
-| M38 | Multi-User Identity & Ownership | 🟡 Foundation Slice Complete | Identity lifecycle, application identity, ownership authorization boundary, and deterministic M37 legacy mapping are implemented; persistence/reload and user-owned capability migration remain |
+| M38 | Multi-User Identity & Ownership | 🟡 Persistence Design Accepted | Identity foundation is complete; dedicated SQLite user persistence and ScheduledWorkflowExecution ownership migration are the accepted next implementation slice |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
