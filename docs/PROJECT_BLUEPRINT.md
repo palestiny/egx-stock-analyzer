@@ -1113,8 +1113,8 @@ rather than relying on memory or conversation history.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M43 — User-Facing Audit History complete and CI-validated through PR #96.
+**Current Implementation:** M44 — Execution Reliability & History complete and CI-validated through PR #102.
 
-**Current Project State:** M43 completion is recorded in `docs/M43-USER-FACING-AUDIT-HISTORY-MVP-COMPLETION.md`. The M43 design and implementation are synchronized with the roadmap.
+**Current Project State:** M44 completion is recorded in `docs/M44-EXECUTION-RELIABILITY-AND-HISTORY-MVP-COMPLETION.md`. The M44 design, implementation, CI validation, and roadmap are synchronized.
 
 **Next Step:** No next capability is committed yet. The next major capability must begin with a new design gate.
