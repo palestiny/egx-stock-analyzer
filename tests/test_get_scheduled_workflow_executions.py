@@ -66,7 +66,7 @@ def test_preserves_lifecycle_and_outcome_fields(tmp_path: Path):
     result = GetScheduledWorkflowExecutions(store).execute()
 
     item = result[0]
-    assert item.id == execution.id
+    assert item.id == stored.id
     assert item.occurrence_id == "occ-1"
     assert item.state is ScheduledWorkflowExecutionState.INTERRUPTED
     assert item.created_at == execution.created_at
