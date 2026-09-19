@@ -18,7 +18,7 @@ class BearerTokenAuthenticator:
 
         scheme, separator, token = authorization_header.partition(" ")
         if not separator or scheme.lower() != "bearer" or not token.strip():
-            raise AuthenticationError("Invalid authentication credentials")
+            raise AuthenticationError("Authentication credentials are invalid")
 
         if token.strip() != self._expected_token:
             raise AuthenticationError("Invalid authentication credentials")
