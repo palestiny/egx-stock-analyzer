@@ -1,6 +1,6 @@
 # DEC-093 — M34 Scheduled Workflow Operational Visibility API Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M34 — Scheduled Workflow Operational Visibility API
 
@@ -146,15 +146,16 @@ Deferred. The API is the reusable transport boundary; dashboard presentation can
 
 Rejected for M34 because operational visibility and workflow control have different risk and authorization requirements.
 
-## 8. Open Questions
+## 8. Accepted Decisions
 
-1. Should the route live under `/api/v1/workflows/executions` or another resource name?
-2. Should the response be a bare array or an envelope such as `{"items": [...], "count": ...}`?
-3. Should `occurrence_id` be validated as an exact non-empty string at the HTTP boundary?
-4. Should M34 expose a single-execution lookup by UUID in addition to the list/filter route?
-5. Does the current runtime composition need a dedicated optional capability field, or can the API obtain the capability from existing infrastructure composition without expanding public runtime state?
-6. Should API response state values remain lowercase persisted values, or should transport-specific enum values be introduced?
-7. Should the endpoint be available when Telegram workflow infrastructure is not configured?
+1. **Route:** Use `GET /api/v1/workflows/executions`. This names the operational resource directly and leaves workflow mutation endpoints separate.
+2. **Response shape:** Return an envelope `{"items": [...]}`. The existing API already uses named response objects for collection reads, and the envelope leaves room for future pagination metadata without changing the resource from an array to an object later.
+3. **Occurrence filter:** Accept an optional exact non-empty `occurrence_id`. Blank values are treated as invalid transport input rather than as an unfiltered query.
+4. **Single-execution lookup:** Defer UUID lookup. M34 keeps one list/filter read contract; a direct execution resource can be introduced later if a concrete client need appears.
+5. **Runtime composition:** Add the read capability to the infrastructure composition as an optional application capability exposed to FastAPI. The API must not construct persistence objects itself.
+6. **Availability:** Compose the scheduled-workflow execution store and read capability independently of optional Telegram delivery configuration. This makes historical workflow visibility available even when notification delivery is not configured, without changing workflow execution behavior.
+7. **State representation:** Preserve existing lowercase enum values through the transport DTO. No second transport-specific state vocabulary is introduced.
+8. **Error handling:** Empty history and non-matching filters return HTTP 200 with an empty `items` collection. Unexpected application/infrastructure failures use the existing safe HTTP 500 pattern. The endpoint does not expose persistence exception details.
 
 ## 9. Proposed Invariants
 
@@ -186,9 +187,7 @@ Before implementation is authorized, tests should establish at least:
 
 ## 11. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
-
-The next step is to resolve the open questions and accept this transport boundary before implementation.
+**Status: Accepted — implementation is authorized for the M34 HTTP read capability defined here.**
 
 ## 12. Revisit Conditions
 
