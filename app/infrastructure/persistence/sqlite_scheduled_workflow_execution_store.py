@@ -29,7 +29,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     occurrence_id TEXT NOT NULL UNIQUE,
                     state TEXT NOT NULL,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    analysis_state TEXT NULL,
+                    delivery_state TEXT NULL
                 )
                 """
             )
@@ -64,7 +66,9 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     occurrence_id,
                     state,
                     created_at,
-                    updated_at
+                    updated_at,
+                    analysis_state,
+                    delivery_state
                 )
                 VALUES (?, ?, ?, ?, ?)
                 """,
@@ -74,6 +78,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     execution.state.value,
                     execution.created_at.isoformat(),
                     execution.updated_at.isoformat(),
+                    execution.analysis_state,
+                    execution.delivery_state,
                 ),
             )
 
@@ -84,12 +90,14 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             updated = connection.execute(
                 """
                 UPDATE scheduled_workflow_executions
-                SET state = ?, updated_at = ?
+                SET state = ?, updated_at = ?, analysis_state = ?, delivery_state = ?
                 WHERE execution_id = ?
                 """,
                 (
                     execution.state.value,
                     execution.updated_at.isoformat(),
+                    execution.analysis_state,
+                    execution.delivery_state,
                     str(execution.id),
                 ),
             ).rowcount
@@ -106,7 +114,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT execution_id, occurrence_id, state, created_at, updated_at
+                SELECT execution_id, occurrence_id, state, created_at, updated_at, analysis_state, delivery_state, analysis_state, delivery_state
                 FROM scheduled_workflow_executions
                 WHERE occurrence_id = ?
                 """,
@@ -163,4 +171,6 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             state=ScheduledWorkflowExecutionState(state),
             created_at=datetime.fromisoformat(created_at),
             updated_at=datetime.fromisoformat(updated_at),
+            analysis_state=analysis_state,
+            delivery_state=delivery_state,
         )
