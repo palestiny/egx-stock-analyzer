@@ -2,16 +2,14 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.security.authentication import AuthenticationError
 from app.application.security.authorization import AuthorizationError, require_permission
 from app.application.security.identity import AuthenticatedIdentity, Permission
-from app.infrastructure.security.bearer_token_authenticator import (
-    AuthenticationError,
-    BearerTokenAuthenticator,
-)
+from app.infrastructure.security.bearer_token_authenticator import BearerTokenAuthenticator
 
 
 def test_missing_bearer_credentials_are_rejected():
-    app = create_app(InMemoryAnalysisResultStore(), operator_token="secret")
+    app = create_app(InMemoryAnalysisResultStore(), authenticator=BearerTokenAuthenticator("secret"))
 
     with TestClient(app) as client:
         response = client.get("/api/v1/analysis/EGAL")
