@@ -143,7 +143,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
 | M41 | User Management & Credential Administration | 🟢 Complete | Operator user lifecycle administration, self-service durable credential rotation, audit boundary, API, and dashboard controls |
 | M42 | Management Audit Reporting | 🟢 Complete | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
-| M43 | User-Facing Audit History | 🟡 Design Accepted | Add controlled authenticated-user visibility over the durable management-audit boundary |
+| M43 | User-Facing Audit History | 🟢 Complete | Add controlled authenticated-user visibility over the durable management-audit boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1363,7 +1363,11 @@ Retention remains unchanged. No audit-write behavior, credentials, lifecycle sem
 
 ## Status
 
-The M43 design gate is **accepted** in `docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md`. Implementation is the next controlled step.
+M43 is **complete**. The accepted design is documented in `docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md`, and the implementation was merged through PR #96.
+
+GitHub Actions Run #1599 completed successfully for the implementation head, validating Python unit tests, frontend tests, and the frontend production build.
+
+Completion record: `docs/M43-USER-FACING-AUDIT-HISTORY-MVP-COMPLETION.md`.
 
 ### Accepted boundary
 
