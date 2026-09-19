@@ -86,6 +86,10 @@ class SQLiteManagementAuditStore(ManagementAuditStore):
         if query.action is not None:
             clauses.append("action = ?")
             parameters.append(query.action)
+        elif query.actions:
+            placeholders = ", ".join("?" for _ in query.actions)
+            clauses.append(f"action IN ({placeholders})")
+            parameters.extend(query.actions)
         if query.outcome is not None:
             clauses.append("outcome = ?")
             parameters.append(query.outcome)
