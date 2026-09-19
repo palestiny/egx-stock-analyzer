@@ -137,8 +137,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
-| M37 | Authentication & Authorization Boundary | 🟡 Design Accepted | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
-| M37 | Authentication & Authorization Boundary | 🟡 Design Proposed | Establish an explicit identity and authorization boundary before expanding protected operator or multi-user capabilities |
+| M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -488,7 +487,7 @@ Deferred from M14: ranking, watchlists, history, concurrency, distributed execut
 
 ## Status
 
-The M37 design gate is **accepted** in `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md`. Implementation is the next controlled step.
+M37 is **complete**. The accepted design in `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md` has been implemented and merged to `main` through PR #70. GitHub Actions Run #1159 passed on implementation head `d160b916` before merge.
 
 ### Accepted security boundary
 
