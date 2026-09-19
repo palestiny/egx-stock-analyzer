@@ -2274,13 +2274,4 @@ The transport contract remains replaceable: a future external identity provider 
 See `docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md`.
 
 
-**Status:** Proposed  
-**Date:** 2026-09-19
 
-M39 opens the next gate after M38. The goal is to connect protected HTTP requests to the existing application AuthenticatedIdentity and ownership boundary without moving credentials or ownership comparisons into domain code.
-
-The gate compares configured per-user bearer credentials, an external identity-provider adapter, and local username/password sessions. It also defines lifecycle checks, legacy M37 compatibility, API identity propagation, ownership-scoped access, and deterministic 401/403/404 behavior.
-
-Implementation is not authorized until the concrete authentication mechanism, provisioning boundary, endpoint scope, and legacy compatibility policy are accepted.
-
-See docs/DEC-099-M39-MULTI-USER-AUTHENTICATION-DESIGN-GATE.md.
