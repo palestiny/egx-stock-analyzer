@@ -14,7 +14,10 @@ from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
-from app.api.scheduled_workflow_execution_response import ScheduledWorkflowExecutionsResponse
+from app.api.scheduled_workflow_execution_response import (
+    ScheduledWorkflowExecutionResponse,
+    ScheduledWorkflowExecutionsResponse,
+)
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
@@ -31,6 +34,11 @@ from app.application.analysis.get_market_opportunity_ranking import GetMarketOpp
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
+from app.application.execution.recover_durable_scheduled_workflow import (
+    RecoverDurableScheduledWorkflow,
+    WorkflowExecutionNotFoundError,
+    WorkflowExecutionNotRecoverableError,
+)
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
     UnknownStockSymbolError,
@@ -57,6 +65,7 @@ def create_app(
     calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
+    recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -239,6 +248,37 @@ def create_app(
             ) from error
 
         response = ScheduledWorkflowExecutionsResponse.from_items(items)
+        return asdict(response)
+
+    @app.post("/api/v1/workflows/executions/{execution_id}/recover")
+    def recover_scheduled_workflow_execution(execution_id: UUID) -> dict[str, object]:
+        if recover_durable_scheduled_workflow is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Scheduled workflow recovery is not configured",
+            )
+
+        try:
+            execution = recover_durable_scheduled_workflow.execute(
+                execution_id,
+                date.today(),
+            )
+        except WorkflowExecutionNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except WorkflowExecutionNotRecoverableError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        except Exception as error:
+            logger.exception(
+                "Scheduled workflow recovery failed for %s",
+                execution_id,
+                exc_info=error,
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Scheduled workflow recovery failed",
+            ) from error
+
+        response = ScheduledWorkflowExecutionResponse.from_execution(execution)
         return asdict(response)
 
     @app.post("/api/v1/alerts/{symbol}/deliver")
