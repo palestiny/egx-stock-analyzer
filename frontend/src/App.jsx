@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "./api/analysisApi";
 
 function Metric({ label, value }) {
   return (
@@ -49,6 +49,8 @@ function App() {
   const [workflowExecutions, setWorkflowExecutions] = useState(null);
   const [workflowError, setWorkflowError] = useState(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
+  const [recoveringWorkflowId, setRecoveringWorkflowId] = useState(null);
+  const [workflowRecoveryErrors, setWorkflowRecoveryErrors] = useState({});
 
   async function handleAnalyze(event) {
     event.preventDefault();
@@ -158,6 +160,34 @@ function App() {
       setWorkflowError(requestError);
     } finally {
       setWorkflowLoading(false);
+    }
+  }
+
+
+  async function handleWorkflowRecovery(executionId) {
+    setRecoveringWorkflowId(executionId);
+    setWorkflowRecoveryErrors((current) => ({ ...current, [executionId]: null }));
+
+    try {
+      const recovered = await recoverScheduledWorkflowExecution(executionId);
+      setWorkflowExecutions((current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          items: current.items.map((item) => (
+            item.id === executionId ? recovered : item
+          )),
+        };
+      });
+    } catch (requestError) {
+      setWorkflowRecoveryErrors((current) => ({
+        ...current,
+        [executionId]: requestError,
+      }));
+    } finally {
+      setRecoveringWorkflowId(null);
     }
   }
 
@@ -326,6 +356,34 @@ function App() {
                   {" · Delivery "}
                   {execution.delivery_state ?? "—"}
                 </span>
+                {execution.state === "interrupted" && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleWorkflowRecovery(execution.id)}
+                      disabled={recoveringWorkflowId === execution.id}
+                    >
+                      {recoveringWorkflowId === execution.id ? "Recovering..." : "Recover"}
+                    </button>
+                    {workflowRecoveryErrors[execution.id]?.status === 404 && (
+                      <p className="state-card error" role="alert">
+                        Workflow execution was not found.
+                      </p>
+                    )}
+                    {workflowRecoveryErrors[execution.id]?.status === 409 && (
+                      <p className="state-card error" role="alert">
+                        Workflow execution is no longer recoverable.
+                      </p>
+                    )}
+                    {workflowRecoveryErrors[execution.id] &&
+                      workflowRecoveryErrors[execution.id].status !== 404 &&
+                      workflowRecoveryErrors[execution.id].status !== 409 && (
+                        <p className="state-card error" role="alert">
+                          Workflow recovery failed.
+                        </p>
+                      )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

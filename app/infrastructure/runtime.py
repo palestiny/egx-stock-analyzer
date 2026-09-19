@@ -50,6 +50,7 @@ class InfrastructureRuntime:
     telegram_notification_provider: TelegramNotificationProvider | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
+    recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -104,6 +105,7 @@ def create_infrastructure_runtime(
     automatic_alert_delivery = None
     run_configured_market_analysis_with_automatic_alert_delivery = None
     automatic_workflow_recovery = None
+    recover_durable_scheduled_workflow = None
     workflow_store = SQLiteScheduledWorkflowExecutionStore(config.analysis_database_path)
     get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
@@ -140,6 +142,7 @@ def create_infrastructure_runtime(
             scheduled_workflow=durable_workflow,
             store=workflow_store,
         )
+        recover_durable_scheduled_workflow = recover_workflow
         automatic_workflow_recovery = AutomaticWorkflowRecovery(
             recover_workflow=recover_workflow,
             store=workflow_store,
@@ -158,4 +161,5 @@ def create_infrastructure_runtime(
         telegram_notification_provider=telegram_notification_provider,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
+        recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
     )
