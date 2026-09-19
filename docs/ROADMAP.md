@@ -147,7 +147,10 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M44 | Execution Reliability & History | 🟢 Complete | Harden durable workflow idempotency, concurrent claiming, optimistic revisions, lifecycle history, and atomic state/history persistence |
 | M45 | Scheduled Workflow Lifecycle History Visibility | 🟢 Complete | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
 | M46 | Scheduled Workflow History Query Extensions | 🟢 Complete | Optional bounded sequence-cursor pagination with M45 complete-history compatibility |
+| M47 | Scheduled Workflow History Filtering | 🟡 Design Proposed | Evaluate typed lifecycle-state filtering over the existing paginated history read boundary |
 
+
+M47 is currently a **proposed design gate** in `docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md`. No implementation is authorized until the filter contract is explicitly accepted.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
