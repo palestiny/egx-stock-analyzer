@@ -21,6 +21,8 @@ class ScheduledWorkflowExecution:
     state: ScheduledWorkflowExecutionState
     created_at: datetime
     updated_at: datetime
+    analysis_state: str | None = None
+    delivery_state: str | None = None
 
     @classmethod
     def create(
@@ -36,6 +38,8 @@ class ScheduledWorkflowExecution:
             state=ScheduledWorkflowExecutionState.CREATED,
             created_at=now,
             updated_at=now,
+            analysis_state=None,
+            delivery_state=None,
         )
 
     def start(self, now: datetime) -> "ScheduledWorkflowExecution":
@@ -61,6 +65,23 @@ class ScheduledWorkflowExecution:
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return self._with_state(ScheduledWorkflowExecutionState.INTERRUPTED, now)
 
+    def with_outcomes(
+        self,
+        analysis_state: str,
+        delivery_state: str | None,
+        now: datetime,
+    ) -> "ScheduledWorkflowExecution":
+        self._require_state(ScheduledWorkflowExecutionState.RUNNING)
+        return ScheduledWorkflowExecution(
+            id=self.id,
+            occurrence_id=self.occurrence_id,
+            state=self.state,
+            created_at=self.created_at,
+            updated_at=now,
+            analysis_state=analysis_state,
+            delivery_state=delivery_state,
+        )
+
     def _with_state(
         self,
         state: ScheduledWorkflowExecutionState,
@@ -72,6 +93,8 @@ class ScheduledWorkflowExecution:
             state=state,
             created_at=self.created_at,
             updated_at=now,
+            analysis_state=self.analysis_state,
+            delivery_state=self.delivery_state,
         )
 
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
