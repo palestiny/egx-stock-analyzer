@@ -80,6 +80,6 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
     assert state == "completed"
     assert analysis_state == "completed"
     assert delivery_state == "completed"
-    assert occurrence_id.startswith("")
+    assert ":2026-09-18:21:00:00" in occurrence_id
 
     scheduled_operation.execute.assert_called_once_with(date(2026, 9, 18))
