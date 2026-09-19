@@ -514,6 +514,8 @@ def create_app(
         execution_id: UUID,
         page_size: int | None = None,
         cursor: str | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
         identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_scheduled_workflow_execution_history is None:
@@ -528,6 +530,8 @@ def create_app(
                 identity,
                 page_size=page_size,
                 cursor=cursor,
+                from_state=from_state,
+                to_state=to_state,
             )
         except ScheduledWorkflowExecutionHistoryNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
