@@ -2211,3 +2211,23 @@ User-owned capabilities must introduce explicit ownership at the application/per
 M38 requires deterministic ownership-isolation tests and persistence/reload coverage.
 
 See `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`.
+
+
+## DEC-098 — M38 Identity Persistence & Capability Migration
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+### Decision
+
+Identity persistence uses a dedicated application `UserStore` boundary backed by the existing SQLite deployment. Identity persistence remains separate from analytical persistence.
+
+The first user-owned durable capability is `ScheduledWorkflowExecution`. Ownership is represented by `owner_user_id`: NULL means system/global legacy ownership for this capability, while a non-null UUID is explicit user ownership.
+
+Historical scheduled-workflow executions are not silently reassigned. The deterministic M37 `LEGACY_OPERATOR_USER_ID` is materialized idempotently as a compatibility identity, but existing legacy records remain system/global.
+
+Disabled and deleted users retain historical ownership metadata but cannot access protected resources. Repository writes remain locally atomic; a cross-repository transaction is deferred until a future command requires atomic changes across identity and capability state.
+
+New user-owned scheduled-workflow operations require an active authenticated identity and the centralized ownership authorization boundary. Legacy operator compatibility remains limited to system/global records.
+
+See `docs/DEC-098-M38-IDENTITY-PERSISTENCE-DESIGN-GATE.md`.
