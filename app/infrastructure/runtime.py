@@ -127,6 +127,7 @@ def create_infrastructure_runtime(
         input_assembler=input_assembler,
         result_store=result_store,
         retry_policy=retry_policy,
+        management_audit_store=management_audit_store,
     )
 
     has_telegram_token = config.telegram_bot_token is not None

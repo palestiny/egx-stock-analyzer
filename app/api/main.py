@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -14,6 +14,7 @@ from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
+from app.api.management_audit_response import ManagementAuditResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
@@ -41,6 +42,7 @@ from app.application.security.authentication import (
 )
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.identity.get_management_audit import GetManagementAudit, InvalidManagementAuditPageSizeError
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.domain.identity.user import UserStatus
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
@@ -85,6 +87,7 @@ def create_app(
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     user_management: UserManagementService | None = None,
+    get_management_audit: GetManagementAudit | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
     authenticator: Authenticator | None = None,
 ) -> FastAPI:
@@ -159,6 +162,38 @@ def create_app(
             "user_id": str(identity.user_id) if identity.user_id is not None else None,
             "status": identity.user_status.value if identity.user_status is not None else None,
         }
+
+    @app.get("/api/v1/management/audit")
+    def get_management_audit_report(
+        actor_user_id: UUID | None = None,
+        target_user_id: UUID | None = None,
+        action: str | None = None,
+        outcome: str | None = None,
+        from_time: datetime | None = None,
+        to_time: datetime | None = None,
+        page_size: int = 50,
+        offset: int = 0,
+        identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if get_management_audit is None:
+            raise HTTPException(status_code=503, detail="Management audit reporting is not configured")
+        try:
+            page = get_management_audit.execute(
+                identity,
+                actor_user_id=actor_user_id,
+                target_user_id=target_user_id,
+                action=action,
+                outcome=outcome,
+                from_time=from_time,
+                to_time=to_time,
+                page_size=page_size,
+                offset=offset,
+            )
+        except InvalidManagementAuditPageSizeError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return asdict(ManagementAuditResponse.from_page(page))
 
     @app.get("/api/v1/users")
     def list_users(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
