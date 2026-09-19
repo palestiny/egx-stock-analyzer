@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from secrets import token_urlsafe
+from typing import Protocol
 from uuid import UUID, uuid4
 
 
@@ -21,7 +22,7 @@ class IssuedCredential:
     secret: str
 
 
-class CredentialStore:
+class CredentialStore(Protocol):
     def create(
         self,
         credential: StoredCredential,
