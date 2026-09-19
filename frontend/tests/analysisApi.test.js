@@ -176,3 +176,27 @@ it("clears the session and emits auth expiry on HTTP 401", async () => {
   expect(window.sessionStorage.getItem("egx-stock-analyzer.session-token")).toBeNull();
   expect(dispatchSpy).toHaveBeenCalled();
 });
+
+
+describe("getManagementAudit", () => {
+  it("builds bounded audit query parameters", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [], total_count: 0, offset: 0, page_size: 50, has_more: false }),
+    });
+
+    const { getManagementAudit } = await import("../src/api/analysisApi");
+    await getManagementAudit({
+      actorUserId: "actor-id",
+      targetUserId: "target-id",
+      action: "user_created",
+      outcome: "success",
+      pageSize: 50,
+      offset: 100,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/management/audit?actor_user_id=actor-id&target_user_id=target-id&action=user_created&outcome=success&page_size=50&offset=100",
+    );
+  });
+});
