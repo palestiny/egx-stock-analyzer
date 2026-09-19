@@ -60,6 +60,7 @@ class InfrastructureRuntime:
     telegram_notification_provider: TelegramNotificationProvider | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
+    get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     authenticator: DurableBearerTokenAuthenticator | None = None
     credential_service: CredentialService | None = None
