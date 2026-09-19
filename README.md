@@ -152,7 +152,7 @@ npm install
 npm run dev
 ```
 
-Vite proxies `/api` requests to `http://localhost:8000`.
+Vite proxies `/api` requests to `http://localhost:8000`. Configure `VITE_OPERATOR_TOKEN` in the frontend environment with the same operator token used by `EGX_OPERATOR_TOKEN`; the dashboard API client sends it as a bearer credential.
 
 ## Persistence Contract
 
