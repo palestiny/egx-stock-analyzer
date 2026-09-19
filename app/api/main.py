@@ -185,6 +185,7 @@ def create_app(
         symbol: str,
         before: UUID,
         after: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if calculate_snapshot_performance is None:
             raise HTTPException(status_code=503, detail="Historical performance is not configured")
