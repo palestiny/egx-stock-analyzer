@@ -2414,3 +2414,33 @@ Target-only visibility provides a strong personal-ownership boundary and avoids 
 M43 adds a user-scoped read model and endpoint but does not add a permission model, alter audit persistence, expose unrelated identities, or change M42 operator reporting.
 
 See docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md.
+
+
+## DEC-105 — M44 Execution Reliability & History
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M44 hardens the durable scheduled-workflow execution boundary without changing its external API/dashboard contract.
+
+### Decision
+
+Occurrence IDs are durable idempotency keys. Each request is bound to a deterministic fingerprint containing normalized occurrence ID, analysis date, and effective owner identity. Reuse with the same fingerprint returns the existing execution; reuse with a different fingerprint raises an explicit idempotency conflict.
+
+SQLite owns atomic reservation and atomic CREATED → RUNNING claiming. Only the successful claimant executes the scheduled operation. Execution persistence uses optimistic revision checks so stale writers cannot overwrite newer state, while repeated persistence of the exact already-stored state is idempotent.
+
+Lifecycle transitions are append-only in a dedicated history table. Current execution state and its corresponding lifecycle-history transition are committed atomically. Recovery persists INTERRUPTED → RUNNING before replaying the operation so recovery participates in the same revision/history contract as normal execution.
+
+### Trade-offs
+
+This adds revision and history persistence complexity, but makes duplicate requests, concurrent starts, stale writes, and restart recovery explicit and testable. Distributed execution, queues, and broader workflow observability remain outside this MVP.
+
+### Consequences
+
+Scheduled workflow execution now has durable semantics for idempotency, concurrency control, lifecycle history, and atomic state/history persistence. Existing application/API/dashboard boundaries remain unchanged.
+
+### Validation
+
+GitHub Actions Run #1686 passed for implementation head `bd74921e9c789e95b2198ab82acdded6bab689bc` before merge through PR #102.
+
+See `docs/M44-EXECUTION-RELIABILITY-AND-HISTORY-MVP-COMPLETION.md`.
