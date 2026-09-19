@@ -329,7 +329,8 @@ def test_filtered_cursor_cannot_be_reused_with_different_filter():
     execution = make_execution()
     history = (
         (1, "running", "completed", execution.updated_at, None),
-        (2, "running", "failed", execution.updated_at, None),
+        (2, "running", "completed", execution.updated_at, None),
+        (3, "running", "failed", execution.updated_at, None),
     )
     query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
 
