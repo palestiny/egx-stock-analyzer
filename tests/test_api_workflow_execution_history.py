@@ -222,7 +222,7 @@ def test_api_passes_history_pagination_parameters():
         )
 
     assert response.status_code == 200
-    assert query.calls[0][2:] == (2, "Mg")
+    assert query.calls[0][2:] == (2, "Mg", None, None)
 
 
 def test_api_maps_invalid_history_query_to_400():
