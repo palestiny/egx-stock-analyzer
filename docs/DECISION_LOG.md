@@ -2040,3 +2040,17 @@ Durable-store inspection failure is an application startup failure. Individual r
 No recovery HTTP endpoint, checkpointing, distributed coordination, queue/worker model, provider retry, or new notification behavior is introduced.
 
 See `docs/DEC-091-M32-AUTOMATIC-WORKFLOW-RESUME-DESIGN-GATE.md`.
+
+
+## DEC-092 — M33 Scheduled Workflow Operational Visibility
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M33 introduces a provider-neutral, read-only application capability named `GetScheduledWorkflowExecutions` over the existing `ScheduledWorkflowExecutionStore`.
+
+The accepted MVP exposes all persisted scheduled workflow executions, orders them deterministically by `created_at DESC, execution_id DESC`, and supports an exact optional `occurrence_id` filter. The read model preserves execution identity, occurrence identity, lifecycle state, timestamps, analysis state, and delivery state already persisted by the workflow model.
+
+No workflow execution, recovery, scheduling, notification, analytical, or persistence-schema behavior changes. HTTP/dashboard exposure, real-time streaming, pagination/retention, authentication, metrics/tracing, and distributed execution remain deferred.
+
+See `docs/DEC-092-M33-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-DESIGN-GATE.md`.
