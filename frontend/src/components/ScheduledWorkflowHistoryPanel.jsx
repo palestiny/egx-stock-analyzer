@@ -6,13 +6,21 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fromState, setFromState] = useState("");
+  const [toState, setToState] = useState("");
 
   async function handleLoad(options = {}) {
     setLoading(true);
     setError(null);
 
     try {
-      setHistory(await getHistory(execution.id, options));
+      setHistory(
+        await getHistory(execution.id, {
+          ...options,
+          fromState: fromState || undefined,
+          toState: toState || undefined,
+        }),
+      );
     } catch (requestError) {
       setHistory(null);
       setError(requestError);
@@ -33,6 +41,8 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
       const nextPage = await getHistory(execution.id, {
         pageSize: PAGE_SIZE,
         cursor: history.next_cursor,
+        fromState: fromState || undefined,
+        toState: toState || undefined,
       });
       setHistory((current) => ({
         ...nextPage,
@@ -47,6 +57,32 @@ export function ScheduledWorkflowHistoryPanel({ execution, getHistory }) {
 
   return (
     <div className="workflow-history">
+      <div className="symbol-form">
+        <label>
+          From state
+          <select value={fromState} onChange={(event) => setFromState(event.target.value)}>
+            <option value="">Any</option>
+            <option value="created">created</option>
+            <option value="running">running</option>
+            <option value="completed">completed</option>
+            <option value="completed_with_errors">completed_with_errors</option>
+            <option value="failed">failed</option>
+            <option value="interrupted">interrupted</option>
+          </select>
+        </label>
+        <label>
+          To state
+          <select value={toState} onChange={(event) => setToState(event.target.value)}>
+            <option value="">Any</option>
+            <option value="created">created</option>
+            <option value="running">running</option>
+            <option value="completed">completed</option>
+            <option value="completed_with_errors">completed_with_errors</option>
+            <option value="failed">failed</option>
+            <option value="interrupted">interrupted</option>
+          </select>
+        </label>
+      </div>
       <button type="button" onClick={() => handleLoad({ pageSize: PAGE_SIZE })} disabled={loading}>
         {loading ? "Loading history..." : "History"}
       </button>
