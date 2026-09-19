@@ -43,7 +43,6 @@ describe("ScheduledWorkflowHistoryPanel", () => {
   });
 
   it("renders an empty-history state", async () => {
-    const user = userEvent.setup();
     const getHistory = vi.fn().mockResolvedValue({
       execution_id: "execution-1",
       occurrence_id: "occ-45",
@@ -57,7 +56,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "History" }));
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
 
     await waitFor(() => {
       expect(
