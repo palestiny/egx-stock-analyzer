@@ -22,6 +22,7 @@ def test_protected_endpoint_requires_credentials():
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Authentication required"}
+    assert response.headers["www-authenticate"] == "Bearer"
 
 
 def test_protected_endpoint_rejects_invalid_credentials():
