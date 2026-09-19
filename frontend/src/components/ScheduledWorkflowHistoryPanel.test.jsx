@@ -145,7 +145,6 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     });
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
   });
-});
 
 
   it("passes selected state filters and keeps them for pagination", async () => {
@@ -209,3 +208,5 @@ describe("ScheduledWorkflowHistoryPanel", () => {
       toState: "completed",
     });
   });
+
+});
