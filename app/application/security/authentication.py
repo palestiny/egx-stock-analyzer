@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import Protocol
 from secrets import compare_digest
 from uuid import UUID
 
@@ -12,6 +13,11 @@ from app.domain.identity.user import UserStatus
 
 class AuthenticationError(ValueError):
     """Raised when supplied authentication credentials are missing or invalid."""
+
+
+class Authenticator(Protocol):
+    def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
+        ...
 
 
 class BearerTokenAuthenticator:
