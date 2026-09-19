@@ -17,6 +17,7 @@ from app.api.market_analysis_execution_response import MarketAnalysisExecutionRe
 from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
+from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
 from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
     ScheduledWorkflowExecutionsResponse,
@@ -52,6 +53,10 @@ from app.application.identity.get_user_audit_history import (
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.domain.identity.user import UserStatus
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.execution.get_scheduled_workflow_execution_history import (
+    GetScheduledWorkflowExecutionHistory,
+    ScheduledWorkflowExecutionHistoryNotFoundError,
+)
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import (
     RecoverDurableScheduledWorkflow,
@@ -91,6 +96,7 @@ def create_app(
     calculate_snapshot_performance: CalculateSnapshotPerformance | None = None,
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
+    get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     user_management: UserManagementService | None = None,
     get_management_audit: GetManagementAudit | None = None,
@@ -500,6 +506,40 @@ def create_app(
             )
 
         response = ScheduledWorkflowExecutionsResponse.from_items(items)
+        return asdict(response)
+
+    @app.get("/api/v1/workflows/executions/{execution_id}/history")
+    def get_scheduled_workflow_execution_history(
+        execution_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_scheduled_workflow_execution_history is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Scheduled workflow execution history is not configured",
+            )
+
+        try:
+            history = get_scheduled_workflow_execution_history.execute(
+                execution_id,
+                identity,
+            )
+        except ScheduledWorkflowExecutionHistoryNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
+        except Exception as error:
+            logger.exception(
+                "Scheduled workflow execution history failed for %s",
+                execution_id,
+                exc_info=error,
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Scheduled workflow execution history failed",
+            ) from error
+
+        response = ScheduledWorkflowExecutionHistoryResponse.from_read_model(history)
         return asdict(response)
 
     @app.post("/api/v1/workflows/executions/{execution_id}/recover")
