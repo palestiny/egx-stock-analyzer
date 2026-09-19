@@ -12,7 +12,6 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecution,
     ScheduledWorkflowExecutionState,
 )
-from app.application.execution.result_store import AnalysisResultStore
 
 
 def make_execution(state):
