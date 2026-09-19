@@ -5,9 +5,19 @@ async function parseError(response, operation) {
 }
 
 async function getJson(url, operation, options) {
-  const response = options === undefined
+  const operatorToken = import.meta.env.VITE_EGX_OPERATOR_TOKEN;
+  const requestOptions = options === undefined ? {} : { ...options };
+
+  if (operatorToken) {
+    requestOptions.headers = {
+      ...(requestOptions.headers || {}),
+      Authorization: "Bearer " + operatorToken,
+    };
+  }
+
+  const response = Object.keys(requestOptions).length === 0
     ? await fetch(url)
-    : await fetch(url, options);
+    : await fetch(url, requestOptions);
 
   if (!response.ok) {
     await parseError(response, operation);
