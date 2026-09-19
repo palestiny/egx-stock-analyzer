@@ -17,6 +17,8 @@ class InMemoryUserStore:
         return self.users.get(user_id)
     def get_or_create(self, user_id, status):
         return self.users.setdefault(user_id, User(user_id, status))
+    def list(self):
+        return list(self.users.values())
 
 class InMemoryCredentialStore:
     def __init__(self):
@@ -93,3 +95,9 @@ def test_legacy_operator_cannot_be_disabled_or_deleted():
     service, _, _ = make_service([target])
     with pytest.raises(UserManagementError, match="Legacy operator"):
         service.set_status(AuthenticatedIdentity.operator(), target.id, UserStatus.DISABLED)
+
+def test_operator_can_list_users():
+    first=User(uuid4(), UserStatus.ACTIVE)
+    service, _, _ = make_service([first])
+    users=service.list_users(AuthenticatedIdentity.operator())
+    assert first in users
