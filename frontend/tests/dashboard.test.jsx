@@ -332,7 +332,8 @@ describe("Dashboard", () => {
     await waitFor(() => {
       expect(recoverScheduledWorkflowExecution).toHaveBeenCalledWith("workflow-interrupted");
     });
-    expect(await screen.findByText("completed")).toBeInTheDocument();
+    const workflowRows = screen.getAllByText(/occ-/).map((item) => item.closest(".detail-row"));
+    expect(workflowRows[1]).toHaveTextContent("completed");
     expect(screen.queryByRole("button", { name: "Recover" })).not.toBeInTheDocument();
   });
 
