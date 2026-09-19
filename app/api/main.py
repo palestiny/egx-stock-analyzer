@@ -78,25 +78,42 @@ def create_app(
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
+    authenticator: ConfiguredBearerTokenAuthenticator | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
-    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided)
+    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
         None
         if legacy_test_composition
         else operator_token if operator_token is not None else os.getenv("EGX_OPERATOR_TOKEN")
     )
-    authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
+    operator_authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
     authorizer = OperatorAuthorizer()
 
-    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
+    def require_authenticated(
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedIdentity:
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
         if authenticator is None:
             raise HTTPException(status_code=503, detail="Authentication is not configured")
         try:
-            identity = authenticator.authenticate(authorization)
+            return authenticator.authenticate(authorization)
+        except AuthenticationError as error:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+
+    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
+        if legacy_test_composition:
+            return AuthenticatedIdentity.operator()
+        if operator_authenticator is None:
+            raise HTTPException(status_code=503, detail="Authentication is not configured")
+        try:
+            identity = operator_authenticator.authenticate(authorization)
             authorizer.require(identity, Permission.OPERATOR)
             return identity
         except AuthenticationError as error:
