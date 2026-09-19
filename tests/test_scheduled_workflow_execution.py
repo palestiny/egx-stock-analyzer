@@ -110,7 +110,8 @@ def test_lifecycle_history_survives_restart(tmp_path):
     interrupted = running.interrupt(datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc))
     store.save(interrupted)
     recovered = interrupted.start_recovery(
-        datetime(2026, 9, 19, 9, 1, tzinfo=timezone.utc)
+        datetime(2026, 9, 19, 9, 1, tzinfo=timezone.utc),
+        reason="startup recovery",
     )
     store.save(recovered)
 
