@@ -181,3 +181,17 @@ No distributed queues, brokers, event sourcing, multi-node locking service, new 
 ## Design Gate Status
 
 Proposed. Implementation is not authorized until the concurrency, atomicity, idempotency-conflict, and history contracts are explicitly accepted.
+
+## 13. Repository-Level Gap Assessment
+
+The current tests establish sequential idempotency for an in-memory registry and sequential create-or-get behavior for scheduled workflow occurrences. They do not yet establish the concurrency contract across two SQLite connections.
+
+The current scheduled-workflow tests prove that final lifecycle state survives restart, but they do not prove an append-only transition trail exists or that transition evidence survives a history-write failure.
+
+The current persistence implementation updates the execution row by execution ID without a revision predicate. Therefore stale-writer protection is not currently an implemented invariant.
+
+The current in-memory ExecutionRegistry treats FAILED and COMPLETED_WITH_ERRORS as eligible for a new execution. That policy is a semantic choice and must not be assumed to be correct for every durable workflow operation. M44 must define which terminal states are replayable and which are terminal/idempotent.
+
+The current durable occurrence identity is tied to scheduled occurrence_id. It is useful idempotency evidence for recurring scheduling, but it is not by itself a general request idempotency contract with request-parameter conflict detection.
+
+These gaps are the reason this work is a design gate rather than an immediate refactor.
