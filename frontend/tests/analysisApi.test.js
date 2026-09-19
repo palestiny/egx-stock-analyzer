@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 
 describe("analysis API client", () => {
   it("requests analysis for the requested symbol and returns the response", async () => {
@@ -121,5 +121,22 @@ it("requests scheduled workflow executions with an optional occurrence filter", 
 
   expect(globalThis.fetch).toHaveBeenCalledWith(
     "/api/v1/workflows/executions?occurrence_id=occ-42",
+  );
+});
+
+
+it("requests scheduled workflow recovery with POST", async () => {
+  const execution = { id: "workflow-1", occurrence_id: "occ-1", state: "completed" };
+
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue(execution),
+  });
+
+  await expect(recoverScheduledWorkflowExecution("workflow-1")).resolves.toEqual(execution);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/workflows/executions/workflow-1/recover",
+    { method: "POST" },
   );
 });
