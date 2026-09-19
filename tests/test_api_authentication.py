@@ -50,7 +50,8 @@ def test_protected_endpoint_accepts_valid_operator_credentials():
     assert response.json() == {"detail": "Analysis result not found for EGAL"}
 
 
-def test_unconfigured_authentication_is_explicit():
+def test_unconfigured_authentication_is_explicit(monkeypatch):
+    monkeypatch.delenv("EGX_OPERATOR_TOKEN", raising=False)
     app = create_app(InMemoryAnalysisResultStore(), operator_token=None)
 
     with TestClient(app) as client:
