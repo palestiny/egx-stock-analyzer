@@ -14,3 +14,6 @@ class UserStore(Protocol):
 
     def get_or_create(self, user_id: UUID, status: UserStatus) -> User:
         ...
+
+    def list(self) -> list[User]:
+        ...
