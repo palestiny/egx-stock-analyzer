@@ -179,6 +179,10 @@ class GetScheduledWorkflowExecutionHistory:
             try:
                 payload = json.loads(decoded)
             except json.JSONDecodeError:
+                if expected_from_state is not None or expected_to_state is not None:
+                    raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                        "cursor does not match the requested history filters"
+                    )
                 sequence = int(decoded)
             else:
                 if not isinstance(payload, dict) or set(payload) != {
