@@ -89,7 +89,7 @@ def test_recovery_does_not_resume_execution(tmp_path):
     store = SQLiteScheduledWorkflowExecutionStore(path)
     created = store.create_or_get(
         "occurrence",
-        datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc,
+        datetime(2026, 9, 19, 8, 0, tzinfo=timezone.utc),
     )
     )
     store.save(created.start(datetime(2026, 9, 19, 8, 1, tzinfo=timezone.utc)))
