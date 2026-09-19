@@ -2084,3 +2084,17 @@ The MVP loads executions explicitly, preserves API ordering, supports exact occu
 No automatic polling or workflow control is introduced. Empty, unavailable, and transport-error states are explicit presentation states. Workflow mutation, recovery controls, real-time streaming, pagination, authentication, metrics/tracing, and notification controls remain deferred.
 
 See `docs/DEC-094-M35-WORKFLOW-OPERATIONAL-DASHBOARD-DESIGN-GATE.md`.
+
+
+## DEC-095 — M36 Scheduled Workflow Recovery Control
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M36 proposes an explicit operator-triggered recovery boundary for one persisted INTERRUPTED scheduled workflow execution. The preferred direction is a dedicated POST command that delegates to the existing M31 RecoverDurableScheduledWorkflow capability and preserves execution identity.
+
+The dashboard would expose recovery only for interrupted rows. It would not mutate workflow state locally, create replacement occurrences, or introduce automatic polling.
+
+Open decisions cover the non-recoverable HTTP status, dashboard action placement, post-recovery presentation, concurrent-click behavior, and whether recovery should remain available before an authentication boundary exists.
+
+See docs/DEC-095-M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-DESIGN-GATE.md.

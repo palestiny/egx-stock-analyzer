@@ -136,6 +136,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M33 | Scheduled Workflow Operational Visibility | 🟢 Complete | Provide a provider-neutral read-side capability over persisted scheduled workflow executions |
 | M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
+| M36 | Scheduled Workflow Recovery Control | 🟡 Design Proposed | Give operators an explicit, provider-neutral recovery command for one interrupted scheduled workflow execution |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -210,6 +211,8 @@ M33 — Scheduled Workflow Operational Visibility
 M34 — Scheduled Workflow Operational Visibility API
         ↓
 M35 — Scheduled Workflow Operational Dashboard
+        ↓
+M36 — Scheduled Workflow Recovery Control
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
