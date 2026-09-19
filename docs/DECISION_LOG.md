@@ -2162,3 +2162,52 @@ M37 establishes a single-operator bearer-token security boundary. `GET /health` 
 Missing/invalid credentials map to HTTP 401; authenticated callers without the required permission map to HTTP 403. The operator token is configuration-only, never persisted or logged. Multi-user identity, ownership, password/session management, external identity providers, and permission administration remain deferred.
 
 See `docs/DEC-096-M37-AUTHENTICATION-AUTHORIZATION-DESIGN-GATE.md`.
+
+## DEC-097 — M38 Multi-User Identity & Ownership
+
+**Status:** Proposed  
+**Date:** 2026-09-19
+
+M38 opens the next security/product design gate after M37. The goal is to define a stable multi-user identity and ownership boundary without moving authentication or authorization rules into the analytical domain.
+
+The gate must resolve identity source, immutable user identifiers, ownership semantics, credential/session responsibility, user lifecycle, persistence scoping, API authorization behavior, migration from the current single-operator token, and deterministic ownership-isolation testing.
+
+Implementation is not authorized until these decisions are accepted.
+
+See `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`.
+
+## DEC-097 — M38 Multi-User Identity & Ownership
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+### Decision
+
+M38 adopts a hybrid application identity boundary with an immutable internal user UUID.
+
+The application owns identity and resource-ownership semantics. Authentication remains behind a replaceable adapter and supplies an authenticated application identity rather than raw credentials.
+
+User-owned resources use explicit `owner_user_id` references. System/global resources remain explicitly unowned. Existing M37 data is classified as system-owned legacy data until an explicit migration operation establishes user ownership.
+
+Authorization is ownership-first for the M38 MVP. Roles, organizations, delegated access, and team administration are deferred.
+
+User lifecycle states are ACTIVE, DISABLED, and DELETED. Disabled/deleted identities cannot access protected resources; historical ownership remains attributable.
+
+API authorization semantics are:
+- unauthenticated → 401;
+- authenticated but not owner → 403;
+- authenticated and resource absent → 404.
+
+M37's single-operator token remains temporarily supported as a compatibility adapter mapped to a designated legacy/system operator identity. It must not bypass user ownership.
+
+### Reasoning
+
+This preserves the separation between authentication mechanism and application identity/ownership, allows future external identity integration without changing ownership semantics, and avoids prematurely introducing organizations or role-management concepts.
+
+### Consequences
+
+User-owned capabilities must introduce explicit ownership at the application/persistence boundary. Domain analytical services remain identity-agnostic. Ownership checks are centralized in application authorization rather than duplicated across API controllers or dashboard components.
+
+M38 requires deterministic ownership-isolation tests and persistence/reload coverage.
+
+See `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`.

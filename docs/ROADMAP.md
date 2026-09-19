@@ -138,6 +138,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
+| M38 | Multi-User Identity & Ownership | 🟡 Design Accepted | Establish application identity, explicit ownership, ownership-based authorization, lifecycle, and deterministic migration from M37 |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -216,6 +217,8 @@ M35 — Scheduled Workflow Operational Dashboard
 M36 — Scheduled Workflow Recovery Control
         ↓
 M37 — Authentication & Authorization Boundary
+        ↓
+M38 — Multi-User Identity & Ownership
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1164,6 +1167,34 @@ The command is synchronous and explicit. Only `INTERRUPTED` executions are recov
 M36 does not add authentication, replacement occurrences, new persistence schema, retry policy, polling, bulk recovery, concurrency, or new workflow semantics.
 
 Completion record: `docs/M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-MVP-COMPLETION.md`.
+
+---
+
+# 33.8. M38 — Multi-User Identity & Ownership
+
+## Status
+
+The M38 design gate is **accepted** in `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
+
+### Accepted boundary
+
+```
+HTTP / Authentication Adapter
+          ↓
+AuthenticatedIdentity
+          ↓
+Application Authorization Boundary
+          ↓
+User-Owned Application Capability
+          ↓
+Domain / Persistence
+```
+
+M38 uses a hybrid identity boundary with immutable internal user UUIDs. Authentication remains adapter-owned and replaceable. User-owned resources carry explicit ownership references; system/global resources remain explicitly global. M37 operator authentication remains temporarily available only as a compatibility path.
+
+The MVP defines ACTIVE, DISABLED, and DELETED user lifecycle states and explicit 401/403/404 semantics for protected resources.
+
+Deferred: commercial identity-provider selection, social login, MFA, SSO, organizations/teams, role-management UI, billing, trading authorization, audit-log product design, rate limiting/WAF, notification preferences, and AI authorization policy.
 
 ---
 
