@@ -40,7 +40,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("started")).toBeInTheDocument();
     });
-    expect(screen.getByText("created → running")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === "created → running")).toBeInTheDocument();
     expect(getHistory).toHaveBeenCalledWith("execution-1", { pageSize: 50 });
   });
 
@@ -199,7 +199,7 @@ describe("ScheduledWorkflowHistoryPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load more" }));
 
     await waitFor(() => {
-      expect(screen.getByText("No lifecycle history is available.")).toBeInTheDocument();
+      expect(screen.getByText((_, element) => element?.textContent === "running → completed")).toBeInTheDocument();
     });
     expect(getHistory).toHaveBeenLastCalledWith("execution-1", {
       pageSize: 50,
