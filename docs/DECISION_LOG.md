@@ -2468,3 +2468,17 @@ The M45 MVP exposes both a read-only API endpoint and dashboard presentation. Hi
 M45 does not modify lifecycle transitions, persistence schema, authentication, recovery semantics, or history records. API and dashboard code remain presentation/transport boundaries and do not access SQLite directly.
 
 See `docs/DEC-106-M45-SCHEDULED-WORKFLOW-LIFECYCLE-HISTORY-VISIBILITY-DESIGN-GATE.md`.
+
+
+## DEC-107 — M46 Scheduled Workflow History Query Extensions
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M46 extends the M45 lifecycle-history read boundary with optional bounded sequence-cursor pagination.
+
+The first page preserves ascending persisted sequence order, the default page size is 50, and the maximum is 100. The continuation cursor represents the last returned sequence and is opaque at the API boundary. Responses expose items, has_more, and next_cursor without requiring a total count.
+
+The existing M45 complete-history behavior remains compatible when pagination is omitted. M46 is pagination-only; filtering, history mutation, retention, replay, and cross-execution queries remain deferred. The existing primary key on execution_id and sequence is sufficient for the selected query shape.
+
+See docs/DEC-107-M46-SCHEDULED-WORKFLOW-HISTORY-QUERY-DESIGN-GATE.md.
