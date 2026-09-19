@@ -38,7 +38,7 @@ def create_application(runtime: InfrastructureRuntime) -> FastAPI:
         runtime.application_runtime.calculate_snapshot_performance,
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
-        runtime.recover_durable_scheduled_workflow,
+        getattr(runtime, "recover_durable_scheduled_workflow", None),
     )
     app.router.lifespan_context = lifespan
     return app
