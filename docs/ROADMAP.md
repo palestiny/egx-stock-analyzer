@@ -138,7 +138,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
-| M38 | Multi-User Identity & Ownership | 🟡 Design Accepted | Establish application identity, explicit ownership, ownership-based authorization, lifecycle, and deterministic migration from M37 |
+| M38 | Multi-User Identity & Ownership | 🟡 Foundation Slice Complete | Identity lifecycle, application identity, ownership authorization boundary, and deterministic M37 legacy mapping are implemented; persistence/reload and user-owned capability migration remain |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1174,7 +1174,7 @@ Completion record: `docs/M36-SCHEDULED-WORKFLOW-RECOVERY-CONTROL-MVP-COMPLETION.
 
 ## Status
 
-The M38 design gate is **accepted** in `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`. Implementation is authorized for the defined MVP.
+The M38 design gate is **accepted** in `docs/DEC-097-M38-MULTI-USER-IDENTITY-DESIGN-GATE.md`. The first implementation slice is complete and merged through PR #73. GitHub Actions Run #1221 passed on implementation head `f335c67d`. The slice establishes the immutable user lifecycle model, application identity contract, explicit ownership authorization boundary, and deterministic M37 legacy operator mapping. Persistence/reload and migration of concrete user-owned capabilities remain before M38 can be marked complete.
 
 ### Accepted boundary
 
