@@ -30,6 +30,7 @@ class ScheduledWorkflowExecution:
     delivery_state: str | None = None
     request_fingerprint: str | None = None
     revision: int = 0
+    transition_reason: str | None = None
 
     @classmethod
     def create(
@@ -48,37 +49,52 @@ class ScheduledWorkflowExecution:
             created_at=now,
             updated_at=now,
             owner_user_id=owner_user_id,
-            analysis_state=None,
-            delivery_state=None,
             request_fingerprint=request_fingerprint,
             revision=0,
         )
 
-    def start(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def start(self, now: datetime, reason: str | None = None) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.CREATED)
-        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
+        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now, reason)
 
-    def start_recovery(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def start_recovery(
+        self,
+        now: datetime,
+        reason: str | None = None,
+    ) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.INTERRUPTED)
-        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now)
+        return self._with_state(ScheduledWorkflowExecutionState.RUNNING, now, reason)
 
-    def complete(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def complete(self, now: datetime, reason: str | None = None) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(ScheduledWorkflowExecutionState.COMPLETED, now)
+        return self._with_state(ScheduledWorkflowExecutionState.COMPLETED, now, reason)
 
-    def complete_with_errors(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def complete_with_errors(
+        self,
+        now: datetime,
+        reason: str | None = None,
+    ) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS, now)
+        return self._with_state(
+            ScheduledWorkflowExecutionState.COMPLETED_WITH_ERRORS,
+            now,
+            reason,
+        )
 
-    def fail(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def fail(self, now: datetime, reason: str | None = None) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(ScheduledWorkflowExecutionState.FAILED, now)
+        return self._with_state(ScheduledWorkflowExecutionState.FAILED, now, reason)
 
-    def interrupt(self, now: datetime) -> "ScheduledWorkflowExecution":
+    def interrupt(self, now: datetime, reason: str | None = None) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
-        return self._with_state(ScheduledWorkflowExecutionState.INTERRUPTED, now)
+        return self._with_state(ScheduledWorkflowExecutionState.INTERRUPTED, now, reason)
 
-    def with_outcomes(self, analysis_state: str, delivery_state: str | None, now: datetime) -> "ScheduledWorkflowExecution":
+    def with_outcomes(
+        self,
+        analysis_state: str,
+        delivery_state: str | None,
+        now: datetime,
+    ) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return ScheduledWorkflowExecution(
             id=self.id,
@@ -91,9 +107,15 @@ class ScheduledWorkflowExecution:
             delivery_state=delivery_state,
             request_fingerprint=self.request_fingerprint,
             revision=self.revision + 1,
+            transition_reason=self.transition_reason,
         )
 
-    def _with_state(self, state: ScheduledWorkflowExecutionState, now: datetime) -> "ScheduledWorkflowExecution":
+    def _with_state(
+        self,
+        state: ScheduledWorkflowExecutionState,
+        now: datetime,
+        reason: str | None,
+    ) -> "ScheduledWorkflowExecution":
         return ScheduledWorkflowExecution(
             id=self.id,
             occurrence_id=self.occurrence_id,
@@ -105,6 +127,7 @@ class ScheduledWorkflowExecution:
             delivery_state=self.delivery_state,
             request_fingerprint=self.request_fingerprint,
             revision=self.revision + 1,
+            transition_reason=reason,
         )
 
     def _require_state(self, expected: ScheduledWorkflowExecutionState) -> None:
