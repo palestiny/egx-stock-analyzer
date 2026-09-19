@@ -58,3 +58,28 @@ def test_history_query_supports_sequence_cursor_and_limit(tmp_path: Path):
 
     assert [item[0] for item in first] == [1, 2]
     assert [item[0] for item in second] == [3]
+
+
+def test_history_query_filters_before_pagination(tmp_path: Path):
+    database = tmp_path / "workflow.db"
+    created_at = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = store.create_or_get("occ-filter", created_at)
+    running = store.start_if_created(
+        execution.id,
+        datetime(2026, 9, 19, 10, 1, tzinfo=timezone.utc),
+    )
+    assert running is not None
+    completed = running.complete(
+        datetime(2026, 9, 19, 10, 2, tzinfo=timezone.utc),
+        reason="finished",
+    )
+    store.save(completed)
+
+    rows = store.get_history(
+        execution.id,
+        to_state="completed",
+        limit=1,
+    )
+
+    assert [item[0] for item in rows] == [3]
