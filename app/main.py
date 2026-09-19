@@ -19,9 +19,9 @@ from app.infrastructure.stocks.development_catalog import create_development_sto
 def create_application(runtime: InfrastructureRuntime) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        if runtime.automatic_workflow_recovery is not None:
-            runtime.automatic_workflow_recovery.execute()
         try:
+            if runtime.automatic_workflow_recovery is not None:
+                runtime.automatic_workflow_recovery.execute()
             yield
         finally:
             runtime.close()
