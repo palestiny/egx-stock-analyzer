@@ -66,7 +66,7 @@ class GetManagementAudit:
         )
         page = self._audit_store.read_page(query, offset=offset, limit=page_size)
         return ManagementAuditReadPage(
-            items=page.items,
+            items=tuple(page.items),
             total_count=page.total_count,
             has_more=page.has_more,
             offset=offset,
