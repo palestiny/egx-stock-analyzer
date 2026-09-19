@@ -2371,3 +2371,31 @@ Implementation is not authorized until these decisions are resolved and recorded
 
 See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
 \n
+## DEC-103 — M42 Management Audit Reporting
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M42 establishes a read-only management-audit reporting capability over the durable audit boundary introduced by M41.
+
+### Decision
+
+The MVP is operator-only and reuses the existing operator authorization boundary. A dedicated `GetManagementAudit` application capability reads through `ManagementAuditStore`; API and dashboard layers remain thin transport/presentation boundaries.
+
+The read model exposes immutable actor and target UUIDs, action, outcome, and stored UTC timestamp. Deleted identities remain attributable by UUID.
+
+Optional filters are actor ID, target ID, action, outcome, and UTC time range with AND semantics. Ordering is authoritative as `occurred_at DESC, audit_id DESC`.
+
+Bounded pagination is mandatory: default page size 50, maximum 100. The API returns an `items` envelope with explicit pagination metadata. Retention is unchanged and no audit records are deleted or archived by M42.
+
+The dashboard exposes a read-only operator view and does not implement authorization or audit semantics.
+
+### Reasoning
+
+This keeps security-management evidence separate from workflow operational visibility, prevents unbounded reads, preserves historical attribution, and keeps SQLite replaceable.
+
+### Consequences
+
+M42 adds a dedicated read model and pagination contract but does not change M41 audit writes. No new permission, retention policy, real-time stream, SIEM integration, analytics, or user self-service audit history is introduced.
+
+See `docs/DEC-103-M42-MANAGEMENT-AUDIT-REPORTING-DESIGN-GATE.md`.
