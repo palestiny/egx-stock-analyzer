@@ -230,3 +230,25 @@ def test_legacy_operator_identity_does_not_claim_new_user_ownership(tmp_path):
     )
 
     assert result.owner_user_id is None
+
+
+def test_legacy_operator_can_reload_system_owned_workflow(tmp_path):
+    operation = Mock()
+    operation.execute.return_value = type(
+        "Result",
+        (),
+        {
+            "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
+        },
+    )()
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    workflow = RunDurableScheduledWorkflow(operation, store, FakeClock())
+    operator = AuthenticatedIdentity.operator()
+
+    first = workflow.execute("legacy-occurrence", date(2026, 9, 19), operator)
+    second = workflow.execute("legacy-occurrence", date(2026, 9, 19), operator)
+
+    assert second.id == first.id
+    assert second.owner_user_id is None
+    assert operation.execute.call_count == 1
