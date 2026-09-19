@@ -86,3 +86,10 @@ def test_user_can_rotate_own_durable_credential():
     replacement=service.rotate_own_credential(identity)
     assert replacement.user_id == user_id
     assert replacement.secret
+
+def test_legacy_operator_cannot_be_disabled_or_deleted():
+    from app.application.security.identity import LEGACY_OPERATOR_USER_ID
+    target=User(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE)
+    service, _, _ = make_service([target])
+    with pytest.raises(UserManagementError, match="Legacy operator"):
+        service.set_status(AuthenticatedIdentity.operator(), target.id, UserStatus.DISABLED)
