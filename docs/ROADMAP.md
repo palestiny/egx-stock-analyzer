@@ -143,7 +143,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M40 | Frontend Authentication & Session UX | 🟢 Complete | Durable user credential lifecycle and browser session UX over the existing identity/ownership boundary |
 | M41 | User Management & Credential Administration | 🟢 Complete | Operator user lifecycle administration, self-service durable credential rotation, audit boundary, API, and dashboard controls |
 | M42 | Management Audit Reporting | 🟢 Complete | Define a read-only, operator-controlled audit reporting capability over the M41 durable management-audit boundary |
-| M43 | User-Facing Audit History | 🟡 Design Gate Proposed | Define controlled authenticated-user visibility over the durable management-audit boundary |
+| M43 | User-Facing Audit History | 🟡 Design Accepted | Add controlled authenticated-user visibility over the durable management-audit boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -1358,6 +1358,34 @@ SQLite
 The MVP is operator-only and read-only. It exposes actor/target UUIDs, action, outcome, and stored UTC timestamp; supports actor, target, action, outcome, and time-range filters; orders deterministically by `occurred_at DESC, audit_id DESC`; and uses bounded pagination with a default page size of 50 and maximum of 100.
 
 Retention remains unchanged. No audit-write behavior, credentials, lifecycle semantics, new permission model, real-time streaming, SIEM integration, analytics, or user self-service audit history is introduced.
+
+# 33.10. M43 — User-Facing Audit History
+
+## Status
+
+The M43 design gate is **accepted** in `docs/DEC-104-M43-USER-FACING-AUDIT-HISTORY-DESIGN-GATE.md`. Implementation is the next controlled step.
+
+### Accepted boundary
+
+```
+AuthenticatedIdentity
+        ↓
+GetUserAuditHistory
+        ↓
+ManagementAuditStore
+        ↓
+SQLite
+```
+
+The MVP uses target-only visibility, safe action/outcome/time filters, M42 bounded pagination and deterministic ordering, and a dedicated authenticated endpoint at `GET /api/v1/users/me/audit`.
+
+The user-facing read model redacts raw actor/target UUIDs and exposes only relative actor labels (self/operator) and self-scoped event data. Unknown audit actions are excluded by default.
+
+M41 audit writes, M42 operator reporting, lifecycle semantics, credentials, and analytical modules remain unchanged.
+
+Deferred: richer audit permissions, actor-or-target history, organizations/delegated access, retention policy, real-time streaming, audit analytics, SIEM integration, and cross-user audit visibility.
+
+---
 
 # 33. Cross-Cutting Requirements
 
