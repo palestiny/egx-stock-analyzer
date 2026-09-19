@@ -2054,3 +2054,19 @@ The accepted MVP exposes all persisted scheduled workflow executions, orders the
 No workflow execution, recovery, scheduling, notification, analytical, or persistence-schema behavior changes. HTTP/dashboard exposure, real-time streaming, pagination/retention, authentication, metrics/tracing, and distributed execution remain deferred.
 
 See `docs/DEC-092-M33-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-DESIGN-GATE.md`.
+
+
+## DEC-093 — M34 Scheduled Workflow Operational Visibility API
+
+**Status:** Accepted  
+**Date:** 2026-09-19
+
+M34 exposes the M33 scheduled-workflow execution read capability through a read-only HTTP boundary at `GET /api/v1/workflows/executions`.
+
+The endpoint returns an `items` envelope, supports an exact optional `occurrence_id` filter, preserves the M33 read-model fields, and maps unexpected application/infrastructure failures to the existing safe HTTP 500 pattern.
+
+The scheduled-workflow store and read capability are composed independently of optional Telegram configuration so operational history remains observable without enabling notification delivery.
+
+The endpoint does not execute, recover, schedule, notify, or recalculate workflows. Pagination, retention, authentication, real-time streaming, workflow mutation, and dashboard presentation remain deferred.
+
+See `docs/DEC-093-M34-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-API-DESIGN-GATE.md`.
