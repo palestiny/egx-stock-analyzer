@@ -1,4 +1,6 @@
-from app.application.security.identity import AuthenticatedIdentity, Permission
+from secrets import compare_digest
+
+from app.application.security.identity import AuthenticatedIdentity
 
 
 class AuthenticationError(ValueError):
@@ -20,7 +22,7 @@ class BearerTokenAuthenticator:
         if separator != " " or scheme.lower() != "bearer" or not credentials.strip():
             raise AuthenticationError("Invalid authentication credentials")
 
-        if credentials.strip() != self._token:
+        if not compare_digest(credentials.strip(), self._token):
             raise AuthenticationError("Invalid authentication credentials")
 
-        return AuthenticatedIdentity(permission=Permission.OPERATOR)
+        return AuthenticatedIdentity.operator()
