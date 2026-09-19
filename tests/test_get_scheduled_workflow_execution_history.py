@@ -311,3 +311,31 @@ def test_legacy_m46_cursor_remains_usable_without_filters():
     )
 
     assert [item.sequence for item in result.history] == [3]
+
+
+def test_filtered_cursor_continues_with_same_filter():
+    execution = make_execution()
+    history = (
+        (1, "running", "completed", execution.updated_at, None),
+        (2, "completed", "failed", execution.updated_at, None),
+        (3, "running", "completed", execution.updated_at, None),
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+
+    first = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        to_state="completed",
+    )
+    second = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        cursor=first.next_cursor,
+        to_state="completed",
+    )
+
+    assert [item.sequence for item in first.history] == [1]
+    assert [item.sequence for item in second.history] == [3]
+    assert second.has_more is False
