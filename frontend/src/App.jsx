@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
+import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
 
 function Metric({ label, value }) {
   return (
@@ -450,6 +451,11 @@ function DashboardApp({ onLogout, identity }) {
                   {" · Delivery "}
                   {execution.delivery_state ?? "—"}
                 </span>
+                <ScheduledWorkflowHistoryPanel
+                  execution={execution}
+                  getHistory={getScheduledWorkflowExecutionHistory}
+                />
+
                 {execution.state === "interrupted" && (
                   <div>
                     <button
