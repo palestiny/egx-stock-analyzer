@@ -134,6 +134,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M31 | Durable Workflow Recovery | 🟢 Complete | Explicitly recover one interrupted scheduled workflow occurrence using existing workflow and idempotency boundaries |
 | M32 | Automatic Scheduled Workflow Resume | 🟢 Complete | Automatically recover eligible interrupted scheduled workflow executions during application startup |
 | M33 | Scheduled Workflow Operational Visibility | 🟢 Complete | Provide a provider-neutral read-side capability over persisted scheduled workflow executions |
+| M34 | Scheduled Workflow Operational Visibility API | 🟢 Complete | Expose the M33 read model through a read-only HTTP boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -204,6 +205,8 @@ M31 — Durable Workflow Recovery
 M32 — Automatic Scheduled Workflow Resume
         ↓
 M33 — Scheduled Workflow Operational Visibility
+        ↓
+M34 — Scheduled Workflow Operational Visibility API
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
@@ -1054,6 +1057,30 @@ ScheduledWorkflowExecutionReadModel
 The MVP exposes all persisted scheduled workflow executions, uses deterministic newest-first ordering, supports exact occurrence filtering, and preserves persisted lifecycle/outcome fields without mutating workflow state.
 
 HTTP/dashboard exposure, real-time streaming, pagination/retention, authentication, metrics/tracing, workflow replay, and distributed execution remain deferred.
+
+---
+
+# 33.5. M34 — Scheduled Workflow Operational Visibility API
+
+## Status
+
+M34 is **complete**. The accepted design is documented in `docs/DEC-093-M34-SCHEDULED-WORKFLOW-OPERATIONAL-VISIBILITY-API-DESIGN-GATE.md`, and the implementation was merged through PR #62.
+
+GitHub Actions Run #985 completed successfully for implementation head `3763d86c6577207199ef64fe86072fc179bca8ff`, validating Python unit tests, frontend tests, and the frontend production build.
+
+The HTTP boundary is:
+
+```
+GET /api/v1/workflows/executions
+        ↓
+GetScheduledWorkflowExecutions
+        ↓
+ScheduledWorkflowExecutionStore
+```
+
+The endpoint is read-only, supports exact occurrence filtering, returns a stable `items` envelope, and preserves the persisted workflow execution read model. Workflow execution/recovery semantics remain outside the transport layer.
+
+Deferred: workflow mutation/replay, dashboard presentation, real-time streaming, pagination/retention, authentication, metrics/tracing, scheduler control, notification changes, and distributed execution.
 
 ---
 
