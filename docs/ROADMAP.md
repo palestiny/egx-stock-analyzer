@@ -201,8 +201,6 @@ M30 — Durable Scheduled Workflow
 M31 — Durable Workflow Recovery
         ↓
 M32 — Automatic Scheduled Workflow Resume
-        ↓
-M32 — Automatic Scheduled Workflow Resume
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
