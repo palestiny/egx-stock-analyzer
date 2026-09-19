@@ -138,6 +138,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M35 | Scheduled Workflow Operational Dashboard | 🟢 Complete | Present scheduled workflow operational state through the existing React dashboard |
 | M36 | Scheduled Workflow Recovery Control | 🟢 Complete | Explicit operator-triggered recovery of one INTERRUPTED scheduled workflow execution through API and dashboard |
 | M37 | Authentication & Authorization Boundary | 🟢 Complete | Protect all non-health application endpoints with a single-operator bearer-token boundary; defer multi-user identity and ownership |
+| M38 | Multi-User Identity & Ownership | 🟡 Design Proposed | Define user identity, resource ownership, authorization, lifecycle, and migration beyond the single-operator boundary |
 
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -216,6 +217,8 @@ M35 — Scheduled Workflow Operational Dashboard
 M36 — Scheduled Workflow Recovery Control
         ↓
 M37 — Authentication & Authorization Boundary
+        ↓
+M38 — Multi-User Identity & Ownership
 ```
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
