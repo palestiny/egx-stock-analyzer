@@ -178,13 +178,16 @@ class GetScheduledWorkflowExecutionHistory:
                     }
                 else:
                     raise ValueError
-            if not isinstance(payload, dict):
-                raise ValueError
-            sequence = int(payload["sequence"])
-            if (
-                payload.get("from_state") != from_state
-                or payload.get("to_state") != to_state
-            ):
+            if isinstance(payload, int) and from_state is None and to_state is None:
+                sequence = payload
+            elif isinstance(payload, dict):
+                sequence = int(payload["sequence"])
+                if (
+                    payload.get("from_state") != from_state
+                    or payload.get("to_state") != to_state
+                ):
+                    raise ValueError
+            else:
                 raise ValueError
         except (Base64DecodeError, KeyError, TypeError, ValueError, UnicodeDecodeError):
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
