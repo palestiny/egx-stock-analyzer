@@ -5,6 +5,10 @@ from typing import Protocol
 from uuid import UUID, uuid4
 
 
+class ScheduledWorkflowExecutionIdempotencyConflictError(ValueError):
+    """Raised when an idempotency key is reused with a different request fingerprint."""
+
+
 class ScheduledWorkflowExecutionState(Enum):
     CREATED = "created"
     RUNNING = "running"
