@@ -189,5 +189,8 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 - M12 — First API/dashboard slice: complete and frozen.
 - M13 — Operational runtime baseline: complete.
 - M13 — SQLite persistence MVP: complete and CI-validated.
+- M30 — Durable scheduled workflow: complete and CI-validated through the recurring-scheduler integration.
 
-The next feature is not selected automatically. A new capability should begin with its own design gate rather than expanding the frozen dashboard or persistence MVP opportunistically.
+M30 now persists scheduled workflow lifecycle state independently from analytical-result and alert-delivery persistence. Persisted RUNNING executions are detectable and recoverable as INTERRUPTED; they are not automatically replayed.
+
+The next feature is not selected automatically. A new capability should begin with its own design gate rather than expanding an existing capability opportunistically.
