@@ -21,6 +21,8 @@ class ScheduledWorkflowExecutionHistoryResponse:
     execution_id: UUID
     occurrence_id: str
     history: tuple[ScheduledWorkflowExecutionHistoryItemResponse, ...]
+    has_more: bool = False
+    next_cursor: str | None = None
 
     @classmethod
     def from_read_model(
@@ -30,6 +32,8 @@ class ScheduledWorkflowExecutionHistoryResponse:
         return cls(
             execution_id=read_model.execution_id,
             occurrence_id=read_model.occurrence_id,
+            has_more=read_model.has_more,
+            next_cursor=read_model.next_cursor,
             history=tuple(
                 ScheduledWorkflowExecutionHistoryItemResponse(
                     sequence=item.sequence,
