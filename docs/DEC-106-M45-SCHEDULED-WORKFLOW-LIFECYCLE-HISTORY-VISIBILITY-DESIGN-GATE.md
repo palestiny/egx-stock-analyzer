@@ -1,6 +1,6 @@
 # DEC-106 — M45 Scheduled Workflow Lifecycle History Visibility Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-19  
 **Milestone:** M45
 
@@ -86,20 +86,32 @@ It should:
 
 The store remains the source of truth for history sequence and transition data.
 
-## 8. Open Questions
+## 8. Accepted Decisions
 
-Before implementation, the following must be explicitly resolved:
+1. **Visibility:** expose history for both system/global and user-owned executions. Reuse the existing ownership/authorization boundary exactly: operator access for global records and owner access for user-owned records.
+2. **Missing execution:** return a dedicated application not-found error, mapped by the API to HTTP 404. An empty history must not represent a missing execution.
+3. **No history:** return an empty immutable history collection for a valid execution with no persisted history. This accommodates legacy/incomplete records without inventing or rewriting history.
+4. **Transition reason:** expose the persisted transition reason unchanged. M44 lifecycle reasons are application-controlled lifecycle metadata, not arbitrary exception text.
+5. **Transport/presentation:** include both the read-only API endpoint and dashboard presentation in M45. The dashboard renders the application read model only.
+6. **Pagination:** defer pagination. The MVP returns the complete history for one execution because history is scoped to one execution and the lifecycle sequence is bounded by the current M44 state machine.
+7. **Ordering:** sequence order is fixed ascending and authoritative. Clients cannot request alternative ordering.
+8. **Initial transition:** expose `from_state = null` for the initial CREATED transition exactly as persisted by M44.
 
-1. Should the MVP expose history for both operator/global executions and user-owned executions using the existing ownership rules?
-2. Should a missing execution return the same not-found application error used by current workflow visibility?
-3. Should a valid execution with no history be an empty result or a data-integrity error?
-4. Should the API expose the internal transition reason verbatim or a constrained safe reason value?
-5. Should M45 include an API endpoint only, or API + dashboard presentation?
-6. Should history pagination be introduced now, or should the MVP return the complete history for one execution?
-7. Should history ordering be fixed as ascending sequence only, or allow client ordering?
-8. Should the read model expose from_state = null for the initial CREATED transition?
+## 9. Final Boundary
 
-## 9. Proposed Invariants
+```
+HTTP / Dashboard
+       ↓
+GetScheduledWorkflowExecutionHistory
+       ↓
+ScheduledWorkflowExecutionStore
+       ↓
+SQLite lifecycle history
+```
+
+The application capability owns lookup, authorization, and immutable read-model mapping. The store owns persistence and authoritative sequence ordering. API and dashboard layers remain transport/presentation only.
+
+## 10. Accepted Invariants
 
 - history is read-only;
 - persisted sequence is authoritative;
@@ -110,7 +122,7 @@ Before implementation, the following must be explicitly resolved:
 - history order is deterministic;
 - historical records are never modified by the read capability.
 
-## 10. TDD Acceptance Shape
+## 11. TDD Acceptance Shape
 
 - existing execution with multiple transitions returns all transitions in sequence order;
 - initial CREATED transition is represented correctly;
@@ -118,12 +130,18 @@ Before implementation, the following must be explicitly resolved:
 - restart does not change returned history;
 - unknown execution returns not-found;
 - system-owned execution follows existing operator/global authorization semantics;
+- user-owned execution is readable only by its owner;
+- valid execution with no history returns an empty history collection;
+- history is returned in fixed ascending sequence order;
+- transition reasons are mapped without reconstruction;
 - user-owned execution cannot be read by another user;
 - the read capability performs no mutation;
 - API transport maps the application result without recalculating or reconstructing history.
 
-## 11. Design Gate Rule
+## 12. Design Gate Rule
 
-Implementation is not authorized by this proposed gate until the open questions and final boundary are explicitly accepted and documented.
+**Status: Accepted — implementation is authorized for the M45 MVP defined here.**
+
+The implementation remains read-only and must not expand into workflow analytics, replay, event sourcing, lifecycle mutation, or a new persistence schema.
 
 The next implementation should remain a read-side slice only. It must not expand into workflow analytics, replay, event sourcing, or lifecycle mutation.
