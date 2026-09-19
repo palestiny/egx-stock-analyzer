@@ -97,6 +97,12 @@ class CredentialService:
         )
         return IssuedCredential(id=replacement_id, user_id=user_id, secret=secret)
 
+    def rotate_latest_for_user(self, user_id: UUID) -> IssuedCredential:
+        active = self._store.find_active_for_user(user_id)
+        if not active:
+            return self.provision(user_id)
+        return self.rotate(active[-1].id, user_id)
+
     def revoke(self, credential_id: UUID) -> None:
         self._store.revoke(
             credential_id,
