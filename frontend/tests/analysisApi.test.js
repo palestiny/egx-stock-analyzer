@@ -140,3 +140,26 @@ it("requests scheduled workflow recovery with POST", async () => {
     { method: "POST" },
   );
 });
+
+
+it("adds the configured bearer token to protected API requests", async () => {
+  vi.stubEnv("VITE_EGX_OPERATOR_TOKEN", "test-operator-token");
+
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue({ symbol: "EGAL" }),
+  });
+
+  await getAnalysis("EGAL");
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/analysis/EGAL",
+    {
+      headers: {
+        Authorization: "Bearer test-operator-token",
+      },
+    },
+  );
+
+  vi.unstubAllEnvs();
+});
