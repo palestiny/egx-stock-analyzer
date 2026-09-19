@@ -78,3 +78,19 @@ def test_sqlite_user_store_returns_none_for_missing_user(tmp_path):
     store = SQLiteUserStore(tmp_path / "analysis.db")
 
     assert store.get(USER_ID) is None
+
+
+def test_sqlite_user_store_get_or_create_is_deterministic(tmp_path):
+    database_path = tmp_path / "analysis.db"
+    store = SQLiteUserStore(database_path)
+
+    first = store.get_or_create(USER_ID, UserStatus.ACTIVE)
+    second = SQLiteUserStore(database_path).get_or_create(USER_ID, UserStatus.ACTIVE)
+
+    assert first == second
+    with sqlite3.connect(database_path) as connection:
+        count = connection.execute(
+            "SELECT COUNT(*) FROM users WHERE id = ?",
+            (str(USER_ID),),
+        ).fetchone()[0]
+    assert count == 1
