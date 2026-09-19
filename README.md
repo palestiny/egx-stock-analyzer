@@ -190,7 +190,8 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 - M13 — Operational runtime baseline: complete.
 - M13 — SQLite persistence MVP: complete and CI-validated.
 - M30 — Durable scheduled workflow: complete and CI-validated through the recurring-scheduler integration.
+- M31 — Durable workflow recovery: complete and CI-validated through the interrupted-execution recovery path.
 
 M30 now persists scheduled workflow lifecycle state independently from analytical-result and alert-delivery persistence. Persisted RUNNING executions are detectable and recoverable as INTERRUPTED; they are not automatically replayed.
 
-The next feature is not selected automatically. A new capability should begin with its own design gate rather than expanding an existing capability opportunistically.
+M31 is the current completed milestone. The next capability is intentionally not embedded into the existing workflow; any new capability should begin with its own design gate rather than expanding an existing capability opportunistically.
