@@ -123,6 +123,13 @@ class ScheduledWorkflowExecutionStore(Protocol):
     def save(self, execution: ScheduledWorkflowExecution) -> None:
         ...
 
+    def start_if_created(
+        self,
+        execution_id: UUID,
+        now: datetime,
+    ) -> ScheduledWorkflowExecution | None:
+        ...
+
     def get_by_occurrence(self, occurrence_id: str) -> ScheduledWorkflowExecution | None:
         ...
 
