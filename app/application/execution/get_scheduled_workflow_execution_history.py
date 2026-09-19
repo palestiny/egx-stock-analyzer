@@ -1,4 +1,5 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from binascii import Error as Base64DecodeError
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -118,7 +119,7 @@ class GetScheduledWorkflowExecutionHistory:
             sequence = int(
                 urlsafe_b64decode((cursor + padding).encode("ascii")).decode("ascii")
             )
-        except (ValueError, UnicodeDecodeError):
+        except (Base64DecodeError, ValueError, UnicodeDecodeError):
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                 "cursor must be a valid history continuation cursor"
             ) from None
