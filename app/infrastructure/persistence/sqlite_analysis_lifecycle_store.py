@@ -95,10 +95,29 @@ class SQLiteAnalysisLifecycleStore:
                 )
                 return LifecycleDeletionOutcome.NOOP
 
-            connection.execute(
-                "UPDATE analysis_results SET deleted_at = ? WHERE snapshot_id = ? AND deleted_at IS NULL",
+            updated = connection.execute(
+                """
+                UPDATE analysis_results
+                SET deleted_at = ?
+                WHERE snapshot_id = ?
+                  AND deleted_at IS NULL
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM analysis_runs
+                      WHERE analysis_runs.run_id = analysis_results.analysis_run_id
+                        AND analysis_runs.state = 'running'
+                        AND analysis_runs.deleted_at IS NULL
+                  )
+                """,
                 (occurred_at, str(snapshot_id)),
             )
+            if updated.rowcount == 0:
+                self._append_audit(
+                    connection, actor_user_id, "analysis_snapshot.delete", audit_target,
+                    occurred_at, "rejected_active",
+                )
+                return LifecycleDeletionOutcome.ACTIVE
+
             self._append_audit(
                 connection, actor_user_id, "analysis_snapshot.delete", audit_target,
                 occurred_at, "deleted",
