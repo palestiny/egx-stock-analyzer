@@ -2678,3 +2678,23 @@ No analytical logic, retry changes, provider behavior, workflow recovery, rankin
 M53 implementation merged through PR #132 at `a232b55f11393f68c2980b5e7eb3d1a998a2ae9c`. GitHub Actions Run #2262 passed on implementation head `c723ab9cc76c7348f11ea7792c74c28108694c4a`, covering Python unit tests and frontend tests/build.
 
 See `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`.
+
+
+## DEC-116 — M54 Analysis Run Ownership
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M54 establishes durable AnalysisRun ownership as the next security boundary after M53.
+
+### Decision
+
+New user-created AnalysisRuns carry the authenticated user's immutable UUID. System-created and scheduled runs remain system/global with no user owner. Pre-M54 legacy runs are also treated as system/global; no owner is inferred from historical data.
+
+The existing operator authorization model can read all AnalysisRuns. Regular users can read only their own runs. Unauthorized run detail returns 404 so run identifiers cannot be used as a resource-enumeration channel.
+
+RunMarketAnalysis accepts an optional owner UUID. Ownership is assigned at creation and is immutable. AnalysisRunStore provides owner-aware persistence/query primitives, while application capabilities enforce the authorization policy. API and React remain transport/presentation boundaries and do not reconstruct ownership.
+
+M54 does not introduce sharing, ACLs, teams, delegated access, workflow-ownership changes, or standalone snapshot ownership changes. M53 outcome semantics remain unchanged within an authorized run.
+
+See docs/DEC-116-M54-ANALYSIS-RUN-OWNERSHIP-DESIGN-GATE.md.
