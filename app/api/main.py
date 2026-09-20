@@ -343,8 +343,8 @@ def create_app(
         return {"user_id": str(credential.user_id), "credential": credential.secret}
 
     @app.get("/api/v1/analysis/{symbol}")
-    def get_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        result = get_analysis_result.execute(symbol)
+    def get_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+        result = get_analysis_result.execute(symbol, identity=identity)
 
         if result is None:
             raise HTTPException(
@@ -356,7 +356,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/analysis/{symbol}")
-    def run_analysis(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def run_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if run_stock_analysis_by_symbol is None:
             raise HTTPException(
                 status_code=503,
@@ -364,7 +364,7 @@ def create_app(
             )
 
         try:
-            run_stock_analysis_by_symbol.execute(symbol, date.today())
+            run_stock_analysis_by_symbol.execute(symbol, date.today(), identity=identity)
         except UnknownStockSymbolError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except RuntimeError as error:
@@ -374,7 +374,7 @@ def create_app(
                 detail="Analysis execution failed",
             ) from error
 
-        result = get_analysis_result.execute(symbol)
+        result = get_analysis_result.execute(symbol, identity=identity)
         if result is None:
             raise HTTPException(
                 status_code=500,
@@ -389,12 +389,12 @@ def create_app(
         symbol: str,
         from_date: date | None = None,
         to_date: date | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_analysis_history is None:
             raise HTTPException(status_code=503, detail="Analysis history is not configured")
         try:
-            items = get_analysis_history.execute(symbol, start_date=from_date, end_date=to_date)
+            items = get_analysis_history.execute(symbol, start_date=from_date, end_date=to_date, identity=identity)
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         if items is None:
@@ -507,14 +507,14 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
     @app.get("/api/v1/reports/{symbol}")
-    def get_report(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if get_analysis_report is None:
             raise HTTPException(
                 status_code=503,
                 detail="Analysis reporting is not configured",
             )
 
-        report = get_analysis_report.execute(symbol)
+        report = get_analysis_report.execute(symbol, identity=identity)
         if report is None:
             raise HTTPException(
                 status_code=404,
