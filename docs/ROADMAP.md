@@ -149,7 +149,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M46 | Scheduled Workflow History Query Extensions | 🟢 Complete | Optional bounded sequence-cursor pagination with M45 complete-history compatibility |
 | M47 | Scheduled Workflow History Filtering | 🟢 Complete | Typed lifecycle-state filtering over the existing paginated history read boundary |
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
-| M49 | Analysis Run Grouping & Snapshot Correlation | 🟡 Design Gate Proposed | Define an explicit correlation boundary between one market-wide analysis run and its persisted stock snapshots |
+| M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Design Accepted | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -256,7 +256,9 @@ M49 — Analysis Run Grouping & Snapshot Correlation
 NEXT — New Design Gate
 ```
 
-M48 is complete. Time filtering and cross-execution history are merged and validated under the accepted M48 design gates. See `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`. The next capability requires a new explicit design gate.
+M48 is complete. Time filtering and cross-execution history are merged and validated under the accepted M48 design gates. See `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
+
+M49 design is accepted. The implementation is limited to durable analysis-run correlation and snapshot association; API/dashboard exposure is deferred to a later read-side gate.
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
