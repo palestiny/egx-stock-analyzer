@@ -36,6 +36,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     analysis_state TEXT NULL,
+                    analysis_run_id TEXT NULL,
                     delivery_state TEXT NULL,
                     owner_user_id TEXT NULL,
                     request_fingerprint TEXT NULL,
@@ -49,6 +50,10 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     "PRAGMA table_info(scheduled_workflow_executions)"
                 ).fetchall()
             }
+            if "analysis_run_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE scheduled_workflow_executions ADD COLUMN analysis_run_id TEXT NULL"
+                )
             if "owner_user_id" not in columns:
                 connection.execute(
                     "ALTER TABLE scheduled_workflow_executions "
@@ -143,6 +148,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     execution.created_at.isoformat(),
                     execution.updated_at.isoformat(),
                     execution.analysis_state,
+                    str(execution.analysis_run_id) if execution.analysis_run_id is not None else None,
                     execution.delivery_state,
                     str(execution.owner_user_id)
                     if execution.owner_user_id is not None
@@ -159,7 +165,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state,
+                       updated_at, analysis_state, analysis_run_id, delivery_state,
                        owner_user_id, request_fingerprint, revision
                 FROM scheduled_workflow_executions
                 WHERE occurrence_id = ?
@@ -324,7 +330,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                 """
                 UPDATE scheduled_workflow_executions
                 SET state = ?, updated_at = ?, analysis_state = ?,
-                    delivery_state = ?, owner_user_id = ?,
+                    analysis_run_id = ?, delivery_state = ?, owner_user_id = ?,
                     request_fingerprint = ?, revision = ?
                 WHERE execution_id = ? AND revision = ?
                 """,
@@ -638,6 +644,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             and left.updated_at == right.updated_at
             and left.owner_user_id == right.owner_user_id
             and left.analysis_state == right.analysis_state
+            and left.analysis_run_id == right.analysis_run_id
             and left.delivery_state == right.delivery_state
             and left.request_fingerprint == right.request_fingerprint
             and left.revision == right.revision
@@ -702,6 +709,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             created_at,
             updated_at,
             analysis_state,
+            analysis_run_id,
             delivery_state,
             owner_user_id,
             request_fingerprint,
@@ -714,6 +722,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             created_at=datetime.fromisoformat(created_at),
             updated_at=datetime.fromisoformat(updated_at),
             analysis_state=analysis_state,
+            analysis_run_id=UUID(analysis_run_id) if analysis_run_id is not None else None,
             delivery_state=delivery_state,
             owner_user_id=UUID(owner_user_id) if owner_user_id is not None else None,
             request_fingerprint=request_fingerprint,
