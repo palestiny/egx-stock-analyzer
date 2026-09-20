@@ -2514,9 +2514,11 @@ M48 extends the existing M45/M46/M47 single-execution scheduled-workflow history
 
 Filtering occurs in persistence before pagination. Persisted sequence remains the sole ordering authority. Continuation cursors are bound to the complete effective query shape, including time filters, while legacy unfiltered cursors remain compatible. The existing lifecycle-history source and primary key remain authoritative; no mandatory secondary index is introduced without performance evidence.
 
-Cross-execution search, reason-text search, retention/deletion, replay, aggregation, arbitrary ordering, and new authorization semantics remain deferred.
+At the time DEC-109 was accepted, cross-execution history was deferred. DEC-110 subsequently introduced and accepted that capability as a separate bounded read-side design.
 
-See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-HISTORY-TIME-FILTERING-DESIGN-GATE.md`.
+Reason-text search, retention/deletion, replay, aggregation, arbitrary ordering, and new authorization semantics remain deferred.
+
+See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-HISTORY-TIME-FILTERING-DESIGN-GATE.md` and the later DEC-110 entry below.
 
 
 ## DEC-110 — M48 Scheduled Workflow Cross-Execution History
@@ -2537,5 +2539,11 @@ M48 is application/API focused; the dashboard does not add a second cross-execut
 The existing M45/M46/M47 single-execution history contract remains unchanged. No lifecycle mutation, replay, retention change, new authorization semantics, or new authentication mechanism is introduced.
 
 Implementation is authorized within this scope.
+
+### Validation
+
+Implemented through PR #118 and merged into `main` at `ef387e2570d01653f4d231aea4527a18d3ded80c`. GitHub Actions Run #1959 passed for implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` before merge.
+
+M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
 See `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
