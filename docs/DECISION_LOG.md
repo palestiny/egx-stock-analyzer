@@ -2678,3 +2678,19 @@ No analytical logic, retry changes, provider behavior, workflow recovery, rankin
 M53 implementation merged through PR #132 at `a232b55f11393f68c2980b5e7eb3d1a998a2ae9c`. GitHub Actions Run #2262 passed on implementation head `c723ab9cc76c7348f11ea7792c74c28108694c4a`, covering Python unit tests and frontend tests/build.
 
 See `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`.
+
+
+## DEC-116 — M54 Analysis Run Ownership
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M54 proposes the next security boundary after M53: durable ownership of AnalysisRun resources.
+
+The preferred candidate is one optional immutable owner UUID on AnalysisRun, aligned with the existing single-owner scheduled-workflow model. User-created runs would carry the authenticated user's UUID; system/global runs would remain explicitly system-owned rather than being assigned arbitrarily to a user.
+
+The design intentionally defers sharing, ACLs, organizations, delegated access, and changes to workflow ownership. Ownership is authorization metadata only and must not affect analysis calculations, retry behavior, or M53 outcome semantics.
+
+The accepted design must explicitly resolve legacy-run visibility, operator visibility, system-run ownership, application-store filtering, non-enumerating unauthorized access behavior, and snapshot access semantics.
+
+See `docs/DEC-116-M54-ANALYSIS-RUN-OWNERSHIP-DESIGN-GATE.md`.
