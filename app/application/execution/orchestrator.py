@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Collection, Iterable
 
 from app.application.execution.retry import RetryPolicy
 from app.application.execution.runner import ExecutionRunner
@@ -6,8 +6,15 @@ from app.domain.execution import Execution
 
 
 class ExecutionOrchestrator:
-    def __init__(self, retry_policy: RetryPolicy) -> None:
-        self._runner = ExecutionRunner(retry_policy)
+    def __init__(
+        self,
+        retry_policy: RetryPolicy,
+        propagate_exceptions: Collection[type[Exception]] = (),
+    ) -> None:
+        self._runner = ExecutionRunner(
+            retry_policy,
+            propagate_exceptions=propagate_exceptions,
+        )
 
     def run(
         self,
