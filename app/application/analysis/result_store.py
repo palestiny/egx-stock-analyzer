@@ -12,6 +12,7 @@ class AnalysisResultRecord:
     analysis_date: date | None
     snapshot_id: UUID = field(default_factory=uuid4)
     symbol: str | None = None
+    analysis_run_id: UUID | None = None
 
 
 class AnalysisResultStore(Protocol):
@@ -20,6 +21,7 @@ class AnalysisResultStore(Protocol):
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
         ...
 
@@ -50,6 +52,7 @@ class InMemoryAnalysisResultStore:
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
         records = self._results.setdefault(symbol, [])
         records.append(
@@ -57,6 +60,7 @@ class InMemoryAnalysisResultStore:
                 result=result,
                 analysis_date=analysis_date,
                 symbol=symbol,
+                analysis_run_id=analysis_run_id,
             )
         )
 
