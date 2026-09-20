@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from app.application.analysis.get_analysis_run import AnalysisRunView
@@ -9,7 +9,7 @@ from app.application.analysis.get_analysis_run import AnalysisRunView
 class AnalysisRunSnapshotResponse:
     snapshot_id: UUID
     symbol: str
-    analysis_date: object
+    analysis_date: date | None
 
 
 @dataclass(frozen=True)
