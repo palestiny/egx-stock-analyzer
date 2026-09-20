@@ -1,6 +1,6 @@
 # DEC-109 — M48 Scheduled Workflow Cross-Execution History Query Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M48
 
