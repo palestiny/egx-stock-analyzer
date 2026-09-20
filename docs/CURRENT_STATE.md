@@ -97,9 +97,17 @@ The accepted gate is `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.
 
 Implementation is authorized within that gate: operator-only physical purge, explicit or deterministic bounded selection, stable-ID ordering, one shared SQLite transaction per lifecycle unit, fail-stop destructive errors, restart-safe idempotency, mandatory management-audit recording, and optional dry-run. Automatic retention, archival storage, background workers, and new authorization roles remain out of scope.
 
-## 8. Next Step
+## 8. M57 Implementation Status
 
-Create the M57 implementation branch from current `main`, then proceed RED → GREEN → review/refactor → CI verification.
+M57 physical purge implementation is merged through PR #151 at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
+
+The implementation adds the privileged PurgeAnalysisLifecycle application capability, transactional SQLite purge of deleted AnalysisRun/AnalysisRunOutcome/AnalysisResultRecord lifecycle units, deterministic bounded selection, runless snapshot purge, active/visible protection, dry-run preview, idempotent repeat behavior, fail-stop transaction handling, and management-audit events.
+
+The available GitHub integration currently exposes no workflow run or commit status for the implementation merge, so runtime/test success is not claimed here. The next step is to observe CI validation and then open the next design gate only after M57 completion is verified.
+
+## 9. Next Step
+
+Verify the M57 implementation through GitHub Actions when the workflow result is available, then synchronize completion state before opening the next significant design gate.
 
 ## 9. Cleanup Rule
 
