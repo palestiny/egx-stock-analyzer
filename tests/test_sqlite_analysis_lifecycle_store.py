@@ -8,6 +8,7 @@ from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import (
     SQLiteAnalysisLifecycleStore,
 )
 from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+from app.infrastructure.persistence.sqlite_analysis_result_store import SQLiteAnalysisResultStore
 from app.infrastructure.persistence.sqlite_management_audit_store import (
     SQLiteManagementAuditStore,
 )
@@ -16,6 +17,7 @@ from app.infrastructure.persistence.sqlite_management_audit_store import (
 def test_run_delete_hides_run_and_correlated_snapshots_atomically(tmp_path):
     database = tmp_path / "analysis.db"
     run_store = SQLiteAnalysisRunStore(database)
+    SQLiteAnalysisResultStore(database)
     audit_store = SQLiteManagementAuditStore(database)
     lifecycle = SQLiteAnalysisLifecycleStore(database)
 
@@ -53,6 +55,7 @@ def test_run_delete_hides_run_and_correlated_snapshots_atomically(tmp_path):
 def test_repeated_run_delete_is_idempotent_and_audited(tmp_path):
     database = tmp_path / "analysis.db"
     SQLiteAnalysisRunStore(database)
+    SQLiteAnalysisResultStore(database)
     SQLiteManagementAuditStore(database)
     lifecycle = SQLiteAnalysisLifecycleStore(database)
 
