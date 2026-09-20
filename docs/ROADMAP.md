@@ -155,12 +155,17 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M52 | Analysis Run Discovery Dashboard | 🟢 Complete | Dedicated authenticated run-discovery page over the existing M51 API with state filtering, opaque-cursor pagination, safe error states, and M50 detail navigation |
 | M53 | Analysis Run Outcome Completeness | 🟢 Complete | Persist and expose safe per-symbol success/failure outcomes for market-wide analysis runs without changing analytical execution |
 | M54 | Analysis Run Ownership | 🟢 Complete | Durable per-user ownership and authorization for AnalysisRun is implemented without changing analytical execution |
-| M55 | Analysis Snapshot Ownership | 🟡 Design Accepted | Persist explicit snapshot ownership and enforce one authorization boundary across snapshot, history, latest-result, and run-correlated reads |
+| M55 | Analysis Snapshot Ownership | 🟢 Complete | Persist explicit snapshot ownership and enforce one authorization boundary across snapshot, history, latest-result, and run-correlated reads |
+| M56 | Analysis Run Retention & Deletion | 🟡 Design Proposed | Define safe lifecycle, logical deletion, purge, retention, authorization, audit, and concurrency semantics before destructive implementation |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 M51 implementation is complete through PR #127, merged at `6f3c8f059c67ce0c4f2d72b4a777d81cca1f2345`. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203`. The M51 dashboard discovery surface remains intentionally deferred.
 
 M51 implementation is complete through PR #127. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203` before merge. M52 implementation is complete through PR #129, with GitHub Actions Run #2223 passing on implementation head `e7dfc4cb9251de3977beec43c63b5bff3eea48e0`; its documentation completion was merged through PR #130.
+
+M55 implementation is complete through PR #138, merged at `6402449acd65ff1df368f26d780840d6d791add0`. GitHub Actions Run #2383 passed on implementation head `6a81e278d1bde0a4cc0f0c0a97921fead7288cdb`, validating Python unit tests plus frontend tests/build. The implementation propagates immutable snapshot ownership across manual and market-wide analysis and applies owner-scoped reads without changing analytical behavior.
+
+M56 is currently a proposed design gate in `docs/DEC-118-M56-ANALYSIS-RUN-RETENTION-DESIGN-GATE.md`. No destructive lifecycle implementation is authorized until its open questions are resolved and the gate is accepted.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
