@@ -68,6 +68,7 @@ def test_completed_workflow_persists_independent_outcomes(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -88,6 +89,7 @@ def test_partial_analysis_completes_with_errors(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED_WITH_ERRORS),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000002"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -106,6 +108,7 @@ def test_delivery_failure_does_not_change_analysis_outcome(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.FAILED),
         },
     )()
@@ -169,6 +172,7 @@ def test_user_owned_workflow_persists_owner_and_same_user_can_reload(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -192,6 +196,7 @@ def test_different_user_cannot_access_existing_owned_workflow(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -225,6 +230,7 @@ def test_legacy_operator_identity_does_not_claim_new_user_ownership(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -247,6 +253,7 @@ def test_legacy_operator_can_reload_system_owned_workflow(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -269,6 +276,7 @@ def test_same_occurrence_with_different_request_parameters_is_conflict(tmp_path)
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -291,6 +299,7 @@ def test_concurrent_same_occurrence_executes_work_once(tmp_path):
         (),
         {
             "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000001"),
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
