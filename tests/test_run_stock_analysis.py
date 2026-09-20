@@ -51,6 +51,7 @@ def test_run_stock_analysis_assembles_runs_and_stores_result():
     assembler = FakeInputAssembler(analysis_input)
     store = InMemoryAnalysisResultStore()
     expected_result = object()
+    analysis_run_id = uuid4()
 
     with patch(
         "app.application.analysis.daily_market_analysis.StockAnalysisPipeline.analyze",
@@ -59,6 +60,7 @@ def test_run_stock_analysis_assembles_runs_and_stores_result():
         RunStockAnalysis(assembler, store, RetryPolicy(1)).execute(
             stock,
             date(2026, 9, 16),
+            analysis_run_id=analysis_run_id,
         )
 
     assert assembler.calls == [(stock, date(2026, 9, 16))]
@@ -66,6 +68,7 @@ def test_run_stock_analysis_assembles_runs_and_stores_result():
     record = store.get_record("EGAL")
     assert record is not None
     assert record.analysis_date == date(2026, 9, 16)
+    assert record.analysis_run_id == analysis_run_id
 
 
 def test_run_stock_analysis_includes_failure_reason():

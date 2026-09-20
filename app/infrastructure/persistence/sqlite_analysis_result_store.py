@@ -32,13 +32,27 @@ class SQLiteAnalysisResultStore:
 
             if not columns:
                 self._create_history_table(connection)
+                columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
             elif "snapshot_id" not in columns:
                 self._migrate_latest_only_table(connection)
+                columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
+
+            if "analysis_run_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_results ADD COLUMN analysis_run_id TEXT NULL"
+                )
 
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_analysis_results_symbol_date
                 ON analysis_results (symbol, analysis_date)
+                """
+            )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_analysis_results_run_symbol
+                ON analysis_results (analysis_run_id, symbol)
                 """
             )
 
@@ -50,7 +64,8 @@ class SQLiteAnalysisResultStore:
                 snapshot_id TEXT PRIMARY KEY,
                 symbol TEXT NOT NULL,
                 analysis_date TEXT NULL,
-                payload TEXT NOT NULL
+                payload TEXT NOT NULL,
+                analysis_run_id TEXT NULL
             )
             """
         )
@@ -101,6 +116,7 @@ class SQLiteAnalysisResultStore:
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
         payload = serialize_analysis_result(result)
         analysis_date_value = (
@@ -114,15 +130,17 @@ class SQLiteAnalysisResultStore:
                     snapshot_id,
                     symbol,
                     analysis_date,
-                    payload
+                    payload,
+                    analysis_run_id
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid4()),
                     symbol,
                     analysis_date_value,
                     payload,
+                    str(analysis_run_id) if analysis_run_id is not None else None,
                 ),
             )
 
@@ -134,7 +152,7 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload
+                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
                 FROM analysis_results
                 WHERE snapshot_id = ?
                 """,
@@ -147,7 +165,7 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload
+                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
                 FROM analysis_results
                 WHERE symbol = ?
                 ORDER BY
@@ -171,7 +189,7 @@ class SQLiteAnalysisResultStore:
             raise ValueError("start_date cannot be after end_date")
 
         query = """
-            SELECT snapshot_id, symbol, analysis_date, payload
+            SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
             FROM analysis_results
             WHERE symbol = ?
         """
@@ -199,9 +217,9 @@ class SQLiteAnalysisResultStore:
 
     @staticmethod
     def _to_record(
-        row: tuple[str, str, str | None, str],
+        row: tuple[str, str, str | None, str, str | None],
     ) -> AnalysisResultRecord:
-        snapshot_id, symbol, analysis_date_value, payload = row
+        snapshot_id, symbol, analysis_date_value, payload, analysis_run_id = row
         return AnalysisResultRecord(
             result=deserialize_analysis_result(payload),
             analysis_date=(
@@ -211,4 +229,5 @@ class SQLiteAnalysisResultStore:
             ),
             snapshot_id=UUID(snapshot_id),
             symbol=symbol,
+            analysis_run_id=UUID(analysis_run_id) if analysis_run_id is not None else None,
         )

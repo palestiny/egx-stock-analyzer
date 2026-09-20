@@ -6,6 +6,7 @@ from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteM
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
+from app.application.analysis.run_store import AnalysisRunStore
 from app.application.analysis.runtime import (
     StockAnalysisRuntime,
     create_stock_analysis_runtime,
@@ -38,6 +39,7 @@ from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredent
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
 from app.application.security.credentials import CredentialService
 from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
@@ -89,11 +91,13 @@ def create_infrastructure_runtime(
     config: InfrastructureConfig,
     result_store: AnalysisResultStore | None = None,
     retry_policy: RetryPolicy | None = None,
+    analysis_run_store: AnalysisRunStore | None = None,
 ) -> InfrastructureRuntime:
     if not config.operator_token or not config.operator_token.strip():
         raise ValueError("EGX_OPERATOR_TOKEN must be configured")
 
     result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
+    analysis_run_store = analysis_run_store or SQLiteAnalysisRunStore(config.analysis_database_path)
     retry_policy = retry_policy or RetryPolicy(1)
 
     yahoo_history_client = YahooFinanceHistoryClient(yfinance_module)
@@ -132,6 +136,7 @@ def create_infrastructure_runtime(
         result_store=result_store,
         retry_policy=retry_policy,
         management_audit_store=management_audit_store,
+        analysis_run_store=analysis_run_store,
     )
 
     has_telegram_token = config.telegram_bot_token is not None

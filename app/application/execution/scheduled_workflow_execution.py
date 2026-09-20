@@ -27,6 +27,7 @@ class ScheduledWorkflowExecution:
     updated_at: datetime
     owner_user_id: UUID | None = None
     analysis_state: str | None = None
+    analysis_run_id: UUID | None = None
     delivery_state: str | None = None
     request_fingerprint: str | None = None
     revision: int = 0
@@ -94,6 +95,7 @@ class ScheduledWorkflowExecution:
         analysis_state: str,
         delivery_state: str | None,
         now: datetime,
+        analysis_run_id: UUID | None = None,
     ) -> "ScheduledWorkflowExecution":
         self._require_state(ScheduledWorkflowExecutionState.RUNNING)
         return ScheduledWorkflowExecution(
@@ -104,6 +106,7 @@ class ScheduledWorkflowExecution:
             updated_at=now,
             owner_user_id=self.owner_user_id,
             analysis_state=analysis_state,
+            analysis_run_id=analysis_run_id if analysis_run_id is not None else self.analysis_run_id,
             delivery_state=delivery_state,
             request_fingerprint=self.request_fingerprint,
             revision=self.revision + 1,
@@ -124,6 +127,7 @@ class ScheduledWorkflowExecution:
             updated_at=now,
             owner_user_id=self.owner_user_id,
             analysis_state=self.analysis_state,
+            analysis_run_id=self.analysis_run_id,
             delivery_state=self.delivery_state,
             request_fingerprint=self.request_fingerprint,
             revision=self.revision + 1,

@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from uuid import UUID
 from unittest.mock import Mock
 
 from app.application.execution.automatic_workflow_recovery import (
@@ -56,6 +57,7 @@ def test_startup_recovery_resumes_persisted_interrupted_execution(tmp_path):
         (),
         {
             "analysis_execution": completed_analysis(),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000010"),
             "delivery_result": None,
         },
     )()

@@ -13,6 +13,7 @@ from app.application.reporting.compare_analysis_snapshots import CompareAnalysis
 from app.application.reporting.change_detection import DetectAnalysisChanges
 from app.application.reporting.calculate_snapshot_performance import CalculateSnapshotPerformance
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
+from app.application.analysis.run_store import AnalysisRunStore
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.execution.retry import RetryPolicy
@@ -46,15 +47,22 @@ def create_stock_analysis_runtime(
     result_store: AnalysisResultStore,
     retry_policy: RetryPolicy,
     management_audit_store: ManagementAuditStore | None = None,
+    analysis_run_store: AnalysisRunStore | None = None,
 ) -> StockAnalysisRuntime:
     run_stock_analysis = RunStockAnalysis(
         input_assembler=input_assembler,
         result_store=result_store,
         retry_policy=retry_policy,
     )
+    if analysis_run_store is None:
+        from app.application.analysis.run_store import InMemoryAnalysisRunStore
+
+        analysis_run_store = InMemoryAnalysisRunStore()
+
     run_market_analysis = RunMarketAnalysis(
         stock_catalog=stock_catalog,
         run_stock_analysis=run_stock_analysis,
+        analysis_run_store=analysis_run_store,
     )
     run_configured_market_analysis = RunConfiguredMarketAnalysis(
         stock_catalog=stock_catalog,

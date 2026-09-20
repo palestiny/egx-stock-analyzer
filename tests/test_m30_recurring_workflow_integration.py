@@ -40,6 +40,7 @@ def completed_result():
         analysis_execution=SimpleNamespace(
             state=SimpleNamespace(value="completed"),
         ),
+        analysis_run_id=UUID("00000000-0000-0000-0000-000000000011"),
         delivery_result=SimpleNamespace(
             state=SimpleNamespace(value="completed"),
         ),
