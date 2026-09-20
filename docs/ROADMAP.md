@@ -153,12 +153,12 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M50 | Analysis Run History & Read Model | 🟢 Complete | Expose one durable analysis run and its successful correlated snapshots through a dedicated read-side capability |
 | M51 | Analysis Run History Query | 🟢 Complete | Discover persisted analysis runs through a bounded, deterministic, authenticated read-side query capability |
 | M52 | Analysis Run Discovery Dashboard | 🟢 Complete | Dedicated authenticated run-discovery page over the existing M51 API with state filtering, opaque-cursor pagination, safe error states, and M50 detail navigation |
-| M52 | Analysis Run Discovery Dashboard | 🟡 Design Proposed | Provide a presentation-only dashboard surface over the accepted M51 run-discovery API |
+| M53 | Analysis Run Outcome Completeness | 🟡 Design Proposed | Persist and expose per-symbol success/failure outcomes for market-wide analysis runs without changing analytical execution |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 M51 implementation is complete through PR #127, merged at `6f3c8f059c67ce0c4f2d72b4a777d81cca1f2345`. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203`. The M51 dashboard discovery surface remains intentionally deferred.
 
-M51 implementation is complete through PR #127. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203` before merge. M52 is currently a presentation-only design gate; implementation is not authorized until its open UX questions are resolved.
+M51 implementation is complete through PR #127. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203` before merge. M52 implementation is complete through PR #129, with GitHub Actions Run #2223 passing on implementation head `e7dfc4cb9251de3977beec43c63b5bff3eea48e0`; its documentation completion was merged through PR #130.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -267,6 +267,8 @@ M51 — Analysis Run History Query
         ↓
 M52 — Analysis Run Discovery Dashboard
         ↓
+M53 — Analysis Run Outcome Completeness
+        ↓
 NEXT — New Design Gate
 ```
 
@@ -275,6 +277,8 @@ M48 is complete. Time filtering and cross-execution history are merged and valid
 M49 design is accepted. The implementation is limited to durable analysis-run correlation and snapshot association; API/dashboard exposure is deferred to M50.
 
 M50 design is accepted. Implementation is merged through PR #124, with cursor-hardening follow-up PR #125 also merged. The implementation provides the dedicated GetAnalysisRun read capability, deterministic symbol ordering, bounded snapshot pagination, legacy-snapshot compatibility, and the existing authenticated analysis visibility boundary. Failed-symbol details remain deferred because M49 does not persist them. A cross-run list/search surface and per-user analysis-run ownership are deferred.
+
+M52 is complete. The dedicated authenticated run-discovery page consumes the M51 API without reproducing query semantics in React. M53 is now proposed to close the remaining per-symbol outcome visibility gap for partial and failed market-wide runs.
 
 M50 implementation and cursor-hardening are validated by GitHub Actions Run #2192 on the M51 implementation head before merge. This run also validates the combined M50/M51 Python, frontend test, and frontend build workflow.
 
@@ -1567,3 +1571,5 @@ See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
 M51 design is accepted in `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GATE.md`. The accepted MVP is application/API focused: deterministic run discovery, optional aggregate-state filtering, bounded opaque-cursor pagination, empty-result semantics, and the existing authenticated visibility boundary. Dashboard run discovery is deferred.
 
 M52 design is accepted in `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`. The implementation is complete. The dedicated run-discovery page consumes the existing M51 HTTP contract; no M51 query semantics or analysis execution moved into React. GitHub Actions Run #2223 passed on implementation head `e7dfc4cb9251de3977beec43c63b5bff3eea48e0`.
+
+M53 design is proposed in `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`. Implementation is not authorized until its durable outcome semantics and compatibility questions are resolved.
