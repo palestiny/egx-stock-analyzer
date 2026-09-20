@@ -9,6 +9,7 @@ class SQLiteAnalysisLifecycleStore:
         path = Path(database_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         self._database_path = str(path)
+        self.initialize()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
