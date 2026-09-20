@@ -35,3 +35,14 @@ class AnalysisLifecycleStore(Protocol):
         outcome: str,
     ) -> None:
         ...
+
+    def purge(
+        self,
+        *,
+        actor_user_id: UUID,
+        run_ids: tuple[UUID, ...] = (),
+        snapshot_ids: tuple[UUID, ...] = (),
+        limit: int = 100,
+        dry_run: bool = False,
+    ):
+        ...
