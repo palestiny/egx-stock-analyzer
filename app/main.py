@@ -40,6 +40,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         runtime.application_runtime.get_analysis_report,
         runtime.application_runtime.get_alert_candidate,
         runtime.application_runtime.get_market_opportunity_ranking,
+        runtime.application_runtime.get_analysis_run,
         runtime.application_runtime.run_configured_market_analysis,
         runtime.application_runtime.get_analysis_history,
         runtime.application_runtime.compare_analysis_snapshots,
