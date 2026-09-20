@@ -156,6 +156,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M53 | Analysis Run Outcome Completeness | 🟢 Complete | Persist and expose safe per-symbol success/failure outcomes for market-wide analysis runs without changing analytical execution |
 | M54 | Analysis Run Ownership | 🟢 Complete | Durable per-user ownership and authorization for AnalysisRun is implemented without changing analytical execution |
 | M55 | Analysis Snapshot Ownership | 🟢 Complete | Persist explicit snapshot ownership and enforce one authorization boundary across snapshot, history, latest-result, and run-correlated reads |
+| M56 | Analysis Snapshot Retention & Deletion | 🟡 Design Proposed | Define explicit snapshot lifecycle, deletion authorization, and retention semantics without changing analytical execution |
 | M56 | Analysis Run & Snapshot Retention & Deletion | 🟡 Design Proposed | Define one coordinated lifecycle for AnalysisRun and AnalysisResultRecord before destructive persistence is implemented |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
@@ -1588,3 +1589,8 @@ M51 design is accepted in `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GA
 M52 design is accepted in `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`. The implementation is complete. The dedicated run-discovery page consumes the existing M51 HTTP contract; no M51 query semantics or analysis execution moved into React. GitHub Actions Run #2223 passed on implementation head `e7dfc4cb9251de3977beec43c63b5bff3eea48e0`.
 
 M53 design is proposed in `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`. Implementation is not authorized until its durable outcome semantics and compatibility questions are resolved.
+
+
+## M56 — Analysis Snapshot Retention & Deletion
+
+The next design gate is proposed in docs/DEC-118-M56-ANALYSIS-SNAPSHOT-RETENTION-DESIGN-GATE.md. It is intentionally a design-only milestone at this point. Retention and deletion are separated from M55 ownership, and no implementation is authorized until the lifecycle decisions are accepted.
