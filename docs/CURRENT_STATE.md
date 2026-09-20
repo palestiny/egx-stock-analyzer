@@ -1,130 +1,114 @@
 # EGX Stock Analyzer — Current State
 
-**Authority:** GitHub main + current open pull requests  
-**Last verified:** 2026-09-20  
+**Authority:** GitHub `main` + current open pull requests  
+**Last verified:** 2026-09-21  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
 
-The repository is **past the earlier milestone sequence and is currently at M57 completion / M58 design**.
+The repository is currently at **M57 completion / M58 design**.
 
-M56 — Analysis Run & Snapshot Retention and Deletion is **complete**.
+M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
-M56 design is now accepted. The accepted M56 logical-deletion MVP is merged into `main`. Physical purge and automatic retention remain out of scope.
+M57 — Physical Purge is complete and hardened through PR #155.
 
-Latest M56 design synchronization:
+M58 — Automatic Analysis Retention is a proposed design gate. No M58 implementation is authorized.
 
-- **PR #145** — docs: clarify accepted M56 lifecycle engineering boundary — merged at `9c435668fad08c963bc1fab4aeb422532c16f386`.
-- **PR #147** — docs(m56): sync current state after lifecycle design clarification — merged at `860ee362c2f5a0dc4847c71f99d5bcf2bd0d51ca`.
-- Purpose: keep the current-state document synchronized with the proposed M56 gate without silently accepting unresolved destructive lifecycle policy.
-
-Owner-controlled M56 lifecycle decisions have been accepted and recorded in DEC-118 and DECISION_LOG.md.
-
-The latest verified merged main commit is:
-
-65d70c921ed244120be612f0c14bb07178bc9948
-
-Merge message:
-
-Merge pull request #148 from palestiny/m56-lifecycle-implementation
-
-feat(m56): implement analysis lifecycle deletion MVP
-
-The implementation head `9c46cdf6371ff86f074dee5805bf34358e76a941` passed GitHub Actions Tests Run #2497 before merge.
-
-## 2. Current M56 Boundary
-
-M56 concerns the lifecycle of:
-
-- AnalysisRun
-- AnalysisResultRecord historical snapshots
-
-The current design work is about retention, logical deletion, physical purge, ownership, authorization, run/snapshot correlation, auditability, transaction coordination, concurrency, and read-side behavior after lifecycle changes.
-
-**M56 destructive lifecycle implementation is complete within the accepted logical-deletion boundary.**
-
-The latest design gate is:
-
-docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md
-
-Status: **Accepted**.
-
-## 3. What Is Already Complete
-
-The project has progressed through the earlier milestone sequence. Those milestones are historical context, not current execution state. The exact completed milestone list and sequencing are authoritative in:
-
-docs/ROADMAP.md
-
-Do not use old conversation summaries, old branch names, or stale milestone statements as the current project position.
-
-## 4. Authority Order
+## 2. Authority Order
 
 When information conflicts, use this order:
 
-1. GitHub main repository state
-2. Open PRs and their actual heads/bases
-3. docs/ROADMAP.md
+1. GitHub `main`
+2. Open pull requests and their actual heads/bases
+3. `docs/ROADMAP.md`
 4. Current design-gate documents
-5. docs/DECISION_LOG.md
+5. `docs/DECISION_LOG.md`
 6. Other foundational documentation
 7. Conversation history / memory
 
-Conversation history is context, **not project state**.
+Conversation history is context, not project state.
 
-## 5. Session Start Rule
+## 3. M56 Completion
 
-Before doing project work:
+M56 established the accepted logical-deletion lifecycle for AnalysisRun and AnalysisResultRecord historical snapshots.
 
-1. Fetch the current main state.
-2. Read the current roadmap position.
+Validated behavior includes owner-aware logical deletion, consistent read-side visibility, active-run protection, idempotency, correlated run/snapshot hiding, and SQLite-transactional lifecycle mutation/audit coordination.
+
+Physical purge and automatic retention were intentionally separated from M56.
+
+## 4. M57 Completion
+
+M57 — Physical Purge is complete within the accepted design boundary.
+
+Design gate:
+
+`docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`
+
+Status: **Accepted**.
+
+Implementation was merged through PR #151 at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
+
+The implementation provides operator-only physical purge, explicit or deterministic bounded selection, stable-ID ordering, one SQLite transaction per lifecycle unit, fail-stop handling, restart-safe idempotency, management-audit recording, dry-run support, correlated lifecycle cleanup, runless snapshot purge, and visible/active protection.
+
+The implementation head `95abdc209e779f184cc67da49f60c97a535f109a` passed GitHub Actions Tests Run #2536.
+
+### M57 Hardening
+
+PR #155 was merged as `ad10be12990abdfac56ec1459b163929b23c83c6`.
+
+It synchronized the M57 completion state and hardened:
+
+- operation identity propagation;
+- dry-run audit recording;
+- global deterministic candidate ordering;
+- destructive row-count checks;
+- current-state / README / engineering documentation.
+
+GitHub Actions Tests Run #2571 passed for the hardening head.
+
+## 5. M58 Current Boundary
+
+M58 — Automatic Analysis Retention is a **proposed design gate**.
+
+Design document:
+
+`docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`
+
+Status: **Proposed — implementation not authorized**.
+
+M58 is intended to evaluate policy and triggering only and should reuse the existing M57 purge boundary rather than create another destructive deletion path.
+
+Open policy decisions:
+
+1. Is automatic retention required?
+2. What timestamp starts the retention clock?
+3. What data is covered?
+4. What preservation period is required?
+5. Who owns/configures the policy?
+6. How do policy changes affect existing records?
+7. What triggers automatic execution?
+8. What batch and safety limits apply?
+9. Is dry-run/preview required?
+10. How are automatic-retention audit events distinguished?
+11. Is automatic retention disabled by default?
+12. What happens when configuration is invalid or unavailable?
+
+Until these decisions are accepted, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
+
+## 6. Session Start Rule
+
+Before project work:
+
+1. Fetch current `main`.
+2. Read the current roadmap.
 3. Inspect open PRs.
 4. Identify the latest proposed/accepted design gate.
 5. Verify the implementation branch before changing code.
 6. State the current milestone and objective from GitHub.
 7. Ignore superseded milestone context.
 
-Do not infer the next task from an old conversation snapshot.
+## 7. Cleanup Rule
 
-## 6. M56 Completion
+Historical branches and old milestone documents are history, not current execution state. Old branches should only be deleted after verifying they are no longer needed.
 
-M56 is implemented and merged through PR #148. Validated behavior includes owner-aware logical deletion, consistent read-side visibility, active-run protection, idempotent deletion, correlated run/snapshot hiding, and SQLite-transactional lifecycle mutation/audit coordination. Physical purge, undelete, and automatic retention remain outside the milestone.
-
-## 7. M57 Completion
-
-M57 — Physical Purge is complete within the accepted design boundary.
-
-The accepted gate is `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.
-
-Implementation is authorized within that gate: operator-only physical purge, explicit or deterministic bounded selection, stable-ID ordering, one shared SQLite transaction per lifecycle unit, fail-stop destructive errors, restart-safe idempotency, mandatory management-audit recording, and optional dry-run. Automatic retention, archival storage, background workers, and new authorization roles remain out of scope.
-
-## 8. M57 Implementation Verification
-
-M57 physical purge implementation is merged through PR #151 at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
-
-The implementation adds the privileged PurgeAnalysisLifecycle application capability, transactional SQLite purge of deleted AnalysisRun/AnalysisRunOutcome/AnalysisResultRecord lifecycle units, deterministic bounded selection, runless snapshot purge, active/visible protection, dry-run preview, idempotent repeat behavior, fail-stop transaction handling, and management-audit events.
-
-The implementation head `95abdc209e779f184cc67da49f60c97a535f109a` passed GitHub Actions Tests Run #2536. The merge commit is `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
-
-## 9. Current M58 Boundary
-
-M58 is a proposed design gate for automatic analysis retention. Implementation is not authorized.
-
-The proposed gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
-
-Until accepted, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
-
-## 10. Next Step
-
-Resolve and explicitly accept or reject the M58 automatic-retention policy decisions before implementation. No automatic retention implementation is authorized by the proposed gate.
-
-## 11. Cleanup Rule
-
-Historical branches and old milestone documents are part of project history. They should not be treated as current state merely because they still exist.
-
-Old branches should only be deleted after verifying they are no longer needed.
-
-## 12. AI Context Rule
-
-If an AI assistant mentions a milestone that does not match this document and the current GitHub roadmap/PR state, it must stop and re-synchronize with GitHub before continuing.
-
-**The repository must be understandable without the conversation.**
+The repository must remain understandable without the conversation.
