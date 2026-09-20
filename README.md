@@ -14,9 +14,12 @@ The system currently supports:
 - automated analysis execution;
 - analysis reports and alert-candidate projections;
 - FastAPI analysis/report/alert/market/opportunity/history/workflow endpoints;
-- single-operator bearer-token authentication for all non-health API endpoints;
+- multi-user bearer authentication, credential lifecycle, and ownership authorization;
+- management and user-facing audit reporting;
 - React + Vite dashboard;
-- durable latest-analysis persistence with SQLite;
+- durable analysis results and historical analysis snapshots with SQLite;
+- scheduled workflow state and lifecycle history with SQLite;
+- bounded workflow history queries including state/time filters and cross-execution history;
 - a read-only SQLite inspection tool;
 - CI for Python tests, frontend tests, and frontend production build.
 
@@ -73,21 +76,13 @@ $env:EGX_ANALYSIS_DATABASE_PATH="storage/custom-analysis.db"
 
 ## Authentication
 
-The M37 security boundary uses one configured operator bearer token. `GET /health` remains public; all other API endpoints require:
+`GET /health` remains public. Application endpoints use the current multi-user bearer-authentication boundary.
 
-```text
-Authorization: Bearer <operator-token>
-```
+The current identity/credential architecture includes authenticated internal user UUIDs, durable opaque bearer credentials, user lifecycle state, credential rotation, and ownership-scoped application capabilities. The legacy operator compatibility path remains limited to system/global records.
 
-Configure it before starting the API:
+The frontend establishes its browser session through the authenticated API; the old build-time `VITE_OPERATOR_TOKEN` flow is no longer the current frontend contract.
 
-```powershell
-$env:EGX_OPERATOR_TOKEN="replace-with-a-strong-secret"
-```
-
-The token is infrastructure configuration only. It is not persisted, returned by the API, or written to analytical/workflow records.
-
-Missing or invalid credentials return HTTP 401. The current MVP has one operator permission; multi-user identity, ownership, sessions, and external identity providers require a later design gate.
+Raw credentials are not stored in domain entities or returned after provisioning/rotation. See the M39–M41 decisions in `docs/DECISION_LOG.md`.
 
 ## Analysis Flow
 
@@ -152,7 +147,7 @@ npm install
 npm run dev
 ```
 
-Vite proxies `/api` requests to `http://localhost:8000`. Configure `VITE_OPERATOR_TOKEN` in the frontend environment with the same operator token used by `EGX_OPERATOR_TOKEN`; the dashboard API client sends it as a bearer credential.
+Vite proxies `/api` requests to `http://localhost:8000`. The frontend follows the current authenticated session contract and does not own authorization or analytical rules.
 
 ## Persistence Contract
 
@@ -165,7 +160,7 @@ The MVP stores:
 - serialization version;
 - complete serialized `StockAnalysisResult`.
 
-The latest completed result is kept per symbol. Historical result browsing is intentionally deferred.
+Latest-result compatibility remains available while historical analysis snapshots are also persisted through the historical-result boundary.
 
 The serializer is explicit and versioned; Python pickle is not used.
 
@@ -206,18 +201,17 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 
 ## Current Milestone State
 
-- M12 — First API/dashboard slice: complete and frozen.
-- M13 — Operational runtime baseline: complete.
-- M13 — SQLite persistence MVP: complete and CI-validated.
-- M30 — Durable scheduled workflow: complete and CI-validated through the recurring-scheduler integration.
-- M31 — Durable workflow recovery: complete and CI-validated through the interrupted-execution recovery path.
-- M32 — Automatic scheduled workflow resume: complete and CI-validated through startup recovery of persisted INTERRUPTED executions.
-- M33 — Scheduled workflow operational visibility: complete.
-- M34 — Scheduled workflow operational visibility API: complete.
-- M35 — Scheduled workflow operational dashboard: complete.
-- M36 — Scheduled workflow recovery control: complete.
-- M37 — Authentication & authorization boundary: design accepted; implementation in progress.
+The detailed milestone state is maintained in `docs/ROADMAP.md`.
 
-M30 now persists scheduled workflow lifecycle state independently from analytical-result and alert-delivery persistence. Persisted RUNNING executions are detectable and recoverable as INTERRUPTED; they are not automatically replayed.
+Current position:
 
-M36 is the latest completed milestone on `main`. M37 implementation is currently under PR #70. On application startup, persisted INTERRUPTED scheduled workflow executions are discovered and delegated to the existing M31 recovery capability. Recovery is deterministic, sequential, process-local, and failure-isolated.
+- M47 — Scheduled Workflow History Filtering: complete.
+- M48 — Scheduled Workflow History Time Filtering + Cross-Execution History: active.
+- M48 time filtering: merged.
+- M48 cross-execution history design: accepted.
+- M48 cross-execution history implementation: merged through PR #118.
+- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Run #1959.
+- M48 merge commit: `ef387e2570d01653f4d231aea4527a18d3ded80c`.
+
+Do not use older README milestone statements as project state. The roadmap and decision log are authoritative.
+
