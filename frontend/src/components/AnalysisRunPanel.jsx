@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export function AnalysisRunPanel({ getAnalysisRun }) {
   const [runId, setRunId] = useState("");
+  const [loadedRunId, setLoadedRunId] = useState(null);
   const [view, setView] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [error, setError] = useState(null);
@@ -22,9 +23,35 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
         cursor: nextCursor,
       });
       setView(result);
+      setLoadedRunId(normalizedRunId);
       setCursor(nextCursor);
     } catch (requestError) {
       setView(null);
+      setLoadedRunId(null);
+      setCursor(null);
+      setError(requestError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadRunForLoadedRun(nextCursor) {
+    if (!loadedRunId) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getAnalysisRun(loadedRunId, {
+        pageSize: 50,
+        cursor: nextCursor,
+      });
+      setView(result);
+      setCursor(nextCursor);
+    } catch (requestError) {
+      setView(null);
+      setLoadedRunId(null);
       setCursor(null);
       setError(requestError);
     } finally {
@@ -95,7 +122,7 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
           {view.next_cursor && (
             <button
               type="button"
-              onClick={() => loadRun(null, view.next_cursor)}
+              onClick={() => loadRunForLoadedRun(view.next_cursor)}
               disabled={loading}
             >
               {loading ? "Loading..." : "Next snapshots"}
@@ -105,7 +132,7 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
           {cursor && (
             <button
               type="button"
-              onClick={() => loadRun(null, null)}
+              onClick={() => loadRunForLoadedRun(null)}
               disabled={loading}
             >
               First page
