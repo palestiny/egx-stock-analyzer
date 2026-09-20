@@ -156,7 +156,15 @@ class SQLiteAnalysisLifecycleStore:
 
         if dry_run:
             return PurgeStoreResult(
-                blocked_resource_ids=tuple(resource_id for kind, resource_id in candidates if kind == "blocked")
+                eligible_run_ids=tuple(
+                    resource_id for kind, resource_id in candidates if kind == "run"
+                ),
+                eligible_snapshot_ids=tuple(
+                    resource_id for kind, resource_id in candidates if kind == "snapshot"
+                ),
+                blocked_resource_ids=tuple(
+                    resource_id for kind, resource_id in candidates if kind == "blocked"
+                ),
             )
 
         purged_runs: list[UUID] = []
