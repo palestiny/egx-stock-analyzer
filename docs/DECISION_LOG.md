@@ -2560,3 +2560,20 @@ Implemented through PR #118 and merged into `main` at `ef387e2570d01653f4d231aea
 M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
 See `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
+
+## DEC-111 — M49 Analysis Run Grouping & Snapshot Correlation
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M49 introduces a dedicated immutable AnalysisRunId for each market-wide analysis invocation. It is analytically distinct from scheduled-workflow execution identity and is persisted so correlation survives restart.
+
+A dedicated analysis-run record is authoritative for run existence and aggregate state. Successful historical stock snapshots produced by that run carry the AnalysisRunId. Failed stocks do not receive synthetic snapshots. Partial, all-failed, and empty market-wide runs remain explicitly represented.
+
+Scheduled workflow execution remains an operational trigger; idempotent repeated occurrences reuse the existing workflow idempotency boundary and do not create a second analytical run for the same occurrence.
+
+Existing single-stock manual analysis keeps its current semantics. Legacy snapshots remain readable without synthetic run IDs. The first M49 implementation establishes application + persistence correlation only; API/dashboard exposure is deferred.
+
+The accepted contract requires immutable run identity, explicit snapshot correlation, latest-result compatibility, restart durability, at most one successful snapshot per symbol per run, and no analytical logic in persistence.
+
+See docs/DEC-111-M49-ANALYSIS-RUN-GROUPING-DESIGN-GATE.md.
