@@ -47,11 +47,11 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         runtime.get_scheduled_workflow_execution_history,
-        getattr(runtime, "recover_durable_scheduled_workflow", None),
-        getattr(runtime, "user_management", None),
-        getattr(runtime.application_runtime, "get_management_audit", None),
-        get_user_audit_history=getattr(runtime.application_runtime, "get_user_audit_history", None),
         get_scheduled_workflow_history=getattr(runtime, "get_scheduled_workflow_history", None),
+        recover_durable_scheduled_workflow=getattr(runtime, "recover_durable_scheduled_workflow", None),
+        user_management=getattr(runtime, "user_management", None),
+        get_management_audit=getattr(runtime.application_runtime, "get_management_audit", None),
+        get_user_audit_history=getattr(runtime.application_runtime, "get_user_audit_history", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
