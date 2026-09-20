@@ -59,6 +59,8 @@ class DeleteAnalysisSnapshot:
             identity.user_id,
             record.owner_user_id,
         )
+        if outcome is LifecycleDeletionOutcome.ACTIVE:
+            raise ValueError("Snapshots belonging to active analysis runs cannot be deleted")
         return AnalysisSnapshotLifecycleResult(
             deleted=outcome is LifecycleDeletionOutcome.DELETED,
         )
