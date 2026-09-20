@@ -97,8 +97,6 @@ describe("AnalysisRunPanel", () => {
       "Analysis run was not found.",
     );
   });
-});
-
 
   it("renders persisted success and failure outcomes", async () => {
     const getAnalysisRun = vi.fn().mockResolvedValue({
@@ -132,3 +130,5 @@ describe("AnalysisRunPanel", () => {
     expect(screen.getByText(/UNKNOWN_SYMBOL/)).toBeInTheDocument();
     expect(screen.getByText("EGAL")).toBeInTheDocument();
   });
+
+});
