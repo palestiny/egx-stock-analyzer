@@ -170,7 +170,7 @@ def test_market_run_is_persisted_with_completed_state_and_snapshot_correlation()
 
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED
-    assert len(run_stock_analysis.call_args_list) == 2
+    assert len(run_stock_analysis.execute.call_args_list) == 2
     assert {call.kwargs["analysis_run_id"] for call in run_stock_analysis.call_args_list} == {run_id}
 
 
