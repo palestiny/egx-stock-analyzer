@@ -201,7 +201,7 @@ class GetScheduledWorkflowHistory:
             payload = json.loads(
                 urlsafe_b64decode((cursor + padding).encode("ascii")).decode("utf-8")
             )
-        except (Base64DecodeError, UnicodeDecodeError, ValueError, json.JSONDecodeError):
+        except (Base64DecodeError, UnicodeDecodeError, UnicodeEncodeError, ValueError, json.JSONDecodeError):
             raise InvalidScheduledWorkflowHistoryQueryError(
                 "cursor must be a valid history continuation cursor"
             ) from None
