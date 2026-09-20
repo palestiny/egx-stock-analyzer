@@ -2507,13 +2507,21 @@ See docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md.
 
 ## DEC-109 — M48 Scheduled Workflow Cross-Execution History
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20
 
-M48 proposes a dedicated, bounded, read-only cross-execution lifecycle-history query over the existing durable scheduled workflow history.
+M48 establishes a dedicated, bounded, read-only cross-execution lifecycle-history query over the existing durable scheduled workflow history.
 
-The proposal evaluates ownership isolation, deterministic ordering, bounded opaque pagination, reuse of M47 typed lifecycle-state filters, SQLite query/index evidence, and dashboard scope without changing lifecycle state or authorization semantics.
+The query returns persisted lifecycle-history events, not per-execution summaries. Visibility reuses the existing ownership boundary: authenticated users see only executions they own, while the legacy/operator identity sees only system/global executions.
 
-No implementation is authorized until the M48 design gate is explicitly accepted.
+M48 reuses M47 typed `from_state` / `to_state` filters and adds no execution-ID narrowing because single-execution history already has a dedicated capability. Results are ordered deterministically by `occurred_at DESC, execution_id DESC, sequence DESC`.
+
+Pagination remains bounded at the established default 50 / maximum 100. Cursors are opaque composite cursors bound to the complete effective query shape. Time filters are part of that shape where present.
+
+M48 is application/API focused; the dashboard does not add a second cross-execution history surface. SQLite starts without a mandatory new index; representative query-plan evidence must justify any secondary index.
+
+The existing M45/M46/M47 single-execution history contract remains unchanged. No lifecycle mutation, replay, retention change, new authorization semantics, or new authentication mechanism is introduced.
+
+Implementation is authorized within this scope.
 
 See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
