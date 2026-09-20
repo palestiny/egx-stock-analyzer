@@ -32,6 +32,7 @@ class SQLiteAnalysisResultStore:
 
             if not columns:
                 self._create_history_table(connection)
+                columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
             elif "snapshot_id" not in columns:
                 self._migrate_latest_only_table(connection)
                 columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
