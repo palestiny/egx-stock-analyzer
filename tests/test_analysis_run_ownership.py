@@ -1,5 +1,5 @@
 from datetime import date
-from uuid import UUID, uuid4
+from uuid import uuid4
 from unittest.mock import Mock
 
 import pytest
@@ -22,14 +22,16 @@ AS_OF = date(2026, 9, 20)
 def test_market_run_persists_user_owner():
     user_id = uuid4()
     stock = Stock.create("EGAL", "Egypt Aluminum")
+    run_store = InMemoryAnalysisRunStore()
     runner = RunMarketAnalysis(
         InMemoryStockCatalog([stock]),
         Mock(),
+        run_store,
     )
 
     result = runner.execute(["EGAL"], AS_OF, owner_user_id=user_id)
 
-    run = runner._analysis_run_store.get(result.analysis_run_id)
+    run = run_store.get(result.analysis_run_id)
     assert run is not None
     assert run.owner_user_id == user_id
 
@@ -112,3 +114,12 @@ def test_legacy_global_run_is_not_visible_to_regular_user():
     )
 
     assert view.items == ()
+
+
+def test_analysis_run_owner_is_immutable_across_state_transition():
+    owner_id = uuid4()
+    run = AnalysisRun.create(owner_user_id=owner_id)
+
+    transitioned = run.with_state(ExecutionState.COMPLETED)
+
+    assert transitioned.owner_user_id == owner_id
