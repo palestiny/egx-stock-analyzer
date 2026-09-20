@@ -54,6 +54,50 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 ),
             )
 
+    def list_runs(
+        self,
+        *,
+        state: ExecutionState | None = None,
+        before_created_at: datetime | None = None,
+        before_run_id: UUID | None = None,
+        limit: int = 50,
+    ) -> tuple[AnalysisRun, ...]:
+        query = """
+            SELECT run_id, created_at, state
+            FROM analysis_runs
+        """
+        parameters: list[str] = []
+        conditions: list[str] = []
+
+        if state is not None:
+            conditions.append("state = ?")
+            parameters.append(state.value)
+
+        if before_created_at is not None and before_run_id is not None:
+            conditions.append(
+                "(created_at < ? OR (created_at = ? AND run_id < ?))"
+            )
+            created_at = before_created_at.isoformat()
+            parameters.extend([created_at, created_at, str(before_run_id)])
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        query += " ORDER BY created_at DESC, run_id DESC LIMIT ?"
+        parameters.append(str(limit))
+
+        with self._connect() as connection:
+            rows = connection.execute(query, parameters).fetchall()
+
+        return tuple(
+            AnalysisRun(
+                id=UUID(row[0]),
+                created_at=datetime.fromisoformat(row[1]),
+                state=ExecutionState(row[2]),
+            )
+            for row in rows
+        )
+
     def get(self, run_id: UUID) -> AnalysisRun | None:
         with self._connect() as connection:
             row = connection.execute(
