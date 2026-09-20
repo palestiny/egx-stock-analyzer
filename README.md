@@ -207,10 +207,11 @@ Current position:
 
 - M47 — Scheduled Workflow History Filtering: complete.
 - M48 — Scheduled Workflow History Time Filtering + Cross-Execution History: complete.
+- M49 — Scheduled Workflow History Summary: design gate proposed; implementation not yet authorized.
 - M48 time filtering and cross-execution history are merged.
 - PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Run #1959 before merge.
 - M48 merge commit: `ef387e2570d01653f4d231aea4527a18d3ded80c`.
 - M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
-Do not use older README milestone statements as project state. The roadmap and decision log are authoritative. The next significant capability requires a new design gate.
+Do not use older README milestone statements as project state. The roadmap and decision log are authoritative. M49 is documented in `docs/DEC-111-M49-SCHEDULED-WORKFLOW-HISTORY-SUMMARY-DESIGN-GATE.md`; its implementation remains gated on design acceptance.
 
