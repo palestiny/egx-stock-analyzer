@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.get_analysis_run import GetAnalysisRun
+from app.application.analysis.list_analysis_runs import ListAnalysisRuns
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.identity.get_management_audit import GetManagementAudit
 from app.application.identity.get_user_audit_history import GetUserAuditHistory
@@ -31,6 +32,7 @@ class StockAnalysisRuntime:
     rank_market_opportunities: RankMarketOpportunities
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     get_analysis_run: GetAnalysisRun
+    list_analysis_runs: ListAnalysisRuns
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
@@ -75,6 +77,7 @@ def create_stock_analysis_runtime(
         run_store=analysis_run_store,
         result_store=result_store,
     )
+    list_analysis_runs = ListAnalysisRuns(analysis_run_store)
     get_market_opportunity_ranking = GetMarketOpportunityRanking(
         result_store=result_store,
         rank_market_opportunities=rank_market_opportunities,
@@ -122,6 +125,7 @@ def create_stock_analysis_runtime(
         rank_market_opportunities=rank_market_opportunities,
         get_market_opportunity_ranking=get_market_opportunity_ranking,
         get_analysis_run=get_analysis_run,
+        list_analysis_runs=list_analysis_runs,
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,

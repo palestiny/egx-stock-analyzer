@@ -154,9 +154,7 @@ Each list item exposes only run-level metadata needed to choose a run for M50 de
 - AnalysisRunId;
 - created_at;
 - aggregate execution state;
-- requested stock count;
-- successful stock count;
-- failed stock count.
+
 
 Snapshot details remain behind GetAnalysisRun. No stock-level analytical fields, scores, classifications, or failed-symbol identifiers are duplicated into the list read model.
 

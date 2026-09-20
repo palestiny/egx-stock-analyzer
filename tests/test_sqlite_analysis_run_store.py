@@ -1,4 +1,6 @@
 import sqlite3
+from datetime import datetime, timezone
+from uuid import UUID
 
 from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import ExecutionState
@@ -44,3 +46,29 @@ def test_analysis_run_store_creates_durable_table(tmp_path):
         }
 
     assert columns == {"run_id", "created_at", "state"}
+
+
+def test_sqlite_list_runs_is_deterministic_and_restart_safe(tmp_path):
+    database = tmp_path / "analysis.db"
+    store = SQLiteAnalysisRunStore(database)
+    older = AnalysisRun(
+        id=UUID("00000000-0000-0000-0000-000000000001"),
+        created_at=datetime(2026, 9, 20, 8, tzinfo=timezone.utc),
+        state=ExecutionState.COMPLETED,
+    )
+    newer = AnalysisRun(
+        id=UUID("00000000-0000-0000-0000-000000000002"),
+        created_at=datetime(2026, 9, 20, 9, tzinfo=timezone.utc),
+        state=ExecutionState.FAILED,
+    )
+    store.save(older)
+    store.save(newer)
+
+    restored = SQLiteAnalysisRunStore(database).list_runs(limit=10)
+    filtered = SQLiteAnalysisRunStore(database).list_runs(
+        state=ExecutionState.FAILED,
+        limit=10,
+    )
+
+    assert [run.id for run in restored] == [newer.id, older.id]
+    assert [run.id for run in filtered] == [newer.id]

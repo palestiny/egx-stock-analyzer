@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from app.domain.analysis_run import AnalysisRun
+from app.domain.execution import ExecutionState
 
 
 class AnalysisRunStore(Protocol):
@@ -9,6 +11,16 @@ class AnalysisRunStore(Protocol):
         ...
 
     def get(self, run_id: UUID) -> AnalysisRun | None:
+        ...
+
+    def list_runs(
+        self,
+        *,
+        state: ExecutionState | None = None,
+        before_created_at: datetime | None = None,
+        before_run_id: UUID | None = None,
+        limit: int = 50,
+    ) -> tuple[AnalysisRun, ...]:
         ...
 
 
@@ -21,3 +33,28 @@ class InMemoryAnalysisRunStore:
 
     def get(self, run_id: UUID) -> AnalysisRun | None:
         return self._runs.get(run_id)
+
+    def list_runs(
+        self,
+        *,
+        state: ExecutionState | None = None,
+        before_created_at: datetime | None = None,
+        before_run_id: UUID | None = None,
+        limit: int = 50,
+    ) -> tuple[AnalysisRun, ...]:
+        runs = [
+            run
+            for run in self._runs.values()
+            if state is None or run.state is state
+        ]
+        runs.sort(key=lambda run: (run.created_at, str(run.id)), reverse=True)
+
+        if before_created_at is not None and before_run_id is not None:
+            runs = [
+                run
+                for run in runs
+                if (run.created_at, str(run.id))
+                < (before_created_at, str(before_run_id))
+            ]
+
+        return tuple(runs[:limit])

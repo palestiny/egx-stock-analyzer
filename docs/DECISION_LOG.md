@@ -2631,7 +2631,7 @@ M51 adds a dedicated `ListAnalysisRuns` application read capability over the dur
 
 Pagination reuses the established opaque cursor contract with default page size 50 and maximum 100. Cursors are bound to the complete effective query shape. Valid no-match queries return an empty collection rather than 404.
 
-The discovery read model exposes only run-level metadata needed to select a run for M50 detail: run ID, creation time, aggregate state, requested/successful/failed counts. Snapshot detail remains behind `GetAnalysisRun`.
+The discovery read model exposes only run-level metadata currently persisted by M49: run ID, creation time, and aggregate state. Stock counts are not reconstructed because M49 does not persist them as run metadata; adding such counts would change the M49 persistence contract and is deferred. Snapshot detail remains behind `GetAnalysisRun`.
 
 M51 preserves the existing authenticated system-level analysis visibility boundary and does not introduce per-user run ownership. The dashboard run-detail surface remains unchanged; dashboard run discovery is deferred to a separate presentation gate.
 
