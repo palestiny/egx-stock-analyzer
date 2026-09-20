@@ -40,18 +40,6 @@ class AnalysisResultStore(Protocol):
     ) -> tuple[AnalysisResultRecord, ...]:
         ...
 
-    def get_history_by_analysis_run(
-        self,
-        analysis_run_id: UUID,
-    ) -> tuple[AnalysisResultRecord, ...]:
-        records = [
-            record
-            for records in self._results.values()
-            for record in records
-            if record.analysis_run_id == analysis_run_id
-        ]
-        return tuple(records)
-
     def get_history(
         self,
         symbol: str,
@@ -96,6 +84,18 @@ class InMemoryAnalysisResultStore:
                 if record.snapshot_id == snapshot_id:
                     return record
         return None
+
+    def get_history_by_analysis_run(
+        self,
+        analysis_run_id: UUID,
+    ) -> tuple[AnalysisResultRecord, ...]:
+        records = [
+            record
+            for records in self._results.values()
+            for record in records
+            if record.analysis_run_id == analysis_run_id
+        ]
+        return tuple(records)
 
     def get_history(
         self,
