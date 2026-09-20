@@ -15,6 +15,7 @@ from app.application.reporting.calculate_snapshot_performance import CalculateSn
 from app.application.analysis.run_market_analysis import RunMarketAnalysis
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.execution.get_scheduled_workflow_history import GetScheduledWorkflowHistory
 from app.application.execution.retry import RetryPolicy
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.reporting.get_analysis_report import GetAnalysisReport
@@ -38,6 +39,7 @@ class StockAnalysisRuntime:
     get_management_audit: GetManagementAudit | None
     get_user_audit_history: GetUserAuditHistory | None
     result_store: AnalysisResultStore
+    get_scheduled_workflow_history: GetScheduledWorkflowHistory | None = None
 
 
 def create_stock_analysis_runtime(
@@ -95,6 +97,7 @@ def create_stock_analysis_runtime(
         if management_audit_store is not None
         else None
     )
+    get_scheduled_workflow_history = GetScheduledWorkflowHistory(result_store) if False else None
     get_user_audit_history = (
         GetUserAuditHistory(management_audit_store)
         if management_audit_store is not None
@@ -117,4 +120,5 @@ def create_stock_analysis_runtime(
         get_management_audit=get_management_audit,
         get_user_audit_history=get_user_audit_history,
         result_store=result_store,
+        get_scheduled_workflow_history=get_scheduled_workflow_history,
     )
