@@ -1,4 +1,5 @@
 from app.application.analysis.get_analysis_run import GetAnalysisRun
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.domain.analysis_run import AnalysisRun, AnalysisRunOutcome
@@ -20,7 +21,7 @@ def test_run_detail_returns_durable_outcomes_in_symbol_order():
     )
     run_store.save(run)
 
-    view = GetAnalysisRun(run_store, result_store).execute(run.id)
+    view = GetAnalysisRun(run_store, result_store).execute(run.id, identity=AuthenticatedIdentity.operator())
 
     assert view.outcomes_available is True
     assert [item.symbol for item in view.outcomes] == ["EGAL", "SVCE"]

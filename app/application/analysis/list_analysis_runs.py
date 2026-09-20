@@ -6,6 +6,8 @@ from datetime import datetime
 from uuid import UUID
 
 from app.application.analysis.run_store import AnalysisRunStore
+from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import Permission
 from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import ExecutionState
 
@@ -41,12 +43,21 @@ class ListAnalysisRuns:
         state: ExecutionState | None = None,
         page_size: int = DEFAULT_PAGE_SIZE,
         cursor: str | None = None,
+        identity: AuthenticatedIdentity | None = None,
     ) -> AnalysisRunListView:
         self._validate_page_size(page_size)
         after = self._decode_cursor(cursor, state, page_size) if cursor else None
 
+        effective_identity = identity or AuthenticatedIdentity.operator()
+        is_operator = Permission.OPERATOR in effective_identity.permissions
+        owner_user_id = None if is_operator else effective_identity.user_id
+        if owner_user_id is None and not is_operator:
+            raise ValueError("Authenticated user identity is required")
+
         runs = self._run_store.list_runs(
             state=state,
+            owner_user_id=owner_user_id,
+            include_global=is_operator,
             before_created_at=after[0] if after else None,
             before_run_id=after[1] if after else None,
             limit=page_size + 1,

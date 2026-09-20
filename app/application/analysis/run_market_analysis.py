@@ -39,12 +39,13 @@ class RunMarketAnalysis:
         self,
         symbols: Sequence[str],
         as_of: date,
+        owner_user_id: UUID | None = None,
     ) -> MarketAnalysisResult:
         normalized_symbols = self._normalize_symbols(symbols)
 
         execution = Execution.create()
         execution.start()
-        analysis_run = AnalysisRun.create().with_state(execution.state)
+        analysis_run = AnalysisRun.create(owner_user_id=owner_user_id).with_state(execution.state)
         self._analysis_run_store.save(analysis_run)
 
         outcomes: list[AnalysisRunOutcome] = []

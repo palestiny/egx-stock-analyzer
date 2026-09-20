@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+
+
 from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import ExecutionState
 
@@ -17,6 +19,8 @@ class AnalysisRunStore(Protocol):
         self,
         *,
         state: ExecutionState | None = None,
+        owner_user_id: UUID | None = None,
+        include_global: bool = False,
         before_created_at: datetime | None = None,
         before_run_id: UUID | None = None,
         limit: int = 50,
@@ -29,6 +33,9 @@ class InMemoryAnalysisRunStore:
         self._runs: dict[UUID, AnalysisRun] = {}
 
     def save(self, run: AnalysisRun) -> None:
+        existing = self._runs.get(run.id)
+        if existing is not None and existing.owner_user_id != run.owner_user_id:
+            raise ValueError("Analysis run ownership cannot be changed")
         self._runs[run.id] = run
 
     def get(self, run_id: UUID) -> AnalysisRun | None:
@@ -38,6 +45,8 @@ class InMemoryAnalysisRunStore:
         self,
         *,
         state: ExecutionState | None = None,
+        owner_user_id: UUID | None = None,
+        include_global: bool = False,
         before_created_at: datetime | None = None,
         before_run_id: UUID | None = None,
         limit: int = 50,
@@ -45,7 +54,12 @@ class InMemoryAnalysisRunStore:
         runs = [
             run
             for run in self._runs.values()
-            if state is None or run.state is state
+            if (state is None or run.state is state)
+            and (
+                owner_user_id is None
+                or run.owner_user_id == owner_user_id
+                or (include_global and run.owner_user_id is None)
+            )
         ]
         runs.sort(key=lambda run: (run.created_at, str(run.id)), reverse=True)
 

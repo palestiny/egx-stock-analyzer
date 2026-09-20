@@ -64,15 +64,17 @@ class AnalysisRun:
     id: UUID
     created_at: datetime
     state: ExecutionState
+    owner_user_id: UUID | None = None
     outcomes: tuple[AnalysisRunOutcome, ...] = ()
     outcomes_available: bool = False
 
     @classmethod
-    def create(cls) -> "AnalysisRun":
+    def create(cls, owner_user_id: UUID | None = None) -> "AnalysisRun":
         return cls(
             id=uuid4(),
             created_at=datetime.now(timezone.utc),
             state=ExecutionState.CREATED,
+            owner_user_id=owner_user_id,
         )
 
     def with_state(self, state: ExecutionState) -> "AnalysisRun":
@@ -80,6 +82,7 @@ class AnalysisRun:
             id=self.id,
             created_at=self.created_at,
             state=state,
+            owner_user_id=self.owner_user_id,
             outcomes=self.outcomes,
             outcomes_available=self.outcomes_available,
         )
@@ -100,6 +103,7 @@ class AnalysisRun:
             id=self.id,
             created_at=self.created_at,
             state=self.state,
+            owner_user_id=self.owner_user_id,
             outcomes=normalized,
             outcomes_available=True,
         )

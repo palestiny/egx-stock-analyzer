@@ -45,7 +45,7 @@ def test_analysis_run_store_creates_durable_table(tmp_path):
             ).fetchall()
         }
 
-    assert columns == {"run_id", "created_at", "state", "outcomes_available"}
+    assert columns == {"run_id", "created_at", "state", "owner_user_id", "outcomes_available"}
 
 
 def test_sqlite_list_runs_is_deterministic_and_restart_safe(tmp_path):
@@ -72,3 +72,52 @@ def test_sqlite_list_runs_is_deterministic_and_restart_safe(tmp_path):
 
     assert [run.id for run in restored] == [newer.id, older.id]
     assert [run.id for run in filtered] == [newer.id]
+
+
+def test_sqlite_analysis_run_owner_survives_restart(tmp_path):
+    from uuid import uuid4
+    from app.domain.analysis_run import AnalysisRun
+    from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+
+    database_path = tmp_path / "analysis.db"
+    owner_id = uuid4()
+    run = AnalysisRun.create(owner_user_id=owner_id)
+
+    SQLiteAnalysisRunStore(database_path).save(run)
+    restored = SQLiteAnalysisRunStore(database_path).get(run.id)
+
+    assert restored is not None
+    assert restored.owner_user_id == owner_id
+
+
+def test_sqlite_analysis_run_owner_filter_excludes_other_users(tmp_path):
+    from uuid import uuid4
+    from app.domain.analysis_run import AnalysisRun
+    from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+
+    database_path = tmp_path / "analysis.db"
+    owner_id = uuid4()
+    other_id = uuid4()
+    store = SQLiteAnalysisRunStore(database_path)
+    store.save(AnalysisRun.create(owner_user_id=owner_id))
+    store.save(AnalysisRun.create(owner_user_id=other_id))
+    store.save(AnalysisRun.create())
+
+    runs = store.list_runs(owner_user_id=owner_id)
+
+    assert len(runs) == 1
+    assert runs[0].owner_user_id == owner_id
+
+
+def test_sqlite_analysis_run_legacy_schema_migrates_owner_as_global(tmp_path):
+    import sqlite3
+    from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+
+    database_path = tmp_path / "legacy.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "CREATE TABLE analysis_runs (run_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, state TEXT NOT NULL, outcomes_available INTEGER NOT NULL DEFAULT 0)"
+        )
+
+    store = SQLiteAnalysisRunStore(database_path)
+    assert store.list_runs() == ()

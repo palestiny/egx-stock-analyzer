@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.application.analysis.run_market_analysis import (
     MarketAnalysisResult,
@@ -16,6 +17,16 @@ class RunConfiguredMarketAnalysis:
         self._stock_catalog = stock_catalog
         self._run_market_analysis = run_market_analysis
 
-    def execute(self, as_of: date) -> MarketAnalysisResult:
+    def execute(
+        self,
+        as_of: date,
+        owner_user_id: UUID | None = None,
+    ) -> MarketAnalysisResult:
         symbols = list(self._stock_catalog.symbols())
-        return self._run_market_analysis.execute(symbols, as_of)
+        if owner_user_id is None:
+            return self._run_market_analysis.execute(symbols, as_of)
+        return self._run_market_analysis.execute(
+            symbols,
+            as_of,
+            owner_user_id=owner_user_id,
+        )
