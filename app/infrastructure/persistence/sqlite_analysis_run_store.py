@@ -32,10 +32,22 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 CREATE TABLE IF NOT EXISTS analysis_runs (
                     run_id TEXT PRIMARY KEY,
                     created_at TEXT NOT NULL,
-                    state TEXT NOT NULL
+                    state TEXT NOT NULL,
+                    outcomes_available INTEGER NOT NULL DEFAULT 0
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute(
+                    "PRAGMA table_info(analysis_runs)"
+                ).fetchall()
+            }
+            if "outcomes_available" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_runs ADD COLUMN outcomes_available INTEGER NOT NULL DEFAULT 0"
+                )
+
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_analysis_runs_created_at
@@ -69,16 +81,18 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO analysis_runs (run_id, created_at, state)
-                VALUES (?, ?, ?)
+                INSERT INTO analysis_runs (run_id, created_at, state, outcomes_available)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
                     created_at = excluded.created_at,
-                    state = excluded.state
+                    state = excluded.state,
+                    outcomes_available = excluded.outcomes_available
                 """,
                 (
                     str(run.id),
                     run.created_at.isoformat(),
                     run.state.value,
+                    1 if run.outcomes_available else 0,
                 ),
             )
             connection.execute(
@@ -114,7 +128,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         limit: int = 50,
     ) -> tuple[AnalysisRun, ...]:
         query = """
-            SELECT run_id, created_at, state
+            SELECT run_id, created_at, state, outcomes_available
             FROM analysis_runs
         """
         parameters: list[str] = []
@@ -145,7 +159,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT run_id, created_at, state
+                SELECT run_id, created_at, state, outcomes_available
                 FROM analysis_runs
                 WHERE run_id = ?
                 """,
@@ -160,7 +174,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
     @staticmethod
     def _load_run_from_row(
         connection: sqlite3.Connection,
-        row: tuple[str, str, str],
+        row: tuple[str, str, str, int],
     ) -> AnalysisRun:
         run_id = UUID(row[0])
         outcome_rows = connection.execute(
@@ -206,4 +220,5 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
             created_at=datetime.fromisoformat(row[1]),
             state=ExecutionState(row[2]),
             outcomes=tuple(outcomes),
+            outcomes_available=bool(row[3]),
         )
