@@ -2726,3 +2726,11 @@ Persisting ownership on snapshots duplicates the owner identity already present 
 M55 changes snapshot persistence and read authorization boundaries without changing analytical calculations, scoring, ranking, retry behavior, or provider behavior. Retention/deletion remains a separate lifecycle design and must not be inferred from ownership.
 
 See `docs/DEC-117-M55-ANALYSIS-SNAPSHOT-OWNERSHIP-DESIGN-GATE.md`.
+
+### Implementation Status
+
+M55 was implemented through PR #138 and merged into `main` at merge commit `6402449acd65ff1df368f26d780840d6d791add0`.
+
+The implementation persists nullable snapshot ownership, propagates authenticated ownership for runless/manual and market-wide analysis, enforces snapshot/run ownership consistency, and applies owner-scoped snapshot/latest/history reads. Legacy snapshots remain unowned/system-global.
+
+The available GitHub integration did not expose a workflow run or commit status for the implementation head at the time of this documentation update; therefore this entry does not claim a CI result that was not observed.
