@@ -1,6 +1,6 @@
 # DEC-117 — M55 Analysis Snapshot Ownership Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M55 — Analysis Snapshot Ownership
 
@@ -107,53 +107,127 @@ Trade-offs: creates a second authorization source of truth and expands scope unn
 
 Assessment: Deferred.
 
-## Open Questions
+## Accepted Decisions
 
-1. Ownership authority: should a run-correlated snapshot inherit ownership from AnalysisRun, or should every snapshot persist its own owner UUID?
-2. Manual analysis: should a user-created single-stock analysis produce an owned snapshot directly, create an AnalysisRun, or remain system/global?
-3. Legacy snapshots: should pre-M55 snapshots remain system/global and operator-only, with no inferred owner?
-4. Runless snapshots: how should newly created snapshots without an AnalysisRun be classified?
-5. Consistency: if both snapshot and run owners exist, which invariant prevents divergence?
-6. Read authorization: should AnalysisResultStore expose owner-aware queries while application capabilities retain policy decisions, matching M54?
-7. API behavior: should unauthorized snapshot IDs and history requests return 404 to avoid enumeration?
-8. Stock-history semantics: should a history query return only visible snapshots, or reject the query if any matching record is inaccessible?
-9. Latest-result semantics: how should get(symbol) behave when the latest snapshot is not visible to the caller?
-10. Operator visibility: should the existing operator identity see all user-owned and system/global snapshots?
-11. Run-scoped access: should authorized run detail remain the authoritative path for snapshots correlated to a run?
-12. Migration: can existing SQLite records be classified deterministically without reconstructing historical ownership?
+### 1. Ownership Authority
 
-## Proposed Invariants
+M55 persists an optional immutable `owner_user_id` directly on every new `AnalysisResultRecord`.
 
-1. A user must never read another user's snapshot through any snapshot or history capability.
-2. Snapshot ownership must be deterministic and durable.
-3. No owner is inferred from timestamps, IP/session state, or historical access.
-4. A run-correlated snapshot must never be visible outside the authorization boundary of its owning run.
-5. If a snapshot stores an owner UUID, a run-correlated snapshot owner must equal the run owner.
-6. Legacy records must have an explicit system/global interpretation.
-7. Authorization policy remains in application capabilities, not React.
-8. Snapshot ownership must not affect analytical values or execution state.
-9. Latest-result compatibility must remain explicit; authorization must not silently return another user's data.
-10. No sharing or multi-owner semantics are introduced by M55.
+For a snapshot correlated to an `AnalysisRun`, the snapshot owner must equal the run owner. A system/global run therefore produces snapshots with no owner.
 
-## TDD Acceptance Shape
+This deliberately duplicates the owner identity at the snapshot boundary. The duplication is accepted because snapshot reads are a first-class capability and must remain authorizable without reconstructing ownership through another store.
 
-- user-owned snapshot persistence and reload;
-- user cannot read another user's snapshot by ID;
-- user cannot read another user's stock history;
-- operator visibility of user-owned and system/global snapshots;
-- run-correlated snapshot cannot escape run ownership;
-- legacy snapshot behavior;
-- manual single-stock analysis ownership;
-- deterministic unauthorized 404 behavior where selected;
-- latest-result behavior under ownership filtering;
-- restart preserves ownership;
-- existing authorized run detail and M53 outcome semantics remain unchanged.
+### 2. Manual Single-Stock Analysis
+
+A user-authenticated manual analysis creates a runless snapshot owned directly by that authenticated user. It does not create a synthetic `AnalysisRun`.
+
+System/operator-triggered manual analysis remains system/global when no user owner is supplied.
+
+This preserves the existing single-stock execution semantics while giving user-created analytical data an explicit owner.
+
+### 3. Legacy Snapshots
+
+Existing snapshots created before M55 have no inferred owner and remain system/global.
+
+Ownership is never reconstructed from timestamps, historical access, scheduled-workflow ownership, or other indirect evidence.
+
+Regular users therefore cannot access legacy/global snapshots through owner-scoped snapshot/history capabilities; the existing operator identity can access them.
+
+### 4. Runless Snapshots
+
+A new runless snapshot has exactly one of these states:
+
+- `owner_user_id = authenticated user UUID` for a user-created analysis;
+- `owner_user_id = NULL` for a system/global analysis.
+
+No third ownership mode is introduced.
+
+### 5. Consistency Invariant
+
+When both snapshot and run are present, the persistence/application boundary must enforce:
+
+```
+snapshot.analysis_run_id != NULL
+    ⇒ snapshot.owner_user_id == analysis_run.owner_user_id
+```
+
+A mismatch is an explicit application/persistence error. The system must never silently repair ownership by choosing one side.
+
+### 6. Read Authorization
+
+`AnalysisResultStore` exposes owner-aware retrieval primitives, while application capabilities remain responsible for authorization policy.
+
+The store may return records according to an explicit visibility scope:
+
+- operator/system scope: all snapshots;
+- user scope: snapshots whose `owner_user_id` equals the authenticated user's UUID.
+
+Authorization logic is not moved into React or raw SQLite callers.
+
+### 7. Snapshot and History Access
+
+Unauthorized snapshot-by-ID access behaves as not found.
+
+Stock-history queries return only snapshots visible to the caller. They do not fail merely because unrelated inaccessible snapshots exist for the same symbol.
+
+This prevents one user's history from becoming an enumeration channel while allowing the query to remain a useful read capability.
+
+### 8. Latest-Result Semantics
+
+`get(symbol)` and latest-report reads use the caller's visibility scope.
+
+For a regular user, the latest visible snapshot is the latest snapshot owned by that user. A newer snapshot belonging to another user must not cause the user's query to return another user's data or an authorization error revealing that data exists.
+
+For the operator/system scope, existing latest-result semantics remain unchanged across all snapshots.
+
+### 9. Run-Scoped Access
+
+An authorized `GetAnalysisRun` remains the authoritative entry point for run-scoped access.
+
+Its correlated snapshots must also satisfy the snapshot/run ownership invariant. Run authorization cannot be used to expose a snapshot whose persisted owner disagrees with the run owner.
+
+### 10. Operator Visibility
+
+The existing operator identity may read both user-owned and system/global snapshots.
+
+No new role or permission model is introduced by M55.
+
+### 11. Migration and Persistence
+
+SQLite adds a nullable `owner_user_id` column to the snapshot table.
+
+Existing rows migrate with `NULL` ownership. No historical owner is inferred.
+
+New writes persist the owner atomically with the snapshot. Restart must preserve the exact owner UUID.
+
+### 12. API and Dashboard Boundary
+
+API capabilities pass the authenticated identity into application read/use-case boundaries. React remains presentation-only.
+
+Unauthorized snapshot/run/history requests use the established non-enumerating 404 behavior where a resource-specific response exists.
+
+M55 does not introduce sharing, ACLs, or public snapshot access.
 
 ## Design Gate Status
 
-**Implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M55 Analysis Snapshot Ownership MVP.**
 
-The next step is to resolve the open ownership-model questions and record the accepted decision before modifying snapshot persistence, application read capabilities, or API/dashboard contracts.
+The implementation must establish ownership consistently across persistence, manual analysis, run-correlated snapshots, snapshot-by-ID reads, stock history, latest-result reads, and the existing authorized run-detail path.
+
+## TDD Acceptance Criteria
+
+- user-owned runless snapshot persists and reloads with its owner UUID;
+- a user cannot read another user's snapshot by ID;
+- a user cannot read another user's stock history;
+- operator can read user-owned and system/global snapshots;
+- run-correlated snapshot owner always matches run owner;
+- legacy snapshots remain global/unowned after migration;
+- manual single-stock analysis records the authenticated user as owner;
+- unauthorized resource-specific reads return non-enumerating 404 behavior;
+- latest-result reads return the latest visible snapshot rather than another user's newer snapshot;
+- restart preserves ownership;
+- authorized run detail remains readable and M53 outcome semantics remain unchanged;
+- owner mismatch is rejected rather than silently repaired.
 
 ## Revisit Conditions
 
