@@ -38,3 +38,32 @@ def test_sqlite_analysis_run_store_legacy_run_has_empty_outcomes(tmp_path):
 
     assert restored is not None
     assert restored.outcomes == ()
+
+
+def test_sqlite_analysis_run_store_rejects_corrupt_outcome_state(tmp_path):
+    import sqlite3
+
+    from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+
+    database_path = tmp_path / "analysis.db"
+    store = SQLiteAnalysisRunStore(database_path)
+    run = AnalysisRun.create()
+    store.save(run)
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO analysis_run_outcomes (
+                run_id, symbol, state, stock_id, failure_code, failure_detail
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (str(run.id), "EGAL", "corrupt", None, None, None),
+        )
+
+    try:
+        store.get(run.id)
+    except ValueError as error:
+        assert "Invalid analysis run outcome data" in str(error)
+    else:
+        raise AssertionError("Expected corrupt outcome data to fail explicitly")
