@@ -155,6 +155,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M52 | Analysis Run Discovery Dashboard | 🟢 Complete | Dedicated authenticated run-discovery page over the existing M51 API with state filtering, opaque-cursor pagination, safe error states, and M50 detail navigation |
 | M53 | Analysis Run Outcome Completeness | 🟢 Complete | Persist and expose safe per-symbol success/failure outcomes for market-wide analysis runs without changing analytical execution |
 | M54 | Analysis Run Ownership | 🟢 Complete | Durable per-user ownership and authorization for AnalysisRun is implemented without changing analytical execution |
+| M55 | Analysis Snapshot Ownership | 🟡 Design Accepted | Persist explicit snapshot ownership and enforce one authorization boundary across snapshot, history, latest-result, and run-correlated reads |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 M51 implementation is complete through PR #127, merged at `6f3c8f059c67ce0c4f2d72b4a777d81cca1f2345`. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203`. The M51 dashboard discovery surface remains intentionally deferred.
@@ -287,7 +288,7 @@ M50 design is accepted. Implementation is merged through PR #124, with cursor-ha
 
 M52 is complete. The dedicated authenticated run-discovery page consumes the M51 API without reproducing query semantics in React. M53 is complete through PR #132. GitHub Actions Run #2262 passed on implementation head `c723ab9cc76c7348f11ea7792c74c28108694c4a`, validating Python unit tests plus frontend tests and build. M54 is complete. AnalysisRun ownership is persisted, legacy/global semantics are explicit, user/operator read boundaries are enforced, and unauthorized detail reads are non-enumerating.
 
-M55 design is proposed in `docs/DEC-117-M55-ANALYSIS-SNAPSHOT-OWNERSHIP-DESIGN-GATE.md`. Implementation is not authorized until snapshot ownership, runless/manual snapshot semantics, legacy behavior, and latest-result authorization are explicitly decided.
+M55 snapshot ownership design is accepted in `docs/DEC-117-M55-ANALYSIS-SNAPSHOT-OWNERSHIP-DESIGN-GATE.md`. Implementation is authorized for explicit snapshot ownership, manual runless ownership, run/snapshot consistency, legacy/global semantics, and owner-scoped latest/history reads. Retention/deletion remains a separate deferred design.
 
 M50 implementation and cursor-hardening are validated by GitHub Actions Run #2192 on the M51 implementation head before merge. This run also validates the combined M50/M51 Python, frontend test, and frontend build workflow.
 
