@@ -166,7 +166,7 @@ class RunDurableScheduledWorkflow:
         execution = execution.with_outcomes(
             analysis_state=result.analysis_execution.state.value,
             delivery_state=delivery_state,
-            analysis_run_id=result.analysis_run_id,
+            analysis_run_id=getattr(result, "analysis_run_id", None),
             now=self._clock.now(),
         )
         self._store.save(execution)
