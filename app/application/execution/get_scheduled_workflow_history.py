@@ -9,9 +9,8 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionState,
     ScheduledWorkflowExecutionStore,
 )
-from app.application.security.authorization import AuthorizationError, OwnershipAuthorizer
+from app.application.security.authorization import OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
-from app.domain.identity.user import UserStatus
 from app.application.security.identity import Permission
 
 
@@ -103,9 +102,9 @@ class GetScheduledWorkflowHistory:
         page_rows = rows[:effective_page_size]
         next_cursor = (
             self._encode_cursor(
-                page_rows[-1][4],
+                page_rows[-1][5],
                 page_rows[-1][0],
-                page_rows[-1][1],
+                page_rows[-1][2],
                 from_state=normalized_from_state,
                 to_state=normalized_to_state,
                 occurred_from=normalized_occurred_from,
