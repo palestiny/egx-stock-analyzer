@@ -188,7 +188,7 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload
+                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
                 FROM analysis_results
                 WHERE symbol = ?
                 ORDER BY
