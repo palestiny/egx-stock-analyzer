@@ -2734,3 +2734,19 @@ M55 was implemented through PR #138 and merged into `main` at merge commit `6402
 The implementation persists nullable snapshot ownership, propagates authenticated ownership for runless/manual and market-wide analysis, enforces snapshot/run ownership consistency, and applies owner-scoped snapshot/latest/history reads. Legacy snapshots remain unowned/system-global.
 
 The available GitHub integration did not expose a workflow run or commit status for the implementation head at the time of this documentation update; therefore this entry does not claim a CI result that was not observed.
+
+
+## DEC-118 — M56 Analysis Snapshot Retention & Deletion
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M56 opens a dedicated design gate for the lifecycle of durable analytical snapshots after M55 established explicit ownership. Retention/deletion must remain separate from ownership and analytical execution.
+
+The design gate compares indefinite retention, explicit hard deletion, soft deletion/tombstones, and automatic retention cleanup. The current candidate direction is explicit authorized deletion without automatic expiration, but this remains a proposal rather than an accepted architectural decision.
+
+Open decisions cover deletion granularity, user/operator authority, run-correlated snapshot behavior, hard versus soft deletion, latest/history/comparison semantics, concurrency, deletion auditability, automatic cleanup, and legacy pre-M55 snapshots.
+
+Implementation is not authorized until these decisions are explicitly accepted.
+
+See docs/DEC-118-M56-ANALYSIS-SNAPSHOT-RETENTION-DESIGN-GATE.md.
