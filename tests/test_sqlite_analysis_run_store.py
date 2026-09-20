@@ -45,7 +45,7 @@ def test_analysis_run_store_creates_durable_table(tmp_path):
             ).fetchall()
         }
 
-    assert columns == {"run_id", "created_at", "state"}
+    assert columns == {"run_id", "created_at", "state", "outcomes_available"}
 
 
 def test_sqlite_list_runs_is_deterministic_and_restart_safe(tmp_path):

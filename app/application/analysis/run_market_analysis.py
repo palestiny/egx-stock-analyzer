@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.analysis.run_store import AnalysisRunStore
-from app.domain.analysis_run import AnalysisRun
+from app.domain.analysis_run import AnalysisRun, AnalysisRunOutcome
 from app.application.stocks.catalog import StockCatalog
 from app.domain.execution import Execution
 
@@ -47,6 +47,8 @@ class RunMarketAnalysis:
         analysis_run = AnalysisRun.create().with_state(execution.state)
         self._analysis_run_store.save(analysis_run)
 
+        outcomes: list[AnalysisRunOutcome] = []
+
         if not normalized_symbols:
             execution.complete()
             completed_run = analysis_run.with_state(execution.state)
@@ -64,21 +66,50 @@ class RunMarketAnalysis:
                     symbol,
                     reason=f"Unknown stock symbol: {symbol}",
                 )
-                continue
-
-            try:
-                self._run_stock_analysis.execute(
-                    stock,
-                    as_of,
-                    analysis_run_id=analysis_run.id,
+                outcomes.append(
+                    AnalysisRunOutcome.failed(
+                        symbol,
+                        "UNKNOWN_SYMBOL",
+                        symbol,
+                    )
                 )
-            except Exception as error:
-                execution.record_stock_failure(stock.symbol, reason=str(error))
             else:
-                execution.record_stock_success(stock.symbol)
+                try:
+                    self._run_stock_analysis.execute(
+                        stock,
+                        as_of,
+                        analysis_run_id=analysis_run.id,
+                    )
+                except Exception as error:
+                    execution.record_stock_failure(
+                        stock.symbol,
+                        reason=str(error),
+                    )
+                    outcomes.append(
+                        AnalysisRunOutcome.failed(
+                            stock.symbol,
+                            "ANALYSIS_FAILED",
+                        )
+                    )
+                else:
+                    execution.record_stock_success(stock.symbol)
+                    outcomes.append(
+                        AnalysisRunOutcome.success(
+                            stock.symbol,
+                            stock.id,
+                        )
+                    )
+
+            self._analysis_run_store.save(
+                analysis_run.with_outcomes(tuple(outcomes))
+            )
 
         execution.finish()
-        self._analysis_run_store.save(analysis_run.with_state(execution.state))
+        self._analysis_run_store.save(
+            analysis_run
+            .with_outcomes(tuple(outcomes))
+            .with_state(execution.state)
+        )
         return MarketAnalysisResult(
             execution=execution,
             analysis_run_id=analysis_run.id,

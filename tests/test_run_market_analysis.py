@@ -173,3 +173,27 @@ def test_market_run_persists_same_analysis_run_identity_used_for_stock_execution
         AS_OF,
         analysis_run_id=result.analysis_run_id,
     )
+
+
+def test_market_run_persists_safe_outcomes_without_raw_failure_text():
+    stocks = [
+        Stock.create("EGAL", "Egypt Aluminum"),
+        Stock.create("IEEC", "Egyptian Electrical"),
+    ]
+    runner, run_stock_analysis = make_runner(stocks)
+
+    def execute(stock, as_of, analysis_run_id):
+        if stock.symbol == "IEEC":
+            raise RuntimeError("provider secret=should-not-persist")
+
+    run_stock_analysis.execute.side_effect = execute
+
+    result = runner.execute(["EGAL", "IEEC"], AS_OF)
+    persisted = runner._analysis_run_store.get(result.analysis_run_id)
+
+    assert persisted is not None
+    assert persisted.outcomes_available is True
+    assert [item.symbol for item in persisted.outcomes] == ["EGAL", "IEEC"]
+    assert persisted.outcomes[0].state.value == "success"
+    assert persisted.outcomes[1].failure_code == "ANALYSIS_FAILED"
+    assert persisted.outcomes[1].failure_detail is None

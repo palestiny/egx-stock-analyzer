@@ -7,6 +7,7 @@ from uuid import UUID
 
 from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
 from app.application.analysis.run_store import AnalysisRunStore
+from app.domain.analysis_run import AnalysisRunOutcomeState
 from app.domain.execution import ExecutionState
 
 
@@ -30,10 +31,21 @@ class AnalysisRunSnapshotView:
 
 
 @dataclass(frozen=True)
+class AnalysisRunOutcomeView:
+    symbol: str
+    state: str
+    stock_id: UUID | None
+    failure_code: str | None
+    failure_detail: str | None
+
+
+@dataclass(frozen=True)
 class AnalysisRunView:
     run_id: UUID
     created_at: datetime
     state: ExecutionState
+    outcomes_available: bool
+    outcomes: tuple[AnalysisRunOutcomeView, ...]
     snapshots: tuple[AnalysisRunSnapshotView, ...]
     next_cursor: str | None
 
@@ -88,6 +100,17 @@ class GetAnalysisRun:
             run_id=run.id,
             created_at=run.created_at,
             state=run.state,
+            outcomes_available=run.outcomes_available,
+            outcomes=tuple(
+                AnalysisRunOutcomeView(
+                    symbol=outcome.symbol,
+                    state=outcome.state.value,
+                    stock_id=outcome.stock_id,
+                    failure_code=outcome.failure_code,
+                    failure_detail=outcome.failure_detail,
+                )
+                for outcome in sorted(run.outcomes, key=lambda item: item.symbol)
+            ),
             snapshots=tuple(
                 self._to_snapshot_view(record)
                 for record in page_records

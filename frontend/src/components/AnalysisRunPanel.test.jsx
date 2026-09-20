@@ -97,4 +97,38 @@ describe("AnalysisRunPanel", () => {
       "Analysis run was not found.",
     );
   });
+
+  it("renders persisted success and failure outcomes", async () => {
+    const getAnalysisRun = vi.fn().mockResolvedValue({
+      run_id: "run-2",
+      created_at: "2026-09-20T08:00:00Z",
+      state: "completed_with_errors",
+      outcomes_available: true,
+      outcomes: [
+        {
+          symbol: "EGAL",
+          state: "success",
+          stock_id: "stock-1",
+          failure_code: null,
+          failure_detail: null,
+        },
+        {
+          symbol: "UNKNOWN",
+          state: "failed",
+          stock_id: null,
+          failure_code: "UNKNOWN_SYMBOL",
+          failure_detail: "UNKNOWN",
+        },
+      ],
+      snapshots: [],
+      next_cursor: null,
+    });
+
+    render(<AnalysisRunPanel getAnalysisRun={getAnalysisRun} initialRunId="run-2" />);
+
+    expect(await screen.findByText("UNKNOWN")).toBeInTheDocument();
+    expect(screen.getByText(/UNKNOWN_SYMBOL/)).toBeInTheDocument();
+    expect(screen.getByText("EGAL")).toBeInTheDocument();
+  });
+
 });
