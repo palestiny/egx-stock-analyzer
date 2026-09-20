@@ -28,3 +28,18 @@ def test_orchestrator_continues_after_one_stock_fails():
     assert execution.successful_stock_ids == {"EGAL"}
     assert execution.failed_stock_ids == {"IEEC"}
     assert execution.failure_reasons == {"IEEC": "analysis failed"}
+
+
+def test_orchestrator_can_propagate_selected_exceptions():
+    def fail(_: str) -> None:
+        raise RuntimeError("must propagate")
+
+    try:
+        ExecutionOrchestrator(
+            RetryPolicy(max_attempts=3),
+            propagate_exceptions=(RuntimeError,),
+        ).run(["EGAL"], fail)
+    except RuntimeError as error:
+        assert str(error) == "must propagate"
+    else:
+        raise AssertionError("Expected RuntimeError to propagate")
