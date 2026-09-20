@@ -10,7 +10,7 @@ The repository is **past the earlier milestone sequence and is currently at M56*
 
 The current roadmap position is **M56 — Analysis Run & Snapshot Retention and Deletion**.
 
-M56 is currently a **design-stage milestone**. Its design gate is proposed and destructive implementation is blocked until the remaining owner-controlled lifecycle decisions are explicitly accepted.
+M56 design is now accepted. Destructive lifecycle implementation is authorized within the accepted logical-deletion boundary; physical purge and automatic retention remain out of scope.
 
 Latest M56 design synchronization:
 
@@ -18,9 +18,7 @@ Latest M56 design synchronization:
 - **PR #147** — docs(m56): sync current state after lifecycle design clarification — merged at `65d70c921ed244120be612f0c14bb07178bc9948`.
 - Purpose: keep the current-state document synchronized with the proposed M56 gate without silently accepting unresolved destructive lifecycle policy.
 
-Current owner-decision tracking issue:
-
-- **Issue #146** — resolve owner-controlled lifecycle decisions before destructive implementation
+Owner-controlled M56 lifecycle decisions have been accepted and recorded in DEC-118 and DECISION_LOG.md.
 
 The latest verified merged main commit is:
 
@@ -87,9 +85,7 @@ Do not infer the next task from an old conversation snapshot.
 
 ## 6. M56 Immediate Next Step
 
-The immediate work is **M56 design cleanup and decision readiness**, not any superseded milestone.
-
-Owner-controlled decisions must remain explicit. Architecture recommendations must not silently become product policy.
+The immediate work is **M56 TDD implementation and verification** within the accepted lifecycle policy. Physical purge and automatic retention remain blocked by scope.
 
 ## 7. Cleanup Rule
 
