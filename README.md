@@ -206,12 +206,11 @@ The detailed milestone state is maintained in `docs/ROADMAP.md`.
 Current position:
 
 - M47 — Scheduled Workflow History Filtering: complete.
-- M48 — Scheduled Workflow History Time Filtering + Cross-Execution History: active.
-- M48 time filtering: merged.
-- M48 cross-execution history design: accepted.
-- M48 cross-execution history implementation: merged through PR #118.
-- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Run #1959.
+- M48 — Scheduled Workflow History Time Filtering + Cross-Execution History: complete.
+- M48 time filtering and cross-execution history are merged.
+- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Run #1959 before merge.
 - M48 merge commit: `ef387e2570d01653f4d231aea4527a18d3ded80c`.
+- M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
-Do not use older README milestone statements as project state. The roadmap and decision log are authoritative.
+Do not use older README milestone statements as project state. The roadmap and decision log are authoritative. The next significant capability requires a new design gate.
 
