@@ -80,3 +80,15 @@ def test_analysis_run_list_api_rejects_invalid_state_and_cursor():
 
     assert invalid_state.status_code == 400
     assert invalid_cursor.status_code == 400
+
+
+def test_analysis_run_list_api_keeps_existing_authentication_boundary():
+    app = create_app(
+        result_store=None,
+        list_analysis_runs=ListAnalysisRuns(InMemoryAnalysisRunStore()),
+        operator_token="test-token",
+    )
+
+    response = TestClient(app).get("/api/v1/analysis-runs")
+
+    assert response.status_code == 401
