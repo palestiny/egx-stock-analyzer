@@ -924,6 +924,19 @@ Commit
 Push
   ↓
 GitHub
+
+## DEC-111 — M49 Analysis Run Grouping & Snapshot Correlation
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M49 opens a design gate for explicitly correlating multiple historical analysis snapshots produced by one logical market-wide analysis run.
+
+The current system has per-snapshot identities and scheduled-workflow execution identities, but these represent different concepts. The design gate evaluates whether a dedicated `AnalysisRunId` should connect successful stock snapshots without coupling analytical history to scheduled workflow lifecycle.
+
+The gate is intentionally proposed only. It does not authorize persistence or API changes until the open questions in `docs/DEC-111-M49-ANALYSIS-RUN-GROUPING-DESIGN-GATE.md` are resolved.
+
+
 ---
 
 # 21. Open Decisions
