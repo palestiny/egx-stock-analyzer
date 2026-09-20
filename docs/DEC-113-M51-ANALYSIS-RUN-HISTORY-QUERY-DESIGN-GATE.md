@@ -117,8 +117,96 @@ These must be resolved before implementation:
 - verify restart consistency against durable SQLite data;
 - map the application read model to HTTP without persistence leakage.
 
+## Accepted Decisions
+
+### 1. Ordering
+
+Analysis runs are ordered by `created_at DESC, analysis_run_id DESC`.
+
+Creation time is the primary discovery order. The immutable AnalysisRunId is the deterministic tie-breaker, avoiding dependence on database incidental ordering.
+
+### 2. Pagination
+
+M51 reuses the established opaque-cursor pagination model used by M46/M50.
+
+The default page size is 50 and the maximum is 100. The cursor is opaque at the HTTP boundary and is bound to the complete effective query shape so a cursor cannot silently continue a different filter.
+
+Offset pagination is not introduced.
+
+### 3. Aggregate-State Filter
+
+The optional state filter accepts every persisted aggregate execution state represented by AnalysisRun.
+
+This includes completed, completed-with-errors, failed, and empty-run states. The query is a discovery capability, so excluding non-successful runs would hide authoritative run records.
+
+Filtering is applied before pagination.
+
+### 4. Page Size
+
+M51 reuses the established default of 50 and maximum of 100.
+
+This preserves consistency with existing history read capabilities and avoids a new transport-level pagination convention.
+
+### 5. Discovery Metadata
+
+Each list item exposes only run-level metadata needed to choose a run for M50 detail:
+
+- AnalysisRunId;
+- created_at;
+- aggregate execution state;
+- requested stock count;
+- successful stock count;
+- failed stock count.
+
+Snapshot details remain behind GetAnalysisRun. No stock-level analytical fields, scores, classifications, or failed-symbol identifiers are duplicated into the list read model.
+
+### 6. Empty Results
+
+A valid query with no matching runs returns a successful empty collection with `items = []`, `has_more = false`, and no continuation cursor.
+
+HTTP 404 is reserved for a requested resource that does not exist, consistent with M50 detail semantics.
+
+### 7. Dashboard Scope
+
+M51 validates the application and HTTP query contract first and does not add a dashboard run-discovery surface in this milestone.
+
+The existing M50 run-detail dashboard remains unchanged. A dashboard list/search surface can be introduced later only if its UX and query requirements justify a separate presentation gate.
+
+### 8. Ownership
+
+M51 preserves M50's existing authenticated system-level analysis visibility boundary.
+
+No per-user AnalysisRun ownership is introduced. Changing ownership semantics remains a separate design decision.
+
+## Accepted Boundary
+
+```
+HTTP/API
+   ↓
+ListAnalysisRuns
+   ↓
+AnalysisRunStore
+```
+
+The application read capability owns query semantics, pagination, filtering, and mapping to an immutable read model. Persistence remains the source of durable run data; transport does not query SQLite directly.
+
+## TDD Acceptance Criteria
+
+- list multiple persisted runs in deterministic `created_at DESC, analysis_run_id DESC` order;
+- filter by each persisted aggregate state;
+- apply filtering before pagination;
+- enforce default page size 50 and maximum 100;
+- continue with opaque cursors bound to the effective query shape;
+- reject malformed and foreign cursors as controlled client errors;
+- return an empty collection for valid no-match queries;
+- preserve M50 single-run detail behavior;
+- preserve the existing authenticated visibility boundary;
+- verify restart consistency against durable SQLite data;
+- map the application read model to HTTP without persistence leakage;
+- do not add analytical calculations or run persistence mutations.
+
 ## Design Gate Status
 
-**Proposed — implementation is not authorized yet.**
+**Accepted — implementation is authorized for the M51 MVP defined here.**
 
-The next action is to resolve the open questions above and record the accepted M51 contract before implementation.
+
