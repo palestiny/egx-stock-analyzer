@@ -9,6 +9,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
   getAnalysisComparison: vi.fn(),
   getAnalysisHistory: vi.fn(),
+  getAnalysisRun: vi.fn(),
   getCurrentIdentity: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
