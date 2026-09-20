@@ -2605,3 +2605,8 @@ The dashboard adds run detail only. A run list/search/filter capability is defer
 M50 introduces a stable read model without changing analysis execution, snapshot persistence semantics, scheduled-workflow lifecycle, ranking, notifications, or analytical logic.
 
 See docs/DEC-112-M50-ANALYSIS-RUN-HISTORY-DESIGN-GATE.md.
+
+### Implementation Status
+
+M50 implementation merged through PR #124. Cursor-decoding hardening merged through PR #125. CI verification for the current merge is not yet observable through the connected workflow-run view, so M50 remains pending completion validation.
+
