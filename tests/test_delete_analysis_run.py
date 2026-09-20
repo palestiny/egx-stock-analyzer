@@ -9,6 +9,7 @@ from app.application.analysis.delete_analysis_run import (
 )
 from app.application.analysis.lifecycle_store import (
     AnalysisLifecycleStore,
+    LifecycleDeletionOutcome,
 )
 from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity
@@ -21,14 +22,18 @@ class FakeLifecycleStore(AnalysisLifecycleStore):
     def __init__(self) -> None:
         self.deleted_runs: list[tuple] = []
         self.deleted_snapshots: list[tuple] = []
+        self.rejections: list[tuple] = []
 
     def delete_run(self, run_id, actor_user_id, target_user_id):
         self.deleted_runs.append((run_id, actor_user_id, target_user_id))
-        return True
+        return LifecycleDeletionOutcome.DELETED
 
     def delete_snapshot(self, snapshot_id, actor_user_id, target_user_id):
         self.deleted_snapshots.append((snapshot_id, actor_user_id, target_user_id))
-        return True
+        return LifecycleDeletionOutcome.DELETED
+
+    def record_rejection(self, *, actor_user_id, action, target_user_id, outcome):
+        self.rejections.append((actor_user_id, action, target_user_id, outcome))
 
 
 def make_run(owner_user_id):
