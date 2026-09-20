@@ -336,3 +336,17 @@ def test_sqlite_store_rejects_duplicate_symbol_in_same_analysis_run(tmp_path):
 
     with pytest.raises(AnalysisResultPersistenceError):
         store.save("EGAL", make_result(), date(2026, 9, 18), analysis_run_id=run_id)
+
+
+def test_sqlite_store_rejects_snapshot_for_unknown_analysis_run(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+
+    import pytest
+
+    with pytest.raises(AnalysisResultPersistenceError, match="Unknown analysis run"):
+        store.save(
+            "EGAL",
+            make_result(),
+            date(2026, 9, 18),
+            analysis_run_id=uuid4(),
+        )
