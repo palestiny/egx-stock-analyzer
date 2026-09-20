@@ -46,7 +46,7 @@ def test_get_analysis_returns_response_dto_for_symbol():
         "entry_quality": 1,
         "opportunity": "buy",
     }
-    store.get.assert_called_once_with("EGAL")
+    store.get.assert_called_once_with("EGAL", owner_user_id=None)
 
 
 def test_get_analysis_returns_404_when_result_is_missing():
@@ -75,7 +75,7 @@ def test_post_analysis_runs_analysis_and_returns_result():
 
     assert response.status_code == 200
     assert response.json()["symbol"] == "EGAL"
-    runner.execute.assert_called_once_with("EGAL", date.today())
+    runner.execute.assert_called_once_with("EGAL", date.today(), identity=__import__("app.application.security.identity", fromlist=["AuthenticatedIdentity"]).AuthenticatedIdentity.operator())
     store.get.assert_called_once_with("EGAL")
 
 
