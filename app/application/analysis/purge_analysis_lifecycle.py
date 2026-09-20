@@ -12,6 +12,8 @@ class PurgeAnalysisLifecycleResult:
     dry_run: bool
     purged_run_ids: tuple[UUID, ...]
     purged_snapshot_ids: tuple[UUID, ...]
+    eligible_run_ids: tuple[UUID, ...] = ()
+    eligible_snapshot_ids: tuple[UUID, ...] = ()
     blocked_resource_ids: tuple[UUID, ...] = ()
     failure_resource_id: UUID | None = None
     failure_reason: str | None = None
@@ -58,6 +60,8 @@ class PurgeAnalysisLifecycle:
             dry_run=dry_run,
             purged_run_ids=tuple(result.purged_run_ids),
             purged_snapshot_ids=tuple(result.purged_snapshot_ids),
+            eligible_run_ids=tuple(result.eligible_run_ids),
+            eligible_snapshot_ids=tuple(result.eligible_snapshot_ids),
             blocked_resource_ids=tuple(result.blocked_resource_ids),
             failure_resource_id=result.failure_resource_id,
             failure_reason=result.failure_reason,
