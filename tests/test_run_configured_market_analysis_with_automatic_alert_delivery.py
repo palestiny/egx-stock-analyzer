@@ -93,13 +93,17 @@ def test_failed_analysis_execution_does_not_trigger_delivery():
     analysis = Mock()
     delivery = Mock()
     execution = make_execution(ExecutionState.FAILED)
-    analysis.execute.return_value = execution
+    analysis.execute.return_value = MarketAnalysisResult(
+        execution=execution,
+        analysis_run_id=execution.id,
+    )
 
     workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
 
     result = workflow.execute(AS_OF)
 
     assert result.analysis_execution is execution
+    assert result.analysis_run_id == execution.id
     assert result.delivery_result is None
     delivery.execute.assert_not_called()
 
@@ -125,7 +129,10 @@ def test_delivery_outcome_does_not_change_analysis_execution():
     analysis = Mock()
     delivery = Mock()
     execution = make_execution(ExecutionState.COMPLETED, {"EGAL"})
-    analysis.execute.return_value = execution
+    analysis.execute.return_value = MarketAnalysisResult(
+        execution=execution,
+        analysis_run_id=execution.id,
+    )
     delivery.execute.return_value = delivery_result(
         AutomaticAlertDeliveryState.FAILED
     )
