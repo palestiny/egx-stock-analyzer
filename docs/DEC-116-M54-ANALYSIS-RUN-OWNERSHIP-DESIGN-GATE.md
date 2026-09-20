@@ -164,11 +164,115 @@ The owner is authorization metadata. It does not become part of analytical calcu
 - ownership cannot be changed after creation;
 - existing analysis calculations and retry behavior remain unchanged.
 
+## Accepted Decisions
+
+### 1. Owner Identity
+
+Ownership uses the existing immutable application user UUID. No username, bearer credential, or mutable profile field is stored on AnalysisRun.
+
+### 2. Legacy Runs
+
+All AnalysisRun records created before M54 are treated as **system/global** records.
+
+No owner is inferred from historical timestamps, authenticated access, workflow correlation, or other indirect evidence.
+
+Legacy/global runs remain available only through the operator visibility boundary.
+
+### 3. Operator Visibility
+
+The existing operator authorization model may read all AnalysisRuns, including user-owned and system/global runs.
+
+Regular users may read only runs owned by their authenticated user UUID.
+
+This preserves the existing operational operator role without creating a new role model.
+
+### 4. System-Created Runs
+
+System-created/scheduled market analysis remains **system/global** with no user owner UUID.
+
+Scheduled workflow ownership and AnalysisRun ownership remain separate concerns. A future requirement to attribute a scheduled run to a user requires a separate decision.
+
+### 5. Creation Boundary
+
+`RunMarketAnalysis.execute` accepts an optional `owner_user_id`.
+
+- authenticated user-triggered execution supplies the authenticated user's UUID;
+- system/scheduled execution supplies `None`, producing a system/global run.
+
+Ownership is assigned once at creation and is immutable.
+
+### 6. Read Authorization
+
+`AnalysisRunStore` supports owner-aware persistence/query primitives, but authorization policy remains in application capabilities.
+
+The store does not decide whether a caller is an operator. `GetAnalysisRun` and `ListAnalysisRuns` receive the authenticated identity/authorization context and request either the user's own runs or the operator's all-runs view.
+
+This keeps storage reusable and prevents React/API transport code from reconstructing ownership semantics.
+
+### 7. API Behavior
+
+A non-operator requesting another user's run receives **404 Not Found**, the same external result as a missing run.
+
+This prevents resource enumeration through run identifiers.
+
+List endpoints return only runs visible to the authenticated identity; unauthorized runs are absent rather than represented as filtered-out error records.
+
+### 8. Dashboard and Snapshot Access
+
+The dashboard treats an inaccessible run as missing and does not implement ownership filtering itself.
+
+Run-scoped outcomes and correlated snapshots are accessible only through an authorized AnalysisRun capability.
+
+Existing standalone stock-history access is unchanged in M54; ownership of an AnalysisRun does not implicitly change the ownership model of unrelated historical snapshots.
+
+### 9. Backward Compatibility
+
+Existing API response shapes do not expose owner metadata in M54 unless already required by the established contract.
+
+Ownership is an authorization concern, not a new dashboard display concern.
+
+### 10. Sharing
+
+No ACL, sharing, delegation, team ownership, or multi-owner semantics are introduced.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M54 MVP defined here.**
 
-The next controlled step is to resolve the ownership and legacy-visibility questions, record the accepted contract, and only then implement the ownership boundary.
+The implementation boundary is:
+
+```
+AuthenticatedIdentity
+        ↓
+RunMarketAnalysis(owner_user_id?)
+        ↓
+AnalysisRun(owner_user_id?)
+        ↓
+AnalysisRunStore
+        ↓
+GetAnalysisRun / ListAnalysisRuns
+        ↓
+API
+        ↓
+Dashboard
+```
+
+The owner field is immutable authorization metadata. It does not affect analytical calculations, retries, execution states, or per-stock outcomes.
+
+## TDD Acceptance Criteria
+
+- new user-owned runs persist the authenticated user UUID;
+- ownership survives SQLite restart;
+- a user can read their own run;
+- a user cannot read another user's run;
+- unauthorized run detail returns 404;
+- list queries return only authorized runs;
+- operator visibility includes user-owned and system/global runs;
+- scheduled/system-created runs remain system/global;
+- legacy pre-M54 runs remain system/global and operator-only;
+- ownership cannot be changed after creation;
+- M53 outcomes remain unchanged for authorized runs;
+- existing analysis calculations and retry behavior remain unchanged.
 
 ## Revisit Conditions
 
