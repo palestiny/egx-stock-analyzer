@@ -101,13 +101,13 @@ Implementation is authorized within that gate: operator-only physical purge, exp
 
 Create the M57 implementation branch from current `main`, then proceed RED → GREEN → review/refactor → CI verification.
 
-## 8. Cleanup Rule
+## 9. Cleanup Rule
 
 Historical branches and old milestone documents are part of project history. They should not be treated as current state merely because they still exist.
 
 Old branches should only be deleted after verifying they are no longer needed.
 
-## 9. AI Context Rule
+## 10. AI Context Rule
 
 If an AI assistant mentions a milestone that does not match this document and the current GitHub roadmap/PR state, it must stop and re-synchronize with GitHub before continuing.
 
