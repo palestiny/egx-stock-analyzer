@@ -152,7 +152,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Complete | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
 | M50 | Analysis Run History & Read Model | 🟢 Complete | Expose one durable analysis run and its successful correlated snapshots through a dedicated read-side capability |
 | M51 | Analysis Run History Query | 🟢 Complete | Discover persisted analysis runs through a bounded, deterministic, authenticated read-side query capability |
-| M52 | Analysis Run Discovery Dashboard | 🟡 Design Accepted | Provide a dedicated authenticated dashboard page over the existing M51 run-discovery API |
+| M52 | Analysis Run Discovery Dashboard | 🟢 Complete | Dedicated authenticated run-discovery page over the existing M51 API with state filtering, opaque-cursor pagination, safe error states, and M50 detail navigation |
 | M52 | Analysis Run Discovery Dashboard | 🟡 Design Proposed | Provide a presentation-only dashboard surface over the accepted M51 run-discovery API |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
@@ -1566,4 +1566,4 @@ See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
 
 M51 design is accepted in `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GATE.md`. The accepted MVP is application/API focused: deterministic run discovery, optional aggregate-state filtering, bounded opaque-cursor pagination, empty-result semantics, and the existing authenticated visibility boundary. Dashboard run discovery is deferred.
 
-M52 design is accepted in `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`. The implementation is the next controlled step and is limited to a dedicated run-discovery page consuming the existing M51 HTTP contract; no M51 query semantics or analysis execution move into React.
+M52 design is accepted in `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`. The implementation is complete. The dedicated run-discovery page consumes the existing M51 HTTP contract; no M51 query semantics or analysis execution moved into React. GitHub Actions Run #2223 passed on implementation head `e7dfc4cb9251de3977beec43c63b5bff3eea48e0`.
