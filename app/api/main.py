@@ -18,6 +18,7 @@ from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
+from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
 from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
     ScheduledWorkflowExecutionsResponse,
@@ -545,7 +546,6 @@ def create_app(
             logger.exception("Scheduled workflow cross-execution history failed", exc_info=error)
             raise HTTPException(status_code=500, detail="Scheduled workflow history failed") from error
 
-        from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
         response = ScheduledWorkflowHistoryResponse.from_read_model(history)
         return asdict(response)
     @app.get("/api/v1/workflows/executions/{execution_id}/history")
