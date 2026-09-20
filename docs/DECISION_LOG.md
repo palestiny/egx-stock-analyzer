@@ -2786,3 +2786,19 @@ Logical deletion sacrifices immediate storage reclamation in exchange for safer 
 A dedicated lifecycle application coordinator owns orchestration. React and HTTP handlers do not own lifecycle semantics, persistence stores do not independently decide correlated deletion, and analytical calculations remain unchanged.
 
 See docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md.
+
+
+## DEC-119 — M56 Lifecycle Implementation Completion
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M56 lifecycle implementation is complete within the accepted DEC-118 policy.
+
+### Validation
+
+PR #148 implemented owner-aware logical deletion for AnalysisRun records and AnalysisResultRecord snapshots, consistent read-side hiding, active-run protection, idempotent deletion, and SQLite-transactional lifecycle/audit coordination.
+
+The implementation head `9c46cdf6371ff86f074dee5805bf34358e76a941` passed GitHub Actions Tests Run #2497. PR #148 was merged into `main` at `860ee362c2f5a0dc4847c71f99d5bcf2bd0d51ca`.
+
+Physical purge, undelete, and automatic retention remain outside M56.
