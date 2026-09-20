@@ -7,13 +7,15 @@ from fastapi.testclient import TestClient
 from app.api.main import create_app
 from app.application.analysis.get_analysis_run import GetAnalysisRun
 from app.application.analysis.list_analysis_runs import ListAnalysisRuns
+from app.application.analysis.run_market_analysis import MarketAnalysisResult
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
-from app.application.security.identity import AuthenticatedIdentity
+
 from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import Execution, ExecutionState
 from app.domain.identity.user import User, UserStatus
+from app.application.security.identity import LEGACY_OPERATOR_USER_ID
 
 
 class InMemoryUserStore:
@@ -27,7 +29,10 @@ class InMemoryUserStore:
 def make_auth(user_id):
     return ConfiguredBearerTokenAuthenticator(
         {"user-token": user_id},
-        user_store=InMemoryUserStore([User(user_id, UserStatus.ACTIVE)]),
+        user_store=InMemoryUserStore([
+            User(user_id, UserStatus.ACTIVE),
+            User(LEGACY_OPERATOR_USER_ID, UserStatus.ACTIVE),
+        ]),
         legacy_operator_token="operator-token",
     )
 
@@ -107,7 +112,10 @@ def test_user_market_analysis_receives_authenticated_owner():
     execution.start()
     execution.complete()
     configured = Mock()
-    configured.execute.return_value = Mock(execution=execution, analysis_run_id=execution.id)
+    configured.execute.return_value = MarketAnalysisResult(
+        execution=execution,
+        analysis_run_id=execution.id,
+    )
 
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
