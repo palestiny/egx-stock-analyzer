@@ -87,6 +87,7 @@ def test_existing_workflow_table_is_migrated_with_nullable_owner_column(tmp_path
             )
         }
     assert "owner_user_id" in columns
+    assert "analysis_run_id" in columns
 
 
 def test_same_key_and_fingerprint_is_idempotent(tmp_path):
