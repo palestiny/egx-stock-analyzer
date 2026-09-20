@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
+import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
 import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
 import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
 
@@ -29,7 +30,7 @@ function DetailPanel({ title, items }) {
   );
 }
 
-function DashboardApp({ onLogout, identity }) {
+function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -299,6 +300,7 @@ function DashboardApp({ onLogout, identity }) {
           <p className="subtitle">
             Read the latest stored analysis for an EGX stock.
           </p>
+          <button type="button" onClick={onOpenAnalysisRuns}>Analysis Runs</button>
           <button type="button" onClick={onLogout}>Log out</button>
         </div>
 
@@ -831,10 +833,17 @@ function LoginScreen({ onAuthenticated }) {
 function App() {
   const [identity, setIdentity] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [pathname, setPathname] = useState(window.location.pathname);
+
+  function navigate(path) {
+    window.history.pushState({}, "", path);
+    setPathname(path);
+  }
 
   function logout() {
     clearSessionToken();
     setIdentity(null);
+    navigate("/");
   }
 
   useEffect(() => {
@@ -881,6 +890,12 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => setPathname(window.location.pathname);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   if (authLoading) {
     return (
       <main className="app-shell">
@@ -893,7 +908,35 @@ function App() {
     return <LoginScreen onAuthenticated={setIdentity} />;
   }
 
-  return <DashboardApp onLogout={logout} identity={identity} />;
+  if (pathname === "/analysis-runs") {
+    return (
+      <AnalysisRunsPage
+        getAnalysisRuns={getAnalysisRuns}
+        onSelectRun={(runId) => navigate("/analysis-runs/" + encodeURIComponent(runId))}
+        onBack={() => navigate("/")}
+      />
+    );
+  }
+
+  if (pathname.startsWith("/analysis-runs/")) {
+    const runId = decodeURIComponent(pathname.slice("/analysis-runs/".length));
+    return (
+      <main className="app-shell">
+        <section className="panel" aria-label="analysis run detail">
+          <button type="button" onClick={() => navigate("/analysis-runs")}>Back to Analysis Runs</button>
+          <AnalysisRunPanel getAnalysisRun={getAnalysisRun} initialRunId={runId} />
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <DashboardApp
+      onLogout={logout}
+      identity={identity}
+      onOpenAnalysisRuns={() => navigate("/analysis-runs")}
+    />
+  );
 }
 
 export default App;

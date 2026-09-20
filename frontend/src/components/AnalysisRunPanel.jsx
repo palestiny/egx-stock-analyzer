@@ -1,20 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function AnalysisRunPanel({ getAnalysisRun }) {
-  const [runId, setRunId] = useState("");
+export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
+  const [runId, setRunId] = useState(initialRunId);
   const [loadedRunId, setLoadedRunId] = useState(null);
   const [view, setView] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  async function loadRun(event, nextCursor = null) {
-    event?.preventDefault();
-    const normalizedRunId = runId.trim();
-    if (!normalizedRunId) {
-      return;
-    }
-
+  async function loadRunById(normalizedRunId, nextCursor = null) {
     setLoading(true);
     setError(null);
     try {
@@ -35,28 +29,27 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
     }
   }
 
+  async function loadRun(event, nextCursor = null) {
+    event?.preventDefault();
+    const normalizedRunId = runId.trim();
+    if (!normalizedRunId) {
+      return;
+    }
+    await loadRunById(normalizedRunId, nextCursor);
+  }
+
+  useEffect(() => {
+    if (initialRunId) {
+      setRunId(initialRunId);
+      loadRunById(initialRunId);
+    }
+  }, [initialRunId]);
+
   async function loadRunForLoadedRun(nextCursor) {
     if (!loadedRunId) {
       return;
     }
-
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getAnalysisRun(loadedRunId, {
-        pageSize: 50,
-        cursor: nextCursor,
-      });
-      setView(result);
-      setCursor(nextCursor);
-    } catch (requestError) {
-      setView(null);
-      setLoadedRunId(null);
-      setCursor(null);
-      setError(requestError);
-    } finally {
-      setLoading(false);
-    }
+    await loadRunById(loadedRunId, nextCursor);
   }
 
   return (
@@ -97,9 +90,7 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
         <>
           <div className="detail-row">
             <strong>{view.state}</strong>
-            <span>
-              {view.run_id} · Created {new Date(view.created_at).toLocaleString()}
-            </span>
+            <span>{view.run_id} · Created {new Date(view.created_at).toLocaleString()}</span>
           </div>
 
           {view.snapshots.length === 0 && (
@@ -111,30 +102,20 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
               {view.snapshots.map((snapshot) => (
                 <div className="detail-row" key={snapshot.snapshot_id}>
                   <strong>{snapshot.symbol}</strong>
-                  <span>
-                    {snapshot.analysis_date ?? "No analysis date"} · {snapshot.snapshot_id}
-                  </span>
+                  <span>{snapshot.analysis_date ?? "No analysis date"} · {snapshot.snapshot_id}</span>
                 </div>
               ))}
             </div>
           )}
 
           {view.next_cursor && (
-            <button
-              type="button"
-              onClick={() => loadRunForLoadedRun(view.next_cursor)}
-              disabled={loading}
-            >
+            <button type="button" onClick={() => loadRunForLoadedRun(view.next_cursor)} disabled={loading}>
               {loading ? "Loading..." : "Next snapshots"}
             </button>
           )}
 
           {cursor && (
-            <button
-              type="button"
-              onClick={() => loadRunForLoadedRun(null)}
-              disabled={loading}
-            >
+            <button type="button" onClick={() => loadRunForLoadedRun(null)} disabled={loading}>
               First page
             </button>
           )}

@@ -90,7 +90,16 @@ h3 {
   background: #fff;
 }
 
-.symbol-form input:focus {
+ .symbol-form select {
+  border: 1px solid #ccd3df;
+  border-radius: 10px;
+  padding: 11px 13px;
+  background: #fff;
+}
+
+.symbol-form input:focus,
+.symbol-form select:focus {
+
   outline: 2px solid #9bb7ff;
   outline-offset: 1px;
 }
@@ -187,6 +196,23 @@ h3 {
 
 .detail-row strong {
   text-align: right;
+}
+
+.run-list-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.run-list-item:hover {
+  background: #f8f9fc;
+}
+
+.run-list-item:focus-visible {
+  outline: 2px solid #9bb7ff;
+  outline-offset: 2px;
 }
 
 .alert-panel {

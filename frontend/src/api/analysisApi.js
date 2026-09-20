@@ -54,6 +54,19 @@ export function getMarketOpportunities(symbols) {
   return getJson("/api/v1/opportunities?symbols=" + encodeURIComponent(query), "Market opportunities request");
 }
 
+export function getAnalysisRuns(options = {}) {
+  const params = new URLSearchParams();
+  if (options.state) params.set("state", options.state);
+  if (options.pageSize != null) params.set("page_size", String(options.pageSize));
+  if (options.cursor) params.set("cursor", options.cursor);
+
+  const query = params.toString();
+  return getJson(
+    "/api/v1/analysis-runs" + (query ? "?" + query : ""),
+    "Analysis run discovery request",
+  );
+}
+
 export function getAnalysisRun(runId, options = {}) {
   const params = new URLSearchParams();
   if (options.pageSize != null) {
