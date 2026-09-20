@@ -150,7 +150,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M47 | Scheduled Workflow History Filtering | 🟢 Complete | Typed lifecycle-state filtering over the existing paginated history read boundary |
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
 | M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Complete | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
-| M50 | Analysis Run History & Read Model | 🟡 Design Proposed | Define the read-side contract for retrieving one durable analysis run and its successful correlated snapshots |
+| M50 | Analysis Run History & Read Model | 🟡 Design Accepted | Expose one durable analysis run and its successful correlated snapshots through a dedicated read-side capability |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -261,7 +261,9 @@ NEXT — New Design Gate
 
 M48 is complete. Time filtering and cross-execution history are merged and validated under the accepted M48 design gates. See `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
-M49 design is accepted. The implementation is limited to durable analysis-run correlation and snapshot association; API/dashboard exposure is deferred to a later read-side gate.
+M49 design is accepted. The implementation is limited to durable analysis-run correlation and snapshot association; API/dashboard exposure is deferred to M50.
+
+M50 design is accepted. Implementation is authorized for a dedicated GetAnalysisRun read capability over the existing AnalysisRunStore and AnalysisResultStore. The MVP uses deterministic symbol ordering, bounded snapshot pagination, explicit failed-symbol visibility, legacy-snapshot compatibility, and the existing authenticated analysis visibility boundary. A cross-run list/search surface and per-user analysis-run ownership are deferred.
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
