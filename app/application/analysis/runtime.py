@@ -55,6 +55,7 @@ def create_stock_analysis_runtime(
     run_market_analysis = RunMarketAnalysis(
         stock_catalog=stock_catalog,
         run_stock_analysis=run_stock_analysis,
+        result_store=result_store,
     )
     run_configured_market_analysis = RunConfiguredMarketAnalysis(
         stock_catalog=stock_catalog,
