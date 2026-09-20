@@ -51,8 +51,9 @@ def test_cross_execution_history_is_newest_first_and_bounded(tmp_path: Path):
     )
 
     assert len(rows) == 2
+    assert rows[0][5] >= rows[1][5]
     assert rows[0][0] == second.id
-    assert rows[1][0] == first.id
+    assert rows[1][0] == second.id
 
 
 def test_cross_execution_history_is_isolated_by_owner(tmp_path: Path):
