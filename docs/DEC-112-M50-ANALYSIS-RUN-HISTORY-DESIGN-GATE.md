@@ -1,6 +1,6 @@
 # DEC-112 — M50 Analysis Run History Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M50 — Analysis Run History & Read Model
 
@@ -151,18 +151,63 @@ The API and dashboard must not infer run membership themselves.
 
 ---
 
-## 7. Open Questions
+## 7. Accepted Contract Decisions
 
-These must be resolved before implementation:
+### 1. Snapshot Ordering
 
-1. Snapshot ordering: by analysis date, snapshot ID, or execution/universe order?
-2. Run visibility: should authenticated users see only runs produced under their ownership context, with system/global runs remaining operator-visible under the existing ownership rules?
-3. Legacy snapshots: should snapshots with no AnalysisRunId be omitted from run views and remain available only through existing stock-history views?
-4. Failed symbols: should the read model expose failed symbol identifiers/reasons from the aggregate execution record, or only successful snapshots?
-5. Pagination: should M50 return a bounded snapshot list or require pagination from the first API slice?
-6. API shape: dedicated /analysis-runs/{run_id} resource versus a nested history/reporting endpoint.
-7. Dashboard scope: run detail only, or run list + run detail?
-8. Missing run semantics: 404 at HTTP boundary with an application-level not-found result/error, consistent with existing read-side boundaries?
+Snapshots are ordered by normalized stock symbol ascending, then snapshot ID ascending as a tie-breaker.
+
+M49 did not persist the market-universe execution order, so M50 must not reconstruct it from incidental insertion order or timestamps. Symbol ordering gives the read model a stable, provider-neutral presentation order.
+
+### 2. Run Visibility
+
+M50 does not add a new ownership field to AnalysisRun.
+
+M49 created analysis runs as system-level analytical records without user ownership metadata. Therefore M50 applies the existing authenticated application boundary to analysis-run reads without inventing user ownership semantics that the stored run cannot support. Authenticated callers may read analysis runs available through the existing analysis read boundary; the legacy/operator compatibility path remains subject to its existing rules.
+
+Per-user analysis-run ownership is explicitly deferred to a future identity/ownership design gate rather than being inferred from scheduled-workflow ownership.
+
+### 3. Legacy Snapshots
+
+Snapshots whose analysis_run_id is null are omitted from M50 run detail.
+
+They remain fully available through the existing stock-history capability. M50 does not synthesize run membership for historical data created before M49.
+
+### 4. Failed Symbols
+
+The run read model exposes failed stock symbols and their persisted failure reasons from the aggregate analysis-run execution record.
+
+Successful snapshots are exposed separately. A failed symbol never receives a synthetic snapshot.
+
+This makes partial, all-failed, and empty runs distinguishable without reconstructing failure state from missing snapshots.
+
+### 5. Pagination
+
+Snapshot results are bounded from the first API slice.
+
+The default page size is 50 and the maximum is 100, matching the established read-side pagination bounds used elsewhere in the project. Pagination applies only to the successful snapshot collection; run metadata and failed-symbol information remain in the run-level response.
+
+The continuation cursor is opaque and bound to the run ID and effective page size. M50 introduces no filtering beyond the fixed symbol ordering.
+
+### 6. API Shape
+
+M50 exposes a dedicated resource:
+
+GET /api/v1/analysis-runs/{run_id}
+
+The endpoint maps one application read model to transport DTOs. It does not expose persistence rows or SQLite-specific fields.
+
+### 7. Dashboard Scope
+
+M50 adds run detail presentation only.
+
+The dashboard consumes the dedicated analysis-run endpoint and presents run metadata, aggregate state, failed symbols, and the paginated successful snapshot collection. A run list/search/filter surface is deferred because it requires a separate query contract and pagination semantics across runs.
+
+### 8. Missing Run Semantics
+
+The application capability raises an explicit analysis-run-not-found condition when the run ID does not exist.
+
+The HTTP boundary maps that condition to 404, consistent with the existing read-side not-found behavior.
 
 ---
 
@@ -174,37 +219,51 @@ These must be resolved before implementation:
 4. Legacy snapshots remain readable through existing history behavior.
 5. Failed stocks do not acquire fake snapshots.
 6. Empty and all-failed runs remain representable.
-7. Ownership checks remain at the existing authenticated application boundary.
+7. M50 does not invent analysis-run ownership that M49 did not persist.
 8. Read operations do not mutate analysis or persistence state.
 9. Existing latest-result and stock-history contracts remain unchanged.
 10. No analytical scoring or classification logic is introduced into the read model.
+11. Snapshot ordering is deterministic and independent of persistence insertion order.
+12. Snapshot pagination is bounded and applied to successful correlated snapshots only.
 
 ---
 
 ## 9. TDD Acceptance Shape
 
 - retrieve a completed run by AnalysisRunId;
-- retrieve its successful snapshots;
-- deterministic snapshot ordering;
-- partial run returns successful snapshots without fake failed snapshots;
-- all-failed run returns a valid run with zero successful snapshots;
-- empty run returns a valid run with zero snapshots;
-- unknown run is handled explicitly;
+- retrieve its successful snapshots in deterministic symbol order;
+- pagination returns bounded pages with an opaque continuation cursor;
+- partial run returns successful snapshots and explicit failed symbols/reasons without fake snapshots;
+- all-failed run returns a valid run with zero successful snapshots and its failed symbols/reasons;
+- empty run returns a valid run with zero snapshots and no failed symbols;
+- unknown run is handled explicitly and maps to HTTP 404;
 - legacy snapshots remain available through existing stock-history reads;
-- ownership boundary is enforced;
+- authenticated read boundary follows the existing analysis visibility rules without adding synthetic ownership;
 - restart preserves the same read result;
 - API contract maps the application read model without persistence leakage;
-- dashboard consumes the API contract without recomputing grouping.
+- dashboard consumes the API contract without recomputing grouping or analytical values.
 
 ---
 
 ## 10. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized yet.**
+**Status: Accepted — implementation is authorized for the M50 MVP defined here.**
 
-The candidate direction is B. The open questions above are intentionally left explicit because they affect the application/API contract and user-visible behavior.
+The selected direction is B — dedicated application read capability over the existing AnalysisRunStore and AnalysisResultStore.
 
----
+The intended boundary is:
+
+```
+API / Dashboard
+      ↓
+GetAnalysisRun
+      ↓
+AnalysisRunStore + AnalysisResultStore
+      ↓
+SQLite persistence
+```
+
+M50 is a read-side capability only. It does not change analysis execution, snapshot persistence semantics, authentication, scheduled-workflow lifecycle, ranking, notifications, or analytical logic.
 
 ## 11. Revisit Conditions
 
