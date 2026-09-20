@@ -41,6 +41,8 @@ from app.application.analysis.list_analysis_runs import (
     InvalidAnalysisRunListQueryError,
     ListAnalysisRuns,
 )
+from app.application.analysis.delete_analysis_run import AnalysisLifecycleNotFoundError, DeleteAnalysisRun
+from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
 from app.application.analysis.get_analysis_run import (
     AnalysisRunNotFoundError,
     GetAnalysisRun,
@@ -124,6 +126,8 @@ def create_app(
     get_user_audit_history: GetUserAuditHistory | None = None,
     get_analysis_run: GetAnalysisRun | None = None,
     list_analysis_runs: ListAnalysisRuns | None = None,
+    delete_analysis_run: DeleteAnalysisRun | None = None,
+    delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -402,6 +406,35 @@ def create_app(
         response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
         return response.to_dict()
 
+
+    @app.delete("/api/v1/analysis-runs/{run_id}")
+    def delete_analysis_run_route(
+        run_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if delete_analysis_run is None:
+            raise HTTPException(status_code=503, detail="Analysis lifecycle is not configured")
+        try:
+            result = delete_analysis_run.execute(run_id, identity)
+        except AnalysisLifecycleNotFoundError as error:
+            raise HTTPException(status_code=404, detail="Analysis run not found") from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"run_id": str(run_id), "deleted": result.deleted}
+
+    @app.delete("/api/v1/analysis-snapshots/{snapshot_id}")
+    def delete_analysis_snapshot_route(
+        snapshot_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if delete_analysis_snapshot is None:
+            raise HTTPException(status_code=503, detail="Analysis lifecycle is not configured")
+        result = delete_analysis_snapshot.execute(snapshot_id, identity)
+        if not result.deleted:
+            raise HTTPException(status_code=404, detail="Analysis snapshot not found")
+        return {"snapshot_id": str(snapshot_id), "deleted": True}
 
     @app.get("/api/v1/analysis-runs")
     def list_analysis_runs_route(
