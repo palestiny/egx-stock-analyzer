@@ -12,18 +12,20 @@ The current roadmap position is **M56 — Analysis Run & Snapshot Retention and 
 
 M56 is currently a **design-stage milestone**. Its design gate is proposed and destructive implementation is blocked until the remaining owner-controlled lifecycle decisions are explicitly accepted.
 
-Current open PR:
+Latest M56 design clarification PR:
 
 - **PR #145** — docs: clarify accepted M56 lifecycle engineering boundary
-- Base: main
-- Head: m56-lifecycle-design-clarification
-- State: open
-- Mergeable: yes
+- State: merged
+- Merge commit: `9c435668fad08c963bc1fab4aeb422532c16f386`
 - Purpose: clarify technical constraints without silently accepting unresolved destructive lifecycle policy.
+
+Current owner-decision tracking issue:
+
+- **Issue #146** — resolve owner-controlled lifecycle decisions before destructive implementation
 
 The latest merged main commit is:
 
-10930633399ddb1cacd0fba5a8721364c148338c
+9c435668fad08c963bc1fab4aeb422532c16f386
 
 Merge message:
 
