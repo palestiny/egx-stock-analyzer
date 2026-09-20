@@ -4,6 +4,18 @@ from typing import Protocol
 from uuid import UUID, uuid4
 
 from app.application.analysis.stock_analysis import StockAnalysisResult
+from app.domain.execution import ExecutionState
+
+
+class AnalysisResultPersistenceError(RuntimeError):
+    """Raised when analysis-result or run persistence cannot be completed."""
+
+
+@dataclass(frozen=True)
+class AnalysisRunRecord:
+    run_id: UUID
+    analysis_date: date | None
+    state: ExecutionState
 
 
 @dataclass(frozen=True)
@@ -12,14 +24,33 @@ class AnalysisResultRecord:
     analysis_date: date | None
     snapshot_id: UUID = field(default_factory=uuid4)
     symbol: str | None = None
+    analysis_run_id: UUID | None = None
 
 
 class AnalysisResultStore(Protocol):
+    def create_analysis_run(
+        self,
+        run_id: UUID,
+        analysis_date: date | None,
+    ) -> None:
+        ...
+
+    def update_analysis_run_state(
+        self,
+        run_id: UUID,
+        state: ExecutionState,
+    ) -> None:
+        ...
+
+    def get_analysis_run(self, run_id: UUID) -> AnalysisRunRecord | None:
+        ...
+
     def save(
         self,
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
         ...
 
@@ -40,23 +71,82 @@ class AnalysisResultStore(Protocol):
     ) -> tuple[AnalysisResultRecord, ...]:
         ...
 
+    def get_run_snapshots(
+        self,
+        run_id: UUID,
+    ) -> tuple[AnalysisResultRecord, ...]:
+        ...
+
 
 class InMemoryAnalysisResultStore:
     def __init__(self) -> None:
         self._results: dict[str, list[AnalysisResultRecord]] = {}
+        self._analysis_runs: dict[UUID, AnalysisRunRecord] = {}
+
+    def create_analysis_run(
+        self,
+        run_id: UUID,
+        analysis_date: date | None,
+    ) -> None:
+        if run_id in self._analysis_runs:
+            raise AnalysisResultPersistenceError(
+                f"Analysis run already exists: {run_id}"
+            )
+        self._analysis_runs[run_id] = AnalysisRunRecord(
+            run_id=run_id,
+            analysis_date=analysis_date,
+            state=ExecutionState.CREATED,
+        )
+
+    def update_analysis_run_state(
+        self,
+        run_id: UUID,
+        state: ExecutionState,
+    ) -> None:
+        existing = self._analysis_runs.get(run_id)
+        if existing is None:
+            raise AnalysisResultPersistenceError(
+                f"Unknown analysis run: {run_id}"
+            )
+        self._analysis_runs[run_id] = AnalysisRunRecord(
+            run_id=existing.run_id,
+            analysis_date=existing.analysis_date,
+            state=state,
+        )
+
+    def get_analysis_run(self, run_id: UUID) -> AnalysisRunRecord | None:
+        return self._analysis_runs.get(run_id)
 
     def save(
         self,
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
+        if analysis_run_id is not None and analysis_run_id not in self._analysis_runs:
+            raise AnalysisResultPersistenceError(
+                f"Unknown analysis run: {analysis_run_id}"
+            )
+
+        if analysis_run_id is not None:
+            if any(
+                record.analysis_run_id == analysis_run_id
+                for records in self._results.values()
+                for record in records
+                if record.symbol == symbol
+            ):
+                raise AnalysisResultPersistenceError(
+                    f"Snapshot already exists for run {analysis_run_id} and symbol {symbol}"
+                )
+
         records = self._results.setdefault(symbol, [])
         records.append(
             AnalysisResultRecord(
                 result=result,
                 analysis_date=analysis_date,
                 symbol=symbol,
+                analysis_run_id=analysis_run_id,
             )
         )
 
@@ -105,3 +195,23 @@ class InMemoryAnalysisResultStore:
         ][::-1]
 
         return tuple(dated_records + undated_records)
+
+    def get_run_snapshots(
+        self,
+        run_id: UUID,
+    ) -> tuple[AnalysisResultRecord, ...]:
+        records = [
+            record
+            for records in self._results.values()
+            for record in records
+            if record.analysis_run_id == run_id
+        ]
+        return tuple(
+            sorted(
+                records,
+                key=lambda record: (
+                    record.symbol or "",
+                    str(record.snapshot_id),
+                ),
+            )
+        )
