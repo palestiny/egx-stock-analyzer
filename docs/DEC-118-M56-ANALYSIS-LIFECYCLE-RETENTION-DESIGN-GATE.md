@@ -1,6 +1,6 @@
 # DEC-118 — M56 Analysis Run & Snapshot Retention and Deletion Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M56 — Analysis Run & Snapshot Retention and Deletion
 
@@ -330,12 +330,42 @@ The next M56 work may safely prepare non-destructive abstractions and tests arou
 
 ---
 
-## 11. Design Gate Decision
+## 11. Accepted Owner Decisions
 
-**Status: Proposed — implementation is not authorized.**
+The Project Owner has accepted the recommended M56 lifecycle policy:
 
-M56 implementation must not begin until the lifecycle policy, ownership authority, run/snapshot correlation behavior, read semantics, transaction strategy, and destructive-operation audit requirements are explicitly accepted.
+1. Regular users may delete only their own AnalysisRun records and their own runless snapshots.
+2. Operators may delete user-owned records and system/global records through the privileged lifecycle capability.
+3. Deleting an AnalysisRun logically hides the run and all correlated snapshots together.
+4. Runless snapshots remain independently governed by their persisted M55 ownership.
+5. No user-facing undelete/recovery capability is included in the M56 MVP.
+6. M56 MVP uses logical deletion only. Physical purge is a separate privileged maintenance capability and is not part of the user-facing delete operation.
+7. Every destructive lifecycle request emits a management-audit event, including authorized no-op/repeated deletion and rejected destructive requests where the audit boundary is available.
+8. The lifecycle coordinator must establish one proven SQLite transaction boundary across run/snapshot lifecycle mutations. If the current store abstractions cannot participate in a shared transaction, implementation must first introduce that infrastructure capability rather than claiming best-effort atomicity.
+9. Automatic retention is disabled in M56. No time-based automatic deletion is introduced.
+10. Deleted resources are excluded from all normal read paths, including latest-result, history, snapshot-by-ID, comparison, performance, run detail, and run discovery, using the same lifecycle visibility rule.
+11. Deletion of an active analysis execution is rejected; no partial lifecycle mutation is allowed.
+12. Repeated authorized deletion is an idempotent successful no-op.
+13. Existing M54/M55 ownership and non-enumerating authorization semantics remain unchanged.
 
-## 12. Revisit Conditions
+### Decision Trade-offs
+
+This policy chooses reversible logical deletion over immediate physical deletion, trading immediate storage reclamation for safer recovery/coordination semantics. It also separates user-facing deletion from physical purge, increasing lifecycle surface area but preventing irreversible storage operations from being hidden inside normal user actions.
+
+Run deletion owns correlated snapshot visibility, which preserves a coherent historical run model but intentionally couples the lifecycle of those records. Runless snapshots remain independent because they have no parent run.
+
+No automatic retention is introduced because a time window would be a product policy requiring evidence about storage, usage, and preservation needs rather than an implementation convenience.
+
+Audit is mandatory because lifecycle operations are destructive from the user's perspective even when implemented as logical deletion. The trade-off is additional durable audit volume and transaction coordination.
+
+Cross-store atomicity is treated as a correctness requirement. The system will not use sequential writes across independently managed SQLite connections as a substitute for one transaction.
+
+## 12. Design Gate Decision
+
+**Status: Accepted — M56 implementation is authorized within this documented boundary.**
+
+The implementation must preserve the accepted owner decisions and the previously accepted engineering constraints. No physical purge or automatic retention may be introduced under M56 unless a new design decision explicitly expands the scope.
+
+## 13. Revisit Conditions
 
 Revisit this gate if storage architecture changes, legal/compliance retention requirements appear, snapshot sharing or organizations are introduced, cross-run snapshot references become concrete, background-worker infrastructure materially changes purge economics, or the historical-analysis model is replaced.
