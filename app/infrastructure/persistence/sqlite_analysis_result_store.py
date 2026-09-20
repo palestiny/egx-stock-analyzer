@@ -179,6 +179,23 @@ class SQLiteAnalysisResultStore:
 
         return self._to_record(row) if row is not None else None
 
+    def get_history_by_analysis_run(
+        self,
+        analysis_run_id: UUID,
+    ) -> tuple[AnalysisResultRecord, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
+                FROM analysis_results
+                WHERE analysis_run_id = ?
+                ORDER BY symbol ASC, snapshot_id ASC
+                """,
+                (str(analysis_run_id),),
+            ).fetchall()
+
+        return tuple(self._to_record(row) for row in rows)
+
     def get_history(
         self,
         symbol: str,
