@@ -121,11 +121,13 @@ def test_delivery_failure_does_not_change_analysis_outcome(tmp_path):
 
 def test_same_occurrence_is_not_executed_twice(tmp_path):
     operation = Mock()
+    analysis_execution = make_execution(ExecutionState.COMPLETED)
     operation.execute.return_value = type(
         "Result",
         (),
         {
-            "analysis_execution": make_execution(ExecutionState.COMPLETED),
+            "analysis_execution": analysis_execution,
+            "analysis_run_id": analysis_execution.id,
             "delivery_result": make_delivery(AutomaticAlertDeliveryState.COMPLETED),
         },
     )()
@@ -136,6 +138,8 @@ def test_same_occurrence_is_not_executed_twice(tmp_path):
     second = workflow.execute("occurrence-1", date(2026, 9, 19))
 
     assert first.id == second.id
+    assert first.analysis_run_id == analysis_execution.id
+    assert second.analysis_run_id == first.analysis_run_id
     operation.execute.assert_called_once()
 
 
