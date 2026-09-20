@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
-
-
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.analysis.stock_analysis import StockAnalysisPipeline, StockAnalysisResult
 from app.application.execution.orchestrator import ExecutionOrchestrator
