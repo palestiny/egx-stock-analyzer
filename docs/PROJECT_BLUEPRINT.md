@@ -727,264 +727,75 @@ Only after this gate should implementation begin.
 
 # 17. Current Architecture Decisions
 
-The following decisions are currently considered committed:
-
-### Stock
-
-- Stock is an Entity.
-- Stock has an internal UUID identity.
-- Stock symbol is an external/business identifier.
-- Stock name is descriptive information.
-- Symbols are normalized using trim + uppercase.
-- Names are normalized using trim.
-- `create()` generates a new UUID.
-- `reconstitute()` restores an existing UUID.
-- Entity equality is based on identity.
+This section records the stable architectural foundation only. Milestone-specific decisions are authoritative in `docs/DECISION_LOG.md` and their design/completion documents.
 
 ### Architecture
 
-- The project is moving toward a Modular Monolith.
-- Domain logic should remain independent from infrastructure.
-- AI is not the core of the system.
-- The system should prioritize explainability.
+- The project is a **Modular Monolith**.
+- Domain logic remains independent from FastAPI, React, SQLite, Yahoo Finance, Telegram, and authentication/transport implementations.
+- Application capabilities own use-case orchestration and business-facing boundaries.
+- Infrastructure owns external providers, persistence, authentication adapters, and operational integrations.
+- API and dashboard layers are transport/presentation boundaries and must not reproduce domain or application business rules.
+- AI is a replaceable tool, not the system's core domain or architecture.
+- GitHub is the source of truth for project state.
+
+### Stock Identity
+
+- `Stock` is a domain Entity.
+- Stock identity is an internal UUID.
+- Symbol is the external/business identifier and is normalized with trim + uppercase.
+- Name is descriptive information and is normalized with trim.
+- `create()` generates identity; `reconstitute()` restores identity.
+- Entity equality is identity-based.
+
+### Current Operational Architecture
+
+The implemented system includes deterministic stock analysis, configured-market execution, opportunity ranking/views, historical analysis capabilities, alert delivery, scheduled workflows, durable workflow reliability/history, multi-user identity/authentication, credential management, and management/user audit read models.
+
+The current active work is M48 cross-execution scheduled-workflow history. The accepted design is implemented on PR #118 and is awaiting merge; see `docs/ROADMAP.md` and `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
 
 ---
 
 # 18. Current Open Decisions
 
-The following decisions remain open and must not be treated as final:
+Open decisions are **not maintained as a static list in this blueprint**, because many earlier questions have already been resolved through milestone design gates.
 
-### Market Data
+The authoritative current decision state is maintained by:
 
-- Exact ownership of market observations.
-- Validation responsibilities.
-- Data-quality model.
-- Valid / suspect / invalid semantics.
-- Handling conflicting providers.
-- Handling missing observations.
-- Duplicate observations.
-- Timezone strategy.
-- Market-session semantics.
+- `docs/ROADMAP.md` for milestone position and execution order;
+- `docs/DECISION_LOG.md` for accepted project decisions;
+- the latest proposed/accepted design-gate documents under `docs/`.
 
-### Scoring
+A new significant capability requires an explicit design gate before implementation unless it is a narrow correction that does not change an established boundary.
 
-- Exact scoring formulas.
-- Normalization.
-- Weight calibration.
-- Thresholds.
-- Interaction between categories.
-- Stock Quality vs Entry Quality.
-
-### Signals
-
-- Exact BUY/WATCH/HOLD/AVOID rules.
-- Confidence model.
-- Entry calculation.
-- Stop-loss calculation.
-- Target calculation.
-
-### Data Providers
-
-- Primary market-data source.
-- Backup source.
-- Provider abstraction.
-- Provider reliability strategy.
-
-### Persistence
-
-- Database technology.
-- Repository implementation.
-- Historical data storage strategy.
-
-These decisions should be made deliberately rather than implicitly through implementation.
+When a previously open decision becomes accepted, obsolete uncertainty must not remain elsewhere in foundational documentation as if it were still active.
 
 ---
 
-# 19. Roadmap
+# 19. Current Roadmap Authority
 
-## M0 — Vision & Project Blueprint
+The detailed milestone roadmap is maintained exclusively in `docs/ROADMAP.md`.
 
-Establish:
+This blueprint intentionally does not duplicate milestone-by-milestone status because duplicated roadmap state becomes stale and can mislead future sessions.
 
-- Vision.
-- Scope.
-- Architecture direction.
-- Engineering rules.
-- Documentation structure.
-- Major open decisions.
+Current position:
 
-**Current phase.**
+- M0–M47 are complete according to the current roadmap.
+- M48 is the active milestone.
+- M48 time filtering is implemented and merged.
+- M48 cross-execution history design is accepted.
+- M48 cross-execution history implementation is open in PR #118.
+- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` has a successful GitHub Actions Tests run #1959.
 
----
-
-## M1 — Domain Foundation
-
-Define and test:
-
-- Stock.
-- Market Data concepts.
-- Data Quality concepts.
-- Core domain boundaries.
-- Domain value objects where justified.
-
----
-
-## M2 — Market Data Foundation
-
-Establish:
-
-- Market observation model.
-- Historical observations.
-- Data-source abstraction.
-- Data-quality assessment.
-
----
-
-## M3 — Data Acquisition
-
-Implement:
-
-- External provider integration.
-- Data ingestion.
-- Provider failure handling.
-- Raw data preservation.
-
----
-
-## M4 — Data Quality
-
-Implement:
-
-- Validation rules.
-- Quality classification.
-- Missing-data handling.
-- Duplicate detection.
-- Conflict detection.
-
----
-
-## M5 — Technical Analysis
-
-Implement:
-
-- Trend.
-- Support/resistance.
-- Momentum.
-- Volatility.
-- Technical indicators.
-
----
-
-## M6 — Fundamental Analysis
-
-Implement:
-
-- Financial metrics.
-- Ratios.
-- Growth.
-- Profitability.
-- Valuation.
-
----
-
-## M7 — Scoring Engine
-
-Implement:
-
-- Category scores.
-- Weighting.
-- Normalization.
-- Explainable scoring.
-
----
-
-## M8 — Signal Generation
-
-Implement:
-
-- BUY.
-- WATCH.
-- HOLD.
-- AVOID.
-- Entry.
-- Stop loss.
-- Targets.
-- Risk/reward.
-
----
-
-## M9 — Backtesting
-
-Implement:
-
-- Historical simulation.
-- Strategy performance.
-- Drawdown.
-- Win/loss statistics.
-- Signal quality analysis.
-
----
-
-## M10 — Automation
-
-Implement:
-
-```text
-Scheduled Collection
-        ↓
-Analysis
-        ↓
-Scoring
-        ↓
-Signal Generation
-```
-
----
-
-## M11 — Reporting & Alerts
-
-Implement:
-
-- Daily reports.
-- Ranked opportunities.
-- Notifications.
-- Change detection.
-
----
-
-## M12 — API & Dashboard
-
-Expose:
-
-- Stocks.
-- Analysis.
-- Scores.
-- Signals.
-- Reports.
-- Historical performance.
-
----
-
-## M13 — Production Hardening
-
-Address:
-
-- Security.
-- Monitoring.
-- Logging.
-- Reliability.
-- Deployment.
-- Performance.
-- Recovery.
-- Operational procedures.
+The next action must be derived from the actual GitHub state and accepted design, not from historical roadmap text embedded in this blueprint.
 
 ---
 
 # 20. Documentation Structure
 
-The project documentation should evolve into:
+The repository documentation is organized around durable project state:
 
-```text
+```
 docs/
 ├── PROJECT_BLUEPRINT.md
 ├── PROJECT_RULES.md
@@ -992,47 +803,34 @@ docs/
 ├── ROADMAP.md
 ├── DECISION_LOG.md
 ├── LESSONS_LEARNED.md
-└── ADR/
+└── DEC-*.md
 ```
 
-Additional documentation may later be organized as:
-
-```text
-docs/
-├── features/
-├── domain/
-├── integrations/
-├── data/
-├── security/
-└── operations/
-```
-
-Documentation should describe actual project decisions and should not become a collection of hypothetical architecture.
+Milestone completion documents record stable accepted outcomes. Design gates define meaning, ownership, boundaries, alternatives, trade-offs, and acceptance criteria before significant implementation.
 
 ---
 
-# 21. Definition of Success
+# 21. Current State Synchronization Rule
 
-The project is successful when it can:
+GitHub is the source of truth.
 
-1. Reliably collect EGX stock data.
-2. Preserve historical observations.
-3. Assess data quality.
-4. Analyze stocks consistently.
-5. Produce explainable scores.
-6. Generate explainable signals.
-7. Backtest its strategy.
-8. Run automatically.
-9. Produce useful reports.
-10. Evolve without major architectural rewrites.
+At session start, review the current GitHub state rather than relying on an old conversation snapshot.
 
-The final goal is not simply:
+After meaningful work reaches a stable state:
 
-> "Build an application that gives stock signals."
+```
+Design
+→ Test
+→ Implement
+→ Review
+→ Refactor
+→ Document
+→ Commit
+→ Push
+→ Verify GitHub state
+```
 
-The deeper goal is:
-
-> Build an engineering system that transforms external financial data into reliable, explainable, testable, and continuously improvable analytical decisions.
+Do not leave contradictory milestone status, obsolete architecture decisions, or superseded assumptions in foundational documents.
 
 ---
 
@@ -1056,23 +854,31 @@ If these questions cannot be answered clearly, implementation should wait.
 
 ---
 
+# 22. Guiding Principle
+
+The project should be developed as an engineering system first and a feature collection second.
+
+Every new feature should answer:
+
+```
+Why does this exist?
+What problem does it solve?
+Who owns it?
+What does it depend on?
+What does it not know?
+How can it be tested?
+What are the trade-offs?
+```
+
+The repository must make the current answer discoverable without requiring historical conversation context.
+
+---
+
 # 23. Project State & GitHub Synchronization
 
 GitHub is the source of truth for the project's current state.
 
-At the beginning of every development session, the project documentation
-must be reviewed to understand:
-
-- What the system is
-- Why it is being built
-- How it is being built
-- Current architectural decisions
-- Current milestone
-- Completed work
-- Open decisions
-- Known risks and lessons learned
-
-The primary documents to review are:
+At the beginning of every development session, review:
 
 - PROJECT_BLUEPRINT.md
 - PROJECT_RULES.md
@@ -1081,12 +887,9 @@ The primary documents to review are:
 - DECISION_LOG.md
 - LESSONS_LEARNED.md
 
-### Synchronization Rule
+Then verify the current branch/PR state before implementing new work.
 
-Whenever a meaningful piece of work is completed and reaches a stable state,
-it should be committed and pushed to GitHub.
-
-The expected development cycle is:
+The expected cycle is:
 
 Design
 → Test
@@ -1096,25 +899,16 @@ Design
 → Document
 → Commit
 → Push
-→ Update Project State
+→ Verify
 
-GitHub should therefore remain synchronized with the actual project state
-throughout development rather than being updated only at major releases.
-
-### Session Start Rule
-
-Every new development session should begin by checking the project state
-from GitHub before implementing new work.
-
-The goal is to ensure that development continues from the documented state
-rather than relying on memory or conversation history.
+Meaningful stable work should be synchronized to GitHub promptly.
 
 ---
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M44 — Execution Reliability & History complete and CI-validated through PR #102.
+**Current Implementation:** M47 is complete. M48 time filtering is merged. M48 cross-execution history design is accepted and its implementation is currently under PR #118.
 
-**Current Project State:** M44 completion is recorded in `docs/M44-EXECUTION-RELIABILITY-AND-HISTORY-MVP-COMPLETION.md`. The M44 design, implementation, CI validation, and roadmap are synchronized.
+**Current Project State:** See `docs/ROADMAP.md` and `docs/DECISION_LOG.md` for authoritative milestone and decision state.
 
-**Next Step:** No next capability is committed yet. The next major capability must begin with a new design gate.
+**Next Step:** Review and complete the accepted M48 cross-execution history implementation, then close M48 or open the next design gate based on evidence.
