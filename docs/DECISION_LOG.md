@@ -2682,15 +2682,19 @@ See `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`.
 
 ## DEC-116 — M54 Analysis Run Ownership
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20
 
-M54 proposes the next security boundary after M53: durable ownership of AnalysisRun resources.
+M54 establishes durable AnalysisRun ownership as the next security boundary after M53.
 
-The preferred candidate is one optional immutable owner UUID on AnalysisRun, aligned with the existing single-owner scheduled-workflow model. User-created runs would carry the authenticated user's UUID; system/global runs would remain explicitly system-owned rather than being assigned arbitrarily to a user.
+### Decision
 
-The design intentionally defers sharing, ACLs, organizations, delegated access, and changes to workflow ownership. Ownership is authorization metadata only and must not affect analysis calculations, retry behavior, or M53 outcome semantics.
+New user-created AnalysisRuns carry the authenticated user's immutable UUID. System-created and scheduled runs remain system/global with no user owner. Pre-M54 legacy runs are also treated as system/global; no owner is inferred from historical data.
 
-The accepted design must explicitly resolve legacy-run visibility, operator visibility, system-run ownership, application-store filtering, non-enumerating unauthorized access behavior, and snapshot access semantics.
+The existing operator authorization model can read all AnalysisRuns. Regular users can read only their own runs. Unauthorized run detail returns 404 so run identifiers cannot be used as a resource-enumeration channel.
 
-See `docs/DEC-116-M54-ANALYSIS-RUN-OWNERSHIP-DESIGN-GATE.md`.
+RunMarketAnalysis accepts an optional owner UUID. Ownership is assigned at creation and is immutable. AnalysisRunStore provides owner-aware persistence/query primitives, while application capabilities enforce the authorization policy. API and React remain transport/presentation boundaries and do not reconstruct ownership.
+
+M54 does not introduce sharing, ACLs, teams, delegated access, workflow-ownership changes, or standalone snapshot ownership changes. M53 outcome semantics remain unchanged within an authorized run.
+
+See docs/DEC-116-M54-ANALYSIS-RUN-OWNERSHIP-DESIGN-GATE.md.
