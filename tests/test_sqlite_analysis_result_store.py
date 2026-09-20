@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.domain.entry_analysis.context import EntryContext
 from app.domain.entry_analysis.scoring import EntryQualityScore
@@ -114,8 +116,6 @@ def test_serializer_rejects_unsupported_version():
 
     document = json.loads(result)
     document["version"] = 999
-
-    import pytest
 
     with pytest.raises(AnalysisResultSerializationError):
         deserialize_analysis_result(json.dumps(document))
@@ -314,7 +314,7 @@ def test_snapshot_can_be_correlated_to_analysis_run(tmp_path):
 
 def test_legacy_snapshot_without_analysis_run_remains_readable(tmp_path):
     store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
-    result = _make_result()
+    result = make_result()
 
     store.save("EGAL", result, date(2026, 9, 20))
 
@@ -326,7 +326,7 @@ def test_legacy_snapshot_without_analysis_run_remains_readable(tmp_path):
 
 def test_one_snapshot_per_symbol_per_analysis_run_is_enforced(tmp_path):
     store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
-    result = _make_result()
+    result = make_result()
     run_id = uuid4()
 
     store.save("EGAL", result, date(2026, 9, 20), run_id)
