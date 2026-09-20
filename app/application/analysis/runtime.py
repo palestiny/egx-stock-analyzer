@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
 from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
+from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycle
 from app.application.analysis.lifecycle_store import AnalysisLifecycleStore
 from app.application.analysis.get_analysis_run import GetAnalysisRun
 from app.application.analysis.list_analysis_runs import ListAnalysisRuns
@@ -48,6 +49,7 @@ class StockAnalysisRuntime:
     result_store: AnalysisResultStore
     delete_analysis_run: DeleteAnalysisRun | None = None
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None
+    purge_analysis_lifecycle: PurgeAnalysisLifecycle | None = None
 
 
 def create_stock_analysis_runtime(
@@ -91,6 +93,11 @@ def create_stock_analysis_runtime(
     )
     delete_analysis_snapshot = (
         DeleteAnalysisSnapshot(result_store, lifecycle_store)
+        if lifecycle_store is not None
+        else None
+    )
+    purge_analysis_lifecycle = (
+        PurgeAnalysisLifecycle(lifecycle_store)
         if lifecycle_store is not None
         else None
     )
@@ -144,6 +151,7 @@ def create_stock_analysis_runtime(
         list_analysis_runs=list_analysis_runs,
         delete_analysis_run=delete_analysis_run,
         delete_analysis_snapshot=delete_analysis_snapshot,
+        purge_analysis_lifecycle=purge_analysis_lifecycle,
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,
