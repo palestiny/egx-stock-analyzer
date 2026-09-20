@@ -1,7 +1,9 @@
 from datetime import date
+from uuid import UUID
 
 from app.application.analysis.run_stock_analysis import RunStockAnalysis
 from app.application.stocks.catalog import StockCatalog
+from app.application.security.identity import AuthenticatedIdentity, Permission
 
 
 class UnknownStockSymbolError(ValueError):
@@ -17,8 +19,17 @@ class RunStockAnalysisBySymbol:
         self._stock_catalog = stock_catalog
         self._run_stock_analysis = run_stock_analysis
 
-    def execute(self, symbol: str, as_of: date) -> None:
+    def execute(
+        self,
+        symbol: str,
+        as_of: date,
+        identity: AuthenticatedIdentity | None = None,
+        owner_user_id: UUID | None = None,
+    ) -> None:
         stock = self._stock_catalog.get(symbol)
         if stock is None:
             raise UnknownStockSymbolError(f"Unknown stock symbol: {symbol}")
-        self._run_stock_analysis.execute(stock, as_of)
+        effective_owner = owner_user_id
+        if identity is not None and Permission.OPERATOR not in identity.permissions:
+            effective_owner = identity.user_id
+        self._run_stock_analysis.execute(stock, as_of, owner_user_id=effective_owner)
