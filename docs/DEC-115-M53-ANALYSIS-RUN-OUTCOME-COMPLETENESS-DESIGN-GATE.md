@@ -1,6 +1,6 @@
 # DEC-115 — M53 Analysis Run Outcome Completeness Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M53 — Analysis Run Outcome Completeness
 
@@ -184,8 +184,120 @@ These must be resolved before implementation:
 - the read capability returns deterministic symbol ordering;
 - existing M50 run detail and M51 run discovery behavior remain unchanged.
 
+## Accepted Decisions
+
+### 1. Outcome Identity
+
+The normalized stock symbol is the authoritative outcome identity within an AnalysisRun.
+
+A resolved stock outcome also stores the Stock UUID when available. Unknown symbols have a null Stock UUID. The UUID is metadata, not the uniqueness key, because unknown symbols must be representable and the existing market-wide input contract is symbol-based.
+
+### 2. Outcome States
+
+The M53 persisted outcome model is intentionally minimal:
+
+- `SUCCESS` — the existing RunStockAnalysis capability completed successfully.
+- `FAILED` — the existing RunStockAnalysis capability or symbol resolution failed.
+
+M53 does not persist REQUESTED or RUNNING states. Analysis execution is synchronous at this boundary, and transient lifecycle states would create recovery semantics that are outside this milestone.
+
+### 3. Failure Representation
+
+Persist a stable failure code plus an optional bounded safe detail.
+
+The first implementation recognizes at least:
+
+- `UNKNOWN_SYMBOL`
+- `ANALYSIS_FAILED`
+
+Raw exception messages, stack traces, provider payloads, credentials, tokens, and arbitrary exception objects are not persisted as the durable contract.
+
+Safe detail is optional and bounded; unknown-symbol detail may contain the normalized symbol. Analysis failures default to the stable code without copying arbitrary provider/application exception text.
+
+### 4. Atomicity
+
+The AnalysisRun record and its per-symbol outcomes are one durable aggregate persistence operation.
+
+The SQLite implementation must update the run state and outcome rows within the same database transaction. SQLite provides atomic transactions, so readers see either the committed aggregate/outcome change or none of it. citeturn0search0turn0search5
+
+The successful analytical snapshot remains owned by AnalysisResultStore. M53 does not merge the two persistence abstractions merely to force a cross-store transaction.
+
+### 5. Successful Snapshot Relationship
+
+A SUCCESS outcome requires the existing RunStockAnalysis completion contract, which already persists the analytical snapshot before returning success.
+
+M53 does not create synthetic snapshots and does not duplicate StockAnalysisResult data in the outcome model.
+
+If a future failure between separate persistence boundaries can produce an observable inconsistency, that becomes a separate reliability design problem rather than hidden recovery logic inside M53.
+
+### 6. Duplicate Protection
+
+A normalized symbol may occur at most once in one AnalysisRun.
+
+Duplicate input is rejected before execution and before durable outcome mutation.
+
+The persistence schema also enforces uniqueness on `(analysis_run_id, symbol)` so corrupted or bypassed application writes cannot silently create duplicate outcomes.
+
+### 7. Read Surface
+
+M53 is end-to-end for the already-established run-detail surface:
+
+`AnalysisRunStore → GetAnalysisRun → authenticated API → dashboard`.
+
+The existing M50 snapshot response remains backward-compatible. M53 adds an outcomes collection and explicit outcome availability metadata rather than changing the meaning of existing snapshots.
+
+The dashboard remains presentation-only and consumes server-defined outcome semantics.
+
+### 8. Legacy Runs
+
+Runs created before M53 have no outcome rows.
+
+They remain readable. Their outcome availability is explicitly `unavailable`, not inferred from aggregate state or snapshot presence.
+
+New M53-created runs expose `available` outcome data, including an empty collection for a valid empty universe.
+
+### 9. Retention and History
+
+Outcome rows follow the lifecycle of their AnalysisRun.
+
+Deleting or expiring a run removes its outcomes together with the run. M53 introduces no independent outcome-retention policy.
+
+### 10. Error Safety
+
+The application maps failures to stable outcome codes before persistence. Persistence receives only the approved outcome model and never inspects raw exceptions.
+
+No retry policy changes, provider-specific classifications, or stack-trace persistence are introduced.
+
 ## Design Gate Decision
 
-**Status: Proposed — implementation is not authorized by this document yet.**
+**Status: Accepted — implementation is authorized for the M53 scope defined here.**
 
-The next controlled step is to resolve the open questions and record the accepted contract before changing durable persistence or adding new read/API/dashboard behavior.
+Implementation is limited to:
+
+1. domain/application outcome model;
+2. durable AnalysisRun persistence and migration;
+3. market-wide execution integration;
+4. read capability extension;
+5. authenticated API contract extension;
+6. dashboard presentation of persisted outcomes;
+7. focused unit/integration/restart/compatibility tests.
+
+No new analytical logic, retry behavior, provider integration, workflow recovery, ranking, or ownership semantics are authorized.
+
+## TDD Acceptance Criteria
+
+- completed runs persist SUCCESS outcomes for every requested symbol;
+- partial runs persist SUCCESS and FAILED outcomes;
+- all-failed runs persist FAILED outcomes;
+- unknown symbols persist `UNKNOWN_SYMBOL`;
+- analysis failures persist `ANALYSIS_FAILED` without raw exception text;
+- duplicate symbols are rejected before execution;
+- one outcome per normalized symbol per run is enforced in application and persistence;
+- outcome rows survive process restart;
+- run and outcome state changes are transactionally persisted together;
+- successful snapshots remain correlated to the same AnalysisRun;
+- legacy runs remain readable with outcome availability marked unavailable;
+- malformed/corrupt outcome data fails explicitly;
+- outcome read ordering is deterministic by normalized symbol ascending;
+- existing M50/M51 behavior remains compatible.
+
