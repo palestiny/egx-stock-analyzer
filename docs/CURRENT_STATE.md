@@ -89,9 +89,17 @@ Do not infer the next task from an old conversation snapshot.
 
 M56 is implemented and merged through PR #148. Validated behavior includes owner-aware logical deletion, consistent read-side visibility, active-run protection, idempotent deletion, correlated run/snapshot hiding, and SQLite-transactional lifecycle mutation/audit coordination. Physical purge, undelete, and automatic retention remain outside the milestone.
 
-## 7. Next Step
+## 7. Current M57 Boundary
 
-M56 is complete. A new design gate is required before the next significant milestone is implemented.
+M57 — Physical Purge is the active accepted design target.
+
+The accepted gate is `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.
+
+Implementation is authorized within that gate: operator-only physical purge, explicit or deterministic bounded selection, stable-ID ordering, one shared SQLite transaction per lifecycle unit, fail-stop destructive errors, restart-safe idempotency, mandatory management-audit recording, and optional dry-run. Automatic retention, archival storage, background workers, and new authorization roles remain out of scope.
+
+## 8. Next Step
+
+Create the M57 implementation branch from current `main`, then proceed RED → GREEN → review/refactor → CI verification.
 
 ## 8. Cleanup Rule
 
