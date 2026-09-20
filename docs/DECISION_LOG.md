@@ -2841,6 +2841,6 @@ M57 implementation is merged through PR #151 at `3b20199581e2a6f313e3f83ca4c6578
 
 The implementation provides the accepted privileged purge boundary, transactional lifecycle-unit deletion, bounded deterministic selection, runless snapshot handling, active/visible protection, dry-run preview, idempotent repeat behavior, fail-stop transaction handling, and management-audit recording.
 
-At documentation closeout time, the available GitHub integration exposed no workflow run or commit status for the implementation merge. Therefore this entry records the merge and implementation scope but does not claim CI validation.
+GitHub Actions Run #2537 completed successfully for the implementation merge `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`. The M57 closeout documentation is being validated by the current GitHub Actions run on this branch.
 
-M57 remains complete only after observable CI validation is available; the next design gate must not be opened based solely on the merge.
+M57 implementation validation is therefore established; milestone closeout will be finalized with the successful closeout CI result.
