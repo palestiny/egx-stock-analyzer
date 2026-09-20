@@ -105,3 +105,28 @@ def test_post_analysis_does_not_hide_analysis_input_value_errors():
 
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_user_analysis_request_reads_and_creates_only_owned_snapshot():
+    from uuid import uuid4
+    from app.application.security.identity import AuthenticatedIdentity
+
+    owner_id = uuid4()
+    result = make_result()
+    store = Mock()
+    store.get.return_value = result
+    runner = Mock(spec=RunStockAnalysisBySymbol)
+
+    class UserAuthenticator:
+        def authenticate(self, _authorization):
+            return AuthenticatedIdentity.user(owner_id)
+
+    app = create_app(store, runner, authenticator=UserAuthenticator())
+    client = TestClient(app)
+
+    response = client.post("/api/v1/analysis/EGAL")
+
+    assert response.status_code == 200
+    runner.execute.assert_called_once()
+    assert runner.execute.call_args.kwargs["identity"].user_id == owner_id
+    assert store.get.call_args.kwargs["identity"].user_id == owner_id
