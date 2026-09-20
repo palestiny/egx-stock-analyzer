@@ -2577,3 +2577,31 @@ Existing single-stock manual analysis keeps its current semantics. Legacy snapsh
 The accepted contract requires immutable run identity, explicit snapshot correlation, latest-result compatibility, restart durability, at most one successful snapshot per symbol per run, and no analytical logic in persistence.
 
 See docs/DEC-111-M49-ANALYSIS-RUN-GROUPING-DESIGN-GATE.md.
+
+
+## DEC-112 — M50 Analysis Run History & Read Model
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M50 adds a read-only application capability for one durable AnalysisRun and its correlated successful stock snapshots.
+
+### Decision
+
+The selected boundary is a dedicated GetAnalysisRun capability over the existing AnalysisRunStore and AnalysisResultStore. API and dashboard code do not infer grouping from timestamps, symbols, or persistence rows.
+
+Snapshots are ordered by normalized stock symbol ascending, with snapshot ID ascending as a tie-breaker. M49 did not persist universe execution order, so M50 does not reconstruct it.
+
+M50 does not add analysis-run ownership metadata. It applies the existing authenticated analysis visibility boundary and explicitly defers per-user analysis-run ownership to a future design gate.
+
+Legacy snapshots without an analysis_run_id remain available through stock history but are omitted from run detail. Failed symbols and their persisted failure reasons are exposed from the aggregate run state; failed symbols never receive synthetic snapshots.
+
+Snapshot pagination is mandatory from the first API slice with default 50 and maximum 100. The dedicated HTTP resource is GET /api/v1/analysis-runs/{run_id}. Missing runs map from an application not-found condition to HTTP 404.
+
+The dashboard adds run detail only. A run list/search/filter capability is deferred.
+
+### Consequences
+
+M50 introduces a stable read model without changing analysis execution, snapshot persistence semantics, scheduled-workflow lifecycle, ranking, notifications, or analytical logic.
+
+See docs/DEC-112-M50-ANALYSIS-RUN-HISTORY-DESIGN-GATE.md.
