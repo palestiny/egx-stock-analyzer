@@ -1,6 +1,9 @@
 from datetime import date
 
-from app.application.analysis.run_market_analysis import MarketAnalysisResult, RunMarketAnalysis
+from app.application.analysis.run_market_analysis import (
+    MarketAnalysisResult,
+    RunMarketAnalysis,
+)
 from app.application.stocks.catalog import StockCatalog
 
 
