@@ -33,6 +33,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                     run_id TEXT PRIMARY KEY,
                     created_at TEXT NOT NULL,
                     state TEXT NOT NULL,
+                    owner_user_id TEXT NULL,
                     outcomes_available INTEGER NOT NULL DEFAULT 0
                 )
                 """
@@ -43,6 +44,10 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                     "PRAGMA table_info(analysis_runs)"
                 ).fetchall()
             }
+            if "owner_user_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_runs ADD COLUMN owner_user_id TEXT NULL"
+                )
             if "outcomes_available" not in columns:
                 connection.execute(
                     "ALTER TABLE analysis_runs ADD COLUMN outcomes_available INTEGER NOT NULL DEFAULT 0"
@@ -81,17 +86,19 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO analysis_runs (run_id, created_at, state, outcomes_available)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO analysis_runs (run_id, created_at, state, owner_user_id, outcomes_available)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(run_id) DO UPDATE SET
                     created_at = excluded.created_at,
                     state = excluded.state,
+                    owner_user_id = excluded.owner_user_id,
                     outcomes_available = excluded.outcomes_available
                 """,
                 (
                     str(run.id),
                     run.created_at.isoformat(),
                     run.state.value,
+                    str(run.owner_user_id) if run.owner_user_id else None,
                     1 if run.outcomes_available else 0,
                 ),
             )
@@ -123,12 +130,14 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         self,
         *,
         state: ExecutionState | None = None,
+        owner_user_id: UUID | None = None,
+        include_global: bool = False,
         before_created_at: datetime | None = None,
         before_run_id: UUID | None = None,
         limit: int = 50,
     ) -> tuple[AnalysisRun, ...]:
         query = """
-            SELECT run_id, created_at, state, outcomes_available
+            SELECT run_id, created_at, state, owner_user_id, outcomes_available
             FROM analysis_runs
         """
         parameters: list[str] = []
@@ -137,6 +146,13 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         if state is not None:
             conditions.append("state = ?")
             parameters.append(state.value)
+
+        if owner_user_id is not None:
+            if include_global:
+                conditions.append("(owner_user_id = ? OR owner_user_id IS NULL)")
+            else:
+                conditions.append("owner_user_id = ?")
+            parameters.append(str(owner_user_id))
 
         if before_created_at is not None and before_run_id is not None:
             conditions.append(
@@ -159,7 +175,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT run_id, created_at, state, outcomes_available
+                SELECT run_id, created_at, state, owner_user_id, outcomes_available
                 FROM analysis_runs
                 WHERE run_id = ?
                 """,
@@ -174,7 +190,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
     @staticmethod
     def _load_run_from_row(
         connection: sqlite3.Connection,
-        row: tuple[str, str, str, int],
+        row: tuple[str, str, str, str | None, int],
     ) -> AnalysisRun:
         run_id = UUID(row[0])
         outcome_rows = connection.execute(
@@ -215,10 +231,12 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                     )
                 )
 
+        owner_user_id = UUID(row[3]) if row[3] else None
         return AnalysisRun(
             id=run_id,
             created_at=datetime.fromisoformat(row[1]),
             state=ExecutionState(row[2]),
+            owner_user_id=owner_user_id,
             outcomes=tuple(outcomes),
-            outcomes_available=bool(row[3]),
+            outcomes_available=bool(row[4]),
         )
