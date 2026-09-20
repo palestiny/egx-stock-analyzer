@@ -205,10 +205,10 @@ The authoritative current project state is maintained in `docs/CURRENT_STATE.md`
 
 Current verified position:
 
-- **M56 — Analysis Run & Snapshot Retention and Deletion**.
-- M56 is in design stage.
-- `docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md` is **Proposed**.
-- PR #145 is open and addresses M56 design-boundary clarification.
-- Destructive lifecycle implementation is not authorized yet.
+- **M57 — Physical Purge** is complete and merged.
+- M57 implementation was validated by GitHub Actions Run #2537 and merged through PR #151.
+- **M58 — Automatic Analysis Retention** is the current proposed design gate; implementation is not authorized.
+- The current M58 design gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
+- Until M58 is accepted, explicit privileged M57 purge remains the physical-reclamation mechanism.
 
 Do not use older README, branch, or conversation milestone statements as current project state.

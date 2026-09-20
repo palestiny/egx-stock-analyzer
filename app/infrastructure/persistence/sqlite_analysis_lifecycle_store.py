@@ -134,11 +134,12 @@ class SQLiteAnalysisLifecycleStore:
         snapshot_ids: tuple[UUID, ...] = (),
         limit: int = 100,
         dry_run: bool = False,
+        operation_id: UUID | None = None,
     ) -> PurgeStoreResult:
         if limit <= 0:
             raise ValueError("Purge limit must be positive")
 
-        operation_id = uuid4()
+        operation_id = operation_id or uuid4()
         selected_runs = list(dict.fromkeys(run_ids))
         selected_snapshots = list(dict.fromkeys(snapshot_ids))
 
@@ -155,6 +156,15 @@ class SQLiteAnalysisLifecycleStore:
             candidates = self._find_eligible_purge_candidates(limit)
 
         if dry_run:
+            with self._connect() as connection:
+                self._append_audit(
+                    connection,
+                    actor_user_id,
+                    f"analysis_lifecycle.purge:{operation_id}",
+                    actor_user_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    "dry_run",
+                )
             return PurgeStoreResult(
                 eligible_run_ids=tuple(
                     resource_id for kind, resource_id in candidates if kind == "run"
@@ -264,32 +274,26 @@ class SQLiteAnalysisLifecycleStore:
                       WHERE analysis_results.analysis_run_id = analysis_runs.run_id
                         AND analysis_results.deleted_at IS NULL
                   )
-                ORDER BY run_id ASC
-                LIMIT ?
                 """,
-                (limit,),
             ).fetchall()
-
-            remaining = limit - len(run_rows)
             snapshot_rows = connection.execute(
                 """
                 SELECT snapshot_id
                 FROM analysis_results
                 WHERE deleted_at IS NOT NULL
                   AND analysis_run_id IS NULL
-                ORDER BY snapshot_id ASC
-                LIMIT ?
                 """,
-                (remaining,),
             ).fetchall()
 
-        return [
+        candidates = [
             ("run", UUID(row[0]))
             for row in run_rows
         ] + [
             ("snapshot", UUID(row[0]))
             for row in snapshot_rows
         ]
+        candidates.sort(key=lambda candidate: str(candidate[1]))
+        return candidates[:limit]
 
     def _resolve_explicit_purge_candidates(
         self,
@@ -364,11 +368,11 @@ class SQLiteAnalysisLifecycleStore:
             "DELETE FROM analysis_run_outcomes WHERE run_id = ?",
             (str(run_id),),
         )
-        connection.execute(
+        deleted_run = connection.execute(
             "DELETE FROM analysis_runs WHERE run_id = ? AND deleted_at IS NOT NULL",
             (str(run_id),),
         )
-        if connection.total_changes == 0:
+        if deleted_run.rowcount != 1:
             return None
 
         self._append_audit(
@@ -401,11 +405,11 @@ class SQLiteAnalysisLifecycleStore:
         if row[0] is not None:
             return False
 
-        connection.execute(
+        deleted_snapshot = connection.execute(
             "DELETE FROM analysis_results WHERE snapshot_id = ? AND deleted_at IS NOT NULL",
             (str(snapshot_id),),
         )
-        if connection.total_changes == 0:
+        if deleted_snapshot.rowcount != 1:
             return False
 
         self._append_audit(
