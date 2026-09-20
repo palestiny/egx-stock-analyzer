@@ -24,6 +24,18 @@ def make_runner(stocks: list[Stock]):
     return runner, run_stock_analysis, result_store
 
 
+def attach_snapshot_persistence(run_stock_analysis, result_store):
+    def execute(stock, as_of, *, analysis_run_id):
+        result_store.save(
+            stock.symbol,
+            object(),
+            as_of,
+            analysis_run_id=analysis_run_id,
+        )
+
+    run_stock_analysis.execute.side_effect = execute
+
+
 def test_empty_universe_completes_without_running_stock_analysis():
     runner, run_stock_analysis, _ = make_runner([])
 
@@ -162,15 +174,18 @@ def test_market_run_is_persisted_with_completed_state_and_snapshot_correlation()
     ]
     runner, run_stock_analysis, result_store = make_runner(stocks)
 
+    attach_snapshot_persistence(run_stock_analysis, result_store)
     result = runner.execute(["EGAL", "IEEC"], AS_OF)
 
-    run_id = next(iter(result_store._analysis_runs))
+    run_id = run_stock_analysis.execute.call_args_list[0].kwargs["analysis_run_id"]
     persisted_run = result_store.get_analysis_run(run_id)
     snapshots = result_store.get_run_snapshots(run_id)
 
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED
-    assert len(run_stock_analysis.execute.call_args_list) == 2
+    assert len(snapshots) == 2
+    assert {record.symbol for record in snapshots} == {"EGAL", "IEEC"}
+    assert {record.analysis_run_id for record in snapshots} == {run_id}
     assert {call.kwargs["analysis_run_id"] for call in run_stock_analysis.execute.call_args_list} == {run_id}
 
 
@@ -180,16 +195,61 @@ def test_partial_run_persists_successful_snapshot_without_fake_failed_snapshot()
         Stock.create("IEEC", "Egyptian Electrical"),
     ]
     runner, run_stock_analysis, result_store = make_runner(stocks)
-    run_stock_analysis.execute.side_effect = [None, RuntimeError("failed")]
+
+    def execute(stock, as_of, *, analysis_run_id):
+        if stock.symbol == "IEEC":
+            raise RuntimeError("failed")
+        result_store.save(
+            stock.symbol,
+            object(),
+            as_of,
+            analysis_run_id=analysis_run_id,
+        )
+
+    run_stock_analysis.execute.side_effect = execute
 
     result = runner.execute(["EGAL", "IEEC"], AS_OF)
 
-    run_id = next(iter(result_store._analysis_runs))
+    run_id = run_stock_analysis.execute.call_args_list[0].kwargs["analysis_run_id"]
     persisted_run = result_store.get_analysis_run(run_id)
     snapshots = result_store.get_run_snapshots(run_id)
 
     assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED_WITH_ERRORS
-    assert run_stock_analysis.execute.call_args_list[0].kwargs["analysis_run_id"] == run_id
+    assert len(snapshots) == 1
+    assert snapshots[0].symbol == "EGAL"
+    assert snapshots[0].analysis_run_id == run_id
     assert run_stock_analysis.execute.call_args_list[1].kwargs["analysis_run_id"] == run_id
+
+
+def test_all_failed_run_is_persisted_without_snapshots():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis, result_store = make_runner(stocks)
+    run_stock_analysis.execute.side_effect = RuntimeError("analysis failed")
+
+    result = runner.execute(["EGAL"], AS_OF)
+
+    run_id = run_stock_analysis.execute.call_args_list[0].kwargs["analysis_run_id"]
+    persisted_run = result_store.get_analysis_run(run_id)
+
+    assert result.execution.state is ExecutionState.FAILED
+    assert persisted_run is not None
+    assert persisted_run.state is ExecutionState.FAILED
+    assert result_store.get_run_snapshots(run_id) == ()
+
+
+def test_empty_run_is_persisted_without_snapshots():
+    runner, _, result_store = make_runner([])
+
+    result = runner.execute([], AS_OF)
+
+    # Empty runs have no stock callback from which to recover the generated ID;
+    # verify the store contains exactly one persisted run through its read model.
+    run_id = next(iter(result_store._analysis_runs))
+    persisted_run = result_store.get_analysis_run(run_id)
+
+    assert result.execution.state is ExecutionState.COMPLETED
+    assert persisted_run is not None
+    assert persisted_run.state is ExecutionState.COMPLETED
+    assert result_store.get_run_snapshots(run_id) == ()
