@@ -7,6 +7,8 @@ from uuid import UUID
 
 from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
 from app.application.analysis.run_store import AnalysisRunStore
+from app.application.security.authorization import OwnershipAuthorizer
+from app.application.security.identity import AuthenticatedIdentity
 from app.domain.analysis_run import AnalysisRunOutcomeState
 from app.domain.execution import ExecutionState
 
@@ -58,12 +60,14 @@ class GetAnalysisRun:
     ) -> None:
         self._run_store = run_store
         self._result_store = result_store
+        self._ownership_authorizer = OwnershipAuthorizer()
 
     def execute(
         self,
         run_id: UUID,
         page_size: int = DEFAULT_PAGE_SIZE,
         cursor: str | None = None,
+        identity: AuthenticatedIdentity | None = None,
     ) -> AnalysisRunView:
         self._validate_page_size(page_size)
         run = self._run_store.get(run_id)
@@ -71,6 +75,17 @@ class GetAnalysisRun:
             raise AnalysisRunNotFoundError(
                 f"Analysis run not found: {run_id}"
             )
+
+        effective_identity = identity or AuthenticatedIdentity.operator()
+        try:
+            self._ownership_authorizer.require_owner_or_operator(
+                effective_identity,
+                run.owner_user_id,
+            )
+        except Exception as error:
+            raise AnalysisRunNotFoundError(
+                f"Analysis run not found: {run_id}"
+            ) from error
 
         after = self._decode_cursor(cursor, run_id, page_size) if cursor else None
         records = sorted(
