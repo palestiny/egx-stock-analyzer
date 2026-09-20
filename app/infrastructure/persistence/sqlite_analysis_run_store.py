@@ -61,6 +61,12 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
             )
             connection.execute(
                 """
+                CREATE INDEX IF NOT EXISTS idx_analysis_runs_owner_created_at
+                ON analysis_runs (owner_user_id, created_at DESC, run_id DESC)
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS analysis_run_outcomes (
                     run_id TEXT NOT NULL,
                     symbol TEXT NOT NULL,
