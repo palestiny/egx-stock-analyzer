@@ -53,6 +53,10 @@ from app.application.identity.get_user_audit_history import (
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.domain.identity.user import UserStatus
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from app.application.execution.get_scheduled_workflow_history import (
+    GetScheduledWorkflowHistory,
+    InvalidScheduledWorkflowHistoryQueryError,
+)
 from app.application.execution.get_scheduled_workflow_execution_history import (
     GetScheduledWorkflowExecutionHistory,
     ScheduledWorkflowExecutionHistoryNotFoundError,
@@ -98,6 +102,7 @@ def create_app(
     deliver_alert_by_symbol: DeliverAlertBySymbol | None = None,
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None,
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None,
+    get_scheduled_workflow_history: GetScheduledWorkflowHistory | None = None,
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None,
     user_management: UserManagementService | None = None,
     get_management_audit: GetManagementAudit | None = None,
@@ -509,6 +514,40 @@ def create_app(
         response = ScheduledWorkflowExecutionsResponse.from_items(items)
         return asdict(response)
 
+    @app.get("/api/v1/workflows/history")
+    def get_scheduled_workflow_history_route(
+        page_size: int | None = None,
+        cursor: str | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_scheduled_workflow_history is None:
+            raise HTTPException(status_code=503, detail="Scheduled workflow history is not configured")
+
+        try:
+            history = get_scheduled_workflow_history.execute(
+                identity,
+                page_size=page_size,
+                cursor=cursor,
+                from_state=from_state,
+                to_state=to_state,
+                occurred_from=occurred_from,
+                occurred_to=occurred_to,
+            )
+        except InvalidScheduledWorkflowHistoryQueryError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
+        except Exception as error:
+            logger.exception("Scheduled workflow cross-execution history failed", exc_info=error)
+            raise HTTPException(status_code=500, detail="Scheduled workflow history failed") from error
+
+        from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
+        response = ScheduledWorkflowHistoryResponse.from_read_model(history)
+        return asdict(response)
     @app.get("/api/v1/workflows/executions/{execution_id}/history")
     def get_scheduled_workflow_execution_history_route(
         execution_id: UUID,
