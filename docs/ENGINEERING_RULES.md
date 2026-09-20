@@ -1,7 +1,7 @@
 # Engineering Rules
 
 **Project:** EGX Stock Analyzer
-**Status:** Draft — M0
+**Status:** Maintained — M48
 **Purpose:** Define the engineering process, coding discipline, testing workflow, and development rules used to build the system.
 
 ---
@@ -918,7 +918,7 @@ And the developer remains responsible for understanding all of them.
 
 This document is currently:
 
-**Maintained — M41**
+**Maintained — M48**
 
 The rules remain active and may evolve only through intentional project-level decisions.
 
