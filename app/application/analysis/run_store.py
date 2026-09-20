@@ -33,6 +33,9 @@ class InMemoryAnalysisRunStore:
         self._runs: dict[UUID, AnalysisRun] = {}
 
     def save(self, run: AnalysisRun) -> None:
+        existing = self._runs.get(run.id)
+        if existing is not None and existing.owner_user_id != run.owner_user_id:
+            raise ValueError("Analysis run ownership cannot be changed")
         self._runs[run.id] = run
 
     def get(self, run_id: UUID) -> AnalysisRun | None:
