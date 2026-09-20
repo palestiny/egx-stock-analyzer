@@ -175,3 +175,11 @@ def test_disabled_user_cannot_query_cross_execution_history():
         GetScheduledWorkflowHistory(FakeStore(make_rows())).execute(
             AuthenticatedIdentity.user(uuid4(), status=UserStatus.DISABLED),
         )
+
+def test_non_ascii_cursor_is_rejected_as_invalid_query():
+    with pytest.raises(InvalidScheduledWorkflowHistoryQueryError, match="valid history continuation cursor"):
+        GetScheduledWorkflowHistory(FakeStore(make_rows())).execute(
+            AuthenticatedIdentity.operator(),
+            cursor="مؤشر",
+        )
+
