@@ -36,8 +36,8 @@ class StockAnalysisRuntime:
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     get_analysis_run: GetAnalysisRun
     list_analysis_runs: ListAnalysisRuns
-    delete_analysis_run: DeleteAnalysisRun
-    delete_analysis_snapshot: DeleteAnalysisSnapshot
+    delete_analysis_run: DeleteAnalysisRun | None
+    delete_analysis_snapshot: DeleteAnalysisSnapshot | None
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
@@ -84,11 +84,16 @@ def create_stock_analysis_runtime(
         result_store=result_store,
     )
     list_analysis_runs = ListAnalysisRuns(analysis_run_store)
-    if lifecycle_store is None:
-        from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
-        lifecycle_store = SQLiteAnalysisLifecycleStore("storage/analysis.db")
-    delete_analysis_run = DeleteAnalysisRun(analysis_run_store, lifecycle_store)
-    delete_analysis_snapshot = DeleteAnalysisSnapshot(result_store, lifecycle_store)
+    delete_analysis_run = (
+        DeleteAnalysisRun(analysis_run_store, lifecycle_store)
+        if lifecycle_store is not None
+        else None
+    )
+    delete_analysis_snapshot = (
+        DeleteAnalysisSnapshot(result_store, lifecycle_store)
+        if lifecycle_store is not None
+        else None
+    )
     get_market_opportunity_ranking = GetMarketOpportunityRanking(
         result_store=result_store,
         rank_market_opportunities=rank_market_opportunities,
