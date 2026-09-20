@@ -14,6 +14,8 @@ class LifecycleDeletionOutcome(Enum):
 class PurgeStoreResult:
     purged_run_ids: tuple[UUID, ...] = ()
     purged_snapshot_ids: tuple[UUID, ...] = ()
+    eligible_run_ids: tuple[UUID, ...] = ()
+    eligible_snapshot_ids: tuple[UUID, ...] = ()
     blocked_resource_ids: tuple[UUID, ...] = ()
     failure_resource_id: UUID | None = None
     failure_reason: str | None = None
