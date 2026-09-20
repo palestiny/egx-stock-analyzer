@@ -56,6 +56,10 @@ class SQLiteAnalysisResultStore:
                 connection.execute(
                     "ALTER TABLE analysis_results ADD COLUMN owner_user_id TEXT NULL"
                 )
+            if "deleted_at" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_results ADD COLUMN deleted_at TEXT NULL"
+                )
 
             connection.execute(
                 """
@@ -81,7 +85,8 @@ class SQLiteAnalysisResultStore:
                 analysis_date TEXT NULL,
                 payload TEXT NOT NULL,
                 analysis_run_id TEXT NULL,
-                owner_user_id TEXT NULL
+                owner_user_id TEXT NULL,
+                deleted_at TEXT NULL
             )
             """
         )
@@ -183,6 +188,7 @@ class SQLiteAnalysisResultStore:
                        analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE snapshot_id = ?
+                  AND deleted_at IS NULL
                   AND (? IS NULL OR owner_user_id = ?)
                 """,
                 (
@@ -206,6 +212,7 @@ class SQLiteAnalysisResultStore:
                        analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE symbol = ?
+                  AND deleted_at IS NULL
                   AND (? IS NULL OR owner_user_id = ?)
                 ORDER BY
                     analysis_date IS NULL ASC,
@@ -234,6 +241,7 @@ class SQLiteAnalysisResultStore:
                        analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE analysis_run_id = ?
+                  AND deleted_at IS NULL
                   AND (? IS NULL OR owner_user_id = ?)
                 ORDER BY symbol ASC, snapshot_id ASC
                 """,
@@ -261,6 +269,7 @@ class SQLiteAnalysisResultStore:
                    analysis_run_id, owner_user_id
             FROM analysis_results
             WHERE symbol = ?
+              AND deleted_at IS NULL
               AND (? IS NULL OR owner_user_id = ?)
         """
         parameters: list[str | None] = [
