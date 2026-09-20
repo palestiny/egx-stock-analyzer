@@ -102,7 +102,6 @@ def create_app(
     get_analysis_report: GetAnalysisReport | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
-    get_analysis_run: GetAnalysisRun | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
     get_analysis_history: GetAnalysisHistory | None = None,
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
@@ -117,6 +116,7 @@ def create_app(
     operator_token: str | None | _OperatorTokenNotProvided = _OPERATOR_TOKEN_NOT_PROVIDED,
     authenticator: Authenticator | None = None,
     get_user_audit_history: GetUserAuditHistory | None = None,
+    get_analysis_run: GetAnalysisRun | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
