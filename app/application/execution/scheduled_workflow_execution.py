@@ -127,6 +127,7 @@ class ScheduledWorkflowExecution:
             updated_at=now,
             owner_user_id=self.owner_user_id,
             analysis_state=self.analysis_state,
+            analysis_run_id=self.analysis_run_id,
             delivery_state=self.delivery_state,
             request_fingerprint=self.request_fingerprint,
             revision=self.revision + 1,
