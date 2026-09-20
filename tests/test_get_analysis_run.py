@@ -147,3 +147,20 @@ def test_page_size_is_bounded():
         except InvalidAnalysisRunQueryError:
             continue
         raise AssertionError("Expected InvalidAnalysisRunQueryError")
+
+
+def test_malformed_cursor_is_rejected_as_invalid_query():
+    run_store = InMemoryAnalysisRunStore()
+    result_store = InMemoryAnalysisResultStore()
+    run = make_run(ExecutionState.COMPLETED)
+    run_store.save(run)
+
+    try:
+        GetAnalysisRun(run_store, result_store).execute(
+            run.id,
+            cursor="not-valid-base64",
+        )
+    except InvalidAnalysisRunQueryError:
+        pass
+    else:
+        raise AssertionError("Expected InvalidAnalysisRunQueryError")
