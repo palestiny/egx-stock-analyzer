@@ -99,3 +99,43 @@ def test_cross_execution_history_filters_before_pagination(tmp_path: Path):
     assert rows
     assert all(row[4] == "completed" for row in rows)
     assert all(row[0] == execution.id for row in rows)
+
+
+def test_cross_execution_history_survives_store_restart(tmp_path: Path):
+    database = tmp_path / "workflow.db"
+    store = SQLiteScheduledWorkflowExecutionStore(database)
+    execution = persist_history(
+        store,
+        make_execution("restart", when=datetime(2026, 9, 20, 12, 0, tzinfo=timezone.utc)),
+    )
+
+    restarted = SQLiteScheduledWorkflowExecutionStore(database)
+    rows = restarted.get_cross_execution_history(
+        owner_user_id=None,
+        global_only=True,
+    )
+
+    assert {row[0] for row in rows} == {execution.id}
+
+
+def test_cross_execution_history_query_plan_is_available(tmp_path: Path):
+    store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
+    with store._connect() as connection:
+        plan = connection.execute(
+            """
+            EXPLAIN QUERY PLAN
+            SELECT h.execution_id, e.occurrence_id, h.sequence,
+                   h.from_state, h.to_state, h.occurred_at, h.reason
+            FROM scheduled_workflow_execution_history AS h
+            INNER JOIN scheduled_workflow_executions AS e
+                ON e.execution_id = h.execution_id
+            WHERE e.owner_user_id IS NULL
+              AND h.to_state = ?
+            ORDER BY h.occurred_at DESC, h.execution_id DESC, h.sequence DESC
+            LIMIT ?
+            """,
+            ("completed", 51),
+        ).fetchall()
+
+    assert plan
+    assert all(row[-1] for row in plan)
