@@ -309,6 +309,27 @@ The following remain explicit Project Owner decisions because they determine use
 
 Until these are accepted, implementation must remain non-destructive and limited to design/test scaffolding.
 
+## 10C. Accepted Engineering Constraints
+
+The following technical constraints are now accepted for M56 design and implementation planning. They do **not** accept the unresolved product-policy decisions in section 10B.
+
+1. A dedicated lifecycle application capability/coordinator owns lifecycle orchestration. HTTP handlers, React, and individual persistence stores do not own cross-store lifecycle semantics.
+2. M54/M55 ownership and authorization remain authoritative. Lifecycle code must validate authorization before mutation and must not redefine ownership.
+3. Run/snapshot correlation is coordinated explicitly because correlated snapshots are not protected by a foreign key from `analysis_results` to `analysis_runs`.
+4. The implementation must not claim cross-store atomicity unless both stores participate in a proven shared SQLite transaction boundary or an explicit durable reconciliation mechanism is introduced.
+5. Lifecycle visibility is a read-side invariant. Once a lifecycle state is accepted, latest-result, history, snapshot, comparison, performance, run-detail, and run-discovery capabilities must consume the same visibility rule.
+6. Lifecycle mutation cannot partially delete data belonging to an active analysis execution.
+7. Physical purge remains a separate capability from user-facing logical deletion until its authorization and transaction contract are explicitly accepted.
+8. Automatic retention remains disabled until an explicit retention policy and preservation window are accepted.
+9. Lifecycle operations must preserve restart determinism and use persisted timestamps for any future retention eligibility calculation.
+10. These constraints do not authorize destructive implementation; the remaining owner-controlled decisions continue to block M56 lifecycle mutation work.
+
+### Resulting implementation gate
+
+The next M56 work may safely prepare non-destructive abstractions and tests around these constraints. No delete/purge behavior, schema mutation, or lifecycle visibility change should be merged until the owner-controlled decisions in section 10B are accepted.
+
+---
+
 ## 11. Design Gate Decision
 
 **Status: Proposed — implementation is not authorized.**
