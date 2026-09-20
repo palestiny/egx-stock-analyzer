@@ -228,13 +228,15 @@ class GetScheduledWorkflowExecutionHistory:
                     "cursor must be a valid history continuation cursor"
                 ) from None
 
-            if not isinstance(payload, dict) or set(payload) != {
-                "from_state",
-                "sequence",
-                "to_state",
-                "occurred_from",
-                "occurred_to",
-            }:
+            if not isinstance(payload, dict):
+                raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                    "cursor must be a valid history continuation cursor"
+                )
+
+            keys = set(payload)
+            legacy_keys = {"from_state", "sequence", "to_state"}
+            current_keys = legacy_keys | {"occurred_from", "occurred_to"}
+            if keys not in {legacy_keys, current_keys}:
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor must be a valid history continuation cursor"
                 )
@@ -242,8 +244,19 @@ class GetScheduledWorkflowExecutionHistory:
             if (
                 payload["from_state"] != expected_from_state
                 or payload["to_state"] != expected_to_state
-                or payload["occurred_from"] != (expected_occurred_from.isoformat() if expected_occurred_from else None)
-                or payload["occurred_to"] != (expected_occurred_to.isoformat() if expected_occurred_to else None)
+                or (
+                    keys == current_keys
+                    and (
+                        payload["occurred_from"]
+                        != (expected_occurred_from.isoformat() if expected_occurred_from else None)
+                        or payload["occurred_to"]
+                        != (expected_occurred_to.isoformat() if expected_occurred_to else None)
+                    )
+                )
+                or (
+                    keys == legacy_keys
+                    and (expected_occurred_from is not None or expected_occurred_to is not None)
+                )
             ):
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor does not match the requested history filters"
