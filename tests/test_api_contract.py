@@ -66,7 +66,7 @@ def test_post_analysis_returns_404_for_unknown_stock_symbol():
 
 def test_post_analysis_returns_500_when_analysis_execution_fails():
     class FailingRunner:
-        def execute(self, symbol, as_of):
+        def execute(self, symbol, as_of, identity=None):
             raise RuntimeError("analysis failed")
 
     app = create_app(InMemoryAnalysisResultStore(), FailingRunner())
@@ -101,7 +101,7 @@ def test_post_analysis_runs_application_capability_and_returns_stored_result():
     store = InMemoryAnalysisResultStore()
 
     class SuccessfulRunner:
-        def execute(self, symbol, as_of):
+        def execute(self, symbol, as_of, identity=None):
             assert symbol == "EGAL"
             store.save(symbol, make_result())
 
@@ -125,7 +125,7 @@ def test_post_analysis_returns_500_when_execution_does_not_store_result():
     store = InMemoryAnalysisResultStore()
 
     class SuccessfulRunner:
-        def execute(self, symbol, as_of):
+        def execute(self, symbol, as_of, identity=None):
             assert symbol == "EGAL"
 
     app = create_app(store, SuccessfulRunner())
