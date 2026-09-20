@@ -201,16 +201,14 @@ New dashboard, persistence, scheduling, alert-delivery, ranking, authentication,
 
 ## Current Milestone State
 
-The detailed milestone state is maintained in `docs/ROADMAP.md`.
+The authoritative current project state is maintained in `docs/CURRENT_STATE.md` and `docs/ROADMAP.md`.
 
-Current position:
+Current verified position:
 
-- M47 — Scheduled Workflow History Filtering: complete.
-- M48 — Scheduled Workflow History Time Filtering + Cross-Execution History: complete.
-- M48 time filtering and cross-execution history are merged.
-- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Run #1959 before merge.
-- M48 merge commit: `ef387e2570d01653f4d231aea4527a18d3ded80c`.
-- M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
+- **M56 — Analysis Run & Snapshot Retention and Deletion**.
+- M56 is in design stage.
+- `docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md` is **Proposed**.
+- PR #145 is open and addresses M56 design-boundary clarification.
+- Destructive lifecycle implementation is not authorized yet.
 
-Do not use older README milestone statements as project state. The roadmap and decision log are authoritative. The next significant capability requires a new design gate.
-
+Do not use older README, branch, or conversation milestone statements as current project state.
