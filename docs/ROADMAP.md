@@ -149,6 +149,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M46 | Scheduled Workflow History Query Extensions | 🟢 Complete | Optional bounded sequence-cursor pagination with M45 complete-history compatibility |
 | M47 | Scheduled Workflow History Filtering | 🟢 Complete | Typed lifecycle-state filtering over the existing paginated history read boundary |
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
+| M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Design Accepted | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -250,10 +251,14 @@ M47 — Scheduled Workflow History Filtering
         ↓
 M48 — Scheduled Workflow Cross-Execution History
         ↓
+M49 — Analysis Run Grouping & Snapshot Correlation
+        ↓
 NEXT — New Design Gate
 ```
 
-M48 is complete. Time filtering and cross-execution history are merged and validated under the accepted M48 design gates. See `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`. The next capability requires a new explicit design gate.
+M48 is complete. Time filtering and cross-execution history are merged and validated under the accepted M48 design gates. See `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
+
+M49 design is accepted. The implementation is limited to durable analysis-run correlation and snapshot association; API/dashboard exposure is deferred to a later read-side gate.
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
@@ -1409,6 +1414,15 @@ M41 audit writes, M42 operator reporting, lifecycle semantics, credentials, and 
 Deferred: richer audit permissions, actor-or-target history, organizations/delegated access, retention policy, real-time streaming, audit analytics, SIEM integration, and cross-user audit visibility.
 
 ---
+
+
+## M49 — Analysis Run Grouping & Snapshot Correlation
+
+M49 is currently a **proposed design gate** in `docs/DEC-111-M49-ANALYSIS-RUN-GROUPING-DESIGN-GATE.md`.
+
+The problem is the missing explicit correlation between multiple historical stock snapshots produced by one logical market-wide analysis run. Scheduled workflow execution identity remains an operational lifecycle concept and is not assumed to be the analysis identity.
+
+The current design candidate is a dedicated immutable `AnalysisRunId`, but implementation and persistence changes are not authorized until the gate's open questions are resolved.
 
 # 33. Cross-Cutting Requirements
 
