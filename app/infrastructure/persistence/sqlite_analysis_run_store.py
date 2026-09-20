@@ -4,7 +4,11 @@ from pathlib import Path
 from uuid import UUID
 
 from app.application.analysis.run_store import AnalysisRunStore
-from app.domain.analysis_run import AnalysisRun
+from app.domain.analysis_run import (
+    AnalysisRun,
+    AnalysisRunOutcome,
+    AnalysisRunOutcomeState,
+)
 from app.domain.execution import ExecutionState
 
 
@@ -17,7 +21,9 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._database_path)
+        connection = sqlite3.connect(self._database_path)
+        connection.execute("PRAGMA foreign_keys = ON")
+        return connection
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -36,6 +42,28 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 ON analysis_runs (created_at)
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analysis_run_outcomes (
+                    run_id TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    stock_id TEXT NULL,
+                    failure_code TEXT NULL,
+                    failure_detail TEXT NULL,
+                    PRIMARY KEY (run_id, symbol),
+                    FOREIGN KEY (run_id)
+                        REFERENCES analysis_runs(run_id)
+                        ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_analysis_run_outcomes_symbol
+                ON analysis_run_outcomes (symbol)
+                """
+            )
 
     def save(self, run: AnalysisRun) -> None:
         with self._connect() as connection:
@@ -52,6 +80,29 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                     run.created_at.isoformat(),
                     run.state.value,
                 ),
+            )
+            connection.execute(
+                "DELETE FROM analysis_run_outcomes WHERE run_id = ?",
+                (str(run.id),),
+            )
+            connection.executemany(
+                """
+                INSERT INTO analysis_run_outcomes (
+                    run_id, symbol, state, stock_id, failure_code, failure_detail
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        str(run.id),
+                        outcome.symbol,
+                        outcome.state.value,
+                        str(outcome.stock_id) if outcome.stock_id else None,
+                        outcome.failure_code,
+                        outcome.failure_detail,
+                    )
+                    for outcome in run.outcomes
+                ],
             )
 
     def list_runs(
@@ -88,15 +139,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
 
         with self._connect() as connection:
             rows = connection.execute(query, parameters).fetchall()
-
-        return tuple(
-            AnalysisRun(
-                id=UUID(row[0]),
-                created_at=datetime.fromisoformat(row[1]),
-                state=ExecutionState(row[2]),
-            )
-            for row in rows
-        )
+            return tuple(self._load_run_from_row(connection, row) for row in rows)
 
     def get(self, run_id: UUID) -> AnalysisRun | None:
         with self._connect() as connection:
@@ -109,11 +152,58 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 (str(run_id),),
             ).fetchone()
 
-        if row is None:
-            return None
+            if row is None:
+                return None
+
+            return self._load_run_from_row(connection, row)
+
+    @staticmethod
+    def _load_run_from_row(
+        connection: sqlite3.Connection,
+        row: tuple[str, str, str],
+    ) -> AnalysisRun:
+        run_id = UUID(row[0])
+        outcome_rows = connection.execute(
+            """
+            SELECT symbol, state, stock_id, failure_code, failure_detail
+            FROM analysis_run_outcomes
+            WHERE run_id = ?
+            ORDER BY symbol ASC
+            """,
+            (str(run_id),),
+        ).fetchall()
+
+        outcomes: list[AnalysisRunOutcome] = []
+        for symbol, state, stock_id, failure_code, failure_detail in outcome_rows:
+            try:
+                outcome_state = AnalysisRunOutcomeState(state)
+                parsed_stock_id = UUID(stock_id) if stock_id else None
+            except (ValueError, TypeError) as error:
+                raise ValueError(
+                    f"Invalid analysis run outcome data for {run_id}"
+                ) from error
+
+            if outcome_state is AnalysisRunOutcomeState.SUCCESS:
+                outcomes.append(
+                    AnalysisRunOutcome.success(symbol, parsed_stock_id)
+                )
+            else:
+                if not failure_code:
+                    raise ValueError(
+                        f"Missing analysis run outcome failure code for {run_id}"
+                    )
+                outcomes.append(
+                    AnalysisRunOutcome.failed(
+                        symbol,
+                        failure_code,
+                        failure_detail,
+                        parsed_stock_id,
+                    )
+                )
 
         return AnalysisRun(
-            id=UUID(row[0]),
+            id=run_id,
             created_at=datetime.fromisoformat(row[1]),
             state=ExecutionState(row[2]),
+            outcomes=tuple(outcomes),
         )
