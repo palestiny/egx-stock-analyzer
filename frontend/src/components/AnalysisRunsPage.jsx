@@ -95,7 +95,7 @@ export function AnalysisRunsPage({ getAnalysisRuns, onSelectRun, onBack }) {
           <div className="opportunity-list">
             {view.items.map((run) => (
               <button
-                className="detail-row"
+                className="detail-row run-list-item"
                 type="button"
                 key={run.run_id}
                 onClick={() => onSelectRun(run.run_id)}
