@@ -8,43 +8,18 @@
 
 # Current Position
 
-The project has completed the core analytical path through M8 and the reliability/acquisition slices needed to validate real market data through the domain boundary.
+The current repository position is **M56 — Analysis Run & Snapshot Retention and Deletion**.
 
-Completed analytical foundations include:
+M56 is in the **design stage**. The current design gate is proposed:
 
-- Technical evidence composition
-- Fundamental analysis and orchestration
-- Fundamental scoring
-- Technical scoring
-- Stock Quality Score
-- Entry Context
-- Entry Quality Score
-- Opportunity Classification
-- Backtesting MVP
-- Reporting & Alerts MVP
+- `docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md`
+- PR #145: `docs: clarify accepted M56 engineering lifecycle boundary`
 
-Completed reliability/acquisition foundations include:
+Destructive lifecycle implementation is **not authorized** until the remaining owner-controlled decisions are explicitly accepted.
 
-- Raw market observations
-- Data Quality Assessment
-- Raw observation → validated PriceBar conversion
-- Provider-neutral market-data acquisition boundary
-- Yahoo Finance development adapter
-- Live COMI acquisition-to-PriceBar smoke validation
-- Execution orchestration
-- Manual analysis trigger
-- Scheduled analysis trigger
-- In-process one-shot scheduler
-- Daily analysis scheduling use case
-- End-to-end scheduled analysis integration
+The repository also maintains `docs/CURRENT_STATE.md` as the anti-drift snapshot for AI and human session initialization.
 
-M10 Automation is complete for its MVP scope.
-
-M11 Reporting & Alerts is complete for its MVP scope.
-
-M12 has established and validated its first API/runtime/dashboard presentation slice on the integration branch. The branch is protected by CI covering Python unit tests plus frontend tests and production build. The first dashboard slice is now frozen under `docs/DECISION_LOG.md` DEC-069; further dashboard capabilities require a new design gate.
-
-The execution-order update is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
+Historical milestone sections below remain useful for project history, but they do not override this current position.
 
 ---
 
