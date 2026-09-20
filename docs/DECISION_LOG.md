@@ -2741,12 +2741,12 @@ The available GitHub integration did not expose a workflow run or commit status 
 **Status:** Proposed  
 **Date:** 2026-09-20
 
-M56 opens a dedicated design gate for the lifecycle of durable analytical snapshots after M55 established explicit ownership. Retention/deletion must remain separate from ownership and analytical execution.
+M56 opens one coordinated design gate for the lifecycle of durable AnalysisRun records and AnalysisResultRecord snapshots after M54/M55 established run and snapshot ownership. Retention/deletion must remain separate from ownership and analytical execution.
 
-The design gate compares indefinite retention, explicit hard deletion, soft deletion/tombstones, and automatic retention cleanup. The current candidate direction is explicit authorized deletion without automatic expiration, but this remains a proposal rather than an accepted architectural decision.
+The consolidated gate compares retain-forever, immediate physical deletion, logical deletion, two-stage logical deletion plus purge, and automatic retention. The current engineering recommendation is a two-stage lifecycle with logical deletion separated from physical purge, while automatic retention remains disabled until justified; these are recommendations, not accepted product policy.
 
-Open decisions cover deletion granularity, user/operator authority, run-correlated snapshot behavior, hard versus soft deletion, latest/history/comparison semantics, concurrency, deletion auditability, automatic cleanup, and legacy pre-M55 snapshots.
+Open decisions cover user/operator authority, run/snapshot lifecycle coupling, hard versus soft deletion, latest/history/comparison/performance semantics, opaque cursors, concurrency, cross-store coordination, deletion auditability, automatic cleanup, and legacy records.
 
 Implementation is not authorized until these decisions are explicitly accepted.
 
-See docs/DEC-118-M56-ANALYSIS-SNAPSHOT-RETENTION-DESIGN-GATE.md.
+See docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md.
