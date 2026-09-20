@@ -151,9 +151,10 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
 | M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Complete | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
 | M50 | Analysis Run History & Read Model | 🟢 Complete | Expose one durable analysis run and its successful correlated snapshots through a dedicated read-side capability |
-| M51 | Analysis Run History Query | 🟡 Design Accepted | Discover persisted analysis runs through a bounded, deterministic, authenticated read-side query capability |
-| M51 | Analysis Run History Query | 🟡 Design Proposed | Discover persisted analysis runs through a bounded, deterministic application read capability |
+| M51 | Analysis Run History Query | 🟢 Complete | Discover persisted analysis runs through a bounded, deterministic, authenticated read-side query capability |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
+
+M51 implementation is complete through PR #127, merged at `6f3c8f059c67ce0c4f2d72b4a777d81cca1f2345`. GitHub Actions Run #2192 passed on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203`. The M51 dashboard discovery surface remains intentionally deferred.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
 
@@ -269,7 +270,7 @@ M49 design is accepted. The implementation is limited to durable analysis-run co
 
 M50 design is accepted. Implementation is merged through PR #124, with cursor-hardening follow-up PR #125 also merged. The implementation provides the dedicated GetAnalysisRun read capability, deterministic symbol ordering, bounded snapshot pagination, legacy-snapshot compatibility, and the existing authenticated analysis visibility boundary. Failed-symbol details remain deferred because M49 does not persist them. A cross-run list/search surface and per-user analysis-run ownership are deferred.
 
-The GitHub Actions workflow status for the current M50 merge is not observable through the connected workflow-run view yet, so M50 is not marked complete until CI verification is observable.
+M50 implementation and cursor-hardening are validated by GitHub Actions Run #2192 on the M51 implementation head before merge. This run also validates the combined M50/M51 Python, frontend test, and frontend build workflow.
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
