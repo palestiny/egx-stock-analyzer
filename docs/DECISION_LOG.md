@@ -2747,6 +2747,12 @@ The consolidated gate compares retain-forever, immediate physical deletion, logi
 
 Open decisions cover user/operator authority, run/snapshot lifecycle coupling, hard versus soft deletion, latest/history/comparison/performance semantics, opaque cursors, concurrency, cross-store coordination, deletion auditability, automatic cleanup, and legacy records.
 
-Implementation is not authorized until these decisions are explicitly accepted.
+Implementation is not authorized until the owner-controlled lifecycle decisions are explicitly accepted.
+
+### Accepted engineering constraints
+
+The lifecycle boundary is a dedicated application coordinator; M54/M55 ownership remains authoritative; run/snapshot correlation is coordinated explicitly; no false cross-store atomicity is claimed without a proven shared transaction/reconciliation mechanism; lifecycle visibility must be consistent across all normal read paths; active analysis cannot be partially deleted; physical purge remains separate from user-facing deletion; and automatic retention remains disabled until an explicit policy is accepted.
+
+These constraints narrow implementation architecture without deciding user-facing deletion authority or irreversible lifecycle semantics.
 
 See docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md.
