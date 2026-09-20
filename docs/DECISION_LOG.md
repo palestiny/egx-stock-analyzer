@@ -2802,3 +2802,32 @@ PR #148 implemented owner-aware logical deletion for AnalysisRun records and Ana
 The implementation head `9c46cdf6371ff86f074dee5805bf34358e76a941` passed GitHub Actions Tests Run #2497. PR #148 was merged into `main` at `860ee362c2f5a0dc4847c71f99d5bcf2bd0d51ca`.
 
 Physical purge, undelete, and automatic retention remain outside M56.
+
+## DEC-120 — M57 Physical Purge
+
+**Status:** Accepted  
+**Date:** 2026-09-21
+
+M57 separates irreversible physical storage reclamation from M56 user-facing logical deletion.
+
+### Decision
+
+Physical purge is an operator-only privileged maintenance capability. It supports explicit resource selection and deterministic eligibility selection, bounded by a default batch limit of 100 lifecycle units and stable persisted-ID ordering.
+
+An AnalysisRun is purgeable only when logically deleted, not active/visible, and all lifecycle-owned outcomes and snapshots are purgeable. Correlated run, outcomes, and snapshots are deleted as one lifecycle unit in one shared SQLite transaction. Runless snapshots are independently eligible under M55 ownership/deletion rules.
+
+Each lifecycle unit uses one SQLite transaction. A failure rolls back that unit and stops the invocation. Process interruption rolls back only the in-flight transaction; already committed units remain purged. Repeated requests are idempotent.
+
+Every purge request is management-audit recorded, including actor, operation identity, selection mode, requested scope, result, and counts. Dry-run is read-only and produces no destructive audit event.
+
+Automatic retention, archival, background workers, new authorization roles, undelete, and normal read-semantics changes remain out of scope.
+
+### Trade-offs
+
+Explicit privileged purge is safer and more auditable than immediate or automatic physical deletion, but storage remains occupied until an operator invokes it. One transaction per lifecycle unit prioritizes consistency over throughput. Fail-stop behavior limits destructive blast radius but may require another invocation after a failure.
+
+### Consequences
+
+M57 adds a storage-lifecycle maintenance boundary without changing analytical behavior, ownership, or normal lifecycle visibility. Future retention or archival policy requires a separate design gate.
+
+See `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.

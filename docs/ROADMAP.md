@@ -96,7 +96,15 @@ A milestone is considered complete only when its design, tests, implementation, 
 
 Completed milestones are **historical records**, not active work queues.
 
-The active roadmap intentionally contains **one current milestone only**. When M56 is completed, it will be replaced by the next accepted design target.
+The active roadmap intentionally contains **one current milestone only**.
+
+## M57 — Physical Purge
+
+**Status:** 🟡 Design Accepted — implementation authorized
+
+M57 provides a privileged, synchronous physical-purge capability for logically deleted analysis lifecycle data. It uses explicit selection or deterministic eligibility, a default batch limit of 100 lifecycle units, stable-ID ordering, one SQLite transaction per lifecycle unit, fail-stop semantics, mandatory management audit, and dry-run support. Automatic retention remains disabled.
+
+Current design gate: `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.
 
 This prevents milestone accumulation from becoming architecture drift or a second source of truth.
 
