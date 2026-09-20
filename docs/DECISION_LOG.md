@@ -2756,3 +2756,33 @@ The lifecycle boundary is a dedicated application coordinator; M54/M55 ownership
 These constraints narrow implementation architecture without deciding user-facing deletion authority or irreversible lifecycle semantics.
 
 See docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md.
+
+
+## DEC-118 — M56 Analysis Snapshot Retention & Deletion
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M56 defines the lifecycle boundary for durable AnalysisRun records and AnalysisResultRecord snapshots after M54/M55 ownership.
+
+### Decision
+
+Regular users may delete only their own runs and runless snapshots. Operators may delete user-owned and system/global records through the privileged lifecycle capability. Deleting a run logically hides the run and its correlated snapshots together; runless snapshots remain independently governed by M55 ownership.
+
+M56 uses logical deletion only. Physical purge is a separate privileged maintenance capability and is not part of user-facing deletion. There is no user-facing undelete/recovery capability in this MVP, and automatic retention is disabled.
+
+Every destructive lifecycle request is audit-recorded through the existing management-audit boundary. Repeated authorized deletion is an idempotent successful no-op. Active analysis executions cannot be partially deleted.
+
+Deleted resources are excluded consistently from latest-result, history, snapshot, comparison, performance, run-detail, and run-discovery reads. Existing M54/M55 ownership and non-enumerating authorization semantics remain authoritative.
+
+Cross-store lifecycle mutation must use one proven SQLite transaction boundary. Sequential writes across independently opened connections are not accepted as a correctness mechanism; if needed, the infrastructure layer must first provide shared-transaction participation.
+
+### Trade-offs
+
+Logical deletion sacrifices immediate storage reclamation in exchange for safer lifecycle coordination and a reversible internal state. Separating purge keeps irreversible storage operations out of normal user actions but creates an additional maintenance capability. Run-coupled snapshot visibility preserves coherent history but intentionally couples lifecycle semantics. Disabling automatic retention avoids inventing an arbitrary preservation window before storage and product evidence exists.
+
+### Implementation Boundary
+
+A dedicated lifecycle application coordinator owns orchestration. React and HTTP handlers do not own lifecycle semantics, persistence stores do not independently decide correlated deletion, and analytical calculations remain unchanged.
+
+See docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md.
