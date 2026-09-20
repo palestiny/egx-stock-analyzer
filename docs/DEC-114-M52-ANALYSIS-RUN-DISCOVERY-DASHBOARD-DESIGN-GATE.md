@@ -1,6 +1,6 @@
 # DEC-114 — M52 Analysis Run Discovery Dashboard Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M52 — Analysis Run Discovery Dashboard
 
@@ -151,8 +151,96 @@ Before implementation, tests should establish at least:
 - loading state;
 - responsive/accessibility-critical controls.
 
+## Accepted Decisions
+
+### 1. Surface
+
+M52 uses a dedicated **Analysis Runs page/route** rather than another panel inside the already dense stock-analysis dashboard.
+
+**Trade-off:** this adds a small navigation surface, but keeps run discovery separate from current-stock analysis and gives pagination/filtering room to evolve without further increasing dashboard density.
+
+### 2. Pagination UX
+
+The MVP uses explicit **Previous/Next** controls where a previous cursor is available, with the server cursor treated as opaque. The UI also provides a clear first-page action when the user has navigated forward.
+
+The frontend does not derive offsets, decode cursors, or reproduce server pagination rules.
+
+### 3. State Filter
+
+The filter is a single-select control with **All** as the default and one optional persisted aggregate state at a time.
+
+The selected value is sent to M51 as-is. The frontend never filters an already-returned page.
+
+### 4. Run Detail Navigation
+
+Selecting a run navigates to the existing M50 detail surface using a route-based URL containing the AnalysisRunId.
+
+The M50 detail capability and API contract remain unchanged.
+
+### 5. Refresh Semantics
+
+Refresh is explicit. Returning from M50 detail does not silently trigger a new discovery request.
+
+This keeps navigation deterministic and avoids hidden network activity.
+
+### 6. Metadata Density
+
+The discovery list shows only M51's authoritative run metadata:
+
+- AnalysisRunId;
+- created timestamp;
+- aggregate execution state.
+
+Requested/successful/failed counts are not synthesized in React and are deferred unless the M51 API is explicitly extended by a future decision.
+
+### 7. Error Semantics
+
+The dashboard maps errors to safe presentation states:
+
+- 401 → session-expired/authentication state using the existing frontend session boundary;
+- 403 → access-denied state;
+- 400 → invalid-query state;
+- other non-success responses → generic run-discovery transport failure.
+
+Server internals are not rendered.
+
+### 8. Responsive Behavior
+
+On narrow screens, the state filter and refresh control stack vertically; run metadata remains readable without horizontal scrolling; pagination controls remain individually accessible and wrap when necessary.
+
+No mobile-specific application logic is introduced.
+
+## Accepted Boundary
+
+```
+Analysis Runs Page
+        ↓
+frontend API client
+        ↓
+GET /api/v1/analysis-runs
+        ↓
+ListAnalysisRuns
+        ↓
+AnalysisRunStore
+```
+
+The dashboard owns presentation state and navigation only. M51 remains authoritative for ordering, filtering, pagination, authentication, and run metadata.
+
+## TDD Acceptance Criteria
+
+- first page renders server-provided items in server order;
+- state filter is propagated to the API without client-side filtering;
+- next-page navigation passes the returned opaque cursor unchanged;
+- no-more-pages disables the next action;
+- first-page navigation clears the cursor;
+- empty results render an explicit empty state;
+- 401/403/400 and generic transport failures map to safe UI states;
+- selecting a run navigates to the M50 detail route;
+- loading and refresh states are explicit;
+- controls remain keyboard accessible and usable on narrow screens;
+- browsing never triggers analysis execution;
+- M50 detail behavior remains unchanged.
+
 ## Design Gate Status
 
-**Proposed — implementation is not authorized by this document yet.**
-
-The next action is to resolve the open questions and record the accepted presentation decision before implementing the M52 dashboard slice.
+**Accepted — implementation is authorized for the M52 MVP defined here.**
