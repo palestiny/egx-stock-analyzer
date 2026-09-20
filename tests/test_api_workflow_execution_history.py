@@ -20,8 +20,8 @@ class FakeHistoryQuery:
         self.error = error
         self.calls = []
 
-    def execute(self, execution_id, identity, page_size=None, cursor=None, from_state=None, to_state=None):
-        self.calls.append((execution_id, identity, page_size, cursor, from_state, to_state))
+    def execute(self, execution_id, identity, page_size=None, cursor=None, from_state=None, to_state=None, occurred_from=None, occurred_to=None):
+        self.calls.append((execution_id, identity, page_size, cursor, from_state, to_state, occurred_from, occurred_to))
         if self.error is not None:
             raise self.error
         return self.read_model
@@ -269,3 +269,28 @@ def test_api_maps_invalid_history_filter_to_400():
         )
 
     assert response.status_code == 400
+
+
+def test_api_passes_history_time_filters():
+    model = make_model()
+    query = FakeHistoryQuery(model)
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        get_scheduled_workflow_execution_history=query,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/api/v1/workflows/executions/{model.execution_id}/history"
+            "?occurred_from=2026-09-19T09:00:00Z&occurred_to=2026-09-19T11:00:00Z"
+        )
+
+    assert response.status_code == 200
+    assert query.calls[0][2:] == (
+        None,
+        None,
+        None,
+        None,
+        datetime(2026, 9, 19, 9, 0, tzinfo=timezone.utc),
+        datetime(2026, 9, 19, 11, 0, tzinfo=timezone.utc),
+    )
