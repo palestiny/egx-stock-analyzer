@@ -103,3 +103,35 @@ def test_get_analysis_run_returns_503_when_not_configured():
         )
 
     assert response.status_code == 503
+
+
+def test_get_analysis_run_returns_persisted_outcomes():
+    from app.domain.analysis_run import AnalysisRunOutcome
+
+    run_store = InMemoryAnalysisRunStore()
+    result_store = InMemoryAnalysisResultStore()
+    run = (
+        AnalysisRun.create()
+        .with_state(ExecutionState.COMPLETED_WITH_ERRORS)
+        .with_outcomes(
+            (
+                AnalysisRunOutcome.success("EGAL"),
+                AnalysisRunOutcome.failed("UNKNOWN", "UNKNOWN_SYMBOL", "UNKNOWN"),
+            )
+        )
+    )
+    run_store.save(run)
+    app = create_app(
+        result_store,
+        get_analysis_run=GetAnalysisRun(run_store, result_store),
+    )
+
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/analysis-runs/{run.id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcomes_available"] is True
+    assert [item["symbol"] for item in body["outcomes"]] == ["EGAL", "UNKNOWN"]
+    assert body["outcomes"][1]["failure_code"] == "UNKNOWN_SYMBOL"
+    assert body["outcomes"][1]["failure_detail"] == "UNKNOWN"
