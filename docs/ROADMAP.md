@@ -10,7 +10,7 @@
 
 ## M56 — Analysis Run & Snapshot Retention and Deletion
 
-**Status:** 🟢 Design Accepted — Implementation Authorized
+**Status:** 🟢 Complete — Implementation Merged
 
 The current project boundary is the coordinated lifecycle of durable AnalysisRun records and AnalysisResultRecord historical snapshots.
 
@@ -18,11 +18,11 @@ Current design gate:
 
 - `docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md`
 
-Destructive lifecycle implementation is **not authorized** until the remaining owner-controlled lifecycle decisions are explicitly accepted.
+The accepted M56 lifecycle implementation is merged and verified. Physical purge and automatic retention remain out of scope.
 
-## Immediate Objective
+## Completed Objective
 
-Implement the accepted M56 lifecycle boundary using TDD, shared SQLite transaction coordination, consistent read-side visibility, and mandatory management-audit recording.
+Implemented the accepted M56 lifecycle boundary using TDD, shared SQLite transaction coordination, consistent read-side visibility, owner-aware authorization, active-run protection, idempotent logical deletion, and mandatory management-audit recording.
 
 ---
 
@@ -120,4 +120,4 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-**M56 design gate → owner decisions → accepted lifecycle policy → TDD implementation → verification → next design gate.**
+**M56 complete → open and accept the next design gate → implement only within that accepted boundary.**
