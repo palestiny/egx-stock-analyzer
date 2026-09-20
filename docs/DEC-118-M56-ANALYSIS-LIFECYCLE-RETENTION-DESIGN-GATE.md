@@ -150,7 +150,7 @@ Trade-offs: highest policy complexity; automatic destructive behavior needs stro
 3. System/global records cannot become user-owned as a side effect of deletion.
 4. Snapshot/run ownership mismatch is never repaired by lifecycle operations.
 5. Correlated snapshots cannot remain normally visible through another read path when their parent lifecycle is hidden, if the accepted policy makes the run authoritative.
-6. Runnelss snapshots remain governed by their own M55 ownership state.
+6. Runless snapshots remain governed by their own M55 ownership state.
 7. Destructive requests are idempotent.
 8. Active analysis cannot be partially deleted.
 9. Historical analytical results remain immutable until an explicit lifecycle transition removes them from normal visibility.
