@@ -295,3 +295,42 @@ def test_sqlite_store_gets_snapshot_by_uuid_and_preserves_symbol(tmp_path):
     assert restored == snapshot
     assert restored is not None
     assert restored.symbol == "EGAL"
+
+
+def test_sqlite_store_persists_analysis_run_and_snapshot_correlation(tmp_path):
+    database_path = tmp_path / "analysis.db"
+    store = SQLiteAnalysisResultStore(database_path)
+    run_id = uuid4()
+    analysis_date = date(2026, 9, 18)
+
+    store.create_analysis_run(run_id, analysis_date)
+    store.save(
+        "EGAL",
+        make_result(),
+        analysis_date,
+        analysis_run_id=run_id,
+    )
+    store.update_analysis_run_state(run_id, __import__("app.domain.execution", fromlist=["ExecutionState"]).ExecutionState.COMPLETED)
+
+    restored = SQLiteAnalysisResultStore(database_path)
+    run = restored.get_analysis_run(run_id)
+    snapshots = restored.get_run_snapshots(run_id)
+
+    assert run is not None
+    assert run.analysis_date == analysis_date
+    assert run.state.value == "completed"
+    assert len(snapshots) == 1
+    assert snapshots[0].symbol == "EGAL"
+    assert snapshots[0].analysis_run_id == run_id
+
+
+def test_sqlite_store_rejects_duplicate_symbol_in_same_analysis_run(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    run_id = uuid4()
+    store.create_analysis_run(run_id, date(2026, 9, 18))
+    store.save("EGAL", make_result(), date(2026, 9, 18), analysis_run_id=run_id)
+
+    import pytest
+
+    with pytest.raises(Exception):
+        store.save("EGAL", make_result(), date(2026, 9, 18), analysis_run_id=run_id)
