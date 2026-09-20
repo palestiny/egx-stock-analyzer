@@ -173,6 +173,21 @@ class ScheduledWorkflowExecutionStore(Protocol):
         ...
 
 
+    def get_cross_execution_history(
+        self,
+        owner_user_id: UUID | None,
+        global_only: bool,
+        after_cursor: tuple[datetime, UUID, int] | None = None,
+        limit: int | None = None,
+        from_state: str | None = None,
+        to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
+    ) -> tuple[
+        tuple[UUID, str, int, str | None, str, datetime, str | None], ...
+    ]:
+        ...
+
     def get_history(
         self,
         execution_id: UUID,
