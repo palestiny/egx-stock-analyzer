@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -131,13 +132,22 @@ class GetAnalysisRun:
             payload = json.loads(
                 base64.urlsafe_b64decode((cursor + padding).encode("ascii"))
             )
+            if not isinstance(payload, dict):
+                raise ValueError
             if (
                 payload.get("run_id") != str(run_id)
                 or payload.get("page_size") != page_size
+                or not isinstance(payload.get("symbol"), str)
             ):
                 raise ValueError
             return payload["symbol"], UUID(payload["snapshot_id"])
-        except (ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+        except (
+            ValueError,
+            KeyError,
+            TypeError,
+            binascii.Error,
+            json.JSONDecodeError,
+        ) as error:
             raise InvalidAnalysisRunQueryError(
                 "Invalid analysis-run cursor"
             ) from error
