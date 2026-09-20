@@ -1,12 +1,11 @@
 import base64
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
 from app.application.analysis.run_store import AnalysisRunStore
-from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import ExecutionState
 
 
@@ -26,7 +25,7 @@ class InvalidAnalysisRunQueryError(ValueError):
 class AnalysisRunSnapshotView:
     snapshot_id: UUID
     symbol: str
-    analysis_date: object
+    analysis_date: date | None
 
 
 @dataclass(frozen=True)
