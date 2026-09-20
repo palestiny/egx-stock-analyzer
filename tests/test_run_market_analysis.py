@@ -8,6 +8,7 @@ from app.application.analysis.run_market_analysis import (
     RunMarketAnalysis,
 )
 from app.application.stocks.catalog import InMemoryStockCatalog
+from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.domain.execution import ExecutionState
 from app.domain.stocks.stock import Stock
 
@@ -151,3 +152,24 @@ def test_empty_symbol_is_rejected_before_execution():
         runner.execute(["EGAL", "  "], AS_OF)
 
     run_stock_analysis.execute.assert_not_called()
+
+
+
+def test_market_run_persists_same_analysis_run_identity_used_for_stock_execution():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    catalog = InMemoryStockCatalog([stock])
+    run_stock_analysis = Mock()
+    run_store = InMemoryAnalysisRunStore()
+    runner = RunMarketAnalysis(catalog, run_stock_analysis, run_store)
+
+    result = runner.execute(["EGAL"], AS_OF)
+
+    persisted = run_store.get(result.analysis_run_id)
+
+    assert persisted is not None
+    assert persisted.state is ExecutionState.COMPLETED
+    run_stock_analysis.execute.assert_called_once_with(
+        stock,
+        AS_OF,
+        analysis_run_id=result.analysis_run_id,
+    )
