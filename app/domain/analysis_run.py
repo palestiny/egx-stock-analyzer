@@ -65,6 +65,7 @@ class AnalysisRun:
     created_at: datetime
     state: ExecutionState
     outcomes: tuple[AnalysisRunOutcome, ...] = ()
+    outcomes_available: bool = False
 
     @classmethod
     def create(cls) -> "AnalysisRun":
@@ -80,6 +81,7 @@ class AnalysisRun:
             created_at=self.created_at,
             state=state,
             outcomes=self.outcomes,
+            outcomes_available=self.outcomes_available,
         )
 
     def with_outcomes(
@@ -99,4 +101,5 @@ class AnalysisRun:
             created_at=self.created_at,
             state=self.state,
             outcomes=normalized,
+            outcomes_available=True,
         )
