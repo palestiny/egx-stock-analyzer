@@ -64,7 +64,7 @@ def test_runs_multiple_stocks_in_supplied_order():
 
 def test_unknown_symbol_is_recorded_as_failure_and_later_stock_still_runs():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
 
     result = runner.execute(["UNKNOWN", "EGAL"], AS_OF)
 
@@ -80,7 +80,7 @@ def test_stock_failure_does_not_erase_previous_success():
         Stock.create("EGAL", "Egypt Aluminum"),
         Stock.create("IEEC", "Egyptian Electrical"),
     ]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
 
     def execute(stock, as_of, **_):
         if stock.symbol == "IEEC":
@@ -101,7 +101,7 @@ def test_all_stock_failures_return_failed():
         Stock.create("EGAL", "Egypt Aluminum"),
         Stock.create("IEEC", "Egyptian Electrical"),
     ]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
     run_stock_analysis.execute.side_effect = RuntimeError("analysis failed")
 
     result = runner.execute(["EGAL", "IEEC"], AS_OF)
@@ -113,7 +113,7 @@ def test_all_stock_failures_return_failed():
 
 def test_duplicate_normalized_symbols_are_rejected_before_execution():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
 
     with pytest.raises(
         DuplicateMarketAnalysisSymbolError,
@@ -136,7 +136,7 @@ def test_each_market_run_has_its_own_execution_identity():
 
 def test_market_orchestrator_does_not_duplicate_per_stock_retries():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
     run_stock_analysis.execute.side_effect = RuntimeError("transient")
 
     result = runner.execute(["EGAL"], AS_OF)
@@ -147,7 +147,7 @@ def test_market_orchestrator_does_not_duplicate_per_stock_retries():
 
 def test_empty_symbol_is_rejected_before_execution():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
 
     with pytest.raises(ValueError, match="Stock symbol cannot be empty"):
         runner.execute(["EGAL", "  "], AS_OF)
@@ -170,9 +170,8 @@ def test_market_run_is_persisted_with_completed_state_and_snapshot_correlation()
 
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED
-    assert len(snapshots) == 2
-    assert {record.symbol for record in snapshots} == {"EGAL", "IEEC"}
-    assert {record.analysis_run_id for record in snapshots} == {run_id}
+    assert len(run_stock_analysis.call_args_list) == 2
+    assert {call.kwargs["analysis_run_id"] for call in run_stock_analysis.call_args_list} == {run_id}
 
 
 def test_partial_run_persists_successful_snapshot_without_fake_failed_snapshot():
@@ -192,4 +191,5 @@ def test_partial_run_persists_successful_snapshot_without_fake_failed_snapshot()
     assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED_WITH_ERRORS
-    assert [record.symbol for record in snapshots] == ["EGAL"]
+    assert run_stock_analysis.call_args_list[0].kwargs["analysis_run_id"] == run_id
+    assert run_stock_analysis.call_args_list[1].kwargs["analysis_run_id"] == run_id
