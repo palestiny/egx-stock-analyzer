@@ -148,6 +148,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M45 | Scheduled Workflow Lifecycle History Visibility | 🟢 Complete | Expose one execution's persisted lifecycle history through read-only application/API/dashboard boundaries |
 | M46 | Scheduled Workflow History Query Extensions | 🟢 Complete | Optional bounded sequence-cursor pagination with M45 complete-history compatibility |
 | M47 | Scheduled Workflow History Filtering | 🟢 Complete | Typed lifecycle-state filtering over the existing paginated history read boundary |
+| M48 | Scheduled Workflow History Time Filtering | 🟡 Design Accepted | Add bounded UTC time-window filtering to the existing lifecycle-history read boundary |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -248,7 +249,7 @@ M46 — Scheduled Workflow History Query Extensions
 M47 — Scheduled Workflow History Filtering
 ```
 
-M47 is the current completed milestone. The next capability requires a new explicit design gate before implementation.
+M48 is the current active milestone. The next capability requires a new explicit design gate before implementation.
 
 This sequence reflects completed work and is now documented rather than treated as an implicit route change.
 
