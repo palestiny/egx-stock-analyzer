@@ -53,7 +53,8 @@ class InMemoryAnalysisRunStore:
             for run in self._runs.values()
             if (state is None or run.state is state)
             and (
-                run.owner_user_id == owner_user_id
+                owner_user_id is None
+                or run.owner_user_id == owner_user_id
                 or (include_global and run.owner_user_id is None)
             )
         ]
