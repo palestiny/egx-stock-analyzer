@@ -79,6 +79,7 @@ def test_repeated_run_delete_is_idempotent_and_audited(tmp_path):
 def test_active_run_delete_is_rejected_without_mutation(tmp_path):
     database = tmp_path / "analysis.db"
     SQLiteAnalysisRunStore(database)
+    SQLiteAnalysisResultStore(database)
     SQLiteManagementAuditStore(database)
     lifecycle = SQLiteAnalysisLifecycleStore(database)
 
@@ -105,6 +106,7 @@ def test_active_run_delete_is_rejected_without_mutation(tmp_path):
 def test_snapshot_delete_is_rejected_while_parent_run_is_active(tmp_path):
     database = tmp_path / "analysis.db"
     SQLiteAnalysisRunStore(database)
+    SQLiteAnalysisResultStore(database)
     SQLiteManagementAuditStore(database)
     lifecycle = SQLiteAnalysisLifecycleStore(database)
 
