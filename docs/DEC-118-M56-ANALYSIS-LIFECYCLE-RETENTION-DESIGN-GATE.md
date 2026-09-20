@@ -250,12 +250,6 @@ No implementation should silently convert these recommendations into product pol
 
 M56 implementation must not begin until the lifecycle policy, ownership authority, run/snapshot correlation behavior, read semantics, transaction strategy, and destructive-operation audit requirements are explicitly accepted.
 
-
-
-**Status: Proposed — implementation is not authorized.**
-
-M56 implementation must not begin until the lifecycle policy, ownership authority, run/snapshot correlation behavior, read semantics, transaction strategy, and destructive-operation audit requirements are explicitly accepted.
-
 ## 12. Revisit Conditions
 
 Revisit this gate if storage architecture changes, legal/compliance retention requirements appear, snapshot sharing or organizations are introduced, cross-run snapshot references become concrete, background-worker infrastructure materially changes purge economics, or the historical-analysis model is replaced.
