@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from uuid import UUID
 from unittest.mock import Mock
 
 from app.application.execution.recover_durable_scheduled_workflow import (
@@ -41,6 +42,7 @@ def make_operation_result():
         (),
         {
             "analysis_execution": make_analysis_execution(),
+            "analysis_run_id": UUID("00000000-0000-0000-0000-000000000012"),
             "delivery_result": type(
                 "Delivery",
                 (),
