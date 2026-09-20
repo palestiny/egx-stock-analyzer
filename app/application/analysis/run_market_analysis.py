@@ -51,7 +51,10 @@ class RunMarketAnalysis:
             execution.complete()
             completed_run = analysis_run.with_state(execution.state)
             self._analysis_run_store.save(completed_run)
-            return MarketAnalysisResult(execution=execution, analysis_run_id=analysis_run.id)
+            return MarketAnalysisResult(
+                execution=execution,
+                analysis_run_id=analysis_run.id,
+            )
 
         for symbol in normalized_symbols:
             stock = self._stock_catalog.get(symbol)
