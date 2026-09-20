@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.domain.entry_analysis.context import EntryContext
+from app.domain.execution import ExecutionState
 from app.domain.entry_analysis.scoring import EntryQualityScore
 from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
 from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
@@ -310,7 +311,7 @@ def test_sqlite_store_persists_analysis_run_and_snapshot_correlation(tmp_path):
         analysis_date,
         analysis_run_id=run_id,
     )
-    store.update_analysis_run_state(run_id, __import__("app.domain.execution", fromlist=["ExecutionState"]).ExecutionState.COMPLETED)
+    store.update_analysis_run_state(run_id, ExecutionState.COMPLETED)
 
     restored = SQLiteAnalysisResultStore(database_path)
     run = restored.get_analysis_run(run_id)
