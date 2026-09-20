@@ -47,6 +47,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         runtime.deliver_alert_by_symbol,
         runtime.get_scheduled_workflow_executions,
         runtime.get_scheduled_workflow_execution_history,
+        getattr(runtime, "get_scheduled_workflow_history", None),
         getattr(runtime, "recover_durable_scheduled_workflow", None),
         getattr(runtime, "user_management", None),
         getattr(runtime.application_runtime, "get_management_audit", None),
