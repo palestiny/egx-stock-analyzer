@@ -90,6 +90,15 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
 
     def save(self, run: AnalysisRun) -> None:
         with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT owner_user_id FROM analysis_runs WHERE run_id = ?",
+                (str(run.id),),
+            ).fetchone()
+            if existing is not None:
+                existing_owner = UUID(existing[0]) if existing[0] else None
+                if existing_owner != run.owner_user_id:
+                    raise ValueError("Analysis run ownership cannot be changed")
+
             connection.execute(
                 """
                 INSERT INTO analysis_runs (run_id, created_at, state, owner_user_id, outcomes_available)
