@@ -205,12 +205,57 @@ The current architecture evidence supports evaluating a two-stage lifecycle firs
 
 These are recommendations, not accepted decisions.
 
-## 10. Design Gate Decision
+## 10. Engineering Decision Matrix (Not Yet Accepted)
+
+The following defaults are the current engineering recommendations derived from the existing M54/M55 ownership model and the two-store persistence boundary. They are deliberately recorded as **recommendations**, not decisions, because several items change user-visible data lifecycle and destructive authority.
+
+| Area | Recommended default | Rationale / trade-off |
+|---|---|---|
+| User deletion | Users may delete only resources they own | Preserves M55 ownership boundary; avoids cross-user authority. |
+| Operator deletion | Operators may delete user-owned and global records only through an explicit privileged lifecycle capability | Centralizes destructive authority; increases audit responsibility. |
+| Run deletion | A run deletion logically hides the run and its correlated snapshots together | Prevents orphaned visible history; couples the lifecycle intentionally. |
+| Runless snapshots | Govern independently by their owner | They have no parent run to inherit lifecycle from. |
+| Physical purge | Separate privileged maintenance capability | Avoids making an irreversible operation part of normal user-facing deletion. |
+| Logical deletion | Hidden from all normal read paths, including latest/history/comparison/performance/run detail | Prevents contradictory visibility across projections. |
+| Recovery | No user-facing undelete in the MVP | Simpler authorization and audit semantics; recovery can be an operator maintenance concern later. |
+| Active run | Deletion is rejected while execution is active | Prevents partially deleted analysis state. |
+| Idempotency | Repeating an already-authorized delete is a successful no-op | Makes retries safe and deterministic. |
+| Retention | Disabled in the first lifecycle MVP | Avoids inventing a time policy before storage/usage evidence exists. |
+| Retention clock | If later enabled, use persisted analysis/run creation time rather than process time | Deterministic and restart-safe. |
+| Latest result | Deleted snapshots are never eligible for latest-result selection | Keeps latest reads consistent with lifecycle visibility. |
+| Historical reads | Deleted snapshots are excluded without exposing whether another user's hidden record exists | Preserves ownership/non-enumeration semantics. |
+| Cross-store atomicity | Introduce an application lifecycle coordinator; do not pretend two SQLite stores are one transaction unless they share a proven transaction boundary | Honest failure semantics; avoids false atomicity guarantees. |
+| Partial failure | Prefer a coordinated transaction when both stores can share one SQLite connection; otherwise use a durable lifecycle operation state/reconciliation mechanism | A single-process best-effort sequence is insufficient for destructive lifecycle correctness. |
+| Audit | Every successful or rejected destructive request emits a management-audit event when the existing audit boundary supports it | Provides accountability for irreversible lifecycle actions. |
+| Cursor behavior | Cursors pointing past deleted records advance to the next visible record; no deleted record is returned | Keeps pagination stable without leaking lifecycle state. |
+| References | A future durable reference to a snapshot blocks physical purge until an explicit reference policy exists | Prevents destroying data still required by another capability. |
+
+### Decisions that remain owner-controlled
+
+The following cannot safely be inferred from architecture alone and remain explicit approval points:
+
+1. whether regular users may delete their own runs/snapshots;
+2. whether operators may delete global records;
+3. whether run deletion cascades to correlated snapshots;
+4. whether any recovery/undelete capability is required;
+5. whether M56 MVP should include physical purge;
+6. whether destructive operations must always be audit-recorded;
+7. the transaction/coordination guarantee required across the two durable stores.
+
+No implementation should silently convert these recommendations into product policy.
+
+## 11. Design Gate Decision
 
 **Status: Proposed — implementation is not authorized.**
 
 M56 implementation must not begin until the lifecycle policy, ownership authority, run/snapshot correlation behavior, read semantics, transaction strategy, and destructive-operation audit requirements are explicitly accepted.
 
-## 11. Revisit Conditions
+
+
+**Status: Proposed — implementation is not authorized.**
+
+M56 implementation must not begin until the lifecycle policy, ownership authority, run/snapshot correlation behavior, read semantics, transaction strategy, and destructive-operation audit requirements are explicitly accepted.
+
+## 12. Revisit Conditions
 
 Revisit this gate if storage architecture changes, legal/compliance retention requirements appear, snapshot sharing or organizations are introduced, cross-run snapshot references become concrete, background-worker infrastructure materially changes purge economics, or the historical-analysis model is replaced.
