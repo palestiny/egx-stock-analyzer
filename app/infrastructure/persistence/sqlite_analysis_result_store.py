@@ -121,26 +121,31 @@ class SQLiteAnalysisResultStore:
             analysis_date.isoformat() if analysis_date is not None else None
         )
 
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO analysis_results (
-                    snapshot_id,
-                    symbol,
-                    analysis_date,
-                    payload,
-                    analysis_run_id
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO analysis_results (
+                        snapshot_id,
+                        symbol,
+                        analysis_date,
+                        payload,
+                        analysis_run_id
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid4()),
+                        symbol,
+                        analysis_date_value,
+                        payload,
+                        str(analysis_run_id) if analysis_run_id is not None else None,
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    str(uuid4()),
-                    symbol,
-                    analysis_date_value,
-                    payload,
-                    str(analysis_run_id) if analysis_run_id is not None else None,
-                ),
-            )
+        except sqlite3.Error as error:
+            raise AnalysisResultPersistenceError(
+                f"Could not persist analysis result for {symbol}"
+            ) from error
 
     def create_analysis_run(self, run_id: UUID, analysis_date: date | None) -> None:
         try:
