@@ -5,6 +5,7 @@ from app.application.analysis.lifecycle_store import AnalysisLifecycleStore
 from app.application.analysis.run_store import AnalysisRunStore
 from app.application.security.authorization import AuthorizationError, OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
+from app.domain.execution import ExecutionState
 
 
 class AnalysisLifecycleNotFoundError(LookupError):
@@ -42,7 +43,7 @@ class DeleteAnalysisRun:
                 f"Analysis run not found: {run_id}"
             ) from error
 
-        if run.state.value == "running":
+        if run.state is ExecutionState.RUNNING:
             raise ValueError("Active analysis runs cannot be deleted")
 
         if identity.user_id is None:
