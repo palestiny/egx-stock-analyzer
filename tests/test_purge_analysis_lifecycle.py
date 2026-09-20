@@ -203,6 +203,7 @@ def test_dry_run_does_not_delete_or_write_destructive_audit(tmp_path):
 
     assert result.dry_run is True
     assert result.purged_run_ids == ()
+    assert result.eligible_run_ids == (run_id,)
 
     with sqlite3.connect(database) as connection:
         assert connection.execute(
