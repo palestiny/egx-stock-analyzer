@@ -80,6 +80,7 @@ class RunMarketAnalysis:
                         stock,
                         as_of,
                         analysis_run_id=analysis_run.id,
+                        owner_user_id=owner_user_id,
                     )
                 except Exception as error:
                     execution.record_stock_failure(
