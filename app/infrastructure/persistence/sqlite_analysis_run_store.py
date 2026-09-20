@@ -158,10 +158,9 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         query = """
             SELECT run_id, created_at, state, owner_user_id, outcomes_available
             FROM analysis_runs
-            WHERE deleted_at IS NULL
         """
         parameters: list[str] = []
-        conditions: list[str] = []
+        conditions: list[str] = ["deleted_at IS NULL"]
 
         if state is not None:
             conditions.append("state = ?")
