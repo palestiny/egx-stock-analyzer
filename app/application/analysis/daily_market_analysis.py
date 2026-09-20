@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import UUID
 
-from app.application.analysis.result_store import AnalysisResultStore
+from app.application.analysis.result_store import (
+    AnalysisResultPersistenceError,
+    AnalysisResultStore,
+)
 from app.application.analysis.stock_analysis import StockAnalysisPipeline, StockAnalysisResult
 from app.application.execution.orchestrator import ExecutionOrchestrator
 from app.application.execution.retry import RetryPolicy
@@ -36,7 +39,10 @@ class DailyMarketAnalysis:
         retry_policy: RetryPolicy,
         result_store: AnalysisResultStore | None = None,
     ) -> None:
-        self._orchestrator = ExecutionOrchestrator(retry_policy)
+        self._orchestrator = ExecutionOrchestrator(
+            retry_policy,
+            propagate_exceptions=(AnalysisResultPersistenceError,),
+        )
         self._result_store = result_store
 
     def run(
