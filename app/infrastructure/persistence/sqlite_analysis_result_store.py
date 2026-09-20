@@ -47,6 +47,13 @@ class SQLiteAnalysisResultStore:
                 ON analysis_results (symbol, analysis_date)
                 """
             )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                ux_analysis_results_run_symbol
+                ON analysis_results (analysis_run_id, symbol)
+                """
+            )
 
     @staticmethod
     def _create_history_table(connection: sqlite3.Connection) -> None:
