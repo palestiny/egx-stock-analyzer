@@ -93,6 +93,32 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
             <span>{view.run_id} · Created {new Date(view.created_at).toLocaleString()}</span>
           </div>
 
+          {view.outcomes_available && view.outcomes.length > 0 && (
+            <section aria-label="analysis run outcomes">
+              <p className="eyebrow">OUTCOMES</p>
+              <div className="opportunity-list">
+                {view.outcomes.map((outcome) => (
+                  <div className="detail-row" key={outcome.symbol}>
+                    <strong>{outcome.symbol}</strong>
+                    <span>
+                      {outcome.state}
+                      {outcome.failure_code ? ` · ${outcome.failure_code}` : ""}
+                      {outcome.failure_detail ? ` · ${outcome.failure_detail}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {view.outcomes_available && view.outcomes.length === 0 && (
+            <p className="muted">This run completed without requested symbols.</p>
+          )}
+
+          {!view.outcomes_available && (
+            <p className="muted">Per-symbol outcomes are unavailable for this legacy run.</p>
+          )}
+
           {view.snapshots.length === 0 && (
             <p className="muted">This run has no successful snapshots.</p>
           )}
