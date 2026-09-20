@@ -279,6 +279,36 @@ The following cannot safely be inferred from architecture alone and remain expli
 
 No implementation should silently convert these recommendations into product policy.
 
+## 10A. Technical Decisions That Can Be Committed Independently
+
+The following engineering boundaries can be fixed without choosing user-facing deletion authority:
+
+1. **One lifecycle application capability:** destructive lifecycle operations are owned by a dedicated application capability/coordinator, not by HTTP handlers, React, or individual persistence stores.
+2. **Existing ownership remains authoritative:** M54/M55 authorization is checked before mutation; lifecycle logic does not redefine ownership.
+3. **Run/snapshot coordination is explicit:** because correlated snapshots are not protected by a database foreign key to `analysis_runs`, lifecycle code must explicitly coordinate the two stores.
+4. **No false atomicity:** two independently opened SQLite connections are not treated as one transaction. The implementation must either establish a shared SQLite connection/transaction boundary or introduce an explicit durable reconciliation mechanism before claiming cross-store atomicity.
+5. **Read-side visibility is centralized:** once a lifecycle state is accepted, every normal snapshot/run read capability must apply the same visibility rule. Latest-result selection must never bypass it.
+6. **No destructive side effect during analysis:** an active analysis run is not partially deleted. Lifecycle mutation must coordinate with execution state before changing durable records.
+7. **Purge remains separate from user-facing deletion:** physical deletion is not silently coupled to logical visibility changes until its transaction and authorization contract are explicitly accepted.
+8. **Retention is not inferred from storage pressure:** automatic retention requires an explicit product policy and therefore remains disabled unless separately accepted.
+
+These decisions constrain implementation architecture without selecting the unresolved product policy. They are intended to prevent implementation from accidentally deciding those policy questions.
+
+## 10B. Remaining Owner Decisions Required Before Destructive Implementation
+
+The following remain explicit Project Owner decisions because they determine user-visible authority or irreversible data semantics:
+
+- whether users may delete their own AnalysisRun records;
+- whether users may delete their own runless snapshots;
+- whether operators may delete user-owned and/or system/global records;
+- whether deleting a run logically hides its correlated snapshots together;
+- whether any undelete/recovery capability is required;
+- whether M56 includes physical purge or only logical deletion;
+- whether destructive lifecycle requests must always create management-audit events;
+- the accepted cross-store atomicity/recovery guarantee if one SQLite transaction cannot cover both stores.
+
+Until these are accepted, implementation must remain non-destructive and limited to design/test scaffolding.
+
 ## 11. Design Gate Decision
 
 **Status: Proposed — implementation is not authorized.**
