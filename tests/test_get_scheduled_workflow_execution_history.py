@@ -33,6 +33,8 @@ class FakeStore:
         limit=None,
         from_state=None,
         to_state=None,
+        occurred_from=None,
+        occurred_to=None,
     ):
         self.history_calls += 1
         rows = tuple(
@@ -40,6 +42,8 @@ class FakeStore:
             if (after_sequence is None or row[0] > after_sequence)
             and (from_state is None or row[1] == from_state)
             and (to_state is None or row[2] == to_state)
+            and (occurred_from is None or row[3] >= occurred_from)
+            and (occurred_to is None or row[3] < occurred_to)
         )
         return rows if limit is None else rows[:limit]
 
@@ -348,4 +352,101 @@ def test_filtered_cursor_cannot_be_reused_with_different_filter():
             page_size=1,
             cursor=first.next_cursor,
             to_state="failed",
+        )
+
+
+def test_filters_by_inclusive_lower_time_bound():
+    execution = make_execution()
+    first = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    second = datetime(2026, 9, 19, 11, 0, tzinfo=timezone.utc)
+    history = (
+        (1, None, "created", first, None),
+        (2, "created", "running", second, None),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        occurred_from=second,
+    )
+    assert [item.sequence for item in result.history] == [2]
+
+
+def test_filters_by_exclusive_upper_time_bound():
+    execution = make_execution()
+    first = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    second = datetime(2026, 9, 19, 11, 0, tzinfo=timezone.utc)
+    history = (
+        (1, None, "created", first, None),
+        (2, "created", "running", second, None),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        occurred_to=second,
+    )
+    assert [item.sequence for item in result.history] == [1]
+
+
+def test_combines_state_and_time_filters():
+    execution = make_execution()
+    first = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    second = datetime(2026, 9, 19, 11, 0, tzinfo=timezone.utc)
+    third = datetime(2026, 9, 19, 12, 0, tzinfo=timezone.utc)
+    history = (
+        (1, "running", "completed", first, None),
+        (2, "running", "failed", second, None),
+        (3, "running", "completed", third, None),
+    )
+    result = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history)).execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        to_state="completed",
+        occurred_from=second,
+    )
+    assert [item.sequence for item in result.history] == [3]
+
+
+def test_rejects_naive_time_filter():
+    execution = make_execution()
+    with pytest.raises(ValueError, match="must include a timezone"):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            occurred_from=datetime(2026, 9, 19, 10, 0),
+        )
+
+
+def test_rejects_invalid_time_range():
+    execution = make_execution()
+    start = datetime(2026, 9, 19, 11, 0, tzinfo=timezone.utc)
+    end = datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)
+    with pytest.raises(ValueError, match="earlier"):
+        GetScheduledWorkflowExecutionHistory(FakeStore(execution)).execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            occurred_from=start,
+            occurred_to=end,
+        )
+
+
+def test_time_filtered_cursor_cannot_be_reused_with_different_time_range():
+    execution = make_execution()
+    history = tuple(
+        (sequence, "running", "completed", datetime(2026, 9, 19, sequence, 0, tzinfo=timezone.utc), None)
+        for sequence in range(1, 4)
+    )
+    query = GetScheduledWorkflowExecutionHistory(FakeStore(execution, history))
+    first = query.execute(
+        execution.id,
+        AuthenticatedIdentity.operator(),
+        page_size=1,
+        occurred_from=datetime(2026, 9, 19, 1, 0, tzinfo=timezone.utc),
+    )
+    with pytest.raises(ValueError, match="does not match"):
+        query.execute(
+            execution.id,
+            AuthenticatedIdentity.operator(),
+            page_size=1,
+            cursor=first.next_cursor,
+            occurred_from=datetime(2026, 9, 19, 2, 0, tzinfo=timezone.utc),
         )
