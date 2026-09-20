@@ -43,6 +43,7 @@ class DailyMarketAnalysis:
         self,
         inputs: list[StockAnalysisInput],
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> DailyMarketAnalysisResult:
         stock_results: dict[str, StockAnalysisResult] = {}
         inputs_by_symbol = {item.symbol: item for item in inputs}
@@ -60,7 +61,12 @@ class DailyMarketAnalysis:
             )
             stock_results[symbol] = result
             if self._result_store is not None:
-                self._result_store.save(symbol, result, analysis_date)
+                self._result_store.save(
+                    symbol,
+                    result,
+                    analysis_date,
+                    analysis_run_id=analysis_run_id,
+                )
 
         execution = self._orchestrator.run(
             [item.symbol for item in inputs],
