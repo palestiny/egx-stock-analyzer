@@ -6,6 +6,7 @@ from app.application.analysis.get_analysis_run import (
     GetAnalysisRun,
     InvalidAnalysisRunQueryError,
 )
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.domain.analysis_run import AnalysisRun
@@ -33,7 +34,7 @@ def test_completed_run_returns_correlated_snapshots_in_symbol_order():
     save_snapshot(result_store, run.id, "SVCE", date(2026, 9, 20))
     save_snapshot(result_store, run.id, "EGAL", date(2026, 9, 20))
 
-    view = GetAnalysisRun(run_store, result_store).execute(run.id)
+    view = GetAnalysisRun(run_store, result_store).execute(run.id, identity=AuthenticatedIdentity.operator())
 
     assert view.run_id == run.id
     assert view.state is ExecutionState.COMPLETED
@@ -84,7 +85,7 @@ def test_pagination_returns_bounded_pages_and_opaque_cursor():
     assert "EGAL" not in first.next_cursor
     assert "IEEC" not in first.next_cursor
 
-    second = capability.execute(run.id, page_size=2, cursor=first.next_cursor)
+    second = capability.execute(run.id, page_size=2, identity=AuthenticatedIdentity.operator(), cursor=first.next_cursor)
 
     assert [item.symbol for item in second.snapshots] == ["SVCE"]
     assert second.next_cursor is None
@@ -105,7 +106,7 @@ def test_cursor_is_bound_to_run_and_page_size():
     run_store.save(other_run)
 
     try:
-        capability.execute(other_run.id, page_size=1, cursor=cursor)
+        capability.execute(other_run.id, page_size=1, identity=AuthenticatedIdentity.operator(), cursor=cursor)
     except InvalidAnalysisRunQueryError as error:
         assert "cursor" in str(error)
     else:
@@ -128,7 +129,7 @@ def test_missing_run_is_explicit():
     missing_id = uuid4()
 
     try:
-        capability.execute(missing_id)
+        capability.execute(missing_id, identity=AuthenticatedIdentity.operator())
     except AnalysisRunNotFoundError:
         pass
     else:
@@ -143,7 +144,7 @@ def test_page_size_is_bounded():
 
     for invalid in [0, 101]:
         try:
-            GetAnalysisRun(run_store, result_store).execute(run.id, page_size=invalid)
+            GetAnalysisRun(run_store, result_store).execute(run.id, page_size=invalid, identity=AuthenticatedIdentity.operator())
         except InvalidAnalysisRunQueryError:
             continue
         raise AssertionError("Expected InvalidAnalysisRunQueryError")
@@ -158,6 +159,7 @@ def test_malformed_cursor_is_rejected_as_invalid_query():
     try:
         GetAnalysisRun(run_store, result_store).execute(
             run.id,
+            identity=AuthenticatedIdentity.operator(),
             cursor="not-valid-base64",
         )
     except InvalidAnalysisRunQueryError:
