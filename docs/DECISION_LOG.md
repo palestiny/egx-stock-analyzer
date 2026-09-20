@@ -2503,3 +2503,17 @@ M47 was implemented through PR #113 and merged into `main` at merge commit `1123
 The implementation keeps filtering server-side before pagination, binds filtered continuation cursors to the effective filter shape, preserves legacy unfiltered cursors, and exposes the same read model through API and dashboard.
 
 See docs/DEC-108-M47-SCHEDULED-WORKFLOW-HISTORY-FILTERING-DESIGN-GATE.md.
+
+
+## DEC-109 — M48 Scheduled Workflow History Time Filtering
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M48 extends the existing M45/M46/M47 single-execution scheduled-workflow history read capability with optional UTC time-window filtering. `occurred_from` is inclusive and `occurred_to` is exclusive; both are optional, and both compose with the existing lifecycle-state filters using AND semantics.
+
+Filtering occurs in persistence before pagination. Persisted sequence remains the sole ordering authority. Continuation cursors are bound to the complete effective query shape, including time filters, while legacy unfiltered cursors remain compatible. The existing lifecycle-history source and primary key remain authoritative; no mandatory secondary index is introduced without performance evidence.
+
+Cross-execution search, reason-text search, retention/deletion, replay, aggregation, arbitrary ordering, and new authorization semantics remain deferred.
+
+See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-HISTORY-TIME-FILTERING-DESIGN-GATE.md`.
