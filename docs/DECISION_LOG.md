@@ -927,17 +927,27 @@ GitHub
 
 ## DEC-111 — M49 Analysis Run Grouping & Snapshot Correlation
 
-**Status:** Proposed  
+**Status:** Accepted  \
 **Date:** 2026-09-20
 
-M49 opens a design gate for explicitly correlating multiple historical analysis snapshots produced by one logical market-wide analysis run.
+M49 is complete. It established `AnalysisRunId` as the durable identity for one logical market-wide analysis invocation and correlated successful historical stock snapshots with that identity.
 
-The current system has per-snapshot identities and scheduled-workflow execution identities, but these represent different concepts. The design gate evaluates whether a dedicated `AnalysisRunId` should connect successful stock snapshots without coupling analytical history to scheduled workflow lifecycle.
+The analysis-run identity remains separate from scheduled-workflow execution identity. Successful snapshots carry the run correlation; failed stocks do not receive synthetic snapshots.
 
-The gate is intentionally proposed only. It does not authorize persistence or API changes until the open questions in `docs/DEC-111-M49-ANALYSIS-RUN-GROUPING-DESIGN-GATE.md` are resolved.
+The implementation was merged through PR #122 and validated by GitHub Actions Run #2116 on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e`.
 
+## DEC-112 — M50 Analysis Run History & Read Model
 
----
+**Status:** Accepted  \
+**Date:** 2026-09-20
+
+M50 is complete. The system now exposes one durable analysis run through a dedicated read-side application capability, correlates its successful snapshots, applies deterministic symbol/snapshot ordering, and bounds snapshot pagination with an opaque cursor.
+
+The API endpoint is `GET /api/v1/analysis-runs/{run_id}`. The dashboard consumes this application/API contract without reconstructing run membership or analytical values.
+
+M50 does not invent per-user ownership, does not expose failed-symbol details that M49 does not persist, and leaves legacy uncorrelated snapshots in the existing stock-history boundary.
+
+The implementation was merged through PR #124 and hardened through PR #125. GitHub Actions Run #2170 passed on `a008ef86bb9bb038a5090485665bc207cce3bead`, validating Python unit tests, frontend tests, and the frontend production build.
 
 # 21. Open Decisions
 

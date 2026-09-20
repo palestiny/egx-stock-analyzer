@@ -1,7 +1,7 @@
 # M50 — Analysis Run History & Read Model — Implementation Status
 
 **Date:** 2026-09-20  
-**Status:** Implementation merged; CI verification pending
+**Status:** Complete
 
 ## Implemented
 
@@ -24,10 +24,8 @@ M50 intentionally does not expose failed-symbol identifiers/reasons because M49 
 
 Application, API, and dashboard tests were added in the implementation branch and merged through PR #124. A follow-up cursor-decoding hardening fix was merged through PR #125.
 
-The connected GitHub workflow-run view has not exposed a workflow run for the current M50 merge yet. Therefore this document does not claim CI success.
+GitHub Actions Run #2170 completed successfully on `a008ef86bb9bb038a5090485665bc207cce3bead`, validating Python unit tests, frontend tests, and the frontend production build.
 
 ## Completion Gate
 
-M50 should be marked complete only after the GitHub Actions Python and frontend test/build workflow is observably successful for the merged implementation.
-
-Until then, the next milestone/design gate must not be treated as authorized by completion status.
+M50 is complete: the implementation is merged and GitHub Actions Run #2170 passed. The next milestone still requires its own design gate.
