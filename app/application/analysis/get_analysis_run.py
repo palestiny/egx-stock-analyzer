@@ -8,7 +8,7 @@ from uuid import UUID
 from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
 from app.application.analysis.run_store import AnalysisRunStore
 from app.application.security.authorization import OwnershipAuthorizer
-from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.domain.analysis_run import AnalysisRunOutcomeState
 from app.domain.execution import ExecutionState
 
@@ -88,8 +88,16 @@ class GetAnalysisRun:
             ) from error
 
         after = self._decode_cursor(cursor, run_id, page_size) if cursor else None
+        owner_user_id = (
+            None
+            if Permission.OPERATOR in effective_identity.permissions
+            else effective_identity.user_id
+        )
         records = sorted(
-            self._result_store.get_history_by_analysis_run(run_id),
+            self._result_store.get_history_by_analysis_run(
+                run_id,
+                owner_user_id=owner_user_id,
+            ),
             key=lambda record: (record.symbol or "", str(record.snapshot_id)),
         )
 
