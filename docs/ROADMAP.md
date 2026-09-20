@@ -156,7 +156,6 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M53 | Analysis Run Outcome Completeness | 🟢 Complete | Persist and expose safe per-symbol success/failure outcomes for market-wide analysis runs without changing analytical execution |
 | M54 | Analysis Run Ownership | 🟢 Complete | Durable per-user ownership and authorization for AnalysisRun is implemented without changing analytical execution |
 | M55 | Analysis Snapshot Ownership | 🟢 Complete | Persist explicit snapshot ownership and enforce one authorization boundary across snapshot, history, latest-result, and run-correlated reads |
-| M56 | Analysis Snapshot Retention & Deletion | 🟡 Design Proposed | Define explicit snapshot lifecycle, deletion authorization, and retention semantics without changing analytical execution |
 | M56 | Analysis Run & Snapshot Retention & Deletion | 🟡 Design Proposed | Define one coordinated lifecycle for AnalysisRun and AnalysisResultRecord before destructive persistence is implemented |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
@@ -279,7 +278,7 @@ M54 — Analysis Run Ownership
         ↓
 M55 — Analysis Snapshot Ownership
         ↓
-M56 — Analysis Snapshot Retention & Deletion
+M56 — Analysis Run & Snapshot Retention & Deletion
         ↓
 NEXT — New Design Gate
 ```
@@ -1593,4 +1592,4 @@ M53 design is proposed in `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DE
 
 ## M56 — Analysis Snapshot Retention & Deletion
 
-The next design gate is proposed in docs/DEC-118-M56-ANALYSIS-SNAPSHOT-RETENTION-DESIGN-GATE.md. It is intentionally a design-only milestone at this point. Retention and deletion are separated from M55 ownership, and no implementation is authorized until the lifecycle decisions are accepted.
+The next design gate is proposed in docs/DEC-118-M56-ANALYSIS-LIFECYCLE-RETENTION-DESIGN-GATE.md. It is intentionally a design-only milestone at this point. Retention and deletion are separated from M54/M55 ownership, and no destructive implementation is authorized until the lifecycle decisions are accepted.
