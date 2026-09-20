@@ -2,7 +2,7 @@ import json
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from binascii import Error as Base64DecodeError
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from app.application.execution.scheduled_workflow_execution import (
@@ -57,6 +57,8 @@ class GetScheduledWorkflowExecutionHistory:
         cursor: str | None = None,
         from_state: str | None = None,
         to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
     ) -> ScheduledWorkflowExecutionHistoryReadModel:
         execution = self._store.get(execution_id)
         if execution is None:
@@ -71,12 +73,24 @@ class GetScheduledWorkflowExecutionHistory:
 
         normalized_from_state = self._normalize_state(from_state, "from_state")
         normalized_to_state = self._normalize_state(to_state, "to_state")
+        normalized_occurred_from = self._normalize_time(occurred_from, "occurred_from")
+        normalized_occurred_to = self._normalize_time(occurred_to, "occurred_to")
+        if (
+            normalized_occurred_from is not None
+            and normalized_occurred_to is not None
+            and normalized_occurred_from >= normalized_occurred_to
+        ):
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                "occurred_from must be earlier than occurred_to"
+            )
 
         after_sequence = (
             self._decode_cursor(
                 cursor,
                 expected_from_state=normalized_from_state,
                 expected_to_state=normalized_to_state,
+                expected_occurred_from=normalized_occurred_from,
+                expected_occurred_to=normalized_occurred_to,
             )
             if cursor is not None
             else None
@@ -87,6 +101,8 @@ class GetScheduledWorkflowExecutionHistory:
                 execution_id,
                 from_state=normalized_from_state,
                 to_state=normalized_to_state,
+                occurred_from=normalized_occurred_from,
+                occurred_to=normalized_occurred_to,
             )
             return self._to_read_model(execution, rows)
 
@@ -101,6 +117,8 @@ class GetScheduledWorkflowExecutionHistory:
             limit=effective_page_size + 1,
             from_state=normalized_from_state,
             to_state=normalized_to_state,
+            occurred_from=normalized_occurred_from,
+            occurred_to=normalized_occurred_to,
         )
         has_more = len(rows) > effective_page_size
         page_rows = rows[:effective_page_size]
@@ -110,6 +128,8 @@ class GetScheduledWorkflowExecutionHistory:
                 page_rows[-1][0],
                 from_state=normalized_from_state,
                 to_state=normalized_to_state,
+                occurred_from=normalized_occurred_from,
+                occurred_to=normalized_occurred_to,
             )
             if has_more and page_rows
             else None
@@ -135,6 +155,16 @@ class GetScheduledWorkflowExecutionHistory:
         return normalized
 
     @staticmethod
+    def _normalize_time(value: datetime | None, parameter_name: str) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise InvalidScheduledWorkflowExecutionHistoryQueryError(
+                f"{parameter_name} must include a timezone"
+            )
+        return value.astimezone(timezone.utc)
+
+    @staticmethod
     def _validate_page_size(page_size: int) -> None:
         if page_size < 1 or page_size > MAX_HISTORY_PAGE_SIZE:
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
@@ -146,8 +176,10 @@ class GetScheduledWorkflowExecutionHistory:
         sequence: int,
         from_state: str | None = None,
         to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
     ) -> str:
-        if from_state is None and to_state is None:
+        if from_state is None and to_state is None and occurred_from is None and occurred_to is None:
             payload = str(sequence)
         else:
             payload = json.dumps(
@@ -155,6 +187,8 @@ class GetScheduledWorkflowExecutionHistory:
                     "sequence": sequence,
                     "from_state": from_state,
                     "to_state": to_state,
+                    "occurred_from": occurred_from.isoformat() if occurred_from else None,
+                    "occurred_to": occurred_to.isoformat() if occurred_to else None,
                 },
                 separators=(",", ":"),
                 sort_keys=True,
@@ -166,6 +200,8 @@ class GetScheduledWorkflowExecutionHistory:
         cursor: str,
         expected_from_state: str | None = None,
         expected_to_state: str | None = None,
+        expected_occurred_from: datetime | None = None,
+        expected_occurred_to: datetime | None = None,
     ) -> int:
         if not cursor.strip():
             raise InvalidScheduledWorkflowExecutionHistoryQueryError(
@@ -196,6 +232,8 @@ class GetScheduledWorkflowExecutionHistory:
                 "from_state",
                 "sequence",
                 "to_state",
+                "occurred_from",
+                "occurred_to",
             }:
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor must be a valid history continuation cursor"
@@ -204,6 +242,8 @@ class GetScheduledWorkflowExecutionHistory:
             if (
                 payload["from_state"] != expected_from_state
                 or payload["to_state"] != expected_to_state
+                or payload["occurred_from"] != (expected_occurred_from.isoformat() if expected_occurred_from else None)
+                or payload["occurred_to"] != (expected_occurred_to.isoformat() if expected_occurred_to else None)
             ):
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor does not match the requested history filters"
@@ -216,7 +256,7 @@ class GetScheduledWorkflowExecutionHistory:
                     "cursor must be a valid history continuation cursor"
                 ) from None
         else:
-            if expected_from_state is not None or expected_to_state is not None:
+            if expected_from_state is not None or expected_to_state is not None or expected_occurred_from is not None or expected_occurred_to is not None:
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor does not match the requested history filters"
                 )
