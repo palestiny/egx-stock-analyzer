@@ -100,7 +100,7 @@ The active roadmap intentionally contains **one current milestone only**.
 
 ## M57 — Physical Purge
 
-**Status:** 🟢 Implementation Merged — CI status not yet externally observed
+**Status:** 🟢 Complete — Implementation Merged and CI Validated
 
 M57 provides a privileged, synchronous physical-purge capability for logically deleted analysis lifecycle data. It uses explicit selection or deterministic eligibility, a default batch limit of 100 lifecycle units, stable-ID ordering, one SQLite transaction per lifecycle unit, fail-stop semantics, mandatory management audit, and dry-run support. Automatic retention remains disabled.
 
@@ -108,7 +108,7 @@ Design gate: `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md` — Accepted.
 
 Implementation: PR #151, merged into `main` at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
 
-GitHub integration currently exposes no commit status/workflow result for the implementation merge, so this roadmap does not claim CI validation that has not been observed.
+GitHub Actions Run #2537 completed successfully for implementation merge `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`. A subsequent documentation closeout Run #2543 also completed successfully.
 
 This prevents milestone accumulation from becoming architecture drift or a second source of truth.
 
