@@ -246,7 +246,7 @@ def test_empty_run_is_persisted_without_snapshots():
 
     # Empty runs have no stock callback from which to recover the generated ID;
     # verify the store contains exactly one persisted run through its read model.
-    run_id = next(iter(result_store._analysis_runs))
+    run_id = result.analysis_run_id
     persisted_run = result_store.get_analysis_run(run_id)
 
     assert result.execution.state is ExecutionState.COMPLETED
