@@ -36,8 +36,6 @@ class StockAnalysisRuntime:
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     get_analysis_run: GetAnalysisRun
     list_analysis_runs: ListAnalysisRuns
-    delete_analysis_run: DeleteAnalysisRun | None
-    delete_analysis_snapshot: DeleteAnalysisSnapshot | None
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
@@ -48,6 +46,8 @@ class StockAnalysisRuntime:
     get_management_audit: GetManagementAudit | None
     get_user_audit_history: GetUserAuditHistory | None
     result_store: AnalysisResultStore
+    delete_analysis_run: DeleteAnalysisRun | None = None
+    delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None
 
 
 def create_stock_analysis_runtime(
