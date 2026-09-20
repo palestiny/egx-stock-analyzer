@@ -5,6 +5,7 @@ from app.application.analysis.list_analysis_runs import (
     InvalidAnalysisRunListQueryError,
     ListAnalysisRuns,
 )
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.domain.analysis_run import AnalysisRun
 from app.domain.execution import ExecutionState
@@ -25,7 +26,7 @@ def test_lists_runs_in_deterministic_descending_order():
     store.save(older)
     store.save(newer)
 
-    view = ListAnalysisRuns(store).execute()
+    view = ListAnalysisRuns(store).execute(identity=AuthenticatedIdentity.operator())
 
     assert [item.run_id for item in view.items] == [newer.id, older.id]
     assert view.next_cursor is None
@@ -40,6 +41,7 @@ def test_state_filter_is_applied_before_pagination():
         store.save(run)
 
     view = ListAnalysisRuns(store).execute(
+        identity=AuthenticatedIdentity.operator(),
         state=ExecutionState.COMPLETED,
         page_size=1,
     )
@@ -68,7 +70,7 @@ def test_cursor_is_opaque_and_bound_to_filter_and_page_size():
     store.save(second)
 
     capability = ListAnalysisRuns(store)
-    view = capability.execute(state=ExecutionState.COMPLETED, page_size=1)
+    view = capability.execute(identity=AuthenticatedIdentity.operator(), state=ExecutionState.COMPLETED, page_size=1)
 
     assert view.next_cursor is not None
     assert "2026" not in view.next_cursor
@@ -106,7 +108,7 @@ def test_page_size_is_bounded():
 
     for value in [0, 101]:
         try:
-            capability.execute(page_size=value)
+            capability.execute(identity=AuthenticatedIdentity.operator(), page_size=value)
         except InvalidAnalysisRunListQueryError:
             continue
         raise AssertionError("Expected page-size validation")
