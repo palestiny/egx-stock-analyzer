@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 from uuid import UUID
@@ -7,6 +8,15 @@ class LifecycleDeletionOutcome(Enum):
     DELETED = "deleted"
     NOOP = "noop"
     ACTIVE = "active"
+
+
+@dataclass(frozen=True)
+class PurgeStoreResult:
+    purged_run_ids: tuple[UUID, ...] = ()
+    purged_snapshot_ids: tuple[UUID, ...] = ()
+    blocked_resource_ids: tuple[UUID, ...] = ()
+    failure_resource_id: UUID | None = None
+    failure_reason: str | None = None
 
 
 class AnalysisLifecycleStore(Protocol):
