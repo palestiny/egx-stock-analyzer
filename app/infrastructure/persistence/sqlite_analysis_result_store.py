@@ -43,8 +43,19 @@ class SQLiteAnalysisResultStore:
             columns = [row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()]
             if "analysis_run_id" not in columns:
                 connection.execute("ALTER TABLE analysis_results ADD COLUMN analysis_run_id TEXT NULL")
-            connection.execute("CREATE TABLE IF NOT EXISTS analysis_runs (run_id TEXT PRIMARY KEY, analysis_date TEXT NULL, state TEXT NOT NULL)")
-            connection.execute("CREATE INDEX IF NOT EXISTS idx_analysis_results_run ON analysis_results (analysis_run_id)")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analysis_runs (
+                    run_id TEXT PRIMARY KEY,
+                    analysis_date TEXT NULL,
+                    state TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_analysis_results_run "
+                "ON analysis_results (analysis_run_id)"
+            )
             connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_analysis_results_run_symbol ON analysis_results (analysis_run_id, symbol) WHERE analysis_run_id IS NOT NULL")
 
             connection.execute(
@@ -123,6 +134,16 @@ class SQLiteAnalysisResultStore:
 
         try:
             with self._connect() as connection:
+                if analysis_run_id is not None:
+                    run_exists = connection.execute(
+                        "SELECT 1 FROM analysis_runs WHERE run_id = ?",
+                        (str(analysis_run_id),),
+                    ).fetchone()
+                    if run_exists is None:
+                        raise AnalysisResultPersistenceError(
+                            f"Unknown analysis run: {analysis_run_id}"
+                        )
+
                 connection.execute(
                     """
                     INSERT INTO analysis_results (
@@ -142,6 +163,8 @@ class SQLiteAnalysisResultStore:
                         str(analysis_run_id) if analysis_run_id is not None else None,
                     ),
                 )
+        except AnalysisResultPersistenceError:
+            raise
         except sqlite3.Error as error:
             raise AnalysisResultPersistenceError(
                 f"Could not persist analysis result for {symbol}"
