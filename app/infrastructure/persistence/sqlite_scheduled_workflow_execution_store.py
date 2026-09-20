@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -411,6 +411,8 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         limit: int | None = None,
         from_state: str | None = None,
         to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
         query = """
             SELECT sequence, from_state, to_state, occurred_at, reason
@@ -426,6 +428,14 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
         if to_state is not None:
             query += " AND to_state = ?"
             parameters.append(to_state)
+
+        if occurred_from is not None:
+            query += " AND occurred_at >= ?"
+            parameters.append(occurred_from.astimezone(timezone.utc).isoformat())
+
+        if occurred_to is not None:
+            query += " AND occurred_at < ?"
+            parameters.append(occurred_to.astimezone(timezone.utc).isoformat())
 
         if after_sequence is not None:
             query += " AND sequence > ?"

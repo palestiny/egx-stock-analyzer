@@ -180,5 +180,7 @@ class ScheduledWorkflowExecutionStore(Protocol):
         limit: int | None = None,
         from_state: str | None = None,
         to_state: str | None = None,
+        occurred_from: datetime | None = None,
+        occurred_to: datetime | None = None,
     ) -> tuple[tuple[int, str | None, str, datetime, str | None], ...]:
         ...
