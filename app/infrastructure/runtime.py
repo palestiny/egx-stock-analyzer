@@ -40,6 +40,7 @@ from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
 from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
+from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
 from app.application.security.credentials import CredentialService
 from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
@@ -119,6 +120,7 @@ def create_infrastructure_runtime(
     credential_store = SQLiteCredentialStore(config.analysis_database_path)
     credential_service = CredentialService(credential_store)
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
+    lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
         user_store=user_store,
         credential_service=credential_service,
@@ -137,6 +139,7 @@ def create_infrastructure_runtime(
         retry_policy=retry_policy,
         management_audit_store=management_audit_store,
         analysis_run_store=analysis_run_store,
+        lifecycle_store=lifecycle_store,
     )
 
     has_telegram_token = config.telegram_bot_token is not None
