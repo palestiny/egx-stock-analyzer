@@ -6,7 +6,7 @@
 
 ## 1. Where We Are
 
-The repository is **not at M14 or M48**.
+The repository is **past the earlier milestone sequence and is currently at M56**.
 
 The current roadmap position is **M56 — Analysis Run & Snapshot Retention and Deletion**.
 
@@ -51,7 +51,7 @@ Status: **Proposed**.
 
 ## 3. What Is Already Complete
 
-The project has progressed through many milestones beyond the early M14/M48 work. The exact completed milestone list and sequencing are authoritative in:
+The project has progressed through the earlier milestone sequence. Those milestones are historical context, not current execution state. The exact completed milestone list and sequencing are authoritative in:
 
 docs/ROADMAP.md
 
@@ -87,7 +87,7 @@ Do not infer the next task from an old conversation snapshot.
 
 ## 6. M56 Immediate Next Step
 
-The immediate work is **M56 design cleanup and decision readiness**, not M14 implementation and not unrelated feature development.
+The immediate work is **M56 design cleanup and decision readiness**, not any superseded milestone.
 
 Owner-controlled decisions must remain explicit. Architecture recommendations must not silently become product policy.
 
