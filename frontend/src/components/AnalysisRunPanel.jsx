@@ -1,0 +1,118 @@
+import { useState } from "react";
+
+export function AnalysisRunPanel({ getAnalysisRun }) {
+  const [runId, setRunId] = useState("");
+  const [view, setView] = useState(null);
+  const [cursor, setCursor] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function loadRun(event, nextCursor = null) {
+    event?.preventDefault();
+    const normalizedRunId = runId.trim();
+    if (!normalizedRunId) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getAnalysisRun(normalizedRunId, {
+        pageSize: 50,
+        cursor: nextCursor,
+      });
+      setView(result);
+      setCursor(nextCursor);
+    } catch (requestError) {
+      setView(null);
+      setCursor(null);
+      setError(requestError);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="panel" aria-label="analysis run history">
+      <div>
+        <p className="eyebrow">ANALYSIS RUNS</p>
+        <h3>Analysis run detail</h3>
+        <p className="muted">
+          Inspect one durable market-wide analysis run and its correlated successful snapshots.
+        </p>
+      </div>
+
+      <form className="symbol-form" onSubmit={(event) => loadRun(event)}>
+        <label className="sr-only" htmlFor="analysis-run-id">
+          Analysis run ID
+        </label>
+        <input
+          id="analysis-run-id"
+          name="analysis-run-id"
+          type="text"
+          value={runId}
+          onChange={(event) => setRunId(event.target.value)}
+          placeholder="AnalysisRunId"
+          autoComplete="off"
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? "Loading..." : "Load Run"}
+        </button>
+      </form>
+
+      {error && (
+        <p className="state-card error" role="alert">
+          {error.status === 404 ? "Analysis run was not found." : error.message}
+        </p>
+      )}
+
+      {view && (
+        <>
+          <div className="detail-row">
+            <strong>{view.state}</strong>
+            <span>
+              {view.run_id} · Created {new Date(view.created_at).toLocaleString()}
+            </span>
+          </div>
+
+          {view.snapshots.length === 0 && (
+            <p className="muted">This run has no successful snapshots.</p>
+          )}
+
+          {view.snapshots.length > 0 && (
+            <div className="opportunity-list">
+              {view.snapshots.map((snapshot) => (
+                <div className="detail-row" key={snapshot.snapshot_id}>
+                  <strong>{snapshot.symbol}</strong>
+                  <span>
+                    {snapshot.analysis_date ?? "No analysis date"} · {snapshot.snapshot_id}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {view.next_cursor && (
+            <button
+              type="button"
+              onClick={() => loadRun(null, view.next_cursor)}
+              disabled={loading}
+            >
+              {loading ? "Loading..." : "Next snapshots"}
+            </button>
+          )}
+
+          {cursor && (
+            <button
+              type="button"
+              onClick={() => loadRun(null, null)}
+              disabled={loading}
+            >
+              First page
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
