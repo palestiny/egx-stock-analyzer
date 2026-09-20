@@ -3,8 +3,13 @@ from datetime import date
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.application.analysis.result_store import AnalysisResultRecord
+from app.application.analysis.result_store import (
+    AnalysisResultPersistenceError,
+    AnalysisResultRecord,
+    AnalysisRunRecord,
+)
 from app.application.analysis.stock_analysis import StockAnalysisResult
+from app.domain.execution import ExecutionState
 from app.infrastructure.persistence.analysis_result_serializer import (
     deserialize_analysis_result,
     serialize_analysis_result,
@@ -35,6 +40,13 @@ class SQLiteAnalysisResultStore:
             elif "snapshot_id" not in columns:
                 self._migrate_latest_only_table(connection)
 
+            columns = [row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()]
+            if "analysis_run_id" not in columns:
+                connection.execute("ALTER TABLE analysis_results ADD COLUMN analysis_run_id TEXT NULL")
+            connection.execute("CREATE TABLE IF NOT EXISTS analysis_runs (run_id TEXT PRIMARY KEY, analysis_date TEXT NULL, state TEXT NOT NULL)")
+            connection.execute("CREATE INDEX IF NOT EXISTS idx_analysis_results_run ON analysis_results (analysis_run_id)")
+            connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_analysis_results_run_symbol ON analysis_results (analysis_run_id, symbol) WHERE analysis_run_id IS NOT NULL")
+
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_analysis_results_symbol_date
@@ -50,7 +62,8 @@ class SQLiteAnalysisResultStore:
                 snapshot_id TEXT PRIMARY KEY,
                 symbol TEXT NOT NULL,
                 analysis_date TEXT NULL,
-                payload TEXT NOT NULL
+                payload TEXT NOT NULL,
+                analysis_run_id TEXT NULL
             )
             """
         )
@@ -101,6 +114,7 @@ class SQLiteAnalysisResultStore:
         symbol: str,
         result: StockAnalysisResult,
         analysis_date: date | None = None,
+        analysis_run_id: UUID | None = None,
     ) -> None:
         payload = serialize_analysis_result(result)
         analysis_date_value = (
@@ -114,17 +128,44 @@ class SQLiteAnalysisResultStore:
                     snapshot_id,
                     symbol,
                     analysis_date,
-                    payload
+                    payload,
+                    analysis_run_id
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid4()),
                     symbol,
                     analysis_date_value,
                     payload,
+                    str(analysis_run_id) if analysis_run_id is not None else None,
                 ),
             )
+
+    def create_analysis_run(self, run_id: UUID, analysis_date: date | None) -> None:
+        try:
+            with self._connect() as connection:
+                connection.execute("INSERT INTO analysis_runs (run_id, analysis_date, state) VALUES (?, ?, ?)", (str(run_id), analysis_date.isoformat() if analysis_date else None, ExecutionState.CREATED.value))
+        except sqlite3.Error as error:
+            raise AnalysisResultPersistenceError(f"Could not create analysis run {run_id}") from error
+
+    def update_analysis_run_state(self, run_id: UUID, state: ExecutionState) -> None:
+        with self._connect() as connection:
+            cursor = connection.execute("UPDATE analysis_runs SET state = ? WHERE run_id = ?", (state.value, str(run_id)))
+            if cursor.rowcount != 1:
+                raise AnalysisResultPersistenceError(f"Unknown analysis run: {run_id}")
+
+    def get_analysis_run(self, run_id: UUID) -> AnalysisRunRecord | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT run_id, analysis_date, state FROM analysis_runs WHERE run_id = ?", (str(run_id),)).fetchone()
+        if row is None:
+            return None
+        return AnalysisRunRecord(run_id=UUID(row[0]), analysis_date=date.fromisoformat(row[1]) if row[1] else None, state=ExecutionState(row[2]))
+
+    def get_run_snapshots(self, run_id: UUID) -> tuple[AnalysisResultRecord, ...]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id FROM analysis_results WHERE analysis_run_id = ? ORDER BY symbol ASC, snapshot_id ASC", (str(run_id),)).fetchall()
+        return tuple(self._to_record(row) for row in rows)
 
     def get(self, symbol: str) -> StockAnalysisResult | None:
         record = self.get_record(symbol)
@@ -134,7 +175,7 @@ class SQLiteAnalysisResultStore:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload
+                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
                 FROM analysis_results
                 WHERE snapshot_id = ?
                 """,
@@ -171,7 +212,7 @@ class SQLiteAnalysisResultStore:
             raise ValueError("start_date cannot be after end_date")
 
         query = """
-            SELECT snapshot_id, symbol, analysis_date, payload
+            SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
             FROM analysis_results
             WHERE symbol = ?
         """
@@ -199,9 +240,9 @@ class SQLiteAnalysisResultStore:
 
     @staticmethod
     def _to_record(
-        row: tuple[str, str, str | None, str],
+        row: tuple[str, str, str | None, str, str | None],
     ) -> AnalysisResultRecord:
-        snapshot_id, symbol, analysis_date_value, payload = row
+        snapshot_id, symbol, analysis_date_value, payload, analysis_run_id = row
         return AnalysisResultRecord(
             result=deserialize_analysis_result(payload),
             analysis_date=(
@@ -211,4 +252,5 @@ class SQLiteAnalysisResultStore:
             ),
             snapshot_id=UUID(snapshot_id),
             symbol=symbol,
+            analysis_run_id=UUID(analysis_run_id) if analysis_run_id is not None else None,
         )
