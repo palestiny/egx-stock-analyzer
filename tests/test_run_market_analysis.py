@@ -52,7 +52,7 @@ def test_runs_multiple_stocks_in_supplied_order():
         Stock.create("EGAL", "Egypt Aluminum"),
         Stock.create("IEEC", "Egyptian Electrical"),
     ]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
     calls = []
     run_stock_analysis.execute.side_effect = lambda stock, as_of, **_: calls.append(stock.symbol)
 
