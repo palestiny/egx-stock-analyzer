@@ -74,7 +74,10 @@ def test_partial_analysis_still_delivers_successful_symbols():
     analysis = Mock()
     delivery = Mock()
     execution = make_execution(ExecutionState.COMPLETED_WITH_ERRORS, {"EGAL"})
-    analysis.execute.return_value = execution
+    analysis.execute.return_value = MarketAnalysisResult(
+        execution=execution,
+        analysis_run_id=execution.id,
+    )
     delivery.execute.return_value = delivery_result(AutomaticAlertDeliveryState.COMPLETED)
 
     workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
