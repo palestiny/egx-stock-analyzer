@@ -302,7 +302,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             current_row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state,
+                       updated_at, analysis_state, analysis_run_id, delivery_state,
                        owner_user_id, request_fingerprint, revision
                 FROM scheduled_workflow_executions
                 WHERE execution_id = ?
