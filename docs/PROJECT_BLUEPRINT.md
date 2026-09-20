@@ -752,7 +752,7 @@ This section records the stable architectural foundation only. Milestone-specifi
 
 The implemented system includes deterministic stock analysis, configured-market execution, opportunity ranking/views, historical analysis capabilities, alert delivery, scheduled workflows, durable workflow reliability/history, multi-user identity/authentication, credential management, and management/user audit read models.
 
-The current active work is M48 cross-execution scheduled-workflow history. The accepted design is implemented on PR #118 and is awaiting merge; see `docs/ROADMAP.md` and `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
+M48 cross-execution scheduled-workflow history is complete. The accepted design is implemented and merged through PR #118; see `docs/ROADMAP.md`, `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`, and `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
 ---
 
@@ -780,12 +780,10 @@ This blueprint intentionally does not duplicate milestone-by-milestone status be
 
 Current position:
 
-- M0–M47 are complete according to the current roadmap.
-- M48 is the active milestone.
-- M48 time filtering is implemented and merged.
-- M48 cross-execution history design is accepted.
-- M48 cross-execution history implementation is open in PR #118.
-- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` has a successful GitHub Actions Tests run #1959.
+- M0–M48 are complete according to the current roadmap.
+- M48 time filtering and cross-execution history are merged.
+- PR #118 implementation head `babd5935c76a01752e8fb2d32536eb7d42c55769` passed GitHub Actions Tests run #1959 before merge.
+- M48 completion is recorded in `docs/M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-MVP-COMPLETION.md`.
 
 The next action must be derived from the actual GitHub state and accepted design, not from historical roadmap text embedded in this blueprint.
 
@@ -907,8 +905,8 @@ Meaningful stable work should be synchronized to GitHub promptly.
 
 **Document Status:** Foundational blueprint — maintained
 
-**Current Implementation:** M47 is complete. M48 time filtering is merged. M48 cross-execution history design is accepted and its implementation is currently under PR #118.
+**Current Implementation:** M48 is complete. M48 time filtering and cross-execution history are merged and validated within the accepted design scope.
 
 **Current Project State:** See `docs/ROADMAP.md` and `docs/DECISION_LOG.md` for authoritative milestone and decision state.
 
-**Next Step:** Review and complete the accepted M48 cross-execution history implementation, then close M48 or open the next design gate based on evidence.
+**Next Step:** Open a new design gate for the next significant capability. Do not extend M48 opportunistically.
