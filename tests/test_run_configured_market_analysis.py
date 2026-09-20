@@ -1,12 +1,10 @@
 from datetime import date
-from uuid import UUID
 from unittest.mock import Mock
 
 from app.application.analysis.run_configured_market_analysis import (
     MarketAnalysisResult,
     RunConfiguredMarketAnalysis,
 )
-from app.application.analysis.run_market_analysis import MarketAnalysisResult
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.execution import Execution, ExecutionState
 from app.domain.stocks.stock import Stock
