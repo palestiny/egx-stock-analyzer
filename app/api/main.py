@@ -399,7 +399,7 @@ def create_app(
         state: str | None = None,
         page_size: int = 50,
         cursor: str | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if list_analysis_runs is None:
             raise HTTPException(
@@ -419,6 +419,7 @@ def create_app(
                 state=requested_state,
                 page_size=page_size,
                 cursor=cursor,
+                identity=identity,
             )
         except InvalidAnalysisRunListQueryError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
@@ -430,7 +431,7 @@ def create_app(
         run_id: UUID,
         page_size: int = 50,
         cursor: str | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
         if get_analysis_run is None:
             raise HTTPException(
@@ -443,6 +444,7 @@ def create_app(
                 run_id,
                 page_size=page_size,
                 cursor=cursor,
+                identity=identity,
             )
         except AnalysisRunNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
@@ -514,12 +516,15 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/market-analysis")
-    def run_market_analysis(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if run_configured_market_analysis is None:
             raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
 
         try:
-            execution = run_configured_market_analysis.execute(date.today())
+            execution = run_configured_market_analysis.execute(
+                date.today(),
+                owner_user_id=identity.user_id if Permission.OPERATOR not in identity.permissions else None,
+            )
         except Exception as error:
             logger.exception("Market-wide analysis execution failed", exc_info=error)
             raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
