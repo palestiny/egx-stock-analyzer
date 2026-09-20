@@ -150,6 +150,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M47 | Scheduled Workflow History Filtering | 🟢 Complete | Typed lifecycle-state filtering over the existing paginated history read boundary |
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
 | M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Complete | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
+| M50 | Analysis Run History & Read Model | 🟡 Design Proposed | Define the read-side contract for retrieving one durable analysis run and its successful correlated snapshots |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
 The milestone numbering is retained to preserve project history. The actual execution order is documented in `docs/DEC-047-EXECUTION-SEQUENCE-UPDATE.md`.
@@ -252,6 +253,8 @@ M47 — Scheduled Workflow History Filtering
 M48 — Scheduled Workflow Cross-Execution History
         ↓
 M49 — Analysis Run Grouping & Snapshot Correlation
+        ↓
+M50 — Analysis Run History & Read Model
         ↓
 NEXT — New Design Gate
 ```
