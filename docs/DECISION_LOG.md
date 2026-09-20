@@ -2638,3 +2638,19 @@ M51 preserves the existing authenticated system-level analysis visibility bounda
 Implementation is authorized within this scope.
 
 See `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GATE.md`.
+
+
+## DEC-114 — M52 Analysis Run Discovery Dashboard
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M52 proposes a presentation-only dashboard discovery surface over the accepted M51 `ListAnalysisRuns` API capability.
+
+The dashboard must consume M51 as the authoritative source for ordering, filtering, pagination, authentication, and run metadata. It must not query persistence, reproduce server-side filtering, trigger analysis merely by browsing, or introduce automatic polling.
+
+The design gate is intentionally unresolved on the primary UX choices: existing-dashboard panel versus dedicated route, pagination interaction, state-filter presentation, run-detail navigation, refresh semantics, metadata density, error presentation, and narrow-screen behavior.
+
+Implementation is not authorized until those presentation decisions are accepted.
+
+See `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`.
