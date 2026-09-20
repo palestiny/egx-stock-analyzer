@@ -2620,3 +2620,21 @@ See docs/DEC-112-M50-ANALYSIS-RUN-HISTORY-DESIGN-GATE.md.
 
 M50 implementation merged through PR #124. Cursor-decoding hardening merged through PR #125. CI verification for the current merge is not yet observable through the connected workflow-run view, so M50 remains pending completion validation.
 
+
+
+## DEC-113 — M51 Analysis Run History Query
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M51 adds a dedicated `ListAnalysisRuns` application read capability over the durable `AnalysisRunStore`. The query orders runs by `created_at DESC, analysis_run_id DESC`, optionally filters by any persisted aggregate execution state, and applies filtering before pagination.
+
+Pagination reuses the established opaque cursor contract with default page size 50 and maximum 100. Cursors are bound to the complete effective query shape. Valid no-match queries return an empty collection rather than 404.
+
+The discovery read model exposes only run-level metadata needed to select a run for M50 detail: run ID, creation time, aggregate state, requested/successful/failed counts. Snapshot detail remains behind `GetAnalysisRun`.
+
+M51 preserves the existing authenticated system-level analysis visibility boundary and does not introduce per-user run ownership. The dashboard run-detail surface remains unchanged; dashboard run discovery is deferred to a separate presentation gate.
+
+Implementation is authorized within this scope.
+
+See `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GATE.md`.
