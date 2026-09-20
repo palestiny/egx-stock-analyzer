@@ -236,7 +236,7 @@ class GetScheduledWorkflowExecutionHistory:
             keys = set(payload)
             legacy_keys = {"from_state", "sequence", "to_state"}
             current_keys = legacy_keys | {"occurred_from", "occurred_to"}
-            if keys not in {legacy_keys, current_keys}:
+            if keys != legacy_keys and keys != current_keys:
                 raise InvalidScheduledWorkflowExecutionHistoryQueryError(
                     "cursor must be a valid history continuation cursor"
                 )

@@ -141,3 +141,13 @@ def test_market_orchestrator_does_not_duplicate_per_stock_retries():
 
     assert result.execution.state is ExecutionState.FAILED
     assert run_stock_analysis.execute.call_count == 1
+
+
+def test_empty_symbol_is_rejected_before_execution():
+    stocks = [Stock.create("EGAL", "Egypt Aluminum")]
+    runner, run_stock_analysis = make_runner(stocks)
+
+    with pytest.raises(ValueError, match="Stock symbol cannot be empty"):
+        runner.execute(["EGAL", "  "], AS_OF)
+
+    run_stock_analysis.execute.assert_not_called()
