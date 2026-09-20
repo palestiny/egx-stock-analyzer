@@ -98,3 +98,35 @@ def test_active_run_delete_is_rejected_without_mutation(tmp_path):
         assert connection.execute(
             "SELECT outcome FROM management_audit WHERE action = 'analysis_run.delete'"
         ).fetchone()[0] == "rejected_active"
+
+def test_snapshot_delete_is_rejected_while_parent_run_is_active(tmp_path):
+    database = tmp_path / "analysis.db"
+    SQLiteAnalysisRunStore(database)
+    SQLiteManagementAuditStore(database)
+    lifecycle = SQLiteAnalysisLifecycleStore(database)
+
+    run_id = uuid4()
+    snapshot_id = uuid4()
+    actor = uuid4()
+    now = datetime.now(timezone.utc).isoformat()
+
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "INSERT INTO analysis_runs(run_id, created_at, state, owner_user_id, outcomes_available, deleted_at) VALUES (?, ?, ?, ?, ?, NULL)",
+            (str(run_id), now, "running", str(actor), 0),
+        )
+        connection.execute(
+            "INSERT INTO analysis_results(snapshot_id, symbol, analysis_date, payload, analysis_run_id, owner_user_id, deleted_at) VALUES (?, ?, ?, ?, ?, ?, NULL)",
+            (str(snapshot_id), "EGAL", None, "{}", str(run_id), str(actor)),
+        )
+
+    assert lifecycle.delete_snapshot(snapshot_id, actor, actor) is LifecycleDeletionOutcome.ACTIVE
+
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT deleted_at FROM analysis_results WHERE snapshot_id = ?",
+            (str(snapshot_id),),
+        ).fetchone()[0] is None
+        assert connection.execute(
+            "SELECT outcome FROM management_audit WHERE action = 'analysis_snapshot.delete'"
+        ).fetchone()[0] == "rejected_active"
