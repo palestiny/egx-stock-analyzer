@@ -11,6 +11,8 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionState,
 )
 from app.application.security.identity import AuthenticatedIdentity
+from app.domain.identity.user import UserStatus
+from app.application.security.authorization import AuthorizationError
 
 
 class FakeStore:
@@ -165,4 +167,11 @@ def test_invalid_state_is_rejected():
         GetScheduledWorkflowHistory(FakeStore(make_rows())).execute(
             AuthenticatedIdentity.operator(),
             from_state="invalid",
+        )
+
+
+def test_disabled_user_cannot_query_cross_execution_history():
+    with pytest.raises(AuthorizationError, match="not active"):
+        GetScheduledWorkflowHistory(FakeStore(make_rows())).execute(
+            AuthenticatedIdentity.user(uuid4(), status=UserStatus.DISABLED),
         )
