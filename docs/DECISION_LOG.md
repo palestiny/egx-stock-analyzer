@@ -2618,7 +2618,7 @@ See docs/DEC-112-M50-ANALYSIS-RUN-HISTORY-DESIGN-GATE.md.
 
 ### Implementation Status
 
-M50 implementation merged through PR #124. Cursor-decoding hardening merged through PR #125. CI verification for the current merge is not yet observable through the connected workflow-run view, so M50 remains pending completion validation.
+M50 implementation merged through PR #124. Cursor-decoding hardening merged through PR #125. The combined M50/M51 implementation path is validated by GitHub Actions Run #2192 on implementation head `5b78dc6f4d7b99438e590493259a1efa7a3a5203`, establishing completion validation for M50.
 
 
 
