@@ -431,7 +431,12 @@ def create_app(
     ) -> dict[str, object]:
         if delete_analysis_snapshot is None:
             raise HTTPException(status_code=503, detail="Analysis lifecycle is not configured")
-        result = delete_analysis_snapshot.execute(snapshot_id, identity)
+        try:
+            result = delete_analysis_snapshot.execute(snapshot_id, identity)
+        except AuthorizationError as error:
+            raise HTTPException(status_code=403, detail="Forbidden") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         if not result.deleted:
             raise HTTPException(status_code=404, detail="Analysis snapshot not found")
         return {"snapshot_id": str(snapshot_id), "deleted": True}
