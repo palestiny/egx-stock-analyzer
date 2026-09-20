@@ -13,6 +13,7 @@ class AnalysisResultRecord:
     snapshot_id: UUID = field(default_factory=uuid4)
     symbol: str | None = None
     analysis_run_id: UUID | None = None
+    owner_user_id: UUID | None = None
 
 
 class AnalysisResultStore(Protocol):
@@ -22,21 +23,35 @@ class AnalysisResultStore(Protocol):
         result: StockAnalysisResult,
         analysis_date: date | None = None,
         analysis_run_id: UUID | None = None,
+        owner_user_id: UUID | None = None,
     ) -> None:
         ...
 
-    def get(self, symbol: str) -> StockAnalysisResult | None:
+    def get(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> StockAnalysisResult | None:
         ...
 
-    def get_record(self, symbol: str) -> AnalysisResultRecord | None:
+    def get_record(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
         ...
 
-    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+    def get_snapshot(
+        self,
+        snapshot_id: UUID,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
         ...
 
     def get_history_by_analysis_run(
         self,
         analysis_run_id: UUID,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         ...
 
@@ -45,6 +60,7 @@ class AnalysisResultStore(Protocol):
         symbol: str,
         start_date: date | None = None,
         end_date: date | None = None,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         ...
 
@@ -59,6 +75,7 @@ class InMemoryAnalysisResultStore:
         result: StockAnalysisResult,
         analysis_date: date | None = None,
         analysis_run_id: UUID | None = None,
+        owner_user_id: UUID | None = None,
     ) -> None:
         records = self._results.setdefault(symbol, [])
         records.append(
@@ -67,33 +84,50 @@ class InMemoryAnalysisResultStore:
                 analysis_date=analysis_date,
                 symbol=symbol,
                 analysis_run_id=analysis_run_id,
+                owner_user_id=owner_user_id,
             )
         )
 
-    def get(self, symbol: str) -> StockAnalysisResult | None:
-        record = self.get_record(symbol)
+    def get(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> StockAnalysisResult | None:
+        record = self.get_record(symbol, owner_user_id=owner_user_id)
         return record.result if record is not None else None
 
-    def get_record(self, symbol: str) -> AnalysisResultRecord | None:
-        history = self.get_history(symbol)
+    def get_record(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
+        history = self.get_history(symbol, owner_user_id=owner_user_id)
         return history[0] if history else None
 
-    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+    def get_snapshot(
+        self,
+        snapshot_id: UUID,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
         for records in self._results.values():
             for record in records:
-                if record.snapshot_id == snapshot_id:
+                if record.snapshot_id == snapshot_id and (
+                    owner_user_id is None or record.owner_user_id == owner_user_id
+                ):
                     return record
         return None
 
     def get_history_by_analysis_run(
         self,
         analysis_run_id: UUID,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         records = [
             record
             for records in self._results.values()
             for record in records
             if record.analysis_run_id == analysis_run_id
+            and (owner_user_id is None or record.owner_user_id == owner_user_id)
         ]
         return tuple(records)
 
@@ -102,12 +136,15 @@ class InMemoryAnalysisResultStore:
         symbol: str,
         start_date: date | None = None,
         end_date: date | None = None,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         if start_date is not None and end_date is not None and start_date > end_date:
             raise ValueError("start_date cannot be after end_date")
 
         records = []
         for record in self._results.get(symbol, []):
+            if owner_user_id is not None and record.owner_user_id != owner_user_id:
+                continue
             if start_date is not None or end_date is not None:
                 if record.analysis_date is None:
                     continue
