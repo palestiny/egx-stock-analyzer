@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
+from app.api.analysis_run_response import AnalysisRunResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
@@ -35,6 +36,11 @@ from app.application.reporting.compare_analysis_snapshots import (
     InvalidSnapshotComparisonError,
 )
 from app.application.analysis.get_analysis_result import GetAnalysisResult
+from app.application.analysis.get_analysis_run import (
+    AnalysisRunNotFoundError,
+    GetAnalysisRun,
+    InvalidAnalysisRunQueryError,
+)
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.security.authentication import (
@@ -96,6 +102,7 @@ def create_app(
     get_analysis_report: GetAnalysisReport | None = None,
     get_alert_candidate: GetAlertCandidate | None = None,
     get_market_opportunity_ranking: GetMarketOpportunityRanking | None = None,
+    get_analysis_run: GetAnalysisRun | None = None,
     run_configured_market_analysis: RunConfiguredMarketAnalysis | None = None,
     get_analysis_history: GetAnalysisHistory | None = None,
     compare_analysis_snapshots: CompareAnalysisSnapshots | None = None,
@@ -378,6 +385,33 @@ def create_app(
             raise HTTPException(status_code=404, detail=f"Analysis history not found for {symbol}")
         response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
         return response.to_dict()
+
+
+    @app.get("/api/v1/analysis-runs/{run_id}")
+    def get_analysis_run_route(
+        run_id: UUID,
+        page_size: int = 50,
+        cursor: str | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if get_analysis_run is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis run history is not configured",
+            )
+
+        try:
+            view = get_analysis_run.execute(
+                run_id,
+                page_size=page_size,
+                cursor=cursor,
+            )
+        except AnalysisRunNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except InvalidAnalysisRunQueryError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        return AnalysisRunResponse.from_view(view).to_dict()
 
     @app.get("/api/v1/comparisons/{symbol}")
     def compare_analysis(
