@@ -1,6 +1,6 @@
 # DEC-120 — M57 Physical Purge Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-21  
 **Milestone:** M57 — Analysis Run & Snapshot Physical Purge
 
