@@ -1,6 +1,6 @@
 # DEC-113 — M51 Analysis Run History Query Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M51 — Analysis Run History Query
 
