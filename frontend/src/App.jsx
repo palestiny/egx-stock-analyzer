@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory } from "./api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
+import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
 
 function Metric({ label, value }) {
   return (
@@ -393,6 +394,8 @@ function DashboardApp({ onLogout, identity }) {
         )}
       </section>
 
+
+      <AnalysisRunPanel getAnalysisRun={getAnalysisRun} />
 
       <section className="panel workflow-operations-panel" aria-label="scheduled workflows">
         <div>
