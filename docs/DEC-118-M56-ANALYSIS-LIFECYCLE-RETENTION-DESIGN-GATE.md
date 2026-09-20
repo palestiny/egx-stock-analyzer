@@ -111,6 +111,41 @@ Trade-offs: highest policy complexity; automatic destructive behavior needs stro
 
 **Current design candidate:** D, potentially combined with E after the retention policy is justified. This is a recommendation for discussion, not an accepted decision.
 
+## 6A. Verified Current-State Constraints
+
+The current repository implementation was inspected before lifecycle implementation.
+
+### Shared durable database
+
+create_infrastructure_runtime constructs SQLiteAnalysisResultStore and SQLiteAnalysisRunStore with the same config.analysis_database_path. The management-audit store, user store, credentials, scheduled-workflow store, and alert-delivery store also use that same configured SQLite database path.
+
+This means the M56 lifecycle problem is not inherently a distributed-database problem in the current deployment. A coordinated lifecycle capability can potentially establish one SQLite transaction boundary if the stores expose a shared connection/transaction mechanism. The existing store APIs do not expose such a mechanism today.
+
+### Run/snapshot dependency
+
+analysis_results.analysis_run_id is currently a nullable correlation field without a database foreign key to analysis_runs. Conversely, analysis_run_outcomes has a foreign key to analysis_runs(run_id) with ON DELETE CASCADE.
+
+Therefore deleting an AnalysisRun currently cannot rely on SQLite to cascade correlated analysis snapshots. Snapshot lifecycle coordination must be explicit.
+
+### Read-side blast radius
+
+The durable snapshot store is consumed by latest-result reads, stock history, snapshot-by-ID reads, run detail, comparison/performance capabilities, and market-opportunity read paths. The durable run store is consumed by run detail and run discovery.
+
+A lifecycle implementation must therefore change the authoritative persistence/read predicates rather than patching one API endpoint.
+
+### Ownership state
+
+M54/M55 already persist nullable owner_user_id on runs and snapshots. The current read capabilities use owner-aware store queries plus application authorization. Lifecycle state must not replace or weaken this ownership boundary.
+
+### Audit boundary
+
+SQLiteManagementAuditStore is already composed against the same database path and is available in the application runtime. M56 can reuse this existing audit boundary, but whether destructive lifecycle requests are required to emit audit events remains an owner-controlled product/security decision.
+
+### Technical consequence
+
+The strongest technical implementation candidate is a dedicated lifecycle coordinator that operates over the existing application store abstractions and, for the current SQLite deployment, can be backed by an explicit shared-connection transaction adapter. The coordinator should not assume that two independently opened SQLite connections constitute one atomic transaction.
+
+This is an engineering recommendation only. It does not decide user deletion authority, cascade policy, purge policy, or audit requirements.
 ## 6. Open Questions
 
 1. May regular users delete their own AnalysisRun records?
