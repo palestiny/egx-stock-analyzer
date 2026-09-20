@@ -65,7 +65,7 @@ def test_delete_other_users_run_is_rejected():
 
     service = DeleteAnalysisRun(run_store, lifecycle_store)
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(AnalysisLifecycleNotFoundError):
         service.execute(run.id, AuthenticatedIdentity.user(actor))
 
     assert lifecycle_store.deleted_runs == []
