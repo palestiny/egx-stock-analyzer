@@ -184,6 +184,44 @@ Before implementation, tests should cover at minimum:
 - audit event behavior;
 - restart/persistence behavior.
 
+## 8.1 Architecture Evidence Before Decision
+
+The current implementation changes the retention decision materially:
+
+- `AnalysisRunStore` owns run metadata and outcome rows.
+- `AnalysisResultStore` owns analytical snapshots.
+- A correlated snapshot carries `analysis_run_id`, but the current SQLite schemas do not enforce a database-level foreign key from snapshots to runs.
+- M53 outcomes already cascade with their parent run inside `SQLiteAnalysisRunStore`.
+- M54 ownership is immutable and must remain the authorization source before any lifecycle mutation.
+- There is currently no deletion capability, so no existing destructive contract needs to be preserved.
+
+This means a naive application-level hard delete across the two stores could create a partial lifecycle if one store succeeds and the other fails. That would violate the invariant that deletion cannot silently produce a partially deleted authoritative result.
+
+### Recommended direction for the decision gate
+
+The design should prefer a **two-stage lifecycle: logical deletion first, physical purge later**, with these MVP defaults as the recommended baseline:
+
+1. **Self-service deletion:** a regular user may delete only their own AnalysisRun.
+2. **Operator deletion:** an operator may delete any AnalysisRun, including user-owned runs.
+3. **Global/system runs:** only an operator may delete them; ownership must never be reassigned as part of deletion.
+4. **Deletion model:** mark the AnalysisRun as deleted rather than immediately hard-delete it.
+5. **Read behavior:** deleted runs are excluded from normal list/detail reads and behave as not found to unauthorized/non-enumerating API callers.
+6. **Snapshot behavior:** correlated snapshots become lifecycle-hidden with their run; standalone snapshots with no run remain unaffected.
+7. **Purge:** physical deletion is a separate lifecycle operation and should not be introduced as an implicit side effect of user-facing deletion.
+8. **Audit:** destructive lifecycle requests should emit an explicit audit event through the existing audit boundary; failed authorization should not leak whether the target exists.
+9. **Idempotency:** repeating an already-completed deletion should be a successful no-op for an authorized caller.
+10. **Concurrency:** deletion must be rejected while an AnalysisRun is still active; completed/failed runs can enter the deleted state.
+11. **Retention:** automatic eligibility should initially be policy-driven and deterministic, but the first implementation should not introduce a background worker. Eligibility calculation and physical purge should remain separate capabilities.
+12. **Immutability:** non-deletion metadata remains immutable; deletion is the only lifecycle transition introduced by M55.
+
+### Why this direction is currently favored
+
+Soft deletion avoids pretending that two independently implemented persistence boundaries already provide one atomic cross-store transaction. It also preserves a recovery window and gives the read model a deterministic lifecycle state before any irreversible storage cleanup is introduced.
+
+The main cost is that physical storage is not reclaimed by the user-facing delete operation. That cost is intentional: physical purge can receive its own transaction/atomicity design once storage cleanup is an actual operational requirement.
+
+**Important:** These are recommendations for the M55 decision gate, not accepted project decisions yet. The gate remains Proposed until the project owner accepts or changes them.
+
 ## 9. Decision Gate
 
 **Status: Proposed — implementation is not authorized.**
