@@ -2517,3 +2517,25 @@ Filtering occurs in persistence before pagination. Persisted sequence remains th
 Cross-execution search, reason-text search, retention/deletion, replay, aggregation, arbitrary ordering, and new authorization semantics remain deferred.
 
 See `docs/DEC-109-M48-SCHEDULED-WORKFLOW-HISTORY-TIME-FILTERING-DESIGN-GATE.md`.
+
+
+## DEC-110 — M48 Scheduled Workflow Cross-Execution History
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M48 establishes a dedicated, bounded, read-only cross-execution lifecycle-history query over the existing durable scheduled workflow history.
+
+The query returns persisted lifecycle-history events, not per-execution summaries. Visibility reuses the existing ownership boundary: authenticated users see only executions they own, while the legacy/operator identity sees only system/global executions.
+
+M48 reuses M47 typed `from_state` / `to_state` filters and adds no execution-ID narrowing because single-execution history already has a dedicated capability. Results are ordered deterministically by `occurred_at DESC, execution_id DESC, sequence DESC`.
+
+Pagination remains bounded at the established default 50 / maximum 100. Cursors are opaque composite cursors bound to the complete effective query shape. Time filters are part of that shape where present.
+
+M48 is application/API focused; the dashboard does not add a second cross-execution history surface. SQLite starts without a mandatory new index; representative query-plan evidence must justify any secondary index.
+
+The existing M45/M46/M47 single-execution history contract remains unchanged. No lifecycle mutation, replay, retention change, new authorization semantics, or new authentication mechanism is introduced.
+
+Implementation is authorized within this scope.
+
+See `docs/DEC-110-M48-SCHEDULED-WORKFLOW-CROSS-EXECUTION-HISTORY-DESIGN-GATE.md`.
