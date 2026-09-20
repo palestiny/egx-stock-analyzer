@@ -65,6 +65,8 @@ class RunMarketAnalysis:
         seen: set[str] = set()
 
         for symbol in normalized_symbols:
+            if not symbol:
+                raise ValueError("Stock symbol cannot be empty")
             if symbol in seen:
                 raise DuplicateMarketAnalysisSymbolError(
                     f"Duplicate stock symbol: {symbol}"
