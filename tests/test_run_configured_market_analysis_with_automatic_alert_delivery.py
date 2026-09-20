@@ -1,6 +1,7 @@
 from datetime import date
 from unittest.mock import Mock
 
+from app.application.analysis.run_market_analysis import MarketAnalysisResult
 from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
     RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
 )
@@ -53,7 +54,10 @@ def test_successful_analysis_is_followed_by_one_delivery_call():
     analysis = Mock()
     delivery = Mock()
     execution = make_execution(ExecutionState.COMPLETED, {"EGAL"})
-    analysis.execute.return_value = execution
+    analysis.execute.return_value = MarketAnalysisResult(
+        execution=execution,
+        analysis_run_id=execution.id,
+    )
     delivery.execute.return_value = delivery_result(AutomaticAlertDeliveryState.COMPLETED)
 
     workflow = RunConfiguredMarketAnalysisWithAutomaticAlertDelivery(analysis, delivery)
