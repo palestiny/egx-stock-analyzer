@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from uuid import UUID
 
 from app.application.analysis.run_configured_market_analysis import (
     RunConfiguredMarketAnalysis,
@@ -14,6 +15,7 @@ from app.domain.execution import Execution, ExecutionState
 @dataclass(frozen=True)
 class ConfiguredMarketAnalysisDeliveryResult:
     analysis_execution: Execution
+    analysis_run_id: UUID
     delivery_result: AutomaticAlertDeliveryResult | None
 
 
@@ -29,11 +31,13 @@ class RunConfiguredMarketAnalysisWithAutomaticAlertDelivery:
         self._automatic_alert_delivery = automatic_alert_delivery
 
     def execute(self, as_of: date) -> ConfiguredMarketAnalysisDeliveryResult:
-        analysis_execution = self._run_configured_market_analysis.execute(as_of)
+        analysis_result = self._run_configured_market_analysis.execute(as_of)
+        analysis_execution = analysis_result.execution
 
         if analysis_execution.state is ExecutionState.FAILED:
             return ConfiguredMarketAnalysisDeliveryResult(
                 analysis_execution=analysis_execution,
+                analysis_run_id=analysis_result.analysis_run_id,
                 delivery_result=None,
             )
 
@@ -41,5 +45,6 @@ class RunConfiguredMarketAnalysisWithAutomaticAlertDelivery:
 
         return ConfiguredMarketAnalysisDeliveryResult(
             analysis_execution=analysis_execution,
+            analysis_run_id=analysis_result.analysis_run_id,
             delivery_result=delivery_result,
         )
