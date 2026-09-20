@@ -171,7 +171,7 @@ def test_market_run_is_persisted_with_completed_state_and_snapshot_correlation()
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED
     assert len(run_stock_analysis.execute.call_args_list) == 2
-    assert {call.kwargs["analysis_run_id"] for call in run_stock_analysis.call_args_list} == {run_id}
+    assert {call.kwargs["analysis_run_id"] for call in run_stock_analysis.execute.call_args_list} == {run_id}
 
 
 def test_partial_run_persists_successful_snapshot_without_fake_failed_snapshot():
@@ -191,5 +191,5 @@ def test_partial_run_persists_successful_snapshot_without_fake_failed_snapshot()
     assert result.execution.state is ExecutionState.COMPLETED_WITH_ERRORS
     assert persisted_run is not None
     assert persisted_run.state is ExecutionState.COMPLETED_WITH_ERRORS
-    assert run_stock_analysis.call_args_list[0].kwargs["analysis_run_id"] == run_id
-    assert run_stock_analysis.call_args_list[1].kwargs["analysis_run_id"] == run_id
+    assert run_stock_analysis.execute.call_args_list[0].kwargs["analysis_run_id"] == run_id
+    assert run_stock_analysis.execute.call_args_list[1].kwargs["analysis_run_id"] == run_id
