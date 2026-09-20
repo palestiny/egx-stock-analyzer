@@ -123,3 +123,21 @@ def test_analysis_run_owner_is_immutable_across_state_transition():
     transitioned = run.with_state(ExecutionState.COMPLETED)
 
     assert transitioned.owner_user_id == owner_id
+
+
+def test_analysis_run_store_rejects_owner_change():
+    owner_id = uuid4()
+    other_id = uuid4()
+    store = InMemoryAnalysisRunStore()
+    run = AnalysisRun.create(owner_user_id=owner_id)
+    store.save(run)
+
+    with pytest.raises(ValueError, match="ownership cannot be changed"):
+        store.save(
+            AnalysisRun(
+                id=run.id,
+                created_at=run.created_at,
+                state=run.state,
+                owner_user_id=other_id,
+            )
+        )
