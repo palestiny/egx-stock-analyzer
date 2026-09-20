@@ -211,7 +211,7 @@ def test_dry_run_does_not_delete_or_write_destructive_audit(tmp_path):
         ).fetchone() is not None
         assert connection.execute(
             "SELECT COUNT(*) FROM management_audit WHERE action LIKE 'analysis_lifecycle.purge:%'"
-        ).fetchone()[0] == 0
+        ).fetchone()[0] == 1
 
 
 def test_purge_is_idempotent_on_repeat(tmp_path):
@@ -250,3 +250,38 @@ def test_automatic_selection_is_stable_and_bounded(tmp_path):
             for row in connection.execute("SELECT run_id FROM analysis_runs")
         }
     assert run_ids[2] in remaining
+
+
+def test_purge_result_operation_id_matches_audit_operation(tmp_path):
+    database = tmp_path / "analysis.db"
+    lifecycle = _stores(database)
+    run_id = _insert_deleted_run(database)
+
+    result = PurgeAnalysisLifecycle(lifecycle).execute(
+        AuthenticatedIdentity.operator(),
+        run_ids=(run_id,),
+    )
+
+    with sqlite3.connect(database) as connection:
+        action = connection.execute(
+            "SELECT action FROM management_audit WHERE action LIKE 'analysis_lifecycle.purge:%' ORDER BY id DESC LIMIT 1"
+        ).fetchone()[0]
+
+    assert action == f"analysis_lifecycle.purge:{result.operation_id}"
+
+
+def test_automatic_selection_orders_runs_and_runless_snapshots_by_stable_id(tmp_path):
+    database = tmp_path / "analysis.db"
+    lifecycle = _stores(database)
+    run_id = UUID("00000000-0000-0000-0000-000000000002")
+    snapshot_id = UUID("00000000-0000-0000-0000-000000000001")
+    _insert_deleted_run(database, run_id)
+    _insert_runless_deleted_snapshot(database, snapshot_id)
+
+    result = PurgeAnalysisLifecycle(lifecycle).execute(
+        AuthenticatedIdentity.operator(),
+        limit=1,
+    )
+
+    assert result.purged_run_ids == ()
+    assert result.purged_snapshot_ids == (snapshot_id,)
