@@ -23,4 +23,10 @@ class RunConfiguredMarketAnalysis:
         owner_user_id: UUID | None = None,
     ) -> MarketAnalysisResult:
         symbols = list(self._stock_catalog.symbols())
-        return self._run_market_analysis.execute(symbols, as_of, owner_user_id=owner_user_id)
+        if owner_user_id is None:
+            return self._run_market_analysis.execute(symbols, as_of)
+        return self._run_market_analysis.execute(
+            symbols,
+            as_of,
+            owner_user_id=owner_user_id,
+        )
