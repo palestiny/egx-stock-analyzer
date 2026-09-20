@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function AnalysisRunPanel({ getAnalysisRun }) {
+export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
   const [runId, setRunId] = useState("");
   const [loadedRunId, setLoadedRunId] = useState(null);
   const [view, setView] = useState(null);
@@ -35,7 +35,13 @@ export function AnalysisRunPanel({ getAnalysisRun }) {
     }
   }
 
-  async function loadRunForLoadedRun(nextCursor) {
+  async function loadRunById(normalizedRunId, nextCursor) {
+    setLoading(true);
+    setError(null);
+    await loadRunById(normalizedRunId, nextCursor);
+  }
+
+    async function loadRunForLoadedRun(nextCursor) {
     if (!loadedRunId) {
       return;
     }
