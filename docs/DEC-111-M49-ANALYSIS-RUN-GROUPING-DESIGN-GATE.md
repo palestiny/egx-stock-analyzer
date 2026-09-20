@@ -1,6 +1,6 @@
 # DEC-111 — M49 Analysis Run Grouping Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M49 — Analysis Run Grouping & Snapshot Correlation
 
@@ -157,63 +157,111 @@ The scheduled workflow may trigger an analysis run, but it does not own the anal
 
 ---
 
-## 7. Open Questions
+## 7. Accepted Decisions
 
-1. Should an analysis run be modeled as an application result object only, or become a persisted domain/application record?
-2. Should successful snapshots only carry the run ID, or should failed stock outcomes also be persisted as run members?
-3. Should an empty market-wide run create a persisted analysis-run record?
-4. Should a partially completed run remain queryable as one run?
-5. How should a repeated idempotent scheduled occurrence map to analysis-run identity?
-6. How should legacy snapshots created before M49 be represented when no run ID exists?
-7. Is one run allowed to contain multiple snapshots for the same symbol?
-8. Should manual single-stock analysis create an analysis-run identity, or is the new identity restricted to market-wide runs?
-9. What is the minimum persistence/indexing contract required for future bounded run queries?
-10. Does the first M49 implementation need an API/read model, or should it stop at application + persistence capability?
+### 7.1 Analysis-run identity
 
----
+M49 introduces a dedicated immutable AnalysisRunId for each market-wide analysis invocation. The identity is an application-level analytical correlation key and is distinct from scheduled-workflow execution identity.
 
-## 8. Required Invariants
+The analysis run is persisted because the correlation must survive process restart and support future read-side queries. The persistence record is minimal: run ID, run date/time metadata needed for deterministic identification, aggregate execution state, and ownership context where applicable.
 
-If the design is accepted, implementation must preserve:
+### 7.2 Snapshot correlation
 
-1. An analysis-run identity is immutable.
-2. Workflow execution identity and analysis-run identity remain conceptually distinct.
-3. Existing snapshot contents remain unchanged except for explicit correlation metadata.
-4. Existing latest-result reads remain compatible.
-5. Historical snapshots are not rewritten merely to manufacture correlation.
-6. Partial market-wide analysis must not lose successful snapshots.
-7. Correlation must be deterministic and testable.
-8. No analytical scoring or classification logic moves into persistence or orchestration.
-9. Existing ownership/authentication boundaries remain authoritative for future reads.
-10. Provider-specific data remains outside the analysis-run model.
+Each successfully persisted historical analysis snapshot produced by the market-wide run carries the AnalysisRunId.
 
----
+Failed stock outcomes are represented by the persisted analysis-run aggregate outcome rather than by creating fake analysis snapshots for failed stocks.
 
-## 9. TDD Acceptance Shape
+### 7.3 Partial and failed runs
 
-Before implementation is considered complete, tests should cover at minimum:
+A partially completed market-wide run remains a valid persisted analysis run and retains its successful snapshot associations.
 
-- a market-wide run receives one stable analysis-run identity;
-- successful stock snapshots are associated with that identity;
+An all-failed run is also persisted as a run record so that an attempted market-wide operation is not silently lost. It has no successful snapshot associations.
+
+An empty market-wide run is persisted as a completed run with zero snapshot associations.
+
+### 7.4 Idempotent scheduled occurrences
+
+A scheduled workflow occurrence may trigger an analysis run, but the scheduled workflow execution ID is not the analysis-run ID.
+
+For an idempotent repeated occurrence, the existing workflow idempotency boundary remains authoritative. A successful first execution reuses its already-established analysis-run correlation rather than creating a second analytical run for the same idempotent occurrence.
+
+### 7.5 Multiple snapshots for one symbol
+
+One analysis run may contain at most one successful snapshot per normalized symbol.
+
+### 7.6 Manual analysis semantics
+
+M49 correlation is introduced for market-wide analysis runs. Existing single-stock manual analysis does not gain a synthetic run identity in this milestone.
+
+### 7.7 Legacy snapshots
+
+Snapshots created before M49 have no analysis-run identity. They remain readable and are not rewritten merely to manufacture historical grouping.
+
+### 7.8 Persistence boundary
+
+The application-facing analysis-result boundary is extended explicitly rather than leaking SQLite details into orchestration or API code.
+
+The first implementation may evolve the existing historical snapshot schema and add a dedicated analysis-run table, but the domain/application contract remains provider- and database-neutral.
+
+No API/read model is required for the first M49 implementation. The first slice establishes application + persistence correlation with tests.
+
+### 7.9 Indexing
+
+M49 adds only indexes required by the accepted persistence access patterns. No speculative index is introduced.
+
+## 8. Alternatives and Trade-offs
+
+### Reusing scheduled workflow execution identity
+
+Rejected for the M49 analytical boundary because it couples analysis history to one trigger type and does not cover manual or future triggers.
+
+### Dedicated persisted analysis-run record
+
+Accepted because durable correlation, partial/all-failed run visibility, empty-run representation, and future read-side queries require an explicit authoritative analytical grouping object.
+
+### Inferring grouping from timestamps or dates
+
+Rejected because repeated runs, retries, and partial completion make time-based membership ambiguous.
+
+### Persisting only a run ID on snapshots
+
+Insufficient for this MVP because an empty or all-failed run would have no snapshot row from which the run could be recovered.
+
+## 9. Required Invariants
+
+1. AnalysisRunId is immutable.
+2. Workflow execution identity and analysis-run identity remain distinct.
+3. Successful snapshots reference exactly one analysis run when produced by market-wide execution.
+4. A failed stock never produces a fake snapshot.
+5. Partial, all-failed, and empty runs remain explicitly represented according to the accepted persistence semantics.
+6. Existing latest-result reads remain compatible.
+7. Legacy snapshots remain readable without synthetic historical grouping.
+8. At most one successful snapshot per symbol belongs to one analysis run.
+9. Persistence remains behind application-facing contracts.
+10. No analytical scoring/classification logic moves into persistence or correlation handling.
+11. Ownership remains governed by the existing authenticated identity/ownership boundary.
+12. Provider-specific behavior remains outside the analysis-run model.
+
+## 10. TDD Acceptance Shape
+
+- one market-wide run creates one stable analysis-run identity;
+- successful snapshots reference that identity;
 - partial completion preserves successful associations;
-- all-failed runs follow the accepted persistence semantics;
-- empty-run behavior follows the accepted persistence semantics;
-- repeated scheduled occurrence behavior is deterministic;
-- legacy snapshots remain readable;
+- all-failed runs persist a run with no successful snapshot associations;
+- empty runs persist a completed run with zero associations;
+- repeated idempotent scheduled occurrence behavior does not create a second analytical run;
+- legacy snapshots remain readable with no run ID;
 - latest-result reads remain unchanged;
-- manual and scheduled trigger semantics follow the accepted identity boundary;
-- persistence/restart preserves correlation.
+- single-stock manual analysis remains unchanged;
+- one successful snapshot per symbol per run is enforced;
+- restart preserves analysis-run and snapshot correlation;
+- persistence errors do not silently create partial correlation state.
 
----
+## 11. Design Gate Decision
 
-## 10. Design Gate Status
+**Status: Accepted — implementation is authorized for the M49 scope defined here.**
 
-**Proposed — implementation is not authorized by this document.**
-
-The next step is to resolve the open questions and record the accepted decision before changing the analysis-result persistence contract.
-
----
-
+Implementation must establish the application/persistence contract before any API/dashboard exposure. The scheduled workflow remains an operational trigger; the analysis run remains the analytical correlation boundary.
 ## 11. Revisit Conditions
 
 Revisit this gate if:
