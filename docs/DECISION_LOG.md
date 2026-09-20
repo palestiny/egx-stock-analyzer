@@ -2831,3 +2831,16 @@ Explicit privileged purge is safer and more auditable than immediate or automati
 M57 adds a storage-lifecycle maintenance boundary without changing analytical behavior, ownership, or normal lifecycle visibility. Future retention or archival policy requires a separate design gate.
 
 See `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md`.
+
+## DEC-121 — M57 Physical Purge Implementation Completion
+
+**Status:** Accepted  
+**Date:** 2026-09-21
+
+M57 implementation is merged through PR #151 at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
+
+The implementation provides the accepted privileged purge boundary, transactional lifecycle-unit deletion, bounded deterministic selection, runless snapshot handling, active/visible protection, dry-run preview, idempotent repeat behavior, fail-stop transaction handling, and management-audit recording.
+
+At documentation closeout time, the available GitHub integration exposed no workflow run or commit status for the implementation merge. Therefore this entry records the merge and implementation scope but does not claim CI validation.
+
+M57 remains complete only after observable CI validation is available; the next design gate must not be opened based solely on the merge.
