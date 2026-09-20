@@ -108,26 +108,105 @@ The candidate would:
 
 This remains a proposal until the open questions are resolved.
 
-## 8. Open Questions
+## 8. Accepted Decisions
 
-1. Should the query return lifecycle-history events directly, or summarize one row per execution?
-2. Should user-owned queries include only that user's executions while operators retain global visibility?
-3. Should system/global executions be visible to all authenticated users or only the operator compatibility identity?
-4. Should M48 reuse M47 `from_state` / `to_state` filters?
-5. What deterministic ordering should govern cross-execution results?
-6. Should pagination use a sequence cursor, a composite cursor, or another opaque cursor representation?
-7. What maximum page size is appropriate?
-8. Should an optional execution ID filter remain available as a narrowing constraint?
-9. Should the dashboard expose cross-execution history in M48 or remain API/application-only?
-10. What query/index evidence is required before introducing a secondary SQLite index?
-11. How should deleted-user ownership be represented in a read model?
-12. Should global/system records be mixed with user-owned records in one result set, or explicitly separated?
+### 8.1 Result Shape
+
+The query returns persisted lifecycle-history events, not one summary row per execution.
+
+Each item contains:
+- execution ID;
+- occurrence ID;
+- sequence;
+- from state;
+- to state;
+- occurred-at timestamp;
+- persisted transition reason.
+
+This preserves the existing M45 history read model while adding execution scope to the result.
+
+### 8.2 Ownership Scope
+
+Visibility exactly reuses the existing ownership boundary:
+
+- an authenticated user sees lifecycle history only for executions owned by that user;
+- the legacy/operator identity sees system/global executions where `owner_user_id IS NULL`;
+- user-owned executions are not exposed to the operator compatibility identity;
+- disabled/deleted users cannot authenticate, so their historical user-owned executions remain persisted but are not exposed through the authenticated user surface.
+
+No new ownership semantics are introduced.
+
+### 8.3 Global/System Records
+
+Global/system executions are visible only through the existing operator/global authorization path. They are not mixed into user-owned result sets.
+
+The cross-execution query therefore always operates over one effective visibility scope determined by the authenticated identity.
+
+### 8.4 State Filters
+
+The query reuses the M47 typed `from_state` and `to_state` filters.
+
+Filtering occurs in persistence before pagination. Invalid states remain application-level validation errors.
+
+### 8.5 Deterministic Ordering
+
+Cross-execution history is ordered newest-first using:
+
+```
+occurred_at DESC,
+execution_id DESC,
+sequence DESC
+```
+
+The full ordering tuple is the authority for deterministic pagination.
+
+### 8.6 Pagination
+
+Pagination uses an opaque composite cursor representing the last returned ordering tuple plus the complete effective filter shape.
+
+The cursor is bound to:
+- from_state;
+- to_state;
+- occurred_from / occurred_to when those filters exist;
+- the ordering version/shape required by the implementation.
+
+A cursor from one query shape cannot be reused with another query shape.
+
+Default page size remains 50 and maximum page size remains 100, matching the established history-query boundary.
+
+### 8.7 Execution ID Narrowing
+
+An execution ID filter is not added to the cross-execution capability.
+
+A single-execution request already has the established M45/M46/M47 capability. Adding an execution ID to the new cross-execution contract would create overlapping semantics without adding useful capability.
+
+### 8.8 Dashboard Scope
+
+M48 is application/API focused. The dashboard does not gain a second cross-execution history surface in this milestone.
+
+The existing single-execution dashboard history remains unchanged. A dashboard-wide operational history view requires a separate presentation design decision after the API contract proves useful.
+
+### 8.9 SQLite Query and Index Strategy
+
+The first implementation starts with the existing lifecycle-history schema and no mandatory new secondary index.
+
+The implementation must capture representative SQLite query-plan evidence for the selected cross-execution query and pagination shape. A secondary index is introduced only if the evidence demonstrates a meaningful need under the expected query pattern.
+
+The primary key on `(execution_id, sequence)` remains authoritative for single-execution history; M48 does not repurpose it as a cross-execution ordering contract.
+
+### 8.10 Read-Only and Restart Semantics
+
+The capability remains strictly read-only. It does not mutate lifecycle state, history, ownership, or cursors.
+
+Restart consistency is inherited from the durable SQLite lifecycle-history source of truth and must be covered by integration tests.
 
 ## 9. Proposed Invariants
 
 - reads never mutate lifecycle state or history;
 - ownership authorization is evaluated before records become visible;
 - one execution's history cannot leak into another user's result set;
+- user queries contain only user-owned executions;
+- operator/global queries contain only system/global executions;
 - ordering is deterministic and documented;
 - pagination is bounded;
 - cursors are opaque and bound to their effective query shape;
@@ -138,28 +217,28 @@ This remains a proposal until the open questions are resolved.
 
 ## 10. TDD Acceptance Shape
 
-If M48 is accepted, tests should cover at minimum:
+If M48 is implemented, tests must cover at minimum:
 
 - empty cross-execution result;
-- multiple executions with deterministic ordering;
+- multiple executions with deterministic newest-first ordering;
 - user ownership isolation;
-- global/system visibility;
-- deleted/disabled-user semantics;
+- global/system visibility isolation;
+- disabled/deleted-user access behavior;
 - state filtering;
 - bounded pagination;
-- cursor continuation;
+- composite cursor continuation;
 - cursor/query-shape mismatch;
 - unknown or invalid filters;
 - restart consistency;
 - no mutation during reads;
 - API transport;
-- dashboard behavior if dashboard scope is accepted;
-- query behavior with sufficient evidence for the selected SQLite strategy.
+- representative SQLite query-plan evidence;
+- preservation of the existing single-execution history contract.
 
 ## 11. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized.**
+**Status: Accepted — implementation is authorized for the bounded M48 scope defined above.**
 
-The next action is to resolve the open questions and record an accepted decision before implementing M48.
+Implementation must remain read-only, preserve the existing ownership boundary, reuse M47 filters, and keep the existing single-execution history contract backward compatible.
 
 See `docs/DECISION_LOG.md` for the project decision history.
