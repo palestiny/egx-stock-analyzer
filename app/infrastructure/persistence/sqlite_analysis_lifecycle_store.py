@@ -218,16 +218,20 @@ class SQLiteAnalysisLifecycleStore:
             finally:
                 connection.close()
 
-        if not candidates:
-            with self._connect() as connection:
-                self._append_audit(
-                    connection,
-                    actor_user_id,
-                    f"analysis_lifecycle.purge:{operation_id}",
-                    actor_user_id,
-                    datetime.now(timezone.utc).isoformat(),
-                    "noop",
-                )
+        with self._connect() as connection:
+            outcome = (
+                "dry_run"
+                if dry_run
+                else f"completed:runs={len(purged_runs)}:snapshots={len(purged_snapshots)}:blocked={len(blocked)}"
+            )
+            self._append_audit(
+                connection,
+                actor_user_id,
+                f"analysis_lifecycle.purge:{operation_id}",
+                actor_user_id,
+                datetime.now(timezone.utc).isoformat(),
+                outcome,
+            )
 
         return PurgeStoreResult(
             purged_run_ids=tuple(purged_runs),
