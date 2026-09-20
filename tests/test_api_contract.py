@@ -48,7 +48,7 @@ def test_post_analysis_returns_503_when_execution_is_not_configured():
 
 def test_post_analysis_returns_404_for_unknown_stock_symbol():
     class UnknownStockRunner:
-        def execute(self, symbol, as_of):
+        def execute(self, symbol, as_of, identity=None):
             from app.application.analysis.run_stock_analysis_by_symbol import (
                 UnknownStockSymbolError,
             )
