@@ -231,7 +231,10 @@ class GetScheduledWorkflowHistory:
             )
 
         try:
-            occurred_at = datetime.fromisoformat(payload["occurred_at"]).astimezone(timezone.utc)
+            occurred_at = datetime.fromisoformat(payload["occurred_at"])
+            if occurred_at.tzinfo is None:
+                raise ValueError("cursor timestamp must include a timezone")
+            occurred_at = occurred_at.astimezone(timezone.utc)
             execution_id = UUID(payload["execution_id"])
             sequence = int(payload["sequence"])
         except (TypeError, ValueError):
