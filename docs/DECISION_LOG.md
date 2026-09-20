@@ -2673,4 +2673,8 @@ M53 extends the existing GetAnalysisRun/API/dashboard read surface. Legacy pre-M
 
 No analytical logic, retry changes, provider behavior, workflow recovery, ranking, or per-user run ownership is introduced.
 
+### Implementation validation
+
+M53 implementation merged through PR #132 at `a232b55f11393f68c2980b5e7eb3d1a998a2ae9c`. GitHub Actions Run #2262 passed on implementation head `c723ab9cc76c7348f11ea7792c74c28108694c4a`, covering Python unit tests and frontend tests/build.
+
 See `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`.
