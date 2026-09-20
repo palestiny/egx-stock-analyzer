@@ -25,10 +25,14 @@ class RunMarketAnalysis:
         self,
         stock_catalog: StockCatalog,
         run_stock_analysis: RunStockAnalysis,
-        analysis_run_store: AnalysisRunStore,
+        analysis_run_store: AnalysisRunStore | None = None,
     ) -> None:
         self._stock_catalog = stock_catalog
         self._run_stock_analysis = run_stock_analysis
+        if analysis_run_store is None:
+            from app.application.analysis.run_store import InMemoryAnalysisRunStore
+
+            analysis_run_store = InMemoryAnalysisRunStore()
         self._analysis_run_store = analysis_run_store
 
     def execute(
