@@ -32,4 +32,11 @@ class RunStockAnalysisBySymbol:
         effective_owner = owner_user_id
         if identity is not None and Permission.OPERATOR not in identity.permissions:
             effective_owner = identity.user_id
-        self._run_stock_analysis.execute(stock, as_of, owner_user_id=effective_owner)
+        if effective_owner is None:
+            self._run_stock_analysis.execute(stock, as_of)
+        else:
+            self._run_stock_analysis.execute(
+                stock,
+                as_of,
+                owner_user_id=effective_owner,
+            )
