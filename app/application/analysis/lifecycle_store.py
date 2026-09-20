@@ -56,5 +56,6 @@ class AnalysisLifecycleStore(Protocol):
         snapshot_ids: tuple[UUID, ...] = (),
         limit: int = 100,
         dry_run: bool = False,
-    ):
+        operation_id: UUID | None = None,
+    ) -> PurgeStoreResult:
         ...
