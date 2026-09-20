@@ -1,6 +1,6 @@
 # DEC-116 — M54 Analysis Run Ownership Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-20  
 **Milestone:** M54 — Analysis Run Ownership
 

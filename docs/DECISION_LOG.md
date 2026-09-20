@@ -2698,3 +2698,31 @@ RunMarketAnalysis accepts an optional owner UUID. Ownership is assigned at creat
 M54 does not introduce sharing, ACLs, teams, delegated access, workflow-ownership changes, or standalone snapshot ownership changes. M53 outcome semantics remain unchanged within an authorized run.
 
 See docs/DEC-116-M54-ANALYSIS-RUN-OWNERSHIP-DESIGN-GATE.md.
+
+
+## DEC-117 — M55 Analysis Snapshot Ownership
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M55 establishes explicit durable ownership for analytical snapshots so user-owned analysis data cannot escape the authenticated ownership boundary through direct snapshot, stock-history, latest-result, or run-correlated reads.
+
+### Decision
+
+Every new `AnalysisResultRecord` persists an optional immutable `owner_user_id`. User-created runless manual analysis owns its snapshots directly; market-wide snapshots inherit the authenticated owner from their `AnalysisRun`. System/global runs and legacy pre-M55 snapshots remain unowned/system-global.
+
+When a snapshot is correlated to an `AnalysisRun`, snapshot ownership must equal run ownership. Mismatches are rejected rather than repaired. SQLite migration leaves existing rows with NULL ownership; no historical owner is inferred.
+
+`AnalysisResultStore` gains owner-aware retrieval primitives while application capabilities remain responsible for authorization. Regular users see only snapshots they own; the operator identity sees user-owned and system/global snapshots. Snapshot-by-ID and resource-specific unauthorized reads use the established non-enumerating 404 behavior. Stock-history and latest-result reads return only visible records, so a newer snapshot owned by another user cannot leak through a latest-result query.
+
+The existing authorized run-detail capability remains authoritative for run-scoped access, subject to the same snapshot/run ownership invariant. No sharing, ACLs, team ownership, or retention/deletion behavior is introduced.
+
+### Trade-offs
+
+Persisting ownership on snapshots duplicates the owner identity already present on run-correlated data, but it gives the snapshot boundary a direct durable authorization key and supports user-owned manual analysis without synthetic AnalysisRuns. Legacy snapshots remain system/global because reconstructing historical ownership would be speculative.
+
+### Consequences
+
+M55 changes snapshot persistence and read authorization boundaries without changing analytical calculations, scoring, ranking, retry behavior, or provider behavior. Retention/deletion remains a separate lifecycle design and must not be inferred from ownership.
+
+See `docs/DEC-117-M55-ANALYSIS-SNAPSHOT-OWNERSHIP-DESIGN-GATE.md`.
