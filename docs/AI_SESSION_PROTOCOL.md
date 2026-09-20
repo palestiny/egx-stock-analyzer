@@ -80,6 +80,8 @@ At the beginning of every significant development session:
 Locate and read:
 
 ```text
+docs/CURRENT_STATE.md
+docs/CURRENT_STATE.md
 docs/PROJECT_BLUEPRINT.md
 docs/PROJECT_RULES.md
 docs/ENGINEERING_RULES.md
@@ -103,7 +105,13 @@ Read additional source files when necessary to understand the current implementa
 
 ---
 
-## Step 2 — Understand the Current State
+## Step 2 — Read the Current-State Snapshot
+
+Read `docs/CURRENT_STATE.md` first. Treat it as the anti-drift checkpoint.
+
+Then verify the live GitHub `main` branch and open pull requests. If the conversation, memory, or another document names a different milestone, do not continue until the live repository state is reconciled.
+
+## Step 3 — Understand the Current State
 
 Determine:
 
@@ -126,7 +134,7 @@ Verify.
 
 ---
 
-## Step 3 — Produce a Session Initialization Report
+## Step 4 — Produce a Session Initialization Report
 
 Before significant implementation, provide:
 
@@ -1216,7 +1224,7 @@ The second workflow is considered a process violation.
 
 ## Session Compliance
 
-At the beginning of every significant session, the AI must determine:
+At the beginning of every significant session, the AI must determine the current state from GitHub and `docs/CURRENT_STATE.md`, not from conversation memory:
 
 ```text
 Current Milestone
