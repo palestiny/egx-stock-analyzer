@@ -2726,3 +2726,23 @@ Persisting ownership on snapshots duplicates the owner identity already present 
 M55 changes snapshot persistence and read authorization boundaries without changing analytical calculations, scoring, ranking, retry behavior, or provider behavior. Retention/deletion remains a separate lifecycle design and must not be inferred from ownership.
 
 See `docs/DEC-117-M55-ANALYSIS-SNAPSHOT-OWNERSHIP-DESIGN-GATE.md`.
+
+
+### M55 Implementation Validation
+
+M55 implementation was merged through PR #138 at merge commit `6402449acd65ff1df368f26d780840d6d791add0`. GitHub Actions Run #2383 passed on implementation head `6a81e278d1bde0a4cc0f0c0a97921fead7288cdb`, covering Python unit tests and frontend tests/build.
+
+The implementation persists immutable snapshot owner UUIDs, propagates authenticated ownership through manual and market-wide analysis, preserves legacy/global snapshot semantics, and applies owner-scoped latest/history/run-correlated reads. No analytical, retry, ranking, or provider behavior was changed.
+
+## DEC-118 — M56 Analysis Run Retention & Deletion Design Gate
+
+**Status:** Proposed  
+**Date:** 2026-09-20
+
+M56 opens the next lifecycle design boundary after M55 ownership. The project now has durable AnalysisRuns and correlated snapshots but no explicit deletion or retention lifecycle.
+
+The gate must resolve authorization, logical deletion versus hard deletion, correlated snapshot lifecycle, cross-store atomicity, cursor behavior, audit requirements, idempotency, concurrency with active analysis, retention eligibility, and physical purge semantics before any destructive implementation is authorized.
+
+The current architectural candidate is a two-stage lifecycle: logical deletion first, followed by a separate physical purge capability. This is a recommendation only; it is not an accepted decision until the project owner resolves the open questions.
+
+See `docs/DEC-118-M56-ANALYSIS-RUN-RETENTION-DESIGN-GATE.md`.
