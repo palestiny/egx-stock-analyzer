@@ -24,12 +24,14 @@ class RunStockAnalysis:
         stock: Stock,
         as_of: date,
         analysis_run_id: UUID | None = None,
+        owner_user_id: UUID | None = None,
     ) -> None:
         analysis_input: StockAnalysisInput = self._input_assembler.assemble(stock, as_of)
         result = self._daily_analysis.run(
             [analysis_input],
             analysis_date=as_of,
             analysis_run_id=analysis_run_id,
+            owner_user_id=owner_user_id,
         )
 
         if result.execution.state is not ExecutionState.COMPLETED:

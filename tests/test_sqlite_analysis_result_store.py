@@ -333,3 +333,63 @@ def test_one_snapshot_per_symbol_per_analysis_run_is_enforced(tmp_path):
 
     with pytest.raises(sqlite3.IntegrityError):
         store.save("EGAL", result, date(2026, 9, 20), run_id)
+
+
+def test_sqlite_store_persists_snapshot_owner_and_supports_owner_scoped_latest(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    result = make_result()
+    owner_id = uuid4()
+    other_owner_id = uuid4()
+
+    store.save("EGAL", result, date(2026, 9, 18), owner_user_id=owner_id)
+    store.save("EGAL", make_result(), date(2026, 9, 19), owner_user_id=other_owner_id)
+
+    owner_record = store.get_record("EGAL", owner_user_id=owner_id)
+    other_record = store.get_record("EGAL", owner_user_id=other_owner_id)
+
+    assert owner_record is not None
+    assert owner_record.owner_user_id == owner_id
+    assert other_record is not None
+    assert other_record.owner_user_id == other_owner_id
+
+
+def test_sqlite_store_operator_scope_can_read_all_snapshot_owners(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    first_owner = uuid4()
+    second_owner = uuid4()
+
+    store.save("EGAL", make_result(), date(2026, 9, 18), owner_user_id=first_owner)
+    store.save("EGAL", make_result(), date(2026, 9, 19), owner_user_id=second_owner)
+
+    history = store.get_history("EGAL")
+
+    assert [record.owner_user_id for record in history] == [
+        second_owner,
+        first_owner,
+    ]
+
+
+def test_sqlite_store_owner_scoped_history_excludes_other_users(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    owner_id = uuid4()
+    other_owner_id = uuid4()
+
+    store.save("EGAL", make_result(), date(2026, 9, 18), owner_user_id=owner_id)
+    store.save("EGAL", make_result(), date(2026, 9, 19), owner_user_id=other_owner_id)
+
+    history = store.get_history("EGAL", owner_user_id=owner_id)
+
+    assert len(history) == 1
+    assert history[0].owner_user_id == owner_id
+
+
+def test_sqlite_store_owner_scoped_snapshot_lookup_hides_other_users(tmp_path):
+    store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
+    owner_id = uuid4()
+    other_owner_id = uuid4()
+
+    store.save("EGAL", make_result(), date(2026, 9, 18), owner_user_id=owner_id)
+    snapshot = store.get_history("EGAL")[0]
+
+    assert store.get_snapshot(snapshot.snapshot_id, owner_user_id=other_owner_id) is None
+    assert store.get_snapshot(snapshot.snapshot_id, owner_user_id=owner_id) == snapshot

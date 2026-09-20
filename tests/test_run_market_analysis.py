@@ -197,3 +197,19 @@ def test_market_run_persists_safe_outcomes_without_raw_failure_text():
     assert persisted.outcomes[0].state.value == "success"
     assert persisted.outcomes[1].failure_code == "ANALYSIS_FAILED"
     assert persisted.outcomes[1].failure_detail is None
+
+
+def test_market_run_propagates_user_owner_to_correlated_stock_analysis():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runner, run_stock_analysis = make_runner([stock])
+    owner_id = __import__("uuid").uuid4()
+
+    result = runner.execute(["EGAL"], AS_OF, owner_user_id=owner_id)
+
+    assert result.execution.state is ExecutionState.COMPLETED
+    run_stock_analysis.execute.assert_called_once_with(
+        stock,
+        AS_OF,
+        analysis_run_id=result.analysis_run_id,
+        owner_user_id=owner_id,
+    )

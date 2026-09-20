@@ -1,11 +1,13 @@
 from datetime import date
 from unittest.mock import Mock
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol, UnknownStockSymbolError
+from app.application.security.identity import AuthenticatedIdentity
 from app.domain.entry_analysis.scoring import EntryQualityScore
 from app.domain.fundamental_analysis.scoring import FundamentalScore
 from app.domain.opportunity.classification import OpportunityClassification, OpportunityClassificationResult
@@ -75,7 +77,9 @@ def test_post_analysis_runs_analysis_and_returns_result():
 
     assert response.status_code == 200
     assert response.json()["symbol"] == "EGAL"
-    runner.execute.assert_called_once_with("EGAL", date.today())
+    runner.execute.assert_called_once()
+    assert runner.execute.call_args.args == ("EGAL", date.today())
+    assert runner.execute.call_args.kwargs["identity"].user_id is not None
     store.get.assert_called_once_with("EGAL")
 
 
@@ -105,3 +109,32 @@ def test_post_analysis_does_not_hide_analysis_input_value_errors():
 
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_user_analysis_request_reads_and_creates_only_owned_snapshot():
+    owner_id = uuid4()
+    result = make_result()
+    from app.application.analysis.result_store import InMemoryAnalysisResultStore
+
+    store = InMemoryAnalysisResultStore()
+    runner = Mock(spec=RunStockAnalysisBySymbol)
+
+    def execute(symbol, as_of, identity):
+        assert symbol == "EGAL"
+        store.save(symbol, result, owner_user_id=identity.user_id)
+
+    runner.execute.side_effect = execute
+
+    class UserAuthenticator:
+        def authenticate(self, _authorization):
+            return AuthenticatedIdentity.user(owner_id)
+
+    app = create_app(store, runner, authenticator=UserAuthenticator())
+    client = TestClient(app)
+
+    response = client.post("/api/v1/analysis/EGAL")
+
+    assert response.status_code == 200
+    runner.execute.assert_called_once()
+    assert runner.execute.call_args.kwargs["identity"].user_id == owner_id
+    assert store.get("EGAL", owner_user_id=owner_id) is result

@@ -76,11 +76,19 @@ class RunMarketAnalysis:
                 )
             else:
                 try:
-                    self._run_stock_analysis.execute(
-                        stock,
-                        as_of,
-                        analysis_run_id=analysis_run.id,
-                    )
+                    if owner_user_id is None:
+                        self._run_stock_analysis.execute(
+                            stock,
+                            as_of,
+                            analysis_run_id=analysis_run.id,
+                        )
+                    else:
+                        self._run_stock_analysis.execute(
+                            stock,
+                            as_of,
+                            analysis_run_id=analysis_run.id,
+                            owner_user_id=owner_user_id,
+                        )
                 except Exception as error:
                     execution.record_stock_failure(
                         stock.symbol,

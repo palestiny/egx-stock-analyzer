@@ -89,3 +89,24 @@ def test_run_stock_analysis_includes_failure_reason():
             assert "invalid analysis input" in str(error)
         else:
             raise AssertionError("Expected RuntimeError")
+
+
+def test_run_stock_analysis_persists_authenticated_snapshot_owner():
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    assembler = FakeInputAssembler(make_input(stock))
+    store = InMemoryAnalysisResultStore()
+    owner_id = uuid4()
+
+    with patch(
+        "app.application.analysis.daily_market_analysis.StockAnalysisPipeline.analyze",
+        return_value=object(),
+    ):
+        RunStockAnalysis(assembler, store, RetryPolicy(1)).execute(
+            stock,
+            date(2026, 9, 16),
+            owner_user_id=owner_id,
+        )
+
+    record = store.get_record("EGAL")
+    assert record is not None
+    assert record.owner_user_id == owner_id

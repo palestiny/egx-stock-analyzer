@@ -45,6 +45,12 @@ class OwnershipAuthorizer:
             raise AuthorizationError("Operator permission is required for global resources")
         self.require_owner(identity, owner_user_id)
 
+    def snapshot_owner_scope(self, identity: AuthenticatedIdentity) -> UUID:
+        self.require_authenticated(identity)
+        if Permission.OPERATOR in identity.permissions:
+            raise AuthorizationError("Operator scope is not owner-scoped")
+        return identity.user_id
+
     def require_owner_or_global(
         self,
         identity: AuthenticatedIdentity,

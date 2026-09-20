@@ -1,6 +1,7 @@
 from datetime import date
 
 from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
+from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.stocks.catalog import StockCatalog
 from app.domain.reporting.report import AnalysisReport
 
@@ -15,15 +16,25 @@ class GetAnalysisHistory:
         symbol: str,
         start_date: date | None = None,
         end_date: date | None = None,
+        identity: AuthenticatedIdentity | None = None,
     ) -> tuple[tuple[AnalysisResultRecord, AnalysisReport], ...] | None:
         stock = self._stock_catalog.get(symbol)
         if stock is None:
             return None
 
+        owner_user_id = (
+            None
+            if identity is None or Permission.OPERATOR in identity.permissions
+            else identity.user_id
+        )
+        if identity is not None and Permission.OPERATOR not in identity.permissions and owner_user_id is None:
+            return ()
+
         records = self._result_store.get_history(
             stock.symbol,
             start_date=start_date,
             end_date=end_date,
+            owner_user_id=owner_user_id,
         )
 
         reports = []
