@@ -12,6 +12,7 @@ from app.application.analysis.runtime import (
 )
 from app.application.execution.automatic_workflow_recovery import AutomaticWorkflowRecovery
 from app.application.execution.get_scheduled_workflow_execution_history import GetScheduledWorkflowExecutionHistory
+from app.application.execution.get_scheduled_workflow_history import GetScheduledWorkflowHistory
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import RecoverDurableScheduledWorkflow
 from app.application.execution.retry import RetryPolicy
@@ -61,6 +62,7 @@ class InfrastructureRuntime:
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
+    get_scheduled_workflow_history: GetScheduledWorkflowHistory | None = None
     recover_durable_scheduled_workflow: RecoverDurableScheduledWorkflow | None = None
     authenticator: DurableBearerTokenAuthenticator | None = None
     credential_service: CredentialService | None = None
@@ -149,6 +151,7 @@ def create_infrastructure_runtime(
     workflow_store = SQLiteScheduledWorkflowExecutionStore(config.analysis_database_path)
     get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     get_scheduled_workflow_execution_history = GetScheduledWorkflowExecutionHistory(workflow_store)
+    get_scheduled_workflow_history = GetScheduledWorkflowHistory(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -203,6 +206,7 @@ def create_infrastructure_runtime(
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
+        get_scheduled_workflow_history=get_scheduled_workflow_history,
         recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
         authenticator=authenticator,
         credential_service=credential_service,
