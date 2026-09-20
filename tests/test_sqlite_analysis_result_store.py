@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
+from app.application.analysis.result_store import AnalysisResultPersistenceError
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.domain.entry_analysis.context import EntryContext
 from app.domain.execution import ExecutionState
@@ -333,5 +334,5 @@ def test_sqlite_store_rejects_duplicate_symbol_in_same_analysis_run(tmp_path):
 
     import pytest
 
-    with pytest.raises(Exception):
+    with pytest.raises(AnalysisResultPersistenceError):
         store.save("EGAL", make_result(), date(2026, 9, 18), analysis_run_id=run_id)
