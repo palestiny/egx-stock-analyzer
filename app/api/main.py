@@ -142,7 +142,16 @@ def create_app(
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
         if authenticator is None:
-            raise HTTPException(status_code=503, detail="Authentication is not configured")
+            if operator_authenticator is None:
+                raise HTTPException(status_code=503, detail="Authentication is not configured")
+            try:
+                return operator_authenticator.authenticate(authorization)
+            except AuthenticationError as error:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Authentication required",
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from error
         try:
             return authenticator.authenticate(authorization)
         except AuthenticationError as error:
