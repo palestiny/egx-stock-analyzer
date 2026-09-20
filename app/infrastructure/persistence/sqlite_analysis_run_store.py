@@ -52,6 +52,10 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 connection.execute(
                     "ALTER TABLE analysis_runs ADD COLUMN outcomes_available INTEGER NOT NULL DEFAULT 0"
                 )
+            if "deleted_at" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_runs ADD COLUMN deleted_at TEXT NULL"
+                )
 
             connection.execute(
                 """
@@ -154,6 +158,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         query = """
             SELECT run_id, created_at, state, owner_user_id, outcomes_available
             FROM analysis_runs
+            WHERE deleted_at IS NULL
         """
         parameters: list[str] = []
         conditions: list[str] = []
@@ -193,6 +198,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
                 SELECT run_id, created_at, state, owner_user_id, outcomes_available
                 FROM analysis_runs
                 WHERE run_id = ?
+                  AND deleted_at IS NULL
                 """,
                 (str(run_id),),
             ).fetchone()
