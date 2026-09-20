@@ -133,12 +133,13 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     created_at,
                     updated_at,
                     analysis_state,
+                    analysis_run_id,
                     delivery_state,
                     owner_user_id,
                     request_fingerprint,
                     revision
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(occurrence_id) DO NOTHING
                 """,
                 (
@@ -201,6 +202,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                         updated_at=existing.updated_at,
                         owner_user_id=existing.owner_user_id,
                         analysis_state=existing.analysis_state,
+                        analysis_run_id=existing.analysis_run_id,
                         delivery_state=existing.delivery_state,
                         request_fingerprint=fingerprint,
                         revision=existing.revision,
@@ -241,7 +243,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
             row = connection.execute(
                 """
                 SELECT execution_id, occurrence_id, state, created_at,
-                       updated_at, analysis_state, delivery_state,
+                       updated_at, analysis_state, analysis_run_id, delivery_state,
                        owner_user_id, request_fingerprint, revision
                 FROM scheduled_workflow_executions
                 WHERE execution_id = ?
@@ -338,6 +340,7 @@ class SQLiteScheduledWorkflowExecutionStore(ScheduledWorkflowExecutionStore):
                     execution.state.value,
                     execution.updated_at.isoformat(),
                     execution.analysis_state,
+                    str(execution.analysis_run_id) if execution.analysis_run_id is not None else None,
                     execution.delivery_state,
                     str(execution.owner_user_id)
                     if execution.owner_user_id is not None
