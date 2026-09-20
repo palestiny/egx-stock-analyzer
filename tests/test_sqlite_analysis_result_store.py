@@ -301,7 +301,7 @@ def test_sqlite_store_gets_snapshot_by_uuid_and_preserves_symbol(tmp_path):
 
 def test_snapshot_can_be_correlated_to_analysis_run(tmp_path):
     store = SQLiteAnalysisResultStore(tmp_path / "analysis.db")
-    result = _make_result()
+    result = make_result()
     run_id = uuid4()
 
     store.save("EGAL", result, date(2026, 9, 20), run_id)
