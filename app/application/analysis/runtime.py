@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
+from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
+from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
+from app.application.analysis.lifecycle_store import AnalysisLifecycleStore
 from app.application.analysis.get_analysis_run import GetAnalysisRun
 from app.application.analysis.list_analysis_runs import ListAnalysisRuns
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
@@ -33,6 +36,8 @@ class StockAnalysisRuntime:
     get_market_opportunity_ranking: GetMarketOpportunityRanking
     get_analysis_run: GetAnalysisRun
     list_analysis_runs: ListAnalysisRuns
+    delete_analysis_run: DeleteAnalysisRun
+    delete_analysis_snapshot: DeleteAnalysisSnapshot
     run_stock_analysis: RunStockAnalysis
     get_analysis_report: GetAnalysisReport
     get_analysis_history: GetAnalysisHistory
@@ -52,6 +57,7 @@ def create_stock_analysis_runtime(
     retry_policy: RetryPolicy,
     management_audit_store: ManagementAuditStore | None = None,
     analysis_run_store: AnalysisRunStore | None = None,
+    lifecycle_store: AnalysisLifecycleStore | None = None,
 ) -> StockAnalysisRuntime:
     run_stock_analysis = RunStockAnalysis(
         input_assembler=input_assembler,
@@ -78,6 +84,11 @@ def create_stock_analysis_runtime(
         result_store=result_store,
     )
     list_analysis_runs = ListAnalysisRuns(analysis_run_store)
+    if lifecycle_store is None:
+        from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
+        lifecycle_store = SQLiteAnalysisLifecycleStore("storage/analysis.db")
+    delete_analysis_run = DeleteAnalysisRun(analysis_run_store, lifecycle_store)
+    delete_analysis_snapshot = DeleteAnalysisSnapshot(result_store, lifecycle_store)
     get_market_opportunity_ranking = GetMarketOpportunityRanking(
         result_store=result_store,
         rank_market_opportunities=rank_market_opportunities,
@@ -126,6 +137,8 @@ def create_stock_analysis_runtime(
         get_market_opportunity_ranking=get_market_opportunity_ranking,
         get_analysis_run=get_analysis_run,
         list_analysis_runs=list_analysis_runs,
+        delete_analysis_run=delete_analysis_run,
+        delete_analysis_snapshot=delete_analysis_snapshot,
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,
