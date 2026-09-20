@@ -133,95 +133,166 @@ The purge capability must not be implemented by React, HTTP handlers, or individ
 
 **Design candidate:** B. This preserves the explicit M56 separation between logical deletion and irreversible purge while avoiding automatic retention policy.
 
-## 8. Open Questions
+## 8. Accepted Decisions
 
-1. Is physical purge strictly operator-only?
-2. Should the purge capability accept explicit resource IDs, a deletion-state query, or both?
-3. What makes a logically deleted AnalysisRun eligible for purge?
-4. Must all correlated snapshots be logically deleted before the run can be purged?
-5. Should run outcomes always be purged with their parent run?
-6. What makes a runless snapshot eligible?
-7. Should any future durable reference block purge?
-8. What happens when a logically deleted record is referenced by an unsupported legacy relationship?
-9. Should purge operate synchronously?
-10. What maximum batch size is appropriate?
-11. Should one failed record fail the entire batch or allow other eligible records to continue?
-12. How should a purge resume after process interruption?
-13. How should concurrent analysis versus purge be coordinated?
-14. What audit event is required for each purge request and each purged resource?
-15. Should purge return counts, resource IDs, or only an operation summary?
-16. What verification proves that storage rows were actually removed?
-17. Is a separate maintenance authorization role required, or is existing operator authorization sufficient?
-18. Should purge support dry-run/preview before irreversible deletion?
-19. How should transaction rollback behave when a correlated multi-table deletion fails?
-20. Should purge ever operate on system/global legacy records without an explicit operator confirmation boundary?
+### 8.1 Authority
 
-## 9. Proposed Invariants
+Physical purge is operator-only and requires the existing privileged maintenance/management authorization boundary. No new role is introduced in M57.
+
+This keeps M57 inside the established authorization model and avoids inventing a second identity hierarchy for a storage-maintenance operation.
+
+### 8.2 Selection Model
+
+The capability supports two explicit modes: explicit resource IDs, or preview/purge of the next eligible resources using deterministic eligibility and an explicit batch limit. An unrestricted request is never interpreted as delete-everything.
+
+### 8.3 Eligibility
+
+A resource is eligible only when it is logically deleted, not visible through normal lifecycle reads, and not active or otherwise protected by a known lifecycle constraint.
+
+For an AnalysisRun, the run and all lifecycle-owned snapshots/outcomes must be in a purgeable deleted state. A visible or active run is never eligible.
+
+A runless snapshot is independently eligible when its own logical-deletion state and ownership rules make it purgeable.
+
+Unknown or unsupported future references are blockers, not silently ignored.
+
+### 8.4 Correlated Data
+
+An eligible AnalysisRun is purged together with its lifecycle-owned AnalysisRunOutcome rows and correlated AnalysisResultRecord snapshots in one transaction. Runless snapshots are purged independently.
+
+M57 does not introduce a new relationship model; it uses the relationships already established by M54/M55/M56.
+
+### 8.5 Transaction Boundary
+
+Each lifecycle unit is deleted inside one shared SQLite transaction. The application capability owns the transaction boundary; individual stores must not commit independently during a purge.
+
+If any required deletion fails, the transaction rolls back and no member of that lifecycle unit is considered purged.
+
+### 8.6 Concurrency
+
+Purge coordinates with active analysis by acquiring the SQLite write transaction before destructive deletion and re-checking eligibility inside that transaction. A resource that becomes active or otherwise ineligible before commit is not deleted.
+
+No application-level distributed lock is introduced for the SQLite MVP.
+
+### 8.7 Batching and Ordering
+
+The MVP uses an explicit positive batch limit with a default of 100 lifecycle units per invocation. Eligibility is ordered by stable persisted identifier, ascending.
+
+A batch contains complete lifecycle units; correlated rows do not consume separate lifecycle-unit slots. The limit is a safety bound, not a retention policy.
+
+### 8.8 Failure Semantics
+
+A single lifecycle-unit failure rolls back that unit and stops the current purge invocation.
+
+The result reports successfully purged units before the failure plus the failing resource identity/error category.
+
+This fail-stop behavior minimizes destructive blast radius and keeps restart behavior deterministic.
+
+### 8.9 Restart and Idempotency
+
+Purge is synchronous in M57. A process interruption rolls back the in-flight SQLite transaction. Successfully committed earlier lifecycle units remain purged.
+
+Retrying the same request is safe: already-purged resources are absent and contribute no additional deletion.
+
+### 8.10 Auditability
+
+Every purge request produces a management-audit event containing the maintenance actor, operation identity, selection mode, requested limit/IDs, result status, and counts.
+
+Each successfully purged lifecycle unit is represented in audit data by stable resource identity and operation identity before the destructive transaction commits.
+
+Audit records do not depend on reading the deleted resource after commit.
+
+### 8.11 Result Contract
+
+The capability returns an immutable operation summary containing operation identity, selection mode, requested limit/IDs, purged lifecycle-unit count, removed snapshot/outcome counts, ordered purged resource IDs, and optional failure information.
+
+Dry-run/preview returns eligible ordered resource IDs and counts without mutation or destructive audit events.
+
+### 8.12 Legacy and Global Records
+
+M57 does not purge unsupported legacy/global records unless they satisfy the same explicit lifecycle eligibility contract.
+
+Any record whose ownership, relationship, or deletion state cannot be proven safe is skipped and reported as blocked rather than force-deleted.
+
+### 8.13 Retention
+
+Automatic retention remains disabled. No age threshold is introduced by M57. Physical purge happens only through the explicit privileged capability.
+
+## 9. Design Trade-offs
+
+- Explicit privileged purge over automatic retention: preserves the M56 separation between reversible logical lifecycle state and irreversible storage maintenance.
+- One lifecycle unit per transaction: stronger cross-store consistency, at the cost of lower throughput.
+- Fail-stop on uncertain destructive failure: smaller blast radius and deterministic recovery, at the cost of another invocation for later eligible units.
+- Batch limit 100: bounded operational impact without pretending to be a retention policy.
+- Stable-ID ordering: deterministic and easy to resume; avoids time-based ambiguity.
+- Synchronous execution: avoids introducing workers and durable job infrastructure in the MVP.
+- Existing operator authorization: avoids a new role while preserving privileged access.
+- Preview/dry-run: improves operator safety without changing deletion policy.
+
+## 10. Proposed Invariants
 
 1. Only an explicitly authorized maintenance identity may physically purge records.
 2. A visible record is never eligible for physical purge.
 3. An active analysis run is never eligible for purge.
-4. A correlated AnalysisRun and its lifecycle-owned snapshots are purged as one coherent lifecycle unit.
+4. A correlated AnalysisRun and its lifecycle-owned snapshots/outcomes are purged as one coherent lifecycle unit.
 5. AnalysisRunOutcome rows are not left orphaned.
-6. Runless snapshots are independently eligible according to their logical-deletion state and ownership policy.
+6. Runless snapshots are independently eligible according to their logical-deletion and ownership state.
 7. Physical purge does not reassign ownership.
 8. Physical purge does not change normal read-side authorization semantics.
-9. Purge is idempotent: retrying an already-purged resource does not recreate or corrupt state.
-10. Cross-store deletion uses one proven SQLite transaction boundary.
-11. A failed transaction leaves the durable lifecycle state unchanged.
+9. Purge is idempotent.
+10. Cross-store deletion uses one proven SQLite transaction per lifecycle unit.
+11. A failed lifecycle transaction leaves its durable state unchanged.
 12. Purge execution is bounded and deterministic.
-13. Automatic retention remains disabled unless a separate design gate explicitly enables it.
-14. Audit records do not depend on the deleted resource remaining readable after the purge.
+13. Automatic retention remains disabled.
+14. Audit records do not depend on the deleted resource remaining readable after purge.
 15. No analytical calculation occurs inside the purge capability.
+16. Unsupported or unproven references block purge rather than being silently ignored.
+17. A dry-run performs no destructive mutation.
 
-## 10. TDD Acceptance Shape
+## 11. TDD Acceptance Criteria
 
-Before implementation, tests should cover at least:
+Implementation must cover at least:
 
-- operator authorization;
-- rejection of non-privileged purge;
-- purge of an eligible deleted run;
-- purge of correlated snapshots;
-- purge of correlated outcomes;
-- purge of an eligible runless snapshot;
+- operator authorization and rejection of non-privileged identities;
+- explicit-ID purge and deterministic eligibility selection;
+- eligible deleted run purge;
+- correlated snapshot and outcome purge;
+- eligible runless snapshot purge;
 - refusal to purge visible records;
 - refusal to purge active analysis;
-- refusal when required lifecycle state is inconsistent;
-- repeated purge of an already-purged resource;
-- bounded batch size;
-- deterministic batch ordering;
-- one-record failure behavior;
+- refusal when lifecycle state is inconsistent;
+- duplicate/repeated purge idempotency;
+- batch limit of 100 and deterministic stable-ID ordering;
+- fail-stop behavior after a lifecycle-unit failure;
 - transaction rollback;
-- restart after interrupted purge;
-- audit recording;
-- storage-row absence after successful purge;
-- protection of unsupported/future references;
-- preservation of M54/M55 ownership invariants;
-- no change to normal read behavior for non-deleted resources.
-
-## 11. Recommended Direction — Not Yet Accepted
-
-The current architecture supports evaluating:
-
-- a dedicated privileged `PurgeAnalysisLifecycle` application capability;
-- explicit operator-only authorization;
-- eligibility based only on persisted logical-deletion state;
-- explicit batch limits;
-- deterministic ordering by stable persisted identifiers;
-- one shared SQLite transaction per lifecycle unit;
-- correlated run, outcome, and snapshot deletion in the same transaction;
-- independent handling of runless snapshots;
+- restart/interruption behavior;
 - mandatory management-audit recording;
-- optional dry-run as a read-only planning mode;
-- no automatic retention.
-
-These are recommendations only. They are not accepted product policy.
+- dry-run with no mutation;
+- physical storage-row absence after successful purge;
+- blocking unsupported/future references;
+- preservation of M54/M55 ownership invariants;
+- unchanged normal read behavior for non-deleted resources.
 
 ## 12. Decision Gate
 
-**Status: Proposed — implementation is not authorized.**
+**Status: Accepted — implementation is authorized for the M57 MVP defined here.**
 
-M57 implementation must wait until the purge authority, eligibility, transaction, batching, failure, audit, and reference semantics are explicitly accepted.
+Implementation boundary:
+
+```
+Privileged Maintenance Trigger
+            ↓
+PurgeAnalysisLifecycle
+            ↓
+Authorization + Lifecycle Eligibility
+            ↓
+Shared SQLite Transaction
+      ↙                 ↘
+AnalysisRun/Outcome   AnalysisResultRecord
+            ↓
+Management Audit
+```
+
+M57 must not introduce automatic retention, a new authorization role, background workers, archival storage, or changes to normal user-facing deletion semantics.
 
 ## 13. Revisit Conditions
 
