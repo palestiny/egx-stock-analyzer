@@ -151,6 +151,7 @@ The project still avoids premature database-heavy architecture, AI-first archite
 | M48 | Scheduled Workflow History Time Filtering + Cross-Execution History | 🟢 Complete | Bounded read-only lifecycle-history querying with state/time filters and cross-execution visibility |
 | M49 | Analysis Run Grouping & Snapshot Correlation | 🟢 Complete | Establish durable analytical run identity and explicit correlation to successful market-wide stock snapshots |
 | M50 | Analysis Run History & Read Model | 🟢 Complete | Expose one durable analysis run and its successful correlated snapshots through a dedicated read-side capability |
+| M51 | Analysis Run History Query | 🟡 Design Accepted | Discover persisted analysis runs through a bounded, deterministic, authenticated read-side query capability |
 | M51 | Analysis Run History Query | 🟡 Design Proposed | Discover persisted analysis runs through a bounded, deterministic application read capability |
 M47 implementation is complete and merged through PR #113. GitHub Actions Run #1872 passed on implementation head `c4a8f364686dcf11d56774182f6e9984f0752936` before merge. M49 implementation is complete and merged through PR #122. GitHub Actions Run #2116 passed on implementation head `d7da385a58fe644ec6f12592d8a424ef94ecc94e` before merge. The accepted filter contract is implemented through the existing application/API/dashboard history read boundary.
 
@@ -256,6 +257,8 @@ M48 — Scheduled Workflow Cross-Execution History
 M49 — Analysis Run Grouping & Snapshot Correlation
         ↓
 M50 — Analysis Run History & Read Model
+        ↓
+M51 — Analysis Run History Query
         ↓
 NEXT — New Design Gate
 ```
@@ -1552,3 +1555,6 @@ See `docs/M32-AUTOMATIC-WORKFLOW-RESUME-MVP-COMPLETION.md`.
 
 ---
 
+
+
+M51 design is accepted in `docs/DEC-113-M51-ANALYSIS-RUN-HISTORY-QUERY-DESIGN-GATE.md`. The accepted MVP is application/API focused: deterministic run discovery, optional aggregate-state filtering, bounded opaque-cursor pagination, empty-result semantics, and the existing authenticated visibility boundary. Dashboard run discovery is deferred.
