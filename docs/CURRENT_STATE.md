@@ -12,24 +12,25 @@ The current roadmap position is **M56 — Analysis Run & Snapshot Retention and 
 
 M56 is currently a **design-stage milestone**. Its design gate is proposed and destructive implementation is blocked until the remaining owner-controlled lifecycle decisions are explicitly accepted.
 
-Latest M56 design clarification PR:
+Latest M56 design synchronization:
 
-- **PR #145** — docs: clarify accepted M56 lifecycle engineering boundary
-- State: merged
-- Merge commit: `9c435668fad08c963bc1fab4aeb422532c16f386`
-- Purpose: clarify technical constraints without silently accepting unresolved destructive lifecycle policy.
+- **PR #145** — docs: clarify accepted M56 lifecycle engineering boundary — merged at `9c435668fad08c963bc1fab4aeb422532c16f386`.
+- **PR #147** — docs(m56): sync current state after lifecycle design clarification — merged at `65d70c921ed244120be612f0c14bb07178bc9948`.
+- Purpose: keep the current-state document synchronized with the proposed M56 gate without silently accepting unresolved destructive lifecycle policy.
 
 Current owner-decision tracking issue:
 
 - **Issue #146** — resolve owner-controlled lifecycle decisions before destructive implementation
 
-The latest merged main commit is:
+The latest verified merged main commit is:
 
-9c435668fad08c963bc1fab4aeb422532c16f386
+65d70c921ed244120be612f0c14bb07178bc9948
 
 Merge message:
 
-docs(m56): consolidate lifecycle design review boundary
+Merge pull request #147 from palestiny/m56-design-state-sync
+
+docs(m56): sync current state after lifecycle design clarification
 
 ## 2. Current M56 Boundary
 
