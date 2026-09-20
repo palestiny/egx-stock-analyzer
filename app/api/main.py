@@ -10,6 +10,7 @@ from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
 from app.api.analysis_run_response import AnalysisRunResponse
+from app.api.analysis_run_list_response import AnalysisRunListResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
@@ -36,6 +37,10 @@ from app.application.reporting.compare_analysis_snapshots import (
     InvalidSnapshotComparisonError,
 )
 from app.application.analysis.get_analysis_result import GetAnalysisResult
+from app.application.analysis.list_analysis_runs import (
+    InvalidAnalysisRunListQueryError,
+    ListAnalysisRuns,
+)
 from app.application.analysis.get_analysis_run import (
     AnalysisRunNotFoundError,
     GetAnalysisRun,
@@ -59,6 +64,7 @@ from app.application.identity.get_user_audit_history import (
 )
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.domain.identity.user import UserStatus
+from app.domain.execution import ExecutionState
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_history import (
     GetScheduledWorkflowHistory,
@@ -117,6 +123,7 @@ def create_app(
     authenticator: Authenticator | None = None,
     get_user_audit_history: GetUserAuditHistory | None = None,
     get_analysis_run: GetAnalysisRun | None = None,
+    list_analysis_runs: ListAnalysisRuns | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
@@ -386,6 +393,37 @@ def create_app(
         response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
         return response.to_dict()
 
+
+    @app.get("/api/v1/analysis-runs")
+    def list_analysis_runs_route(
+        state: str | None = None,
+        page_size: int = 50,
+        cursor: str | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if list_analysis_runs is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis run history is not configured",
+            )
+
+        requested_state = None
+        if state is not None:
+            try:
+                requested_state = ExecutionState(state)
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail="Invalid analysis run state") from error
+
+        try:
+            view = list_analysis_runs.execute(
+                state=requested_state,
+                page_size=page_size,
+                cursor=cursor,
+            )
+        except InvalidAnalysisRunListQueryError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        return AnalysisRunListResponse.from_view(view).to_dict()
 
     @app.get("/api/v1/analysis-runs/{run_id}")
     def get_analysis_run_route(
