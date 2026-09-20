@@ -16,6 +16,7 @@ class DuplicateMarketAnalysisSymbolError(ValueError):
 @dataclass(frozen=True)
 class MarketAnalysisResult:
     execution: Execution
+    analysis_run_id: UUID
 
 
 class RunMarketAnalysis:
@@ -47,7 +48,10 @@ class RunMarketAnalysis:
                 analysis_run_id,
                 execution.state,
             )
-            return MarketAnalysisResult(execution=execution)
+            return MarketAnalysisResult(
+                execution=execution,
+                analysis_run_id=analysis_run_id,
+            )
 
         for symbol in normalized_symbols:
             stock = self._stock_catalog.get(symbol)
@@ -77,7 +81,10 @@ class RunMarketAnalysis:
             analysis_run_id,
             execution.state,
         )
-        return MarketAnalysisResult(execution=execution)
+        return MarketAnalysisResult(
+            execution=execution,
+            analysis_run_id=analysis_run_id,
+        )
 
     @staticmethod
     def _normalize_symbols(symbols: Sequence[str]) -> list[str]:
