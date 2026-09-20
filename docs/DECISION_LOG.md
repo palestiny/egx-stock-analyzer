@@ -2654,3 +2654,23 @@ The design gate is intentionally unresolved on the primary UX choices: existing-
 Implementation is not authorized until those presentation decisions are accepted.
 
 See `docs/DEC-114-M52-ANALYSIS-RUN-DISCOVERY-DASHBOARD-DESIGN-GATE.md`.
+
+
+## DEC-115 — M53 Analysis Run Outcome Completeness
+
+**Status:** Accepted  
+**Date:** 2026-09-20
+
+M53 extends the durable AnalysisRun read model with explicit per-symbol outcomes so partial and failed market-wide runs remain explainable after restart.
+
+The authoritative outcome identity is the normalized stock symbol; a resolved Stock UUID is optional metadata and unknown symbols have no UUID. Outcomes use only SUCCESS and FAILED states because execution is synchronous at this boundary.
+
+Failures are persisted as stable safe codes, initially UNKNOWN_SYMBOL and ANALYSIS_FAILED, with only bounded approved detail. Raw exception text, traces, provider payloads, credentials, and arbitrary implementation details are not durable outcome data.
+
+The AnalysisRun record and its outcome rows are persisted transactionally by the AnalysisRunStore. Successful analytical snapshots remain owned by AnalysisResultStore and are not duplicated. One normalized symbol is allowed at most once per run, with application validation and a persistence uniqueness constraint.
+
+M53 extends the existing GetAnalysisRun/API/dashboard read surface. Legacy pre-M53 runs remain readable with outcome availability explicitly unavailable rather than inferred. Outcome rows follow AnalysisRun lifecycle/retention.
+
+No analytical logic, retry changes, provider behavior, workflow recovery, ranking, or per-user run ownership is introduced.
+
+See `docs/DEC-115-M53-ANALYSIS-RUN-OUTCOME-COMPLETENESS-DESIGN-GATE.md`.
