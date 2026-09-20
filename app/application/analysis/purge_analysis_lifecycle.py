@@ -54,6 +54,7 @@ class PurgeAnalysisLifecycle:
             snapshot_ids=snapshot_ids,
             limit=limit,
             dry_run=dry_run,
+            operation_id=operation_id,
         )
         return PurgeAnalysisLifecycleResult(
             operation_id=operation_id,
