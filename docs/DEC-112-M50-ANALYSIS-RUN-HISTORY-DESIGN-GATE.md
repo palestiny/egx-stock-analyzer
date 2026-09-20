@@ -175,17 +175,17 @@ They remain fully available through the existing stock-history capability. M50 d
 
 ### 4. Failed Symbols
 
-The run read model exposes failed stock symbols and their persisted failure reasons from the aggregate analysis-run execution record.
+M50 does not expose failed-symbol identifiers or failure reasons because M49 does not persist those details in AnalysisRun. The run-level aggregate state remains authoritative for distinguishing COMPLETED, COMPLETED_WITH_ERRORS, FAILED, and empty runs.
 
 Successful snapshots are exposed separately. A failed symbol never receives a synthetic snapshot.
 
-This makes partial, all-failed, and empty runs distinguishable without reconstructing failure state from missing snapshots.
+Adding durable per-symbol failure details would change the M49 persistence contract and is deferred to a separate design gate if operational visibility requires it.
 
 ### 5. Pagination
 
 Snapshot results are bounded from the first API slice.
 
-The default page size is 50 and the maximum is 100, matching the established read-side pagination bounds used elsewhere in the project. Pagination applies only to the successful snapshot collection; run metadata and failed-symbol information remain in the run-level response.
+The default page size is 50 and the maximum is 100, matching the established read-side pagination bounds used elsewhere in the project. Pagination applies only to the successful snapshot collection; run metadata and aggregate state remain in the run-level response.
 
 The continuation cursor is opaque and bound to the run ID and effective page size. M50 introduces no filtering beyond the fixed symbol ordering.
 
@@ -233,8 +233,8 @@ The HTTP boundary maps that condition to 404, consistent with the existing read-
 - retrieve a completed run by AnalysisRunId;
 - retrieve its successful snapshots in deterministic symbol order;
 - pagination returns bounded pages with an opaque continuation cursor;
-- partial run returns successful snapshots and explicit failed symbols/reasons without fake snapshots;
-- all-failed run returns a valid run with zero successful snapshots and its failed symbols/reasons;
+- partial run returns successful snapshots without fake snapshots;
+- all-failed run returns a valid run with zero successful snapshots and FAILED aggregate state;
 - empty run returns a valid run with zero snapshots and no failed symbols;
 - unknown run is handled explicitly and maps to HTTP 404;
 - legacy snapshots remain available through existing stock-history reads;
