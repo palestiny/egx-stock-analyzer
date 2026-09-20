@@ -53,7 +53,7 @@ def test_runs_multiple_stocks_in_supplied_order():
     ]
     runner, run_stock_analysis = make_runner(stocks)
     calls = []
-    run_stock_analysis.execute.side_effect = lambda stock, as_of: calls.append(stock.symbol)
+    run_stock_analysis.execute.side_effect = lambda stock, as_of, analysis_run_id: calls.append(stock.symbol)
 
     result = runner.execute(["IEEC", "EGAL"], AS_OF)
 
@@ -81,7 +81,7 @@ def test_stock_failure_does_not_erase_previous_success():
     ]
     runner, run_stock_analysis = make_runner(stocks)
 
-    def execute(stock, as_of):
+    def execute(stock, as_of, analysis_run_id):
         if stock.symbol == "IEEC":
             raise RuntimeError("provider unavailable")
 
