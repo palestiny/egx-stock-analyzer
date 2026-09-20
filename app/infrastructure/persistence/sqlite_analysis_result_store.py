@@ -23,23 +23,38 @@ class SQLiteAnalysisResultStore:
 
     def _initialize(self) -> None:
         with self._connect() as connection:
-            columns = [
+            columns = {
                 row[1]
                 for row in connection.execute(
                     "PRAGMA table_info(analysis_results)"
                 ).fetchall()
-            ]
+            }
 
             if not columns:
                 self._create_history_table(connection)
-                columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(analysis_results)"
+                    ).fetchall()
+                }
             elif "snapshot_id" not in columns:
                 self._migrate_latest_only_table(connection)
-                columns = {row[1] for row in connection.execute("PRAGMA table_info(analysis_results)").fetchall()}
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(analysis_results)"
+                    ).fetchall()
+                }
 
             if "analysis_run_id" not in columns:
                 connection.execute(
                     "ALTER TABLE analysis_results ADD COLUMN analysis_run_id TEXT NULL"
+                )
+
+            if "owner_user_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE analysis_results ADD COLUMN owner_user_id TEXT NULL"
                 )
 
             connection.execute(
@@ -65,7 +80,8 @@ class SQLiteAnalysisResultStore:
                 symbol TEXT NOT NULL,
                 analysis_date TEXT NULL,
                 payload TEXT NOT NULL,
-                analysis_run_id TEXT NULL
+                analysis_run_id TEXT NULL,
+                owner_user_id TEXT NULL
             )
             """
         )
@@ -117,6 +133,7 @@ class SQLiteAnalysisResultStore:
         result: StockAnalysisResult,
         analysis_date: date | None = None,
         analysis_run_id: UUID | None = None,
+        owner_user_id: UUID | None = None,
     ) -> None:
         payload = serialize_analysis_result(result)
         analysis_date_value = (
@@ -131,9 +148,10 @@ class SQLiteAnalysisResultStore:
                     symbol,
                     analysis_date,
                     payload,
-                    analysis_run_id
+                    analysis_run_id,
+                    owner_user_id
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     str(uuid4()),
@@ -141,40 +159,65 @@ class SQLiteAnalysisResultStore:
                     analysis_date_value,
                     payload,
                     str(analysis_run_id) if analysis_run_id is not None else None,
+                    str(owner_user_id) if owner_user_id is not None else None,
                 ),
             )
 
-    def get(self, symbol: str) -> StockAnalysisResult | None:
-        record = self.get_record(symbol)
+    def get(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> StockAnalysisResult | None:
+        record = self.get_record(symbol, owner_user_id=owner_user_id)
         return record.result if record is not None else None
 
-    def get_snapshot(self, snapshot_id: UUID) -> AnalysisResultRecord | None:
+    def get_snapshot(
+        self,
+        snapshot_id: UUID,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
+                SELECT snapshot_id, symbol, analysis_date, payload,
+                       analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE snapshot_id = ?
+                  AND (? IS NULL OR owner_user_id = ?)
                 """,
-                (str(snapshot_id),),
+                (
+                    str(snapshot_id),
+                    str(owner_user_id) if owner_user_id is not None else None,
+                    str(owner_user_id) if owner_user_id is not None else None,
+                ),
             ).fetchone()
 
         return self._to_record(row) if row is not None else None
 
-    def get_record(self, symbol: str) -> AnalysisResultRecord | None:
+    def get_record(
+        self,
+        symbol: str,
+        owner_user_id: UUID | None = None,
+    ) -> AnalysisResultRecord | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
+                SELECT snapshot_id, symbol, analysis_date, payload,
+                       analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE symbol = ?
+                  AND (? IS NULL OR owner_user_id = ?)
                 ORDER BY
                     analysis_date IS NULL ASC,
                     analysis_date DESC,
                     snapshot_id ASC
                 LIMIT 1
                 """,
-                (symbol,),
+                (
+                    symbol,
+                    str(owner_user_id) if owner_user_id is not None else None,
+                    str(owner_user_id) if owner_user_id is not None else None,
+                ),
             ).fetchone()
 
         return self._to_record(row) if row is not None else None
@@ -182,16 +225,23 @@ class SQLiteAnalysisResultStore:
     def get_history_by_analysis_run(
         self,
         analysis_run_id: UUID,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
+                SELECT snapshot_id, symbol, analysis_date, payload,
+                       analysis_run_id, owner_user_id
                 FROM analysis_results
                 WHERE analysis_run_id = ?
+                  AND (? IS NULL OR owner_user_id = ?)
                 ORDER BY symbol ASC, snapshot_id ASC
                 """,
-                (str(analysis_run_id),),
+                (
+                    str(analysis_run_id),
+                    str(owner_user_id) if owner_user_id is not None else None,
+                    str(owner_user_id) if owner_user_id is not None else None,
+                ),
             ).fetchall()
 
         return tuple(self._to_record(row) for row in rows)
@@ -201,16 +251,23 @@ class SQLiteAnalysisResultStore:
         symbol: str,
         start_date: date | None = None,
         end_date: date | None = None,
+        owner_user_id: UUID | None = None,
     ) -> tuple[AnalysisResultRecord, ...]:
         if start_date is not None and end_date is not None and start_date > end_date:
             raise ValueError("start_date cannot be after end_date")
 
         query = """
-            SELECT snapshot_id, symbol, analysis_date, payload, analysis_run_id
+            SELECT snapshot_id, symbol, analysis_date, payload,
+                   analysis_run_id, owner_user_id
             FROM analysis_results
             WHERE symbol = ?
+              AND (? IS NULL OR owner_user_id = ?)
         """
-        parameters: list[str] = [symbol]
+        parameters: list[str | None] = [
+            symbol,
+            str(owner_user_id) if owner_user_id is not None else None,
+            str(owner_user_id) if owner_user_id is not None else None,
+        ]
 
         if start_date is not None:
             query += " AND analysis_date >= ?"
@@ -234,9 +291,9 @@ class SQLiteAnalysisResultStore:
 
     @staticmethod
     def _to_record(
-        row: tuple[str, str, str | None, str, str | None],
+        row: tuple[str, str, str | None, str, str | None, str | None],
     ) -> AnalysisResultRecord:
-        snapshot_id, symbol, analysis_date_value, payload, analysis_run_id = row
+        snapshot_id, symbol, analysis_date_value, payload, analysis_run_id, owner_user_id = row
         return AnalysisResultRecord(
             result=deserialize_analysis_result(payload),
             analysis_date=(
@@ -247,4 +304,5 @@ class SQLiteAnalysisResultStore:
             snapshot_id=UUID(snapshot_id),
             symbol=symbol,
             analysis_run_id=UUID(analysis_run_id) if analysis_run_id is not None else None,
+            owner_user_id=UUID(owner_user_id) if owner_user_id is not None else None,
         )
