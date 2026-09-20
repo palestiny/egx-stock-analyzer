@@ -79,7 +79,10 @@ class RunMarketAnalysis:
 
         execution.finish()
         self._analysis_run_store.save(analysis_run.with_state(execution.state))
-        return MarketAnalysisResult(execution=execution, analysis_run_id=analysis_run.id)
+        return MarketAnalysisResult(
+            execution=execution,
+            analysis_run_id=analysis_run.id,
+        )
 
     @staticmethod
     def _normalize_symbols(symbols: Sequence[str]) -> list[str]:
