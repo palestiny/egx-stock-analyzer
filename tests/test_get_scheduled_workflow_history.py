@@ -43,7 +43,24 @@ class FakeStore:
                 "occurred_to": occurred_to,
             }
         )
-        return self.rows[:limit] if limit is not None else self.rows
+        rows = self.rows
+        if after_cursor is not None:
+            occurred_at, execution_id, sequence = after_cursor
+            rows = tuple(
+                row
+                for row in rows
+                if (
+                    row[5] < occurred_at
+                    or (
+                        row[5] == occurred_at
+                        and (
+                            row[0].int < execution_id.int
+                            or (row[0] == execution_id and row[2] < sequence)
+                        )
+                    )
+                )
+            )
+        return rows[:limit] if limit is not None else rows
 
 
 def make_rows():
