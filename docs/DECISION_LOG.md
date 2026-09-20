@@ -2594,7 +2594,7 @@ Snapshots are ordered by normalized stock symbol ascending, with snapshot ID asc
 
 M50 does not add analysis-run ownership metadata. It applies the existing authenticated analysis visibility boundary and explicitly defers per-user analysis-run ownership to a future design gate.
 
-Legacy snapshots without an analysis_run_id remain available through stock history but are omitted from run detail. Failed symbols and their persisted failure reasons are exposed from the aggregate run state; failed symbols never receive synthetic snapshots.
+Legacy snapshots without an analysis_run_id remain available through stock history but are omitted from run detail. M50 does not expose failed-symbol identifiers or failure reasons because M49 does not persist those details; the aggregate run state remains authoritative and failed symbols never receive synthetic snapshots.
 
 Snapshot pagination is mandatory from the first API slice with default 50 and maximum 100. The dedicated HTTP resource is GET /api/v1/analysis-runs/{run_id}. Missing runs map from an application not-found condition to HTTP 404.
 

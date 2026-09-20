@@ -52,6 +52,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         user_management=getattr(runtime, "user_management", None),
         get_management_audit=getattr(runtime.application_runtime, "get_management_audit", None),
         get_user_audit_history=getattr(runtime.application_runtime, "get_user_audit_history", None),
+        get_analysis_run=runtime.application_runtime.get_analysis_run,
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
