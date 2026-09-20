@@ -37,7 +37,7 @@ def test_empty_universe_completes_without_running_stock_analysis():
 
 def test_one_stock_success_completes():
     stocks = [Stock.create("EGAL", "Egypt Aluminum")]
-    runner, run_stock_analysis = make_runner(stocks)
+    runner, run_stock_analysis, _ = make_runner(stocks)
 
     result = runner.execute(["egal"], AS_OF)
 
