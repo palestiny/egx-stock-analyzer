@@ -110,3 +110,44 @@ def test_page_size_is_bounded():
         except InvalidAnalysisRunListQueryError:
             continue
         raise AssertionError("Expected page-size validation")
+
+
+def test_same_timestamp_uses_run_id_as_deterministic_tie_breaker():
+    store = InMemoryAnalysisRunStore()
+    created_at = datetime(2026, 9, 20, 8, tzinfo=timezone.utc)
+    low_id = AnalysisRun(
+        id=UUID("00000000-0000-0000-0000-000000000001"),
+        created_at=created_at,
+        state=ExecutionState.COMPLETED,
+    )
+    high_id = AnalysisRun(
+        id=UUID("00000000-0000-0000-0000-000000000002"),
+        created_at=created_at,
+        state=ExecutionState.COMPLETED,
+    )
+    store.save(low_id)
+    store.save(high_id)
+
+    view = ListAnalysisRuns(store).execute()
+
+    assert [item.run_id for item in view.items] == [high_id.id, low_id.id]
+
+
+def test_each_persisted_execution_state_can_be_filtered():
+    store = InMemoryAnalysisRunStore()
+    runs = []
+    for index, state in enumerate(ExecutionState, start=1):
+        run = AnalysisRun(
+            id=UUID(f"00000000-0000-0000-0000-{index:012d}"),
+            created_at=datetime(2026, 9, 20, index, tzinfo=timezone.utc),
+            state=state,
+        )
+        store.save(run)
+        runs.append(run)
+
+    capability = ListAnalysisRuns(store)
+
+    for run in runs:
+        view = capability.execute(state=run.state)
+
+        assert [item.run_id for item in view.items] == [run.id]
