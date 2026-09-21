@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
-from app.application.analysis.automatic_analysis_retention import AutomaticAnalysisRetention
+from app.application.analysis.automatic_analysis_retention import (
+    AutomaticAnalysisRetention,
+    AutomaticRetentionPolicy,
+)
 from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
 from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
 from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycle
@@ -62,7 +65,7 @@ def create_stock_analysis_runtime(
     management_audit_store: ManagementAuditStore | None = None,
     analysis_run_store: AnalysisRunStore | None = None,
     lifecycle_store: AnalysisLifecycleStore | None = None,
-    automatic_retention_policy=None,
+    automatic_retention_policy: AutomaticRetentionPolicy | None = None,
 ) -> StockAnalysisRuntime:
     run_stock_analysis = RunStockAnalysis(
         input_assembler=input_assembler,
