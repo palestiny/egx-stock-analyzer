@@ -17,6 +17,9 @@ class InfrastructureConfig:
     telegram_chat_id: str | None = None
     telegram_timeout_seconds: float = 10.0
     automatic_alert_delivery_channel: str = "telegram"
+    automatic_retention_enabled: bool = False
+    automatic_retention_days: int = 30
+    automatic_retention_batch_limit: int = 100
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -36,6 +39,14 @@ class InfrastructureConfig:
             automatic_alert_delivery_channel=os.getenv(
                 "EGX_AUTOMATIC_ALERT_DELIVERY_CHANNEL",
                 "telegram",
+            ),
+            automatic_retention_enabled=_parse_bool(
+                os.getenv("EGX_AUTOMATIC_RETENTION_ENABLED", "false"),
+                "EGX_AUTOMATIC_RETENTION_ENABLED",
+            ),
+            automatic_retention_days=int(os.getenv("EGX_AUTOMATIC_RETENTION_DAYS", "30")),
+            automatic_retention_batch_limit=int(
+                os.getenv("EGX_AUTOMATIC_RETENTION_BATCH_LIMIT", "100")
             ),
         )
 
@@ -69,3 +80,12 @@ def _parse_user_bearer_tokens(raw: str | None) -> dict[str, UUID]:
         tokens[token] = user_id
 
     return tokens
+
+
+def _parse_bool(raw: str, name: str) -> bool:
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean")
