@@ -218,8 +218,8 @@ Current verified position:
 
 - **M57 — Physical Purge** is complete and merged.
 - M57 implementation was validated by GitHub Actions Run #2537 and merged through PR #151.
-- **M58 — Automatic Analysis Retention** has an accepted design gate and implementation is under validation in PR #157.
+- **M58 — Automatic Analysis Retention** is complete and merged through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
 - The current M58 design gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
-- M58 uses a 30-day `deleted_at` retention boundary, reuses M57 physical purge, and remains disabled by default.
+- M58 uses a 30-day `deleted_at` retention boundary, reuses M57 physical purge, remains disabled by default, and does not execute during application startup.
 
 Do not use older README, branch, or conversation milestone statements as current project state.
