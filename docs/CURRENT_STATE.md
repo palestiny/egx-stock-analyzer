@@ -6,13 +6,13 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M57 completion / M58 design**.
+The repository is currently at **M57 completion / M58 implementation-ready**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
 M57 — Physical Purge is complete and hardened through PR #155.
 
-M58 — Automatic Analysis Retention has an accepted policy direction. Implementation is not yet authorized because the preservation duration remains open.
+M58 — Automatic Analysis Retention has an accepted policy and a closed design gate. Implementation is authorized within the accepted boundary.
 
 ## 2. Authority Order
 
@@ -68,13 +68,13 @@ GitHub Actions Tests Run #2571 passed for the hardening head.
 
 ## 5. M58 Current Boundary
 
-M58 — Automatic Analysis Retention is a **proposed design gate**.
+M58 — Automatic Analysis Retention is an **accepted design gate; implementation authorized**.
 
 Design document:
 
 `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`
 
-Status: **Accepted with one remaining policy value — implementation not authorized**.
+Status: **Accepted — implementation authorized**.
 
 M58 is intended to evaluate policy and triggering only and should reuse the existing M57 purge boundary rather than create another destructive deletion path.
 
@@ -83,7 +83,7 @@ Accepted policy decisions:
 1. Automatic retention is required.
 2. Retention clock starts at logical deletion time (`deleted_at`).
 3. Scope covers deleted runs/correlated lifecycle data and runless deleted snapshots, subject to M57 eligibility.
-4. Preservation duration is configurable and system/operator-owned; the actual duration remains open.
+4. Preservation duration is configurable and system/operator-owned; the accepted duration is **30 days** from `deleted_at`.
 5. Policy changes apply to current persisted state when retention executes.
 6. Execution is controlled maintenance/scheduler-driven, not application-startup-driven; concrete trigger mapping remains an implementation-mapping task.
 7. Every invocation is hard-bounded.
@@ -92,11 +92,11 @@ Accepted policy decisions:
 10. Automatic retention is disabled by default and requires explicit enablement.
 11. Invalid/unavailable configuration fails safe with no deletion.
 
-Remaining open policy value:
+Retention eligibility boundary:
 
-- the actual preservation duration.
+- `deleted_at + 30 days <= now`.
 
-Until the preservation duration is selected, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
+M57 explicit privileged purge remains independently usable and authoritative for physical-reclamation semantics; M58 automatic retention must reuse it.
 
 ## 6. Session Start Rule
 
