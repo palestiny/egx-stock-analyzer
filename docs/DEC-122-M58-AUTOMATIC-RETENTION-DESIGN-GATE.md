@@ -214,6 +214,19 @@ The 30-day value is a configurable system/operator policy value; the implementat
 
 M57 explicit privileged purge remains independently usable and authoritative for physical reclamation semantics.
 
-## 12. Revisit Conditions
+## 12. Implementation Mapping
+
+The accepted policy maps to the existing architecture as follows:
+
+- `AutomaticRetentionPolicy` owns validated enabled/duration/batch configuration; defaults are disabled, 30 days, and batch limit 100.
+- Infrastructure configuration may supply `EGX_AUTOMATIC_RETENTION_ENABLED`, `EGX_AUTOMATIC_RETENTION_DAYS`, and `EGX_AUTOMATIC_RETENTION_BATCH_LIMIT`.
+- `AutomaticAnalysisRetention` is composed in the application runtime but is not invoked by application startup.
+- SQLite lifecycle infrastructure selects retention-eligible lifecycle units using `deleted_at`, the 30-day cutoff, existing M57 eligibility protections, deterministic stable-ID ordering, and the configured batch bound.
+- The automatic capability invokes `PurgeAnalysisLifecycle` with a distinct `analysis_lifecycle.automatic_retention:<operation_id>` audit identity; physical deletion remains implemented only by M57.
+- Dry-run is forwarded to the existing M57 purge path and remains non-destructive.
+- A scheduler/maintenance caller is responsible for controlled invocation. No new startup hook, background worker, or scheduling mechanism is introduced by this implementation step.
+
+
+## 13. Revisit Conditions
 
 Revisit this gate if storage growth, compliance requirements, user expectations, archival requirements, or operational evidence changes the need for automatic retention.
