@@ -1,6 +1,6 @@
 # DEC-122 — M58 Automatic Analysis Retention Design Gate
 
-**Status:** Accepted  
+**Status:** Accepted — Implementation Authorized  
 **Date:** 2026-09-21  
 **Milestone:** M58 — Automatic Analysis Retention
 
@@ -126,7 +126,7 @@ Combine age and count limits with an explicit precedence rule.
 
 For an MVP, B — age-based retention is the simplest policy to explain and test if the product owner determines that automatic deletion is actually required.
 
-This is a recommendation only. No retention window, scope, or automatic execution policy is accepted by this document.
+This section records alternatives considered before the accepted policy. The selected policy is defined in Section 7.
 
 ## 7. Accepted Policy Decisions
 
@@ -135,7 +135,7 @@ The owner accepted the following M58 policy direction:
 1. Automatic retention is required.
 2. The retention clock starts at logical deletion time (`deleted_at`).
 3. Scope covers both deleted AnalysisRuns with their correlated lifecycle data and runless deleted snapshots, subject to existing M57 eligibility.
-4. The preservation period is configurable as a system policy. The actual retention duration remains an explicit open product-policy value and is not yet selected.
+4. The preservation period is configurable as a system policy. The accepted preservation duration is **30 days**.
 5. Policy ownership is system/operator-level, not per-user.
 6. A changed policy applies to the current persisted state when retention executes; records do not receive speculative per-record policy versions in this MVP.
 7. Automatic execution is controlled maintenance/scheduler-driven rather than application-startup-driven. The concrete trigger must be mapped to an existing project mechanism during implementation design; no destructive startup hook is authorized.
@@ -145,7 +145,7 @@ The owner accepted the following M58 policy direction:
 11. Automatic retention is disabled by default and requires explicit enablement.
 12. Invalid or unavailable configuration fails safe: no automatic deletion occurs.
 
-The only remaining policy decision required before implementation is the actual preservation duration.
+The preservation duration is accepted at **30 days**. The M58 implementation boundary is now closed.
 
 ## 8. Proposed Invariants
 
@@ -170,7 +170,7 @@ The only remaining policy decision required before implementation is the actual 
 
 The current lifecycle persistence records `deleted_at` on both `analysis_runs` and `analysis_results`. M56 sets this timestamp when logical deletion occurs, and M57 only purges records that are already logically deleted.
 
-Therefore an age-based policy can be implemented without inventing a new retention timestamp if the owner chooses logical deletion time as the retention clock. This is an implementation-readiness finding, not an accepted policy decision.
+Therefore an age-based policy can be implemented without inventing a new retention timestamp because the accepted retention clock is logical deletion time (`deleted_at`). The accepted preservation duration is 30 days.
 
 Using `analysis_runs.created_at` as the retention clock has different semantics: a record could become eligible based on age even if it was logically deleted recently. The timestamp choice must therefore remain explicit.
 
@@ -200,11 +200,19 @@ Before implementation is authorized, tests should cover at least:
 
 ## 11. Design Gate Decision
 
-**Status: Accepted with one remaining policy value — implementation is not yet authorized.**
+**Status: Accepted — implementation authorized.**
 
-The owner has accepted the M58 policy direction above. The preservation duration remains intentionally open because it is a product/lifecycle value rather than an implementation detail.
+The owner has accepted the complete M58 policy boundary, including a **30-day preservation duration** measured from `deleted_at`.
 
-M57 explicit privileged purge remains the authoritative physical-reclamation mechanism until the retention duration is selected and the implementation design gate is closed.
+Eligibility boundary:
+
+```text
+deleted_at + 30 days <= now
+```
+
+The 30-day value is a configurable system/operator policy value; the implementation must not hard-code the business rule into unrelated deletion logic. Automatic retention remains disabled by default and must reuse the existing M57 purge capability.
+
+M57 explicit privileged purge remains independently usable and authoritative for physical reclamation semantics.
 
 ## 12. Revisit Conditions
 
