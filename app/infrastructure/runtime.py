@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
+from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
@@ -140,6 +141,11 @@ def create_infrastructure_runtime(
         management_audit_store=management_audit_store,
         analysis_run_store=analysis_run_store,
         lifecycle_store=lifecycle_store,
+        automatic_retention_policy=AutomaticRetentionPolicy(
+            enabled=config.automatic_retention_enabled,
+            preservation_days=config.automatic_retention_days,
+            batch_limit=config.automatic_retention_batch_limit,
+        ),
     )
 
     has_telegram_token = config.telegram_bot_token is not None

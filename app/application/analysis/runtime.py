@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
+from app.application.analysis.automatic_analysis_retention import (
+    AutomaticAnalysisRetention,
+    AutomaticRetentionPolicy,
+)
 from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
 from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
 from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycle
@@ -50,6 +54,7 @@ class StockAnalysisRuntime:
     delete_analysis_run: DeleteAnalysisRun | None = None
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None
     purge_analysis_lifecycle: PurgeAnalysisLifecycle | None = None
+    automatic_analysis_retention: AutomaticAnalysisRetention | None = None
 
 
 def create_stock_analysis_runtime(
@@ -60,6 +65,7 @@ def create_stock_analysis_runtime(
     management_audit_store: ManagementAuditStore | None = None,
     analysis_run_store: AnalysisRunStore | None = None,
     lifecycle_store: AnalysisLifecycleStore | None = None,
+    automatic_retention_policy: AutomaticRetentionPolicy | None = None,
 ) -> StockAnalysisRuntime:
     run_stock_analysis = RunStockAnalysis(
         input_assembler=input_assembler,
@@ -98,6 +104,11 @@ def create_stock_analysis_runtime(
     )
     purge_analysis_lifecycle = (
         PurgeAnalysisLifecycle(lifecycle_store)
+        if lifecycle_store is not None
+        else None
+    )
+    automatic_analysis_retention = (
+        AutomaticAnalysisRetention(lifecycle_store, automatic_retention_policy)
         if lifecycle_store is not None
         else None
     )
@@ -152,6 +163,7 @@ def create_stock_analysis_runtime(
         delete_analysis_run=delete_analysis_run,
         delete_analysis_snapshot=delete_analysis_snapshot,
         purge_analysis_lifecycle=purge_analysis_lifecycle,
+        automatic_analysis_retention=automatic_analysis_retention,
         run_stock_analysis=run_stock_analysis,
         get_analysis_report=get_analysis_report,
         get_analysis_history=get_analysis_history,

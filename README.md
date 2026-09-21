@@ -19,6 +19,7 @@ The system currently supports:
 - React + Vite dashboard;
 - durable analysis results and historical analysis snapshots with SQLite;
 - scheduled workflow state and lifecycle history with SQLite;
+- automatic analysis retention policy and bounded maintenance capability, disabled by default;
 - bounded workflow history queries including state/time filters and cross-execution history;
 - a read-only SQLite inspection tool;
 - CI for Python tests, frontend tests, and frontend production build.
@@ -73,6 +74,16 @@ Override it with:
 ```powershell
 $env:EGX_ANALYSIS_DATABASE_PATH="storage/custom-analysis.db"
 ```
+
+Automatic retention is disabled by default. When enabled by a controlled maintenance/scheduler caller, it uses `deleted_at` as the retention clock and a configurable 30-day default:
+
+```powershell
+$env:EGX_AUTOMATIC_RETENTION_ENABLED="true"
+$env:EGX_AUTOMATIC_RETENTION_DAYS="30"
+$env:EGX_AUTOMATIC_RETENTION_BATCH_LIMIT="100"
+```
+
+The application does not invoke automatic retention during startup.
 
 ## Authentication
 
@@ -207,8 +218,8 @@ Current verified position:
 
 - **M57 — Physical Purge** is complete and merged.
 - M57 implementation was validated by GitHub Actions Run #2537 and merged through PR #151.
-- **M58 — Automatic Analysis Retention** is the current proposed design gate; implementation is not authorized.
+- **M58 — Automatic Analysis Retention** has an accepted design gate and implementation is under validation in PR #157.
 - The current M58 design gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
-- Until M58 is accepted, explicit privileged M57 purge remains the physical-reclamation mechanism.
+- M58 uses a 30-day `deleted_at` retention boundary, reuses M57 physical purge, and remains disabled by default.
 
 Do not use older README, branch, or conversation milestone statements as current project state.

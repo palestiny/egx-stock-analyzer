@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Protocol
 from uuid import UUID
@@ -48,6 +49,14 @@ class AnalysisLifecycleStore(Protocol):
     ) -> None:
         ...
 
+    def find_retention_candidates(
+        self,
+        *,
+        deleted_before: datetime,
+        limit: int,
+    ) -> list[tuple[str, UUID]]:
+        ...
+
     def purge(
         self,
         *,
@@ -57,5 +66,6 @@ class AnalysisLifecycleStore(Protocol):
         limit: int = 100,
         dry_run: bool = False,
         operation_id: UUID | None = None,
+        operation_name: str = "analysis_lifecycle.purge",
     ) -> PurgeStoreResult:
         ...

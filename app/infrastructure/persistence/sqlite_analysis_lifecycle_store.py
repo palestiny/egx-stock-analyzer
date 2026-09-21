@@ -126,6 +126,57 @@ class SQLiteAnalysisLifecycleStore:
             )
             return LifecycleDeletionOutcome.DELETED
 
+    def find_retention_candidates(
+        self,
+        *,
+        deleted_before: datetime,
+        limit: int,
+    ) -> list[tuple[str, UUID]]:
+        if limit <= 0:
+            raise ValueError("Retention batch limit must be positive")
+
+        cutoff = deleted_before.astimezone(timezone.utc).isoformat()
+        with self._connect() as connection:
+            run_rows = connection.execute(
+                """
+                SELECT run_id
+                FROM analysis_runs
+                WHERE deleted_at IS NOT NULL
+                  AND deleted_at <= ?
+                  AND state != 'running'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM analysis_results
+                      WHERE analysis_results.analysis_run_id = analysis_runs.run_id
+                        AND (
+                            analysis_results.deleted_at IS NULL
+                            OR analysis_results.deleted_at > ?
+                        )
+                  )
+                """,
+                (cutoff, cutoff),
+            ).fetchall()
+            snapshot_rows = connection.execute(
+                """
+                SELECT snapshot_id
+                FROM analysis_results
+                WHERE deleted_at IS NOT NULL
+                  AND deleted_at <= ?
+                  AND analysis_run_id IS NULL
+                """,
+                (cutoff,),
+            ).fetchall()
+
+        candidates = [
+            ("run", UUID(row[0]))
+            for row in run_rows
+        ] + [
+            ("snapshot", UUID(row[0]))
+            for row in snapshot_rows
+        ]
+        candidates.sort(key=lambda candidate: str(candidate[1]))
+        return candidates[:limit]
+
     def purge(
         self,
         *,
@@ -135,6 +186,7 @@ class SQLiteAnalysisLifecycleStore:
         limit: int = 100,
         dry_run: bool = False,
         operation_id: UUID | None = None,
+        operation_name: str = "analysis_lifecycle.purge",
     ) -> PurgeStoreResult:
         if limit <= 0:
             raise ValueError("Purge limit must be positive")
@@ -160,7 +212,7 @@ class SQLiteAnalysisLifecycleStore:
                 self._append_audit(
                     connection,
                     actor_user_id,
-                    f"analysis_lifecycle.purge:{operation_id}",
+                    f"{operation_name}:{operation_id}",
                     actor_user_id,
                     datetime.now(timezone.utc).isoformat(),
                     "dry_run",
@@ -195,6 +247,7 @@ class SQLiteAnalysisLifecycleStore:
                         resource_id,
                         actor_user_id,
                         operation_id,
+                        operation_name,
                     )
                     if snapshot_count is None:
                         blocked.append(resource_id)
@@ -207,6 +260,7 @@ class SQLiteAnalysisLifecycleStore:
                         resource_id,
                         actor_user_id,
                         operation_id,
+                        operation_name,
                     ):
                         blocked.append(resource_id)
                         connection.rollback()
@@ -219,7 +273,7 @@ class SQLiteAnalysisLifecycleStore:
                 self._append_audit(
                     connection,
                     actor_user_id,
-                    f"analysis_lifecycle.purge:{operation_id}",
+                    f"{operation_name}:{operation_id}",
                     actor_user_id,
                     datetime.now(timezone.utc).isoformat(),
                     "failed",
@@ -245,7 +299,7 @@ class SQLiteAnalysisLifecycleStore:
             self._append_audit(
                 connection,
                 actor_user_id,
-                f"analysis_lifecycle.purge:{operation_id}",
+                f"{operation_name}:{operation_id}",
                 actor_user_id,
                 datetime.now(timezone.utc).isoformat(),
                 outcome,
@@ -331,6 +385,7 @@ class SQLiteAnalysisLifecycleStore:
         run_id: UUID,
         actor_user_id: UUID,
         operation_id: UUID,
+        operation_name: str,
     ) -> int | None:
         row = connection.execute(
             "SELECT state, deleted_at FROM analysis_runs WHERE run_id = ?",
@@ -391,6 +446,7 @@ class SQLiteAnalysisLifecycleStore:
         snapshot_id: UUID,
         actor_user_id: UUID,
         operation_id: UUID,
+        operation_name: str,
     ) -> bool:
         row = connection.execute(
             """
