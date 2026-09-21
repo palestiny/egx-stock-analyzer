@@ -155,8 +155,9 @@ def test_automatic_retention_uses_distinct_audit_operation(tmp_path):
         database, (now - timedelta(days=31)).isoformat()
     )
 
+    actor = AuthenticatedIdentity.operator()
     result = AutomaticAnalysisRetention(lifecycle).execute(
-        AuthenticatedIdentity.operator(),
+        actor,
         policy=AutomaticRetentionPolicy(enabled=True),
         now=now,
     )
