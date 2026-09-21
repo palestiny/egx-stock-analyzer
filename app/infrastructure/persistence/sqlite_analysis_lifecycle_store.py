@@ -186,6 +186,7 @@ class SQLiteAnalysisLifecycleStore:
         limit: int = 100,
         dry_run: bool = False,
         operation_id: UUID | None = None,
+        operation_name: str = "analysis_lifecycle.purge",
     ) -> PurgeStoreResult:
         if limit <= 0:
             raise ValueError("Purge limit must be positive")
@@ -211,7 +212,7 @@ class SQLiteAnalysisLifecycleStore:
                 self._append_audit(
                     connection,
                     actor_user_id,
-                    f"analysis_lifecycle.purge:{operation_id}",
+                    f"{operation_name}:{operation_id}",
                     actor_user_id,
                     datetime.now(timezone.utc).isoformat(),
                     "dry_run",
@@ -246,6 +247,7 @@ class SQLiteAnalysisLifecycleStore:
                         resource_id,
                         actor_user_id,
                         operation_id,
+                        operation_name,
                     )
                     if snapshot_count is None:
                         blocked.append(resource_id)
@@ -258,6 +260,7 @@ class SQLiteAnalysisLifecycleStore:
                         resource_id,
                         actor_user_id,
                         operation_id,
+                        operation_name,
                     ):
                         blocked.append(resource_id)
                         connection.rollback()
@@ -270,7 +273,7 @@ class SQLiteAnalysisLifecycleStore:
                 self._append_audit(
                     connection,
                     actor_user_id,
-                    f"analysis_lifecycle.purge:{operation_id}",
+                    f"{operation_name}:{operation_id}",
                     actor_user_id,
                     datetime.now(timezone.utc).isoformat(),
                     "failed",
@@ -382,6 +385,7 @@ class SQLiteAnalysisLifecycleStore:
         run_id: UUID,
         actor_user_id: UUID,
         operation_id: UUID,
+        operation_name: str,
     ) -> int | None:
         row = connection.execute(
             "SELECT state, deleted_at FROM analysis_runs WHERE run_id = ?",
@@ -442,6 +446,7 @@ class SQLiteAnalysisLifecycleStore:
         snapshot_id: UUID,
         actor_user_id: UUID,
         operation_id: UUID,
+        operation_name: str,
     ) -> bool:
         row = connection.execute(
             """
