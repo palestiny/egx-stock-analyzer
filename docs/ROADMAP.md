@@ -100,11 +100,15 @@ The active roadmap intentionally contains **one current milestone only**.
 
 ## M58 — Automatic Analysis Retention
 
-**Status:** 🟢 Design Accepted — Implementation Authorized
+**Status:** 🟢 Complete — Implementation Merged and CI Validated
 
-The M58 automatic-retention policy is accepted. Automatic retention is age-based, starts from logical deletion time, uses a **30-day preservation duration**, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration.
+The M58 automatic-retention policy is accepted and implemented. Automatic retention is age-based, starts from logical deletion time, uses a **30-day preservation duration**, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration.
 
-Design gate: `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md` — Accepted; implementation authorized.
+Design gate: `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md` — Accepted.
+
+Implementation: PR #157, merged into `main` at `f2294c34a10c994545e24175c956ee8524170142`.
+
+The implementation was validated by the successful M58 CI run #2637 on the implementation head before merge. Post-merge workflow association for the merge commit is empty in GitHub's commit-workflow query, so no separate merge-commit CI run is claimed here.
 
 ## M57 — Physical Purge
 

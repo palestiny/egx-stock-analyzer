@@ -6,13 +6,13 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M57 completion / M58 implementation in validation**.
+The repository is currently at **M58 completion / post-merge closeout**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
 M57 — Physical Purge is complete and hardened through PR #155.
 
-M58 — Automatic Analysis Retention has an accepted policy and a closed design gate. Implementation is in validation on PR #157.
+M58 — Automatic Analysis Retention has an accepted policy, a closed design gate, and a merged implementation through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
 
 ## 2. Authority Order
 
@@ -66,17 +66,17 @@ It synchronized the M57 completion state and hardened:
 
 GitHub Actions Tests Run #2571 passed for the hardening head.
 
-## 5. M58 Current Boundary
+## 5. M58 Completion
 
-M58 — Automatic Analysis Retention is an **accepted design gate; implementation authorized**.
+M58 — Automatic Analysis Retention is **complete — implementation merged and verified**.
 
 Design document:
 
 `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`
 
-Status: **Accepted — implementation authorized**.
+Status: **Accepted — implementation merged**.
 
-M58 is intended to evaluate policy and triggering only and should reuse the existing M57 purge boundary rather than create another destructive deletion path.
+M58 evaluates retention policy and triggering while reusing the existing M57 purge boundary rather than creating another destructive deletion path.
 
 Accepted policy decisions:
 
@@ -96,7 +96,7 @@ Retention eligibility boundary:
 
 - `deleted_at + 30 days <= now`.
 
-Implementation mapping is composed in the application/infrastructure runtime, disabled by default, and not invoked from application startup. Controlled maintenance/scheduler invocation remains the trigger boundary. M57 explicit privileged purge remains independently usable and authoritative for physical-reclamation semantics; M58 automatic retention reuses it.
+Implementation mapping is composed in the application/infrastructure runtime, disabled by default, and not invoked from application startup. Controlled maintenance/scheduler invocation remains the trigger boundary. PR #157 is merged; no startup hook or background worker was introduced. M57 explicit privileged purge remains independently usable and authoritative for physical-reclamation semantics; M58 automatic retention reuses it.
 
 ## 6. Session Start Rule
 
