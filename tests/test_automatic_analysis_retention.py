@@ -122,9 +122,10 @@ def test_runless_snapshot_is_eligible_after_thirty_days(tmp_path):
         database, (now - timedelta(days=31)).isoformat()
     )
 
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=True)
+    ).execute(
         AuthenticatedIdentity.operator(),
-        policy=AutomaticRetentionPolicy(enabled=True),
         now=now,
     )
 
