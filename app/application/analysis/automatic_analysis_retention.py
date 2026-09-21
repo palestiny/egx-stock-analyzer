@@ -57,6 +57,7 @@ class AutomaticAnalysisRetention:
         *,
         policy: AutomaticRetentionPolicy,
         now: datetime | None = None,
+        dry_run: bool = False,
     ) -> AutomaticAnalysisRetentionResult:
         policy.validate()
         occurred_at = now or datetime.now(timezone.utc)
@@ -89,6 +90,7 @@ class AutomaticAnalysisRetention:
             run_ids=run_ids,
             snapshot_ids=snapshot_ids,
             limit=policy.batch_limit,
+            dry_run=dry_run,
             operation_name=self.OPERATION_NAME,
         )
         return AutomaticAnalysisRetentionResult(
