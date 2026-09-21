@@ -19,13 +19,17 @@ class AutomaticRetentionCommandResult:
     purge: PurgeAnalysisLifecycleResult | None
 
     @property
-    def purged_lifecycle_units(self) -> int:
+    exit_code(self) -> int:
+        return 1 if self.status == "failed" else 0
+
+    @property
+    purged_lifecycle_units(self) -> int:
         if self.purge is None:
             return 0
         return len(self.purge.purged_run_ids) + len(self.purge.purged_snapshot_ids)
 
     @property
-    def operation_id(self):
+    operation_id(self):
         return None if self.purge is None else self.purge.operation_id
 
 
@@ -47,7 +51,9 @@ def run_automatic_retention(
         now=now,
         dry_run=dry_run,
     )
-    status = "completed" if result.enabled else "disabled"
+    status = "disabled" if not result.enabled else "completed"
+    if result.purge is not None and result.purge.failure_reason is not None:
+        status = "failed"
     return AutomaticRetentionCommandResult(
         status=status,
         dry_run=dry_run,
@@ -73,17 +79,23 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    config = InfrastructureConfig.from_environment()
-    if args.database is not None:
-        config = replace(config, analysis_database_path=args.database)
+    try:
+        config = InfrastructureConfig.from_environment()
+        if args.database is not None:
+            config = replace(config, analysis_database_path=args.database)
 
-    result = run_automatic_retention(config, dry_run=args.dry_run)
+        result = run_automatic_retention(config, dry_run=args.dry_run)
+    except Exception as error:
+        print(f"Retention status: failed ({type(error).__name__})")
+        print(f"Retention error: {error}")
+        return 1
+
     print(f"Retention status: {result.status}")
     print(f"Dry run: {result.dry_run}")
     print(f"Purged lifecycle units: {result.purged_lifecycle_units}")
     if result.operation_id is not None:
         print(f"Operation ID: {result.operation_id}")
-    return 0
+    return result.exit_code
 
 
 if __name__ == "__main__":
