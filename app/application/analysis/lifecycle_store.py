@@ -65,5 +65,6 @@ class AnalysisLifecycleStore(Protocol):
         limit: int = 100,
         dry_run: bool = False,
         operation_id: UUID | None = None,
+        operation_name: str = "analysis_lifecycle.purge",
     ) -> PurgeStoreResult:
         ...
