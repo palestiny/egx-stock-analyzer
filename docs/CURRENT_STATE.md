@@ -6,13 +6,13 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M57 completion / M58 implementation-ready**.
+The repository is currently at **M57 completion / M58 implementation in validation**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
 M57 — Physical Purge is complete and hardened through PR #155.
 
-M58 — Automatic Analysis Retention has an accepted policy and a closed design gate. Implementation is authorized within the accepted boundary.
+M58 — Automatic Analysis Retention has an accepted policy and a closed design gate. Implementation is in validation on PR #157.
 
 ## 2. Authority Order
 
@@ -96,7 +96,7 @@ Retention eligibility boundary:
 
 - `deleted_at + 30 days <= now`.
 
-M57 explicit privileged purge remains independently usable and authoritative for physical-reclamation semantics; M58 automatic retention must reuse it.
+Implementation mapping is composed in the application/infrastructure runtime, disabled by default, and not invoked from application startup. Controlled maintenance/scheduler invocation remains the trigger boundary. M57 explicit privileged purge remains independently usable and authoritative for physical-reclamation semantics; M58 automatic retention reuses it.
 
 ## 6. Session Start Rule
 
