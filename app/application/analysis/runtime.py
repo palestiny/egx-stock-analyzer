@@ -62,6 +62,7 @@ def create_stock_analysis_runtime(
     management_audit_store: ManagementAuditStore | None = None,
     analysis_run_store: AnalysisRunStore | None = None,
     lifecycle_store: AnalysisLifecycleStore | None = None,
+    automatic_retention_policy=None,
 ) -> StockAnalysisRuntime:
     run_stock_analysis = RunStockAnalysis(
         input_assembler=input_assembler,
@@ -104,7 +105,7 @@ def create_stock_analysis_runtime(
         else None
     )
     automatic_analysis_retention = (
-        AutomaticAnalysisRetention(lifecycle_store)
+        AutomaticAnalysisRetention(lifecycle_store, automatic_retention_policy)
         if lifecycle_store is not None
         else None
     )
