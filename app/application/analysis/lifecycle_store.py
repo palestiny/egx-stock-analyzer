@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import Protocol
 from uuid import UUID
@@ -51,7 +52,7 @@ class AnalysisLifecycleStore(Protocol):
     def find_retention_candidates(
         self,
         *,
-        deleted_before,
+        deleted_before: datetime,
         limit: int,
     ) -> list[tuple[str, UUID]]:
         ...
