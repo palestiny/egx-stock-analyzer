@@ -1,6 +1,6 @@
 # DEC-123 — M59 Controlled Maintenance Trigger Design Gate
 
-**Status:** Proposed — Decision Required  
+**Status:** Accepted — Option A  
 **Date:** 2026-09-21  
 **Milestone:** M59 — Controlled Maintenance Trigger
 
@@ -8,24 +8,19 @@
 
 M58 implemented automatic analysis retention but intentionally stopped at the application capability boundary. The capability is configured and composed in the runtime, but no production trigger was introduced.
 
-The repository already contains a scheduler abstraction, recurring scheduling policy, durable scheduled-workflow execution, and startup recovery. The current runtime does not expose a general production maintenance trigger for automatic retention.
-
-The M59 question is therefore:
+The M59 question was:
 
 > **What component owns the production trigger that invokes controlled maintenance capabilities such as automatic retention?**
 
-## 2. Current State
+## 2. Decision
 
-Relevant mechanisms:
-- `app/application/execution/scheduler.py`: `Scheduler` protocol and in-memory `InProcessScheduler`.
-- `app/application/execution/recurring_configured_market_analysis.py`: recurring weekday scheduling policy delegating timing to `Scheduler`.
-- `RunDurableScheduledWorkflow`: durable occurrence identity, idempotency, persisted execution state, failure handling, and recovery.
-- `AutomaticWorkflowRecovery`: startup recovery of interrupted scheduled workflow executions.
-- M58 `AutomaticAnalysisRetention`: configured in runtime, disabled by default, delegates destructive work to M57, and is not invoked at startup.
+**Accepted option: A — External scheduler invokes a maintenance command.**
 
-Boundary:
+The production flow is:
 
-    Trigger / Maintenance Driver
+    OS / container scheduler
+              ↓
+    maintenance command
               ↓
     AutomaticAnalysisRetention
               ↓
@@ -33,134 +28,111 @@ Boundary:
               ↓
     SQLite lifecycle transaction
 
-No current production maintenance driver exists for the first box.
+The application owns the maintenance capability and its safety/policy semantics. The deployment environment owns when the command is invoked.
 
-## 3. Goals
+## 3. Why A
 
-1. Invoke automatic retention only when explicitly enabled.
-2. Preserve M57 as the physical-purge authority.
-3. Be safe across restart and repeated invocation.
-4. Remain bounded and observable.
-5. Keep ordinary API startup free of destructive maintenance.
-6. Allow future controlled maintenance capabilities without coupling them to analysis logic.
-7. Keep deployment timing outside domain policy.
+A provides the smallest runtime surface while keeping deployment timing separate from retention policy.
 
-## 4. Non-Goals
+It avoids:
+- coupling maintenance to FastAPI process lifetime;
+- introducing an application background worker;
+- multi-instance duplicate scheduler ownership;
+- coupling retention to the durable scheduled-market-analysis workflow model;
+- introducing a generic maintenance abstraction before multiple maintenance capabilities justify it.
 
-- changing M56 logical deletion;
-- changing M57 purge semantics;
-- changing M58 retention policy;
-- adding another deletion path;
-- introducing distributed scheduling;
-- redesigning scheduled market analysis;
-- changing authorization roles;
-- adding a background worker merely for convenience.
+Option D remains a possible future evolution if multiple independent maintenance capabilities require a common application-level maintenance runner. That future possibility does not justify adding the abstraction in M59.
 
-## 5. Gaps
+## 4. Explicit Trade-offs Accepted
 
-`InProcessScheduler` is an application-level in-memory queue; it does not provide durable timer state, process lifetime management, deployment restart behavior, or an OS/container trigger.
+The project accepts these trade-offs for M59:
 
-The durable scheduled-workflow model provides strong persistence and recovery semantics, but it is currently shaped around scheduled market analysis. Reusing it for maintenance would introduce coupling that needs explicit justification.
+- scheduler configuration is deployment-specific;
+- a missed scheduled invocation is an operational concern rather than an application scheduling concern;
+- command execution and failure must be observable;
+- the command must have an explicit lifecycle/exit contract;
+- deployment scheduling must not redefine retention eligibility or policy;
+- external scheduling does not provide durable occurrence history by itself.
 
-Startup recovery already exists, but M58 explicitly excludes automatic retention from startup. Startup must not become a destructive-maintenance trigger.
+## 5. Scope
 
-## 6. Alternatives
+M59 will implement only the application-side maintenance command contract required to invoke M58 safely.
 
-### A — External scheduler invokes a maintenance command
+In scope:
+- explicit maintenance command entrypoint;
+- invocation of `AutomaticAnalysisRetention`;
+- dry-run support where exposed by M58;
+- bounded execution through the existing M58/M57 controls;
+- clear success/disabled/failure outcome and process exit semantics;
+- tests for invocation, disabled behavior, failures, repeated execution, and safety invariants;
+- documentation of the deployment-trigger boundary.
 
-    OS / container scheduler → maintenance command → AutomaticAnalysisRetention → M57 purge
+Out of scope:
+- OS/container scheduler configuration;
+- a new application background scheduler;
+- a distributed scheduler;
+- a generic maintenance runner;
+- changes to M56 logical deletion;
+- changes to M57 purge semantics;
+- changes to M58 retention eligibility/policy.
 
-Advantages: smallest runtime surface, deployment-owned timing, no FastAPI background worker, restart does not implicitly trigger deletion.
+## 6. Required Invariants
 
-Trade-offs: deployment-specific scheduler configuration, missed invocations depend on operations, command lifecycle/observability must be defined.
+1. Disabled M58 retention cannot delete data.
+2. The command cannot bypass M58 policy validation.
+3. Physical deletion still occurs only through M57.
+4. Repeated command invocation is safe.
+5. Failed maintenance is observable through command outcome/exit status.
+6. Ordinary application startup does not trigger retention.
+7. Execution remains bounded by the existing retention batch limit.
+8. Visible or active analysis data cannot become eligible through the command.
+9. Deployment timing does not redefine retention policy.
+10. The command does not redefine retention eligibility.
+11. No second destructive deletion path is introduced.
 
-### B — Application-owned background scheduler
+## 7. Command Contract to Define
 
-    FastAPI process → background maintenance loop → AutomaticAnalysisRetention
+Before implementation, the command must have explicit semantics for:
 
-Advantages: self-contained deployment and no external scheduler configuration.
-
-Trade-offs: lifecycle/shutdown/concurrency concerns, duplicate execution across instances, stronger coupling to API process lifetime.
-
-### C — Reuse the durable scheduled-workflow model
-
-    maintenance occurrence → durable execution → AutomaticAnalysisRetention → M57 purge
-
-Advantages: durable history, existing idempotency/recovery patterns, strong observability.
-
-Trade-offs: couples maintenance to market-analysis workflow concepts and requires maintenance-specific occurrence/recovery semantics.
-
-### D — Generic maintenance runner with external trigger
-
-    External scheduler → generic maintenance runner → maintenance capabilities
-
-Advantages: deployment-owned timing plus a reusable application boundary for future maintenance capabilities.
-
-Trade-offs: adds a new abstraction and requires common failure/order/idempotency/observability semantics; may be unnecessary if retention remains the only maintenance task.
-
-## 7. Engineering Assessment
-
-The evidence favors evaluating **A** first because it adds the smallest runtime surface and keeps deployment timing separate from business capabilities.
-
-**D** becomes more attractive if several independent maintenance capabilities are expected soon.
-
-**B** should not be introduced merely for convenience because it changes process-lifecycle and multi-instance behavior.
-
-**C** should only be selected if maintenance genuinely needs the same durable execution model as scheduled analysis; infrastructure reuse alone is not sufficient justification.
-
-This is an engineering assessment, not the owner decision.
-
-## 8. Decision Criteria
-
-- restart behavior;
-- duplicate invocation behavior;
-- multi-instance deployment behavior;
-- missed-run behavior;
-- observability/auditability;
-- operational configuration burden;
-- coupling to FastAPI lifecycle;
-- reuse for future maintenance;
-- implementation footprint;
-- failure/retry semantics.
-
-## 9. Required Invariants
-
-Whichever option is selected:
-
-1. disabled M58 retention cannot delete data;
-2. the trigger cannot bypass M58 policy validation;
-3. physical deletion still occurs only through M57;
-4. repeated trigger delivery is safe;
-5. failed maintenance is observable;
-6. ordinary application startup does not trigger retention;
-7. execution remains bounded;
-8. visible or active analysis data cannot become eligible through the trigger;
-9. deployment timing does not redefine retention policy;
-10. the trigger does not redefine retention eligibility.
-
-## 10. TDD Shape After Decision
-
-- enabled/disabled behavior;
-- invocation contract;
+- normal execution;
+- disabled retention;
+- dry-run/preview;
+- invalid configuration;
+- runtime failure;
+- empty candidate set;
 - repeated invocation;
-- failure handling;
-- restart behavior;
-- missed occurrences if applicable;
-- concurrent/duplicate triggers;
-- batch bound preservation;
-- audit identity preservation;
+- process exit status;
+- operator-visible summary.
+
+The command must invoke the existing `AutomaticAnalysisRetention` capability rather than reproducing its logic.
+
+## 8. TDD Shape
+
+The implementation test suite must cover:
+
+- enabled execution;
+- disabled execution;
+- dry-run;
+- invalid configuration;
+- no candidates;
+- candidate batch bound;
+- repeated invocation;
+- failure propagation/observability;
+- audit operation identity;
 - no-startup-trigger invariant;
 - reuse of `AutomaticAnalysisRetention`;
 - unchanged M57 behavior.
 
-## 11. Decision Gate
+## 9. Decision Gate
 
-**Status: Proposed — owner decision required.**
+**Status: Accepted — implementation authorized for M59 within the scope above.**
 
-No implementation is authorized by this document.
+Owner decision: **Option A — External scheduler → maintenance command → M58 retention capability.**
 
-The owner should select A/B/C/D or define another alternative, with trade-offs recorded before implementation.
+No OS/container scheduler is configured by this repository change unless a later explicit deployment task requires it.
 
-## 12. Next Step
+## 10. Next Step
 
-After decision: update this gate → define exact trigger contract → update roadmap/current state → TDD RED → implement → review/refactor → CI/verification → close M59.
+Define the exact command contract and locate the repository's existing CLI/entrypoint conventions. Then:
+
+**TDD RED → implement → review/refactor → CI/verification → documentation closeout → M59 completion.**
