@@ -299,7 +299,7 @@ class SQLiteAnalysisLifecycleStore:
             self._append_audit(
                 connection,
                 actor_user_id,
-                f"analysis_lifecycle.purge:{operation_id}",
+                f"{operation_name}:{operation_id}",
                 actor_user_id,
                 datetime.now(timezone.utc).isoformat(),
                 outcome,
