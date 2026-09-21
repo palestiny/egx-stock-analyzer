@@ -75,9 +75,10 @@ def test_disabled_policy_does_not_delete(tmp_path):
     run_id = _insert_deleted_run(database, deleted_at)
 
     actor = AuthenticatedIdentity.operator()
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=False)
+    ).execute(
         actor,
-        policy=AutomaticRetentionPolicy(enabled=False),
         now=datetime.now(timezone.utc),
     )
 
@@ -99,9 +100,10 @@ def test_eligible_boundary_is_exactly_thirty_days(tmp_path):
         database, (now - timedelta(days=29, seconds=1)).isoformat()
     )
 
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=True)
+    ).execute(
         AuthenticatedIdentity.operator(),
-        policy=AutomaticRetentionPolicy(enabled=True),
         now=now,
     )
 
@@ -138,9 +140,10 @@ def test_batch_limit_is_enforced(tmp_path):
         key=str,
     )
 
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=True, batch_limit=2)
+    ).execute(
         AuthenticatedIdentity.operator(),
-        policy=AutomaticRetentionPolicy(enabled=True, batch_limit=2),
         now=now,
     )
 
@@ -156,9 +159,10 @@ def test_automatic_retention_uses_distinct_audit_operation(tmp_path):
     )
 
     actor = AuthenticatedIdentity.operator()
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=True)
+    ).execute(
         actor,
-        policy=AutomaticRetentionPolicy(enabled=True),
         now=now,
     )
 
@@ -178,9 +182,10 @@ def test_invalid_configuration_fails_before_deletion(tmp_path):
     run_id = _insert_deleted_run(database, deleted_at)
 
     with pytest.raises(ValueError):
-        AutomaticAnalysisRetention(lifecycle).execute(
+        AutomaticAnalysisRetention(
+            lifecycle, AutomaticRetentionPolicy(enabled=True, preservation_days=0)
+        ).execute(
             AuthenticatedIdentity.operator(),
-            policy=AutomaticRetentionPolicy(enabled=True, preservation_days=0),
             now=datetime.now(timezone.utc),
         )
 
@@ -199,9 +204,10 @@ def test_dry_run_is_non_destructive_and_uses_automatic_audit_identity(tmp_path):
         database, (now - timedelta(days=31)).isoformat()
     )
 
-    result = AutomaticAnalysisRetention(lifecycle).execute(
+    result = AutomaticAnalysisRetention(
+        lifecycle, AutomaticRetentionPolicy(enabled=True)
+    ).execute(
         actor,
-        policy=AutomaticRetentionPolicy(enabled=True),
         now=now,
         dry_run=True,
     )
