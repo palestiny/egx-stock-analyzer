@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
 from app.application.analysis.automatic_analysis_retention import AutomaticAnalysisRetentionResult
+from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycleResult
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.maintenance.automatic_retention_command import (
     AutomaticRetentionCommandResult,
@@ -39,6 +41,7 @@ def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch
 
     assert isinstance(result, AutomaticRetentionCommandResult)
     assert result.status == "disabled"
+    assert result.exit_code == 0
     assert result.dry_run is False
     assert calls[1][0].subject == "operator"
 
@@ -73,6 +76,7 @@ def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyP
     result = run_automatic_retention(config, dry_run=True, now=now)
 
     assert result.status == "completed"
+    assert result.exit_code == 0
     assert result.dry_run is True
     assert result.purged_lifecycle_units == 0
     assert calls[0][1] == config.automatic_retention_days
@@ -83,7 +87,42 @@ def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyP
     assert received_dry_run is True
 
 
-def test_command_contract_exposes_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_failed_purge_is_reported_as_failed_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    class FakeRetention:
+        def __init__(self, lifecycle_store, policy):
+            pass
+
+        def execute(self, identity, *, now=None, dry_run=False):
+            return AutomaticAnalysisRetentionResult(
+                enabled=True,
+                cutoff=now,
+                purge=PurgeAnalysisLifecycleResult(
+                    operation_id=uuid4(),
+                    dry_run=False,
+                    purged_run_ids=(),
+                    purged_snapshot_ids=(),
+                    failure_resource_id=uuid4(),
+                    failure_reason="OperationalError",
+                ),
+            )
+
+    monkeypatch.setattr(
+        "app.infrastructure.maintenance.automatic_retention_command.AutomaticAnalysisRetention",
+        FakeRetention,
+    )
+    config = InfrastructureConfig(
+        analysis_database_path=str(tmp_path / "analysis.db"),
+        automatic_retention_enabled=True,
+    )
+
+    result = run_automatic_retention(config)
+
+    assert result.status == "failed"
+    assert result.exit_code == 1
+    assert result.purge.failure_reason == "OperationalError"
+
+
+def test_command_contract_exposes_unexpected_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     class FakeRetention:
         def __init__(self, lifecycle_store, policy):
             pass
