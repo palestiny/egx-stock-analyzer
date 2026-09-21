@@ -47,18 +47,23 @@ class AutomaticAnalysisRetentionResult:
 class AutomaticAnalysisRetention:
     OPERATION_NAME = "analysis_lifecycle.automatic_retention"
 
-    def __init__(self, lifecycle_store: AnalysisLifecycleStore) -> None:
+    def __init__(
+        self,
+        lifecycle_store: AnalysisLifecycleStore,
+        policy: AutomaticRetentionPolicy | None = None,
+    ) -> None:
         self._lifecycle_store = lifecycle_store
         self._purge = PurgeAnalysisLifecycle(lifecycle_store)
+        self._policy = policy or AutomaticRetentionPolicy()
 
     def execute(
         self,
         identity: AuthenticatedIdentity,
         *,
-        policy: AutomaticRetentionPolicy,
         now: datetime | None = None,
         dry_run: bool = False,
     ) -> AutomaticAnalysisRetentionResult:
+        policy = self._policy
         policy.validate()
         occurred_at = now or datetime.now(timezone.utc)
         if occurred_at.tzinfo is None or occurred_at.utcoffset() is None:
