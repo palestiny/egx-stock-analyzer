@@ -98,6 +98,16 @@ Completed milestones are **historical records**, not active work queues.
 
 The active roadmap intentionally contains **one current milestone only**.
 
+## M58 — Automatic Analysis Retention
+
+**Status:** 🟡 Design Accepted — Implementation Not Yet Authorized
+
+The M58 automatic-retention policy direction is accepted. Automatic retention is age-based, starts from logical deletion time, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration. The actual preservation duration remains the only open policy value.
+
+Design gate: `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md` — Accepted with one open policy value.
+
+Implementation must not begin until the preservation duration is explicitly selected.
+
 ## M57 — Physical Purge
 
 **Status:** 🟢 Complete — Implementation Merged and CI Validated
@@ -132,4 +142,4 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-**M56 complete → open and accept the next design gate → implement only within that accepted boundary.**
+**M58 policy accepted → select preservation duration → close implementation design → TDD RED → implement only within the accepted boundary.**

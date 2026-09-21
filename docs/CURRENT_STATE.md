@@ -12,7 +12,7 @@ M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
 M57 — Physical Purge is complete and hardened through PR #155.
 
-M58 — Automatic Analysis Retention is a proposed design gate. No M58 implementation is authorized.
+M58 — Automatic Analysis Retention has an accepted policy direction. Implementation is not yet authorized because the preservation duration remains open.
 
 ## 2. Authority Order
 
@@ -74,26 +74,29 @@ Design document:
 
 `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`
 
-Status: **Proposed — implementation not authorized**.
+Status: **Accepted with one remaining policy value — implementation not authorized**.
 
 M58 is intended to evaluate policy and triggering only and should reuse the existing M57 purge boundary rather than create another destructive deletion path.
 
-Open policy decisions:
+Accepted policy decisions:
 
-1. Is automatic retention required?
-2. What timestamp starts the retention clock?
-3. What data is covered?
-4. What preservation period is required?
-5. Who owns/configures the policy?
-6. How do policy changes affect existing records?
-7. What triggers automatic execution?
-8. What batch and safety limits apply?
-9. Is dry-run/preview required?
-10. How are automatic-retention audit events distinguished?
-11. Is automatic retention disabled by default?
-12. What happens when configuration is invalid or unavailable?
+1. Automatic retention is required.
+2. Retention clock starts at logical deletion time (`deleted_at`).
+3. Scope covers deleted runs/correlated lifecycle data and runless deleted snapshots, subject to M57 eligibility.
+4. Preservation duration is configurable and system/operator-owned; the actual duration remains open.
+5. Policy changes apply to current persisted state when retention executes.
+6. Execution is controlled maintenance/scheduler-driven, not application-startup-driven; concrete trigger mapping remains an implementation-mapping task.
+7. Every invocation is hard-bounded.
+8. Dry-run/preview is non-destructive.
+9. Automatic retention has a distinct audit operation identity.
+10. Automatic retention is disabled by default and requires explicit enablement.
+11. Invalid/unavailable configuration fails safe with no deletion.
 
-Until these decisions are accepted, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
+Remaining open policy value:
+
+- the actual preservation duration.
+
+Until the preservation duration is selected, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
 
 ## 6. Session Start Rule
 

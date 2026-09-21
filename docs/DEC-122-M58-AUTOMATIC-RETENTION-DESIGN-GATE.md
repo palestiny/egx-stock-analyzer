@@ -1,6 +1,6 @@
 # DEC-122 — M58 Automatic Analysis Retention Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-21  
 **Milestone:** M58 — Automatic Analysis Retention
 
@@ -128,41 +128,24 @@ For an MVP, B — age-based retention is the simplest policy to explain and test
 
 This is a recommendation only. No retention window, scope, or automatic execution policy is accepted by this document.
 
-## 7. Open Decisions
+## 7. Accepted Policy Decisions
 
-The following decisions must be explicitly accepted before implementation:
+The owner accepted the following M58 policy direction:
 
-1. Is automatic retention required at all?
-2. What lifecycle timestamp starts the retention clock?
-   - logical deletion time;
-   - analysis/run creation time;
-   - another explicitly persisted timestamp.
-3. What data is covered?
-   - deleted AnalysisRuns and correlated snapshots/outcomes;
-   - runless deleted snapshots;
-   - both.
-4. What is the preservation period?
-   - one fixed system policy;
-   - configurable policy;
-   - different policies by data class.
-5. Who owns the policy?
-   - system/operator configuration;
-   - per-user configuration;
-   - a future product-level policy.
-6. What happens when the policy changes?
-   - new policy applies immediately;
-   - existing records keep their original policy/version;
-   - another explicit migration rule.
-7. How is automatic execution triggered?
-   - existing scheduler;
-   - explicit maintenance command;
-   - application startup;
-   - another controlled mechanism.
-8. Should automatic retention have a hard batch bound per invocation?
-9. Should dry-run/preview be available before enabling automatic deletion?
-10. What audit event identifies automatic retention versus manual M57 purge?
-11. Should automatic retention be disabled by default until explicitly enabled?
-12. What safety behavior is required when retention configuration is invalid or unavailable?
+1. Automatic retention is required.
+2. The retention clock starts at logical deletion time (`deleted_at`).
+3. Scope covers both deleted AnalysisRuns with their correlated lifecycle data and runless deleted snapshots, subject to existing M57 eligibility.
+4. The preservation period is configurable as a system policy. The actual retention duration remains an explicit open product-policy value and is not yet selected.
+5. Policy ownership is system/operator-level, not per-user.
+6. A changed policy applies to the current persisted state when retention executes; records do not receive speculative per-record policy versions in this MVP.
+7. Automatic execution is controlled maintenance/scheduler-driven rather than application-startup-driven. The concrete trigger must be mapped to an existing project mechanism during implementation design; no destructive startup hook is authorized.
+8. Every automatic-retention invocation has a hard batch bound.
+9. Dry-run/preview is available and non-destructive.
+10. Automatic retention uses a distinct auditable operation identity from manual M57 purge.
+11. Automatic retention is disabled by default and requires explicit enablement.
+12. Invalid or unavailable configuration fails safe: no automatic deletion occurs.
+
+The only remaining policy decision required before implementation is the actual preservation duration.
 
 ## 8. Proposed Invariants
 
@@ -217,11 +200,11 @@ Before implementation is authorized, tests should cover at least:
 
 ## 11. Design Gate Decision
 
-**Status: Proposed — implementation is not authorized.**
+**Status: Accepted with one remaining policy value — implementation is not yet authorized.**
 
-The owner must explicitly decide whether automatic retention is required and, if yes, the policy scope, preservation semantics, trigger, safeguards, and configuration ownership.
+The owner has accepted the M58 policy direction above. The preservation duration remains intentionally open because it is a product/lifecycle value rather than an implementation detail.
 
-Until those decisions are accepted, M57 explicit privileged purge remains the authoritative physical-reclamation mechanism.
+M57 explicit privileged purge remains the authoritative physical-reclamation mechanism until the retention duration is selected and the implementation design gate is closed.
 
 ## 12. Revisit Conditions
 
