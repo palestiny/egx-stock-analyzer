@@ -38,6 +38,7 @@ class PurgeAnalysisLifecycle:
         snapshot_ids: tuple[UUID, ...] = (),
         limit: int = 100,
         dry_run: bool = False,
+        operation_name: str = "analysis_lifecycle.purge",
     ) -> PurgeAnalysisLifecycleResult:
         self._operator_authorizer.require(identity, Permission.OPERATOR)
         if identity.user_id is None:
@@ -55,6 +56,7 @@ class PurgeAnalysisLifecycle:
             limit=limit,
             dry_run=dry_run,
             operation_id=operation_id,
+            operation_name=operation_name,
         )
         return PurgeAnalysisLifecycleResult(
             operation_id=operation_id,
