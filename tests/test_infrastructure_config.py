@@ -58,3 +58,32 @@ def test_from_environment_rejects_invalid_user_token_configuration(monkeypatch) 
 
     with pytest.raises(ValueError, match="valid JSON"):
         InfrastructureConfig.from_environment()
+
+
+def test_automatic_retention_defaults_to_disabled_for_thirty_days() -> None:
+    config = InfrastructureConfig()
+
+    assert config.automatic_retention_enabled is False
+    assert config.automatic_retention_days == 30
+    assert config.automatic_retention_batch_limit == 100
+
+
+def test_from_environment_reads_automatic_retention_configuration(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_AUTOMATIC_RETENTION_ENABLED", "true")
+    monkeypatch.setenv("EGX_AUTOMATIC_RETENTION_DAYS", "45")
+    monkeypatch.setenv("EGX_AUTOMATIC_RETENTION_BATCH_LIMIT", "25")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.automatic_retention_enabled is True
+    assert config.automatic_retention_days == 45
+    assert config.automatic_retention_batch_limit == 25
+
+
+def test_from_environment_rejects_invalid_automatic_retention_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_AUTOMATIC_RETENTION_ENABLED", "maybe")
+
+    import pytest
+
+    with pytest.raises(ValueError, match="EGX_AUTOMATIC_RETENTION_ENABLED"):
+        InfrastructureConfig.from_environment()
