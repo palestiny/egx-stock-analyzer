@@ -90,9 +90,9 @@ Out of scope:
 10. The command does not redefine retention eligibility.
 11. No second destructive deletion path is introduced.
 
-## 7. Command Contract to Define
+## 7. Command Contract
 
-Before implementation, the command must have explicit semantics for:
+The implemented command contract defines explicit semantics for:
 
 - normal execution;
 - disabled retention;
@@ -131,8 +131,12 @@ Owner decision: **Option A — External scheduler → maintenance command → M5
 
 No OS/container scheduler is configured by this repository change unless a later explicit deployment task requires it.
 
-## 10. Next Step
+## 10. Implementation Progress
 
-Define the exact command contract and locate the repository's existing CLI/entrypoint conventions. Then:
+The repository now contains the first M59 command boundary at `app/infrastructure/maintenance/automatic_retention_command.py`. It delegates to `AutomaticAnalysisRetention`, supports `--dry-run` and an optional database override, reports disabled/completed/failed outcomes, and returns a non-zero process exit code for failed maintenance or command-level exceptions.
 
-**TDD RED → implement → review/refactor → CI/verification → documentation closeout → M59 completion.**
+The first TDD contract tests are also present in `tests/test_automatic_retention_command.py`. They cover disabled behavior, M58 delegation, dry-run propagation, and failure exit semantics.
+
+Remaining work:
+
+**CI verification → expand integration/safety coverage → review/refactor → deployment-boundary documentation → M59 completion.**
