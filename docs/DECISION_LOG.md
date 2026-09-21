@@ -2848,7 +2848,7 @@ M57 implementation validation is therefore established; milestone closeout will 
 
 ## DEC-122 — M58 Automatic Analysis Retention Policy
 
-**Status:** Accepted with one open policy value  
+**Status:** Accepted  
 **Date:** 2026-09-21
 
 ### Context
@@ -2864,7 +2864,7 @@ Accepted policy:
 - automatic retention is required;
 - retention age starts at logical deletion time (`deleted_at`);
 - scope covers deleted AnalysisRuns/correlated lifecycle data and runless deleted snapshots, subject to M57 eligibility;
-- preservation duration is a configurable system/operator policy, but its actual value remains open;
+- preservation duration is a configurable system/operator policy with an accepted value of **30 days**;
 - policy ownership is system/operator-level;
 - a changed policy applies to current persisted state when retention executes; no speculative per-record policy versioning is introduced in this MVP;
 - execution is controlled maintenance/scheduler-driven, not application-startup-driven; concrete trigger mapping is deferred to implementation mapping;
@@ -2880,12 +2880,20 @@ M58 must not reimplement physical deletion. It selects lifecycle units that have
 
 Age-based retention is deterministic and explainable, while configurable policy avoids hard-coding a business retention window. System/operator ownership centralizes destructive lifecycle control. Applying the current policy at execution avoids adding per-record policy-version state in the MVP, at the cost of making policy changes immediately relevant to existing eligible records. Controlled maintenance avoids making application startup destructive. A hard batch bound and fail-safe configuration reduce destructive blast radius.
 
-### Remaining Open Value
+### Final Policy Value
 
-The actual preservation duration remains undecided and must be explicitly selected before implementation authorization.
+The accepted preservation duration is **30 days**, measured from `deleted_at`.
+
+Eligibility boundary:
+
+```text
+deleted_at + 30 days <= now
+```
+
+The duration remains configurable at the system/operator policy boundary. Automatic retention remains disabled by default, fails safe on invalid/unavailable configuration, and must reuse M57 rather than create a second destructive deletion path.
 
 ### Consequences
 
-The M58 implementation may now be designed around the accepted policy boundary, but implementation must not begin with an arbitrary retention duration. M57 remains independently usable and authoritative for physical purge.
+M58 implementation is authorized within the accepted boundary. TDD must establish the 30-day boundary semantics, configuration validation, bounded execution, audit distinction, M57 reuse, restart/idempotency behavior, and protection invariants. M57 remains independently usable and authoritative for physical purge.
 
 See `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
