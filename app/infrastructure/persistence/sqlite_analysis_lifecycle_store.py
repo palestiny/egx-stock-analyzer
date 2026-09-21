@@ -126,6 +126,57 @@ class SQLiteAnalysisLifecycleStore:
             )
             return LifecycleDeletionOutcome.DELETED
 
+    def find_retention_candidates(
+        self,
+        *,
+        deleted_before: datetime,
+        limit: int,
+    ) -> list[tuple[str, UUID]]:
+        if limit <= 0:
+            raise ValueError("Retention batch limit must be positive")
+
+        cutoff = deleted_before.astimezone(timezone.utc).isoformat()
+        with self._connect() as connection:
+            run_rows = connection.execute(
+                """
+                SELECT run_id
+                FROM analysis_runs
+                WHERE deleted_at IS NOT NULL
+                  AND deleted_at <= ?
+                  AND state != 'running'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM analysis_results
+                      WHERE analysis_results.analysis_run_id = analysis_runs.run_id
+                        AND (
+                            analysis_results.deleted_at IS NULL
+                            OR analysis_results.deleted_at > ?
+                        )
+                  )
+                """,
+                (cutoff, cutoff),
+            ).fetchall()
+            snapshot_rows = connection.execute(
+                """
+                SELECT snapshot_id
+                FROM analysis_results
+                WHERE deleted_at IS NOT NULL
+                  AND deleted_at <= ?
+                  AND analysis_run_id IS NULL
+                """,
+                (cutoff,),
+            ).fetchall()
+
+        candidates = [
+            ("run", UUID(row[0]))
+            for row in run_rows
+        ] + [
+            ("snapshot", UUID(row[0]))
+            for row in snapshot_rows
+        ]
+        candidates.sort(key=lambda candidate: str(candidate[1]))
+        return candidates[:limit]
+
     def purge(
         self,
         *,
