@@ -2844,3 +2844,48 @@ The implementation provides the accepted privileged purge boundary, transactiona
 GitHub Actions Run #2537 completed successfully for the implementation merge `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`. The M57 closeout documentation is being validated by the current GitHub Actions run on this branch.
 
 M57 implementation validation is therefore established; milestone closeout will be finalized with the successful closeout CI result.
+
+
+## DEC-122 — M58 Automatic Analysis Retention Policy
+
+**Status:** Accepted with one open policy value  
+**Date:** 2026-09-21
+
+### Context
+
+M56 established logical deletion and M57 established privileged physical purge. The owner has now accepted an automatic-retention policy direction so that physical reclamation can be automated without creating a second destructive deletion path.
+
+### Decision
+
+M58 will use age-based automatic retention and reuse the existing M57 purge capability.
+
+Accepted policy:
+
+- automatic retention is required;
+- retention age starts at logical deletion time (`deleted_at`);
+- scope covers deleted AnalysisRuns/correlated lifecycle data and runless deleted snapshots, subject to M57 eligibility;
+- preservation duration is a configurable system/operator policy, but its actual value remains open;
+- policy ownership is system/operator-level;
+- a changed policy applies to current persisted state when retention executes; no speculative per-record policy versioning is introduced in this MVP;
+- execution is controlled maintenance/scheduler-driven, not application-startup-driven; concrete trigger mapping is deferred to implementation mapping;
+- each invocation is hard-bounded;
+- dry-run/preview is supported and non-destructive;
+- automatic retention has a distinct audit operation identity from manual M57 purge;
+- automatic retention is disabled by default and requires explicit enablement;
+- invalid or unavailable configuration fails safe and performs no automatic deletion.
+
+M58 must not reimplement physical deletion. It selects lifecycle units that have crossed the retention boundary and invokes M57.
+
+### Trade-offs
+
+Age-based retention is deterministic and explainable, while configurable policy avoids hard-coding a business retention window. System/operator ownership centralizes destructive lifecycle control. Applying the current policy at execution avoids adding per-record policy-version state in the MVP, at the cost of making policy changes immediately relevant to existing eligible records. Controlled maintenance avoids making application startup destructive. A hard batch bound and fail-safe configuration reduce destructive blast radius.
+
+### Remaining Open Value
+
+The actual preservation duration remains undecided and must be explicitly selected before implementation authorization.
+
+### Consequences
+
+The M58 implementation may now be designed around the accepted policy boundary, but implementation must not begin with an arbitrary retention duration. M57 remains independently usable and authoritative for physical purge.
+
+See `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
