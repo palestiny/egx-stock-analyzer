@@ -74,8 +74,9 @@ def test_disabled_policy_does_not_delete(tmp_path):
     deleted_at = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat()
     run_id = _insert_deleted_run(database, deleted_at)
 
+    actor = AuthenticatedIdentity.operator()
     result = AutomaticAnalysisRetention(lifecycle).execute(
-        AuthenticatedIdentity.operator(),
+        actor,
         policy=AutomaticRetentionPolicy(enabled=False),
         now=datetime.now(timezone.utc),
     )
@@ -164,6 +165,54 @@ def test_automatic_retention_uses_distinct_audit_operation(tmp_path):
     with sqlite3.connect(database) as connection:
         action = connection.execute(
             "SELECT action FROM management_audit WHERE target_user_id = ? ORDER BY id DESC LIMIT 1",
-            (str(AuthenticatedIdentity.operator().user_id),),
+            (str(actor.user_id),),
+        ).fetchone()[0]
+    assert action.startswith("analysis_lifecycle.automatic_retention:")
+
+
+def test_invalid_configuration_fails_before_deletion(tmp_path):
+    database = tmp_path / "analysis.db"
+    lifecycle = _stores(database)
+    deleted_at = (datetime.now(timezone.utc) - timedelta(days=31)).isoformat()
+    run_id = _insert_deleted_run(database, deleted_at)
+
+    with pytest.raises(ValueError):
+        AutomaticAnalysisRetention(lifecycle).execute(
+            AuthenticatedIdentity.operator(),
+            policy=AutomaticRetentionPolicy(enabled=True, preservation_days=0),
+            now=datetime.now(timezone.utc),
+        )
+
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT 1 FROM analysis_runs WHERE run_id = ?", (str(run_id),)
+        ).fetchone() is not None
+
+
+def test_dry_run_is_non_destructive_and_uses_automatic_audit_identity(tmp_path):
+    database = tmp_path / "analysis.db"
+    lifecycle = _stores(database)
+    actor = AuthenticatedIdentity.operator()
+    now = datetime(2026, 9, 21, 12, 0, tzinfo=timezone.utc)
+    run_id = _insert_deleted_run(
+        database, (now - timedelta(days=31)).isoformat()
+    )
+
+    result = AutomaticAnalysisRetention(lifecycle).execute(
+        actor,
+        policy=AutomaticRetentionPolicy(enabled=True),
+        now=now,
+        dry_run=True,
+    )
+
+    assert result.purge is not None
+    assert result.purge.dry_run is True
+    assert result.purged_run_ids == ()
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT 1 FROM analysis_runs WHERE run_id = ?", (str(run_id),)
+        ).fetchone() is not None
+        action = connection.execute(
+            "SELECT action FROM management_audit ORDER BY id DESC LIMIT 1"
         ).fetchone()[0]
     assert action.startswith("analysis_lifecycle.automatic_retention:")
