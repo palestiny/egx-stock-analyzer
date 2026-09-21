@@ -48,6 +48,14 @@ class AnalysisLifecycleStore(Protocol):
     ) -> None:
         ...
 
+    def find_retention_candidates(
+        self,
+        *,
+        deleted_before,
+        limit: int,
+    ) -> list[tuple[str, UUID]]:
+        ...
+
     def purge(
         self,
         *,
