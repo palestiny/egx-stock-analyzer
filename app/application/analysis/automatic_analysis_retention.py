@@ -16,6 +16,9 @@ class AutomaticRetentionPolicy:
     preservation_days: int = 30
     batch_limit: int = 100
 
+    def __post_init__(self) -> None:
+        self.validate()
+
     def validate(self) -> None:
         if not isinstance(self.preservation_days, int) or isinstance(
             self.preservation_days, bool
