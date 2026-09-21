@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from app.application.analysis.automatic_analysis_retention import (
@@ -6,6 +6,7 @@ from app.application.analysis.automatic_analysis_retention import (
     AutomaticAnalysisRetentionResult,
     AutomaticRetentionPolicy,
 )
+from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycleResult
 from app.application.security.identity import AuthenticatedIdentity
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
@@ -15,7 +16,7 @@ from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLit
 class AutomaticRetentionCommandResult:
     status: str
     dry_run: bool
-    purge: object | None
+    purge: PurgeAnalysisLifecycleResult | None
 
     @property
     def purged_lifecycle_units(self) -> int:
@@ -40,21 +41,18 @@ def run_automatic_retention(
         batch_limit=config.automatic_retention_batch_limit,
     )
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
-    try:
-        capability = AutomaticAnalysisRetention(lifecycle_store, policy)
-        result: AutomaticAnalysisRetentionResult = capability.execute(
-            AuthenticatedIdentity.operator(),
-            now=now,
-            dry_run=dry_run,
-        )
-        status = "completed" if result.enabled else "disabled"
-        return AutomaticRetentionCommandResult(
-            status=status,
-            dry_run=dry_run,
-            purge=result.purge,
-        )
-    finally:
-        lifecycle_store.close()
+    capability = AutomaticAnalysisRetention(lifecycle_store, policy)
+    result: AutomaticAnalysisRetentionResult = capability.execute(
+        AuthenticatedIdentity.operator(),
+        now=now,
+        dry_run=dry_run,
+    )
+    status = "completed" if result.enabled else "disabled"
+    return AutomaticRetentionCommandResult(
+        status=status,
+        dry_run=dry_run,
+        purge=result.purge,
+    )
 
 
 def main() -> int:
@@ -65,8 +63,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--database",
-        default="storage/analysis.db",
-        help="SQLite database path.",
+        default=None,
+        help="Optional SQLite database path override.",
     )
     parser.add_argument(
         "--dry-run",
@@ -75,14 +73,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    from app.infrastructure.config import InfrastructureConfig
+    config = InfrastructureConfig.from_environment()
+    if args.database is not None:
+        config = replace(config, analysis_database_path=args.database)
 
-    config = InfrastructureConfig(
-        analysis_database_path=args.database,
-        automatic_retention_enabled=_environment_retention_enabled(),
-        automatic_retention_days=_environment_retention_days(),
-        automatic_retention_batch_limit=_environment_retention_batch_limit(),
-    )
     result = run_automatic_retention(config, dry_run=args.dry_run)
     print(f"Retention status: {result.status}")
     print(f"Dry run: {result.dry_run}")
@@ -90,26 +84,6 @@ def main() -> int:
     if result.operation_id is not None:
         print(f"Operation ID: {result.operation_id}")
     return 0
-
-
-def _environment_retention_enabled() -> bool:
-    from os import getenv
-
-    from app.infrastructure.config import _parse_bool
-
-    return _parse_bool(getenv("EGX_AUTOMATIC_RETENTION_ENABLED", "false"), "EGX_AUTOMATIC_RETENTION_ENABLED")
-
-
-def _environment_retention_days() -> int:
-    from os import getenv
-
-    return int(getenv("EGX_AUTOMATIC_RETENTION_DAYS", "30"))
-
-
-def _environment_retention_batch_limit() -> int:
-    from os import getenv
-
-    return int(getenv("EGX_AUTOMATIC_RETENTION_BATCH_LIMIT", "100"))
 
 
 if __name__ == "__main__":
