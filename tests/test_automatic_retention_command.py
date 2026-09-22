@@ -141,3 +141,52 @@ def test_command_contract_exposes_unexpected_failure(monkeypatch: pytest.MonkeyP
 
     with pytest.raises(RuntimeError, match="maintenance failure"):
         run_automatic_retention(config)
+
+def test_invalid_retention_configuration_fails_before_maintenance(
+    tmp_path: Path,
+    isolated_lifecycle_store,
+):
+    config = InfrastructureConfig(
+        analysis_database_path=str(tmp_path / "analysis.db"),
+        automatic_retention_enabled=True,
+        automatic_retention_days=0,
+    )
+
+    with pytest.raises(ValueError, match="preservation_days"):
+        run_automatic_retention(config)
+
+
+def test_repeated_invocation_reuses_the_same_command_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    isolated_lifecycle_store,
+):
+    calls = []
+
+    class FakeRetention:
+        def __init__(self, lifecycle_store, policy):
+            pass
+
+        def execute(self, identity, *, now=None, dry_run=False):
+            calls.append((identity.subject, now, dry_run))
+            return AutomaticAnalysisRetentionResult(
+                enabled=True,
+                cutoff=now,
+                purge=None,
+            )
+
+    monkeypatch.setattr(
+        "app.infrastructure.maintenance.automatic_retention_command.AutomaticAnalysisRetention",
+        FakeRetention,
+    )
+    config = InfrastructureConfig(
+        analysis_database_path=str(tmp_path / "analysis.db"),
+        automatic_retention_enabled=True,
+    )
+
+    first = run_automatic_retention(config)
+    second = run_automatic_retention(config)
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert len(calls) == 2
