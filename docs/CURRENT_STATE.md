@@ -6,7 +6,7 @@
 
 ## 1. Where We Are
 
-The repository is at **M60 completion / deployment-mapping closeout**, with **M61 — Backtesting & Strategy Validation** now proposed through a fresh design gate.
+The repository is at **M61 — Backtesting & Strategy Validation implementation**, following acceptance of DEC-126.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
@@ -163,4 +163,4 @@ DEC-126 proposes M61 as the next analytical milestone. Repository review found t
 
 Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
-Status: **Proposed — owner decision required**. No M61 implementation has started. The recommended baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with explicit exit and cost/slippage semantics.
+Status: **Accepted — implementation in progress**. The accepted baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with strategy invalidation as the primary exit, configured maximum-holding-period safety exit, and explicit cost/slippage semantics.
