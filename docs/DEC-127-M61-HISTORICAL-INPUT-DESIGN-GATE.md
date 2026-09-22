@@ -1,6 +1,6 @@
 # DEC-127 — M61 Historical Point-in-Time Input Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted — implementation authorized  
 **Date:** 2026-09-22  
 **Milestone:** M61 — Backtesting & Strategy Validation
 
@@ -155,7 +155,7 @@ Until this gate is accepted and implemented, M61's deterministic simulator is ve
 
 ## 10. Implementation Authorization
 
-No production historical backtest integration is authorized by this proposed gate.
+Option A is accepted: implement a provider-neutral historical financial snapshot boundary with explicit availability/effective timestamps. Production historical Strategy v0 integration is authorized only through that point-in-time boundary.
 
 After acceptance, implementation should follow:
 
