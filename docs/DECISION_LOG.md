@@ -2960,7 +2960,7 @@ Implementation is authorized within this boundary. New SL/TP semantics, portfoli
 
 ## DEC-127 — M61 Historical Point-in-Time Input Boundary
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-22
 
 ### Context
@@ -2971,9 +2971,9 @@ Strategy v0 delegates to the production Opportunity Classification result, which
 
 A naive historical loop could therefore be leakage-safe for prices while still leaking future fundamental information.
 
-### Proposed Decision
+### Decision
 
-Before producing historical Strategy v0 performance results, establish an explicit point-in-time historical financial-input boundary.
+Accept Option A: establish a provider-neutral historical financial snapshot boundary before producing historical Strategy v0 performance results. A financial fact may be supplied at decision time T only when its explicit availability/effective timestamp is <= T.
 
 A historical financial fact may be supplied to analysis at decision time T only when its explicit availability/effective timestamp is <= T.
 
@@ -2991,7 +2991,7 @@ Using current financial statements selected only by period-end is not accepted a
 
 ### Consequences
 
-The M61 simulator remains valid as a simulation mechanism, but aggregate Strategy v0 historical conclusions must wait until the historical-input boundary is resolved.
+The M61 simulator remains valid as a simulation mechanism. Historical Strategy v0 integration is now authorized, but aggregate performance conclusions must pass through the accepted point-in-time financial-input boundary. Option B remains available only as a separately versioned diagnostic strategy; Option C is not accepted for leakage-safe Strategy v0 claims.
 
 No Strategy v0 classification thresholds are changed by this proposal.
 
