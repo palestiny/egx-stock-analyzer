@@ -2919,7 +2919,7 @@ M57 remains the physical purge boundary, M58 remains the retention policy bounda
 
 ## DEC-126 — M61 Backtesting & Strategy Validation
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-22
 
 ### Context
@@ -2943,6 +2943,16 @@ Recommended baseline:
 
 ### Alternatives / Trade-offs
 
-The main alternatives and trade-offs are documented in `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`. The primary unresolved owner decision is the first strategy's exit semantics and acceptance of the recommended simulation baseline.
+The main alternatives and trade-offs are documented in `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`. The owner accepted the recommended simulation baseline and first strategy exit semantics:
 
-No implementation is authorized until the design gate is accepted.
+- event-driven bar-by-bar simulation;
+- signal known after bar close;
+- next-bar-open execution;
+- single-position long-only MVP;
+- strategy invalidation as the primary exit;
+- configured maximum-holding-period safety exit;
+- explicit transaction-cost and slippage configuration;
+- existing data-quality boundary;
+- trade-level explainable results.
+
+Implementation is authorized within this boundary. New SL/TP semantics, portfolio behavior, optimization, live execution, or material architectural expansion require a new decision gate.
