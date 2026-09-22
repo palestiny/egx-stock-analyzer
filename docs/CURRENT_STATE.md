@@ -6,7 +6,7 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M58 completion / post-merge closeout**.
+The repository is currently at **M58 completion with M59 trigger design proposed**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
@@ -115,3 +115,16 @@ Before project work:
 Historical branches and old milestone documents are history, not current execution state. Old branches should only be deleted after verifying they are no longer needed.
 
 The repository must remain understandable without the conversation.
+
+
+## 8. M59 Trigger Design
+
+M59 opens the missing operational boundary for invoking the accepted M58 automatic-retention capability.
+
+Design gate:
+
+`docs/DEC-123-M59-AUTOMATIC-RETENTION-TRIGGER-DESIGN-GATE.md`
+
+Status: **Proposed — implementation not authorized**.
+
+Current engineering recommendation: expose a dedicated non-HTTP maintenance invocation and let the operating environment own scheduling. This keeps destructive maintenance out of application startup and avoids introducing an in-process scheduler or durable scheduling subsystem before there is evidence for either.
