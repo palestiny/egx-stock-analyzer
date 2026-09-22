@@ -1,6 +1,6 @@
 # DEC-126 — M61 Backtesting & Strategy Validation Design Gate
 
-**Status:** Proposed — awaiting owner decision  
+**Status:** Accepted — implementation authorized  
 **Date:** 2026-09-22  
 **Milestone:** M61 — Backtesting & Strategy Validation
 
@@ -103,96 +103,64 @@ M61 does not introduce:
 - a new persistence platform;
 - a second analytical implementation.
 
-## 6. Critical Design Decisions
+## 6. Accepted Design Decisions
 
 ### D1 — Backtest Execution Model
 
-**Option A — Event-driven bar-by-bar simulation**
+**Accepted: event-driven bar-by-bar simulation.**
 
 Each historical bar advances the simulation clock. Analysis can only consume observations available at that point.
 
-Pros: strongest protection against look-ahead leakage and naturally models signal/execution timing.
-
-Cons: more implementation complexity.
-
-**Recommendation:** Option A.
+This provides the strongest boundary against look-ahead leakage while naturally modeling signal/execution timing.
 
 ### D2 — Signal Timing
 
-**Option A — Signal after bar close, execution no earlier than the next bar.**
+**Accepted: signal is known only after the source bar closes.**
 
-This prevents using a bar's closing information to claim execution at that same close unless explicitly modeled.
+Execution may not occur before the next accepted execution boundary.
 
-**Option B — Same-bar close execution.**
-
-Simpler but requires stronger assumptions about close execution.
-
-**Recommendation:** Option A.
+This prevents using a bar's closing information to claim execution at that same close.
 
 ### D3 — Execution Price
 
-**Option A — Next-bar open.**
+**Accepted: next-bar open for the MVP.**
 
-Deterministic and directly available from OHLC data, but ignores intrabar mechanics and slippage.
-
-**Option B — Configurable next-bar execution model.**
-
-More flexible but unnecessary for the first slice.
-
-**Recommendation:** Option A for M61, with a future extension point rather than a framework.
+The first slice uses the next bar's open as the deterministic execution price. Intrabar execution models are deferred.
 
 ### D4 — Position Model
 
-**Option A — Single-position, long-only MVP.**
+**Accepted: single-position, long-only MVP.**
 
-Pros: understandable lifecycle and enough to validate signal quality.
-
-Cons: no overlapping signals or short positions.
-
-**Recommendation:** Option A.
+No overlapping positions and no short positions are introduced in M61.
 
 ### D5 — Exit Semantics
 
-The first design must define an explicit exit rule rather than inventing one inside the backtester.
+**Accepted first-strategy semantics:**
 
-Candidates include:
+1. **Strategy Invalidation is the primary exit.**
+   The open position is closed when the same production strategy no longer satisfies its accepted validity condition. The invalidation decision must be based only on observations available at the decision bar close.
+2. **Time-based Exit is the safety boundary.**
+   The strategy configuration must provide an explicit maximum holding period in bars. When that limit is reached, the position is closed at the next accepted execution boundary.
+3. **Stop-loss and take-profit are deferred.**
+   M61 must not invent SL/TP levels from support/resistance or other analytical values. They require a separate strategy decision.
 
-- stop-loss;
-- target;
-- time-based exit;
-- strategy invalidation.
-
-**Owner decision required:** which exit semantics belong to the first M61 strategy slice.
-
-The backtester must not silently derive stop-loss/target rules from existing support/resistance merely because those values exist.
+The backtester owns lifecycle mechanics; the strategy owns the validity decision.
 
 ### D6 — Costs / Slippage
 
-**Option A — Explicit fixed assumptions in backtest configuration.**
+**Accepted: explicit transaction-cost and slippage configuration.**
 
-Reproducible and visible.
-
-**Option B — Ignore costs in M61.**
-
-Simpler but risks overstating historical results.
-
-**Recommendation:** include explicit transaction-cost and slippage assumptions in the simulation contract, even if first configured values are zero.
+The simulation contract always carries these assumptions, even when the first configured values are zero. Results must preserve their applied cost/slippage values and impact.
 
 ### D7 — Historical Data Quality
 
-Backtesting must not silently treat questionable observations as trustworthy.
+**Accepted: reuse the existing data-quality boundary.**
 
-M61 should integrate the existing data-quality boundary and explicitly define whether a bar is:
-
-- usable;
-- excluded;
-- or causes the run to fail.
-
-The simulator must not invent its own quality rules.
+The simulator must not invent a second quality policy. Each input bar must be classified by the existing quality boundary as usable, excluded, or run-blocking according to the established contract.
 
 ### D8 — Result Model
 
-The backtest result should preserve at minimum:
+The backtest result must preserve at minimum:
 
 - strategy/version identity;
 - symbol/timeframe;
@@ -207,7 +175,7 @@ The backtest result should preserve at minimum:
 - final outcome;
 - sufficient evidence to explain the result.
 
-Aggregate metrics should be derived from individual simulated outcomes.
+Aggregate metrics are derived from individual simulated outcomes.
 
 ## 7. Leakage-Safety Invariants
 
@@ -234,7 +202,9 @@ One long position
 +
 Next-bar-open execution
 +
-Explicit exit rule
+Strategy invalidation primary exit
++
+Configured maximum-holding-period safety exit
 +
 Explicit cost/slippage configuration
 +
@@ -242,6 +212,8 @@ Trade-level result
 +
 Deterministic aggregate summary
 ```
+
+The maximum holding period is a required strategy configuration for the backtest slice; it is not a universal market rule. M61 must not silently choose a business/trading value when the strategy configuration does not provide one.
 
 Prove simulation semantics before adding multiple strategies, portfolios, optimization, or UI.
 
@@ -263,9 +235,9 @@ M61 is complete only when:
 - roadmap/current-state/decision log are synchronized;
 - no real trading capability is introduced.
 
-## 10. Decision Required From Owner
+## 10. Implementation Authorization
 
-Recommended baseline:
+The owner has accepted the recommended simulation baseline and the first strategy exit semantics:
 
 ```
 Event-driven simulation
@@ -276,7 +248,9 @@ Next-bar-open execution
         +
 Single long-only position
         +
-Explicit exit rule
+Strategy invalidation primary exit
+        +
+Configured maximum-holding-period safety exit
         +
 Explicit cost/slippage configuration
         +
@@ -285,6 +259,6 @@ Existing data-quality boundary
 Trade-level explainable results
 ```
 
-The unresolved owner decision is primarily the **first strategy exit semantics** and confirmation of the recommended simulation baseline.
+M61 implementation is authorized within this boundary.
 
-No implementation should begin until this design gate is accepted.
+Any new strategy rule, SL/TP semantics, portfolio behavior, optimization, live execution, or material architectural expansion requires a new design decision rather than being inferred inside the implementation.
