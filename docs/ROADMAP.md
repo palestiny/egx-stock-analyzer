@@ -172,4 +172,8 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-No new implementation milestone is committed yet. The next feature or operational boundary must be established through a fresh design gate rather than inferred from completed M60 work.
+M61 remains the active milestone. The simulator slice is complete; the next unresolved boundary is the historical point-in-time input needed for leakage-safe Strategy v0 evaluation.
+
+Proposed design gate: `docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md`.
+
+No historical Strategy v0 performance claim should be produced until this gate is accepted and implemented.
