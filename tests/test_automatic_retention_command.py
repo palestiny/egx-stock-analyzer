@@ -29,14 +29,6 @@ def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch
         def __init__(self, lifecycle_store, policy):
             calls.append((lifecycle_store, policy))
 
-        def execute(self, identity, *, now=None, dry_run=False):
-            calls.append((identity, now, dry_run))
-            return AutomaticAnalysisRetentionResult(
-                enabled=False,
-                cutoff=datetime(2026, 8, 22, tzinfo=timezone.utc),
-                purge=None,
-            )
-
     monkeypatch.setattr(
         "app.infrastructure.maintenance.automatic_retention_command.AutomaticAnalysisRetention",
         FakeRetention,
@@ -52,8 +44,7 @@ def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch
     assert result.status == "disabled"
     assert result.exit_code == 0
     assert result.dry_run is False
-    assert calls[1][0].subject == "operator"
-
+    assert calls == []
 
 def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, isolated_lifecycle_store):
     calls = []
