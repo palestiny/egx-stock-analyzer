@@ -1,0 +1,15 @@
+{
+  "dataset_id": "egx-m61-fixture",
+  "dataset_version": "1.0.0",
+  "schema_version": "1",
+  "market_observations_artifact": {
+    "path": "market_observations.csv",
+    "sha256": "6bb10cd89a6d406fd41a86f6ff169619acfa86dd3c91637c4f22589173621079",
+    "row_count": 3
+  },
+  "financial_snapshots_artifact": {
+    "path": "financial_snapshots.csv",
+    "sha256": "434d6f94f6d41325082c5d4b84f636214564b4e6b61d73b48937d20e3108b9c3",
+    "row_count": 2
+  }
+}
