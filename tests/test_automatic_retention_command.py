@@ -152,7 +152,7 @@ def test_invalid_retention_configuration_fails_before_maintenance(
         automatic_retention_days=0,
     )
 
-    with pytest.raises(ValueError, match="preservation_days"):
+    with pytest.raises(ValueError, match="(?i)preservation.*positive"):
         run_automatic_retention(config)
 
 
