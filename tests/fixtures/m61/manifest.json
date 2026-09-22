@@ -1,0 +1,13 @@
+{
+  "dataset_id": "egx-strategy-v0",
+  "version": "2026-09-22.1",
+  "schema_version": "1",
+  "artifact_uri": "tests/fixtures/m61/egx_strategy_v0.json",
+  "sha256": "bd898c13da85f16e988aeae6361be3c40ec1bfc2d3ab9964f9a6c0fb54795d06",
+  "coverage_start": "2026-09-17",
+  "coverage_end": "2026-09-21",
+  "provenance": {
+    "source": "repository-owned-m61-test-fixture",
+    "exported_at": "2026-09-22T20:00:00+00:00"
+  }
+}
