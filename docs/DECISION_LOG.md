@@ -2990,3 +2990,50 @@ PR #168 integrated the historical Strategy v0 adapter with the production analys
 The backtest may reuse production analytical semantics instead of duplicating classification rules. Historical data acquisition must preserve explicit availability/effective timing. Any future change to this leakage boundary requires a new decision review.
 
 See docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md.
+
+
+# DEC-128 — Versioned Historical Dataset Boundary
+
+**Status:** Accepted  
+**Date:** 2026-09-22
+
+### Context
+
+M61 requires deterministic, leakage-safe historical evaluation of Opportunity Classification Strategy v0. DEC-127 established that period_end alone does not prove point-in-time financial availability. The current Yahoo Finance fundamental adapter therefore cannot be the evidence source for leakage-safe Strategy v0 performance claims.
+
+### Decision
+
+Use **A2 — Versioned External Historical Dataset** as the production/backtesting dataset boundary, with a small **A1 repository-owned fixture dataset** for deterministic tests and vertical-slice verification.
+
+The repository owns the dataset contract, schema, manifest, immutable version identity, integrity metadata, and loading rules. The potentially large historical artifact lives outside Git and is referenced by an immutable dataset version and integrity hash.
+
+The dataset must provide daily market observations plus point-in-time financial snapshots containing explicit availability metadata and revision information.
+
+### Point-in-Time Rules
+
+- A financial snapshot is eligible only when available_at <= decision_date.
+- For the same financial period, the latest eligible revision is selected.
+- Future revisions must never be visible to earlier decisions.
+- Missing historical evidence is not silently replaced with current-provider data.
+- The backtest simulator remains responsible for bar completion and execution timing.
+
+### Reproducibility Contract
+
+A historical run must pin dataset ID/version, dataset hash, schema version, strategy ID/version, backtest configuration, production analysis rules/code version, and requested stock/date range. Integrity mismatch must be rejected.
+
+### Alternatives
+
+- **A1 — Repository-owned production dataset:** rejected as the primary boundary because meaningful EGX history can become too large for a maintainable Git repository; retained for fixtures.
+- **A3 — Application-owned persisted dataset:** deferred because it adds database/storage lifecycle complexity before it is required.
+- **Live-provider replay:** rejected for reproducible performance claims because provider responses can change and point-in-time financial availability is not established.
+- **Period-end proxy:** rejected because period_end does not establish when information became public.
+
+### Consequences
+
+This gives M61 an explicit, versioned evidence boundary while keeping large artifacts outside Git. It also requires dataset distribution, integrity validation, ingestion/export tooling, and lifecycle governance.
+
+The physical artifact format is intentionally deferred to the implementation design gate; it must preserve deterministic ordering, numeric fidelity, schema validation, and efficient stock/date filtering without changing domain/application contracts.
+
+### M61 Completion Impact
+
+This decision does not complete M61. Completion still requires an actual historical dataset/source, production-compatible historical providers, data-quality verification, deterministic Strategy v0 execution over real coverage, aggregate/trade-level review, leakage/reproducibility verification, and final CI/documentation validation.
