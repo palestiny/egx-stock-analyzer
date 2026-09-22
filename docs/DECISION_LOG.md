@@ -2915,3 +2915,34 @@ The mapping provides the accepted 03:30 daily trigger, IgnoreNew overlap handlin
 The available environment did not provide a Windows production host, so actual Task Scheduler registration and execution were not claimed as verified. That remains an operational deployment verification step.
 
 M57 remains the physical purge boundary, M58 remains the retention policy boundary, and M59 remains the application maintenance command boundary.
+
+
+## DEC-126 — M61 Backtesting & Strategy Validation
+
+**Status:** Proposed  
+**Date:** 2026-09-22
+
+### Context
+
+M60 completed production maintenance scheduling. A fresh review of the analytical implementation shows that the core analysis pipeline and M7 opportunity-detection slices already exist. The next analytical gap is validation of those deterministic rules against historical data.
+
+### Proposal
+
+M61 should establish a deterministic, leakage-safe, explainable backtesting boundary without changing production analytical semantics.
+
+Recommended baseline:
+
+- event-driven bar-by-bar simulation;
+- signal known after bar close;
+- execution no earlier than the next bar, with next-bar-open as the MVP execution price;
+- single-position long-only MVP;
+- explicit exit semantics;
+- explicit cost/slippage configuration;
+- existing data-quality boundary rather than simulator-owned quality rules;
+- trade-level explainable results and deterministic aggregate metrics.
+
+### Alternatives / Trade-offs
+
+The main alternatives and trade-offs are documented in `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`. The primary unresolved owner decision is the first strategy's exit semantics and acceptance of the recommended simulation baseline.
+
+No implementation is authorized until the design gate is accepted.
