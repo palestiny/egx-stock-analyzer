@@ -2956,3 +2956,37 @@ The main alternatives and trade-offs are documented in `docs/DEC-126-M61-BACKTES
 - trade-level explainable results.
 
 Implementation is authorized within this boundary. New SL/TP semantics, portfolio behavior, optimization, live execution, or material architectural expansion require a new decision gate.
+
+
+## DEC-127 — M61 Historical Input & Point-in-Time Financial Boundary
+
+**Status:** Accepted — implementation merged  
+**Date:** 2026-09-22
+
+### Context
+
+M61 requires historical strategy validation without allowing financial facts to leak from the future into earlier decisions. The existing Yahoo statement provider filters financial periods by period_end, but that does not prove when a fact became publicly available.
+
+### Decision
+
+Historical financial analysis must use a provider-neutral point-in-time snapshot boundary. A financial fact is eligible at decision time T only when its explicit available_at value is not later than T.
+
+For a given period_end, when multiple revisions are available by T, the provider selects the latest revision that was available by T. The selected snapshots are then converted to the production FinancialPeriod representation so the existing analysis pipeline remains authoritative.
+
+Current Yahoo statement selection by period_end is not accepted as evidence for leakage-safe Strategy v0 performance claims. Price-only strategy diagnostics remain conceptually separate from the leakage-safe fundamental-integrated validation path.
+
+### Trade-offs
+
+The point-in-time boundary is more demanding than using current statements or period-end proxies, but it preserves historical causality and makes the evidence boundary explicit. It requires a historical snapshot dataset/source with trustworthy availability metadata before full Strategy v0 performance claims can be made.
+
+### Implementation Validation
+
+The domain snapshot, point-in-time provider, revision-selection rule, and tests are now merged on main through PR #169. The PR head b3a5e0bcaf8015307268c0d66df351c0cca21c32 passed GitHub Actions Tests Run #2782. PR #169 was merged at 87b121964bc782fbe6ee1f58d2b9a4682db37a7c.
+
+PR #168 integrated the historical Strategy v0 adapter with the production analysis pipeline and was merged before the prerequisite boundary was present on main; PR #169 is the explicit root-cause repair that restored the dependency order. No further historical performance claim is made until actual point-in-time historical observations are assembled.
+
+### Consequences
+
+The backtest may reuse production analytical semantics instead of duplicating classification rules. Historical data acquisition must preserve explicit availability/effective timing. Any future change to this leakage boundary requires a new decision review.
+
+See docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md.
