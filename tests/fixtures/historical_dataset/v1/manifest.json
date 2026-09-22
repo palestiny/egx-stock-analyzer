@@ -14,7 +14,7 @@
   },
   "financial_snapshots_artifact": {
     "path": "financial_snapshots.csv",
-    "sha256": "434d6f94f6d41325082c5d4b84f636214564b4e6b61d73b48937d20e3108b9c3",
+    "sha256": "6caf96d4ac1c070120e4aaff8026842c0c9876d94ac572bf0561f20c5ac456ba",
     "row_count": 2,
     "coverage": {
       "start": "2024-12-31",
