@@ -6,7 +6,7 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M59 completion / post-merge closeout**.
+The repository is currently at **M60 completion / deployment-mapping closeout**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
@@ -145,10 +145,14 @@ The repository now provides a controlled maintenance command with explicit disab
 
 PR #159 was merged into `main` as `c5c6c258508a60ac5872f4f4504fe55d440af30c`. GitHub Actions Tests Run #2687 passed on implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9`.
 
-## 8. M60 Scheduling
+## 8. M60 Completion
 
-M60 is the current implementation milestone. DEC-124 is accepted and PR #162 contains the Windows Task Scheduler deployment mapping.
+M60 — Production Maintenance Scheduling is **complete — deployment mapping merged**.
 
-The accepted deployment contract is daily at 03:30 local host time, IgnoreNew overlap handling, a 30-minute execution ceiling, and up to 3 scheduler restarts with 10-minute spacing. The repository provides the wrapper, registration, and removal scripts under `deploy/windows/`.
+DEC-124 is accepted. PR #162 was merged into `main` at `4fbf799f6262c4179946835ef4eae47cf8ecb6f1` after implementation-head CI passed in Tests Run #2709.
 
-The Windows deployment scripts have not been executed by this session on a Windows host, so deployment validation is not claimed yet. Application M57/M58/M59 semantics remain unchanged.
+The repository provides the Windows Task Scheduler wrapper, registration script, and removal script under `deploy/windows/`. The accepted contract is daily at 03:30 local host time, IgnoreNew overlap handling, a 30-minute execution ceiling, and up to 3 scheduler restarts with 10-minute spacing.
+
+The Windows scripts were not executed on a Windows host by this session, so host-level registration/runtime verification is not claimed. This is an explicit operational verification boundary, not an application correctness failure.
+
+No application scheduler, background worker, second destructive path, or change to M57/M58/M59 semantics was introduced.
