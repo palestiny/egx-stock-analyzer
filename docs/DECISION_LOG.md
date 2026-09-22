@@ -2897,3 +2897,19 @@ The duration remains configurable at the system/operator policy boundary. Automa
 M58 implementation is authorized within the accepted boundary. TDD must establish the 30-day boundary semantics, configuration validation, bounded execution, audit distinction, M57 reuse, restart/idempotency behavior, and protection invariants. M57 remains independently usable and authoritative for physical purge.
 
 See `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
+
+
+## DEC-123 — M59 Automatic Retention Trigger
+
+**Status:** Proposed  
+**Date:** 2026-09-22
+
+M59 opens the design gate for the concrete trigger mechanism of the accepted M58 automatic-retention policy. M58 deliberately left trigger mapping unresolved while requiring controlled maintenance/scheduler-driven execution.
+
+The current engineering recommendation is a dedicated non-HTTP maintenance invocation scheduled by the operating environment. This preserves the application-owned retention semantics and M57 physical-purge boundary while avoiding startup-triggered deletion, an always-running in-process scheduler, or premature durable scheduling infrastructure.
+
+Open decisions cover the maintenance entry point, disabled-state result, overlap protection, retry ownership, operational output, authentication/authorization boundary, and recommended cadence.
+
+Implementation is not authorized until these decisions are accepted.
+
+See `docs/DEC-123-M59-AUTOMATIC-RETENTION-TRIGGER-DESIGN-GATE.md`.
