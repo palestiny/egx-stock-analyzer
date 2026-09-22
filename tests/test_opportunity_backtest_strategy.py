@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -16,11 +17,11 @@ def make_bar(day: int) -> PriceBar:
     return PriceBar.create(
         stock_id=uuid4(),
         timeframe=Timeframe.DAILY,
-        timestamp=datetime(2026, 1, day, tzinfo=timezone.utc),
-        open=Price("100"),
-        high=Price("101"),
-        low=Price("99"),
-        close=Price("100"),
+        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=day - 1),
+        open=Price(Decimal("100")),
+        high=Price(Decimal("101")),
+        low=Price(Decimal("99")),
+        close=Price(Decimal("100")),
         volume=Volume(1000),
     )
 
