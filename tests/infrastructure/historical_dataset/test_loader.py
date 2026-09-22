@@ -51,7 +51,7 @@ def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
         original + lines[-1] + "\n", encoding="utf-8"
     )
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    payload["market_observations_artifact"]["row_count"] = 4
+    payload["market_observations_artifact"]["row_count"] = len(lines) - 1
     import hashlib
     payload["market_observations_artifact"]["sha256"] = hashlib.sha256(
         (tmp_path / "market_observations.csv").read_bytes()
