@@ -6,9 +6,6 @@ from app.application.backtesting.historical_opportunity_strategy import (
     HistoricalOpportunityClassificationBacktestStrategy,
 )
 from app.domain.fundamental_analysis.financial_period import FinancialPeriod
-from app.domain.fundamental_analysis.historical_financial_snapshot import (
-    HistoricalFinancialSnapshot,
-)
 from app.domain.market_data.price import Price
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
@@ -74,7 +71,6 @@ def test_historical_strategy_uses_completed_bar_date_for_point_in_time_fundament
             {
                 "opportunity": OpportunityClassificationResult(
                     classification=OpportunityClassification.BUY,
-                    reason="test",
                 )
             },
         )()
@@ -107,7 +103,6 @@ def test_historical_strategy_preserves_production_opportunity_classification():
             {
                 "opportunity": OpportunityClassificationResult(
                     classification=OpportunityClassification.WATCH,
-                    reason="test",
                 )
             },
         )()
