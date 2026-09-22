@@ -164,3 +164,16 @@ DEC-126 proposes M61 as the next analytical milestone. Repository review found t
 Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
 Status: **Accepted — first simulator slice merged and CI verified**. The accepted baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with strategy invalidation as the primary exit, configured maximum-holding-period safety exit, and explicit cost/slippage semantics.
+
+
+## 10. M61 Historical Input Boundary
+
+The simulator slice is implementation-complete and CI-verified, but historical Strategy v0 evaluation is not yet authorized as a performance claim.
+
+Repository review identified a point-in-time risk in the existing financial-input path: the current Yahoo Finance source selects annual financial periods by period-end from current provider statements. Period-end alone does not establish historical information availability.
+
+Proposed design gate: `docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md`.
+
+Status: **Proposed — awaiting owner decision**.
+
+Until this boundary is accepted and implemented, do not produce or interpret Strategy v0 historical performance results as leakage-safe end-to-end validation.
