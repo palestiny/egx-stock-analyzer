@@ -22,7 +22,7 @@ def test_loads_manifest_and_verifies_artifacts() -> None:
 def test_loads_decimal_market_values_without_float_conversion() -> None:
     rows = HistoricalDatasetLoader(FIXTURE).load_market_observations()
 
-    assert rows[0].open == "10.00"
+    assert str(rows[0].open) == "10.00"
     assert rows[0].open.as_tuple().exponent == -2
 
 
