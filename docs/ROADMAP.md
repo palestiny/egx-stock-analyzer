@@ -10,15 +10,15 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟡 Proposed — Design Gate Open
+**Status:** 🟠 Implementation In Progress
 
-The repository review after M60 confirmed that the core analytical path and M7 opportunity-detection slices already exist. M61 therefore targets historical validation rather than rebuilding technical/fundamental analysis.
+DEC-126 is accepted. M61 targets historical validation rather than rebuilding technical/fundamental analysis.
 
 Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
-The proposed baseline is event-driven, point-in-time analysis, signal-after-close, next-bar-open execution, single long-only position, explicit exit semantics, explicit cost/slippage configuration, and explainable trade-level results. The first strategy exit semantics and final acceptance of the baseline remain owner decisions.
+The accepted baseline is event-driven, point-in-time analysis, signal-after-close, next-bar-open execution, single long-only position, strategy invalidation as primary exit, configured maximum-holding-period safety exit, explicit cost/slippage configuration, and explainable trade-level results.
 
-No implementation has started under M61.
+Implementation branch: `m61-backtesting-implementation`. TDD RED tests and the first simulator implementation are now in progress.
 
 ---
 

@@ -144,7 +144,7 @@ No overlapping positions and no short positions are introduced in M61.
 3. **Stop-loss and take-profit are deferred.**
    M61 must not invent SL/TP levels from support/resistance or other analytical values. They require a separate strategy decision.
 
-The backtester owns lifecycle mechanics; the strategy owns the validity decision.
+The backtester owns lifecycle mechanics; the strategy owns the validity decision. For Strategy v0, strategy validity is defined as the existing production Opportunity Classification remaining `BUY`; the adapter delegates to the production analysis result and does not duplicate classification thresholds.
 
 ### D6 — Costs / Slippage
 
@@ -215,7 +215,7 @@ Deterministic aggregate summary
 
 The maximum holding period is a required strategy configuration for the backtest slice; it is not a universal market rule. M61 must not silently choose a business/trading value when the strategy configuration does not provide one.
 
-Prove simulation semantics before adding multiple strategies, portfolios, optimization, or UI.
+Prove simulation semantics before adding multiple strategies, portfolios, optimization, or UI. The M61 application boundary binds the simulator to Strategy v0 through an adapter around the existing `StockAnalysisPipeline` result rather than reimplementing opportunity-classification rules.
 
 ## 9. Acceptance Criteria
 
