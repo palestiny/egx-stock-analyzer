@@ -33,12 +33,15 @@ class PointInTimeFundamentalDataProvider:
             if snapshot.is_available_at(as_of)
         ]
 
-        by_period_end = {}
+        latest_by_period_end: dict[date, HistoricalFinancialSnapshot] = {}
         for snapshot in available:
-            by_period_end[snapshot.period.period_end] = snapshot
+            period_end = snapshot.period.period_end
+            current = latest_by_period_end.get(period_end)
+            if current is None or snapshot.available_at > current.available_at:
+                latest_by_period_end[period_end] = snapshot
 
         ordered = sorted(
-            by_period_end.values(),
+            latest_by_period_end.values(),
             key=lambda snapshot: snapshot.period.period_end,
             reverse=True,
         )
