@@ -144,4 +144,6 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-**M58 policy accepted → implementation design/mapping → TDD RED → implement only within the accepted boundary.**
+**M60 — Production Maintenance Scheduling Design Gate**
+
+The next proposed boundary is deployment-side scheduling of the existing M59 maintenance command. No scheduler technology, hosting model, frequency, overlap policy, or deployment configuration is committed yet; these require the M60 design gate.

@@ -20,6 +20,7 @@ The system currently supports:
 - durable analysis results and historical analysis snapshots with SQLite;
 - scheduled workflow state and lifecycle history with SQLite;
 - automatic analysis retention policy and bounded maintenance capability, disabled by default;
+- controlled automatic-retention maintenance command with dry-run and explicit process outcomes;
 - bounded workflow history queries including state/time filters and cross-execution history;
 - a read-only SQLite inspection tool;
 - CI for Python tests, frontend tests, and frontend production build.
@@ -219,6 +220,9 @@ Current verified position:
 - **M57 — Physical Purge** is complete and merged.
 - M57 implementation was validated by GitHub Actions Run #2537 and merged through PR #151.
 - **M58 — Automatic Analysis Retention** is complete and merged through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
+- **M59 — Controlled Maintenance Trigger** is complete and merged through PR #159 at `c5c6c258508a60ac5872f4f4504fe55d440af30c`; implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9` passed GitHub Actions Run #2687.
+- M59 provides the application-side maintenance command only; no OS/container scheduler or application background worker is configured.
+- The next proposed milestone is **M60 — Production Maintenance Scheduling Design Gate**.
 - The current M58 design gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
 - M58 uses a 30-day `deleted_at` retention boundary, reuses M57 physical purge, remains disabled by default, and does not execute during application startup.
 
