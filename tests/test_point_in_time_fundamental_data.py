@@ -48,6 +48,25 @@ def test_only_snapshots_available_at_decision_date_are_visible():
     assert previous.period_end == date(2023, 12, 31)
 
 
+def test_latest_available_revision_is_selected_for_same_period_end():
+    stock = Stock(uuid4(), "EGAL", "Egypt Aluminium")
+    source = _Source(
+        [
+            snapshot(2024, date(2025, 2, 15), "100"),
+            snapshot(2024, date(2025, 5, 15), "120"),
+            snapshot(2023, date(2024, 2, 15), "90"),
+        ]
+    )
+
+    current, _ = PointInTimeFundamentalDataProvider(source).get_periods(
+        stock,
+        date(2025, 6, 1),
+    )
+
+    assert current.period_end == date(2024, 12, 31)
+    assert current.revenue == Decimal("120")
+
+
 def test_future_snapshot_cannot_be_used_even_when_period_end_is_eligible():
     stock = Stock(uuid4(), "EGAL", "Egypt Aluminium")
     source = _Source(
