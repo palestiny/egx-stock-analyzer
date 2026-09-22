@@ -51,7 +51,7 @@ class AnalysisInputAssembler:
             from_date,
             as_of,
         )
-        price_bars = self._build_price_bars(
+        price_bars = self.build_price_bars(
             observations,
             minimum_price_bars=self._policy.minimum_price_bars,
         )
@@ -72,7 +72,7 @@ class AnalysisInputAssembler:
         )
 
     @staticmethod
-    def _build_price_bars(
+    def build_price_bars(
         observations,
         *,
         minimum_price_bars: int,
