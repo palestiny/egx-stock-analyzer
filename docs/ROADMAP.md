@@ -10,7 +10,7 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟠 Implementation In Progress
+**Status:** 🟡 In Progress — Simulator Slice Complete
 
 DEC-126 is accepted. M61 targets historical validation rather than rebuilding technical/fundamental analysis.
 
@@ -18,7 +18,7 @@ Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
 The accepted baseline is event-driven, point-in-time analysis, signal-after-close, next-bar-open execution, single long-only position, strategy invalidation as primary exit, configured maximum-holding-period safety exit, explicit cost/slippage configuration, and explainable trade-level results.
 
-Implementation branch: `m61-backtesting-implementation`. TDD RED tests and the first simulator implementation are now in progress.
+PR #165 delivered the first simulator slice and was merged into `main`. GitHub Actions Tests Run #2745 passed. Remaining M61 work is strategy validation against real historical observations and aggregate-result validation.
 
 ---
 
