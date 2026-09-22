@@ -10,6 +10,22 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
+**Status:** 🟡 In Progress — Versioned Historical Dataset Boundary Accepted; Real Historical Evaluation Pending
+
+DEC-126 is accepted. DEC-127 is accepted and implemented. DEC-128 is now accepted: production/backtesting historical evidence uses a versioned external dataset, with a small repository-owned deterministic fixture for automated tests.
+
+Design gates:
+- `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`
+- `docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md`
+- `docs/DEC-128-M61-VERSIONED-HISTORICAL-DATASET-DESIGN-GATE.md`
+
+The dataset contract covers daily market observations, point-in-time financial snapshots, immutable dataset/version identity, schema/provenance metadata, and integrity verification. Large historical artifacts remain outside Git. The physical artifact format is intentionally deferred to the implementation design.
+
+Remaining M61 work: define the dataset schema/manifest implementation contract, add deterministic fixtures, implement versioned loading/integrity validation, integrate historical market data with the production analysis assembler, verify the existing data-quality boundary, execute Strategy v0 against real historical coverage, review aggregate/trade-level results, and complete final leakage/reproducibility validation.
+
+---
+
+
 **Status:** 🟡 In Progress — Historical Integration Boundary Complete; Real Historical Evaluation Pending
 
 DEC-126 is accepted. M61 targets historical validation rather than rebuilding technical/fundamental analysis.
