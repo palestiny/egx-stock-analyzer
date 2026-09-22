@@ -32,10 +32,18 @@ class HistoricalFinancialSnapshotRecord:
 
 
 @dataclass(frozen=True)
+class DatasetCoverage:
+    start: str
+    end: str
+    stock_count: int
+
+
+@dataclass(frozen=True)
 class DatasetArtifact:
     path: Path
     sha256: str
     row_count: int
+    coverage: DatasetCoverage
 
 
 @dataclass(frozen=True)
