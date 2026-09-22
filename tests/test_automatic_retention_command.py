@@ -13,7 +13,16 @@ from app.infrastructure.maintenance.automatic_retention_command import (
 )
 
 
-def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+@pytest.fixture
+def isolated_lifecycle_store(monkeypatch: pytest.MonkeyPatch):
+    """Keep command-contract tests independent from SQLite schema initialization."""
+    monkeypatch.setattr(
+        "app.infrastructure.maintenance.automatic_retention_command.SQLiteAnalysisLifecycleStore",
+        lambda _path: object(),
+    )
+
+
+def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, isolated_lifecycle_store):
     calls = []
 
     class FakeRetention:
@@ -46,7 +55,7 @@ def test_disabled_retention_is_a_successful_noop(monkeypatch: pytest.MonkeyPatch
     assert calls[1][0].subject == "operator"
 
 
-def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, isolated_lifecycle_store):
     calls = []
     now = datetime(2026, 9, 21, tzinfo=timezone.utc)
 
@@ -87,7 +96,7 @@ def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyP
     assert received_dry_run is True
 
 
-def test_failed_purge_is_reported_as_failed_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_failed_purge_is_reported_as_failed_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, isolated_lifecycle_store):
     class FakeRetention:
         def __init__(self, lifecycle_store, policy):
             pass
@@ -122,7 +131,7 @@ def test_failed_purge_is_reported_as_failed_command(monkeypatch: pytest.MonkeyPa
     assert result.purge.failure_reason == "OperationalError"
 
 
-def test_command_contract_exposes_unexpected_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def test_command_contract_exposes_unexpected_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, isolated_lifecycle_store):
     class FakeRetention:
         def __init__(self, lifecycle_store, policy):
             pass
