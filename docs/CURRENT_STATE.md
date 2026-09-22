@@ -1,18 +1,20 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-09-21  
+**Last verified:** 2026-09-22  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
 
-The repository is currently at **M58 completion / post-merge closeout**.
+The repository is currently at **M59 completion / post-merge closeout**.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
 M57 — Physical Purge is complete and hardened through PR #155.
 
-M58 — Automatic Analysis Retention has an accepted policy, a closed design gate, and a merged implementation through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
+M58 — Automatic Analysis Retention is complete through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
+
+M59 — Controlled Maintenance Trigger is complete through PR #159, merged at `c5c6c258508a60ac5872f4f4504fe55d440af30c`. The implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9` passed GitHub Actions Tests Run #2687.
 
 ## 2. Authority Order
 
@@ -115,3 +117,34 @@ Before project work:
 Historical branches and old milestone documents are history, not current execution state. Old branches should only be deleted after verifying they are no longer needed.
 
 The repository must remain understandable without the conversation.
+
+
+## 7. M59 Completion
+
+M59 — Controlled Maintenance Trigger is **complete — implementation merged and CI validated**.
+
+Design document:
+
+`docs/DEC-123-M59-CONTROLLED-MAINTENANCE-TRIGGER-DESIGN-GATE.md`
+
+Accepted boundary:
+
+```
+External scheduler
+      ↓
+Maintenance command
+      ↓
+AutomaticAnalysisRetention
+      ↓
+PurgeAnalysisLifecycle
+      ↓
+SQLite lifecycle transaction
+```
+
+The repository now provides a controlled maintenance command with explicit disabled/completed/failed outcomes, dry-run support, bounded execution through M58/M57, operator identity, and process exit semantics. No OS/container scheduler or application background worker was added.
+
+PR #159 was merged into `main` as `c5c6c258508a60ac5872f4f4504fe55d440af30c`. GitHub Actions Tests Run #2687 passed on implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9`.
+
+## 8. Next Design Boundary
+
+No implementation PR is currently open. The next architectural question is the deployment-side trigger for the already-defined maintenance command: whether and how the deployment environment should schedule it. This is proposed as M60 and requires its own design gate before deployment configuration is added.
