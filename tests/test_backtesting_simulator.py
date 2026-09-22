@@ -275,10 +275,10 @@ def test_invalid_configuration_is_rejected():
 
 def test_backtest_result_exposes_deterministic_aggregate_metrics():
     bars = [
-        make_bar(1, "100", "100", "100"),
-        make_bar(2, "100", "100", "100"),
-        make_bar(3, "110", "110", "110"),
-        make_bar(4, "110", "110", "110"),
+        bar(0, "100", "100"),
+        bar(1, "100", "100"),
+        bar(2, "110", "110"),
+        bar(3, "110", "110"),
     ]
     strategy = BacktestStrategy(
         strategy_id="metrics",
