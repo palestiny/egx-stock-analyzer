@@ -79,8 +79,8 @@ def test_enabled_command_delegates_to_m58_capability(monkeypatch: pytest.MonkeyP
     assert result.exit_code == 0
     assert result.dry_run is True
     assert result.purged_lifecycle_units == 0
-    assert calls[0][1] == config.automatic_retention_days
-    assert calls[0][2] == config.automatic_retention_batch_limit
+    assert calls[0][1].preservation_days == config.automatic_retention_days
+    assert calls[0][1].batch_limit == config.automatic_retention_batch_limit
     identity, received_now, received_dry_run = calls[1]
     assert identity.subject == "operator"
     assert received_now == now
