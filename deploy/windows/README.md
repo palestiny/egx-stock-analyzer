@@ -26,7 +26,7 @@ Run PowerShell with the required deployment privileges:
 
     .\deploy\windows\register-maintenance-task.ps1 -RepositoryPath "C:\Apps\EGXStockAnalyzer" -PythonPath "C:\Apps\EGXStockAnalyzer\.venv\Scripts\python.exe" -DatabasePath "C:\Apps\EGXStockAnalyzer\storage\analysis.db"
 
-The default task principal is the current Windows user. For unattended production deployment, register the task under the deployment service account according to the host credential policy. Credentials must never be committed to the repository.
+The default task principal is the Windows LocalService account, using the ScheduledTasks ServiceAccount logon type so the task can run without an interactive login. If the deployment requires another service account, use the host's approved service-account configuration and grant it access to the application and SQLite database. Credentials must never be committed to the repository.
 
 ## Removal
 
