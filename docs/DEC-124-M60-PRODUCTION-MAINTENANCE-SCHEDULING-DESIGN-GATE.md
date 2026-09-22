@@ -1,6 +1,6 @@
 # DEC-124 — M60 Production Maintenance Scheduling Design Gate
 
-**Status:** Proposed
+**Status:** Accepted — Windows Task Scheduler deployment mapping
 **Date:** 2026-09-22
 **Milestone:** M60 — Production Maintenance Scheduling
 
@@ -102,8 +102,99 @@ The design must establish tests or deployment-level verification for:
 - scheduler observability;
 - preservation of M57/M58 invariants.
 
-## 9. Decision Gate
+## 9. Accepted Decisions
 
-**Status: Proposed — implementation is not authorized until the deployment target and scheduling semantics are explicitly accepted.**
+### 9.1 Deployment Target
 
-No scheduler configuration should be added to the repository until this gate is accepted.
+**Windows host + Windows Task Scheduler** is the current production deployment mapping.
+
+This is a deployment choice, not an application architecture dependency. The application remains scheduler-agnostic and the maintenance command remains the stable application boundary.
+
+A future container or managed-service deployment may introduce a different scheduler mapping without changing M58/M59 policy semantics.
+
+### 9.2 Invocation Frequency
+
+Run automatic retention **once per day at 03:30 local host time**.
+
+Daily execution matches the age-based retention policy while avoiding unnecessary repeated maintenance work. Retention eligibility remains owned by M58; the schedule does not redefine the 30-day policy.
+
+### 9.3 Overlap Policy
+
+**Do not start a new invocation while a previous invocation is still running.**
+
+Windows Task Scheduler must use the equivalent of an `IgnoreNew` overlap policy.
+
+### 9.4 Timeout
+
+The scheduled task has a **30-minute execution ceiling**.
+
+This is an operational safety bound and does not change the M58/M57 batch limit or lifecycle eligibility rules.
+
+### 9.5 Scheduler Retry
+
+A failed invocation may be retried **up to 3 times**, with a **10-minute delay** between attempts.
+
+Retries remain scheduler-level retries of the same bounded maintenance command.
+
+### 9.6 Observability
+
+The MVP uses:
+
+- process exit code as the scheduler success/failure signal;
+- Windows Task Scheduler operational history;
+- command stdout/stderr captured by the deployment wrapper;
+- existing M57/M58 audit records as the application-level destructive-operation record.
+
+No new application telemetry subsystem is introduced by M60.
+
+### 9.7 Configuration and Secrets
+
+The scheduler supplies no secrets directly.
+
+The task runs under the deployment service account and reads normal application configuration/environment. The SQLite database path is provided through the existing command/configuration boundary; no credentials are embedded in task XML or scripts.
+
+### 9.8 Dry Run
+
+Dry-run remains **operator-only** and is not scheduled.
+
+### 9.9 Scheduler Execution History
+
+Task Scheduler history is sufficient for the M60 MVP. Durable application-level scheduler occurrence history is deferred.
+
+## 10. Deployment Mapping
+
+The repository will contain a Windows deployment wrapper and registration/removal scripts under `deploy/windows/`.
+
+The wrapper will:
+
+1. locate the configured Python executable;
+2. invoke `python -m app.infrastructure.maintenance.automatic_retention_command`;
+3. preserve the command exit code;
+4. capture command output to a deployment-owned log location;
+5. never implement retention or deletion logic itself.
+
+The registration script will configure the daily trigger, non-overlap behavior, timeout, and retry policy. It will not embed secrets or retention policy values.
+
+## 11. Verification Shape
+
+The deployment mapping must verify:
+
+- disabled retention exits successfully and performs no deletion;
+- normal enabled invocation returns the maintenance command exit code;
+- command failure is visible as task failure;
+- timeout terminates the task according to the operational ceiling;
+- overlapping invocations are rejected/ignored;
+- scheduler retry is bounded to the accepted retry count;
+- missing configuration fails without creating a destructive path;
+- dry-run remains unscheduled;
+- M57/M58 invariants remain unchanged.
+
+## 12. Decision Gate
+
+**Status: Accepted — implementation is authorized for the Windows Task Scheduler deployment mapping defined above.**
+
+The scheduler owns only timing, process execution, timeout, retry, and operational observation.
+
+M59 remains the only application command boundary; M58 remains the retention policy boundary; M57 remains the physical purge boundary.
+
+No application background scheduler, generic scheduler abstraction, or second destructive path is authorized by this gate.
