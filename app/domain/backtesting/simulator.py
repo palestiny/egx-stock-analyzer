@@ -57,6 +57,18 @@ class BacktestMetrics:
 
 
 @dataclass(frozen=True)
+class BacktestMetrics:
+    completed_trade_count: int
+    open_trade_count: int
+    winning_trade_count: int
+    losing_trade_count: int
+    win_rate: Decimal
+    average_gross_return: Decimal
+    average_net_return: Decimal
+    cumulative_net_return: Decimal
+
+
+@dataclass(frozen=True)
 class BacktestResult:
     strategy_id: str
     strategy_version: str
@@ -67,6 +79,38 @@ class BacktestResult:
     @property
     def completed_trade_count(self) -> int:
         return len(self.trades)
+
+    @property
+    def metrics(self) -> BacktestMetrics:
+        completed = len(self.trades)
+        winning = sum(trade.net_return > 0 for trade in self.trades)
+        losing = sum(trade.net_return < 0 for trade in self.trades)
+        win_rate = Decimal(winning) / Decimal(completed) if completed else Decimal("0")
+        average_gross = (
+            sum((trade.gross_return for trade in self.trades), Decimal("0")) / Decimal(completed)
+            if completed
+            else Decimal("0")
+        )
+        average_net = (
+            sum((trade.net_return for trade in self.trades), Decimal("0")) / Decimal(completed)
+            if completed
+            else Decimal("0")
+        )
+        cumulative_net = Decimal("1")
+        for trade in self.trades:
+            cumulative_net *= Decimal("1") + trade.net_return
+        cumulative_net -= Decimal("1")
+
+        return BacktestMetrics(
+            completed_trade_count=completed,
+            open_trade_count=self.open_trade_count,
+            winning_trade_count=winning,
+            losing_trade_count=losing,
+            win_rate=win_rate,
+            average_gross_return=average_gross,
+            average_net_return=average_net,
+            cumulative_net_return=cumulative_net,
+        )
 
     @property
     def metrics(self) -> BacktestMetrics:
