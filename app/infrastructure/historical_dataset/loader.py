@@ -8,6 +8,7 @@ from uuid import UUID
 
 from app.infrastructure.historical_dataset.models import (
     DatasetArtifact,
+    DatasetCoverage,
     HistoricalDatasetManifest,
     HistoricalFinancialSnapshotRecord,
     HistoricalMarketObservation,
@@ -155,12 +156,27 @@ class HistoricalDatasetLoader:
 
     @staticmethod
     def _artifact(value: object) -> DatasetArtifact:
-        if not isinstance(value, dict) or set(value) != {"path", "sha256", "row_count"}:
+        if not isinstance(value, dict) or set(value) != {"path", "sha256", "row_count", "coverage"}:
             raise HistoricalDatasetIntegrityError("Dataset artifact manifest entry is invalid")
+        coverage_value = value["coverage"]
+        if not isinstance(coverage_value, dict) or set(coverage_value) != {"start", "end", "stock_count"}:
+            raise HistoricalDatasetIntegrityError("Dataset artifact coverage metadata is invalid")
+        try:
+            row_count = int(value["row_count"])
+            stock_count = int(coverage_value["stock_count"])
+        except (TypeError, ValueError) as exc:
+            raise HistoricalDatasetIntegrityError("Dataset artifact counts must be integers") from exc
+        if row_count < 0 or stock_count < 0:
+            raise HistoricalDatasetIntegrityError("Dataset artifact counts cannot be negative")
         return DatasetArtifact(
             path=Path(HistoricalDatasetLoader._string(value["path"], "path")),
             sha256=HistoricalDatasetLoader._string(value["sha256"], "sha256"),
-            row_count=int(value["row_count"]),
+            row_count=row_count,
+            coverage=DatasetCoverage(
+                start=HistoricalDatasetLoader._string(coverage_value["start"], "coverage.start"),
+                end=HistoricalDatasetLoader._string(coverage_value["end"], "coverage.end"),
+                stock_count=stock_count,
+            ),
         )
 
     @staticmethod
