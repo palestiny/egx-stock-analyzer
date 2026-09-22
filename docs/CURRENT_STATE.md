@@ -145,6 +145,10 @@ The repository now provides a controlled maintenance command with explicit disab
 
 PR #159 was merged into `main` as `c5c6c258508a60ac5872f4f4504fe55d440af30c`. GitHub Actions Tests Run #2687 passed on implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9`.
 
-## 8. Next Design Boundary
+## 8. M60 Scheduling
 
-No implementation PR is currently open. The next architectural question is the deployment-side trigger for the already-defined maintenance command: whether and how the deployment environment should schedule it. This is proposed as M60 and requires its own design gate before deployment configuration is added.
+M60 is the current implementation milestone. DEC-124 is accepted and PR #162 contains the Windows Task Scheduler deployment mapping.
+
+The accepted deployment contract is daily at 03:30 local host time, IgnoreNew overlap handling, a 30-minute execution ceiling, and up to 3 scheduler restarts with 10-minute spacing. The repository provides the wrapper, registration, and removal scripts under `deploy/windows/`.
+
+The Windows deployment scripts have not been executed by this session on a Windows host, so deployment validation is not claimed yet. Application M57/M58/M59 semantics remain unchanged.
