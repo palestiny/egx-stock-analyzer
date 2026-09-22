@@ -6,7 +6,7 @@
 
 ## 1. Where We Are
 
-The repository is currently at **M60 completion / deployment-mapping closeout**.
+The repository is at **M60 completion / deployment-mapping closeout**, with **M61 — Backtesting & Strategy Validation** now proposed through a fresh design gate.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
@@ -156,3 +156,11 @@ The repository provides the Windows Task Scheduler wrapper, registration script,
 The Windows scripts were not executed on a Windows host by this session, so host-level registration/runtime verification is not claimed. This is an explicit operational verification boundary, not an application correctness failure.
 
 No application scheduler, background worker, second destructive path, or change to M57/M58/M59 semantics was introduced.
+
+## 9. M61 Design Gate
+
+DEC-126 proposes M61 as the next analytical milestone. Repository review found the core analysis pipeline already implemented, including technical/fundamental analysis, scoring, stock quality, entry context, entry quality, and opportunity classification. The next unresolved boundary is historical strategy validation.
+
+Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
+
+Status: **Proposed — owner decision required**. No M61 implementation has started. The recommended baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with explicit exit and cost/slippage semantics.
