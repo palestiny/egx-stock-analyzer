@@ -174,3 +174,14 @@ Current Yahoo statement selection by period_end remains unsuitable as evidence f
 PR #168 integrated Strategy v0 with the production `StockAnalysisPipeline` and the point-in-time fundamental provider. PR #169 repaired the dependency-ordering mistake by restoring the accepted DEC-127 prerequisite boundary on `main`; its head `b3a5e0bcaf8015307268c0d66df351c0cca21c32` passed GitHub Actions Tests Run #2782 and PR #169 was merged at `87b121964bc782fbe6ee1f58d2b9a4682db37a7c`.
 
 M61 is **not complete yet**. The repository still needs an actual historical snapshot dataset/source, historical PriceBar assembly, data-quality boundary verification, and deterministic Strategy v0 evaluation against real historical observations before any performance conclusion is made.
+
+
+### M61 Historical Dataset Boundary — DEC-128
+
+DEC-128 is accepted. M61 will use a versioned external historical dataset as the production/backtesting evidence boundary, with a small repository-owned fixture dataset for deterministic tests.
+
+The repository owns the dataset contract, schema, manifest, immutable version identity, integrity metadata, and loading rules. Large historical artifacts remain outside Git and are consumed only through an immutable dataset version and integrity hash.
+
+The dataset must provide daily market observations and point-in-time financial snapshots with explicit availability and revision metadata. The physical artifact format remains a follow-up implementation decision.
+
+M61 remains in progress. No real historical performance conclusion is valid until an actual dataset version is available and the full historical evaluation path is verified.
