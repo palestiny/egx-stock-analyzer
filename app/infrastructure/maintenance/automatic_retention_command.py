@@ -44,6 +44,13 @@ def run_automatic_retention(
         preservation_days=config.automatic_retention_days,
         batch_limit=config.automatic_retention_batch_limit,
     )
+    if not policy.enabled:
+        return AutomaticRetentionCommandResult(
+            status="disabled",
+            dry_run=dry_run,
+            purge=None,
+        )
+
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     capability = AutomaticAnalysisRetention(lifecycle_store, policy)
     result: AutomaticAnalysisRetentionResult = capability.execute(
