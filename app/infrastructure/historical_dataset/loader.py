@@ -142,9 +142,11 @@ class HistoricalDatasetLoader:
         return snapshots
 
     def _verify_artifact(self, artifact: DatasetArtifact) -> None:
-        path = self._root / artifact.path
-        if path.is_absolute() or ".." in artifact.path.parts:
+        relative_path = artifact.path
+        if relative_path.is_absolute() or any(part == ".." for part in relative_path.parts):
             raise HistoricalDatasetIntegrityError("Artifact path must stay inside dataset root")
+
+        path = self._root / relative_path
         try:
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
         except OSError as exc:
