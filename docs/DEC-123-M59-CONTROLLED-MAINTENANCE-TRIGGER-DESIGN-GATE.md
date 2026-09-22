@@ -1,6 +1,6 @@
 # DEC-123 — M59 Controlled Maintenance Trigger Design Gate
 
-**Status:** Accepted — Option A  
+**Status:** Accepted — Option A — Implementation Complete  
 **Date:** 2026-09-21  
 **Milestone:** M59 — Controlled Maintenance Trigger
 
@@ -137,6 +137,6 @@ The repository now contains the first M59 command boundary at `app/infrastructur
 
 The first TDD contract tests are also present in `tests/test_automatic_retention_command.py`. They cover disabled behavior, M58 delegation, dry-run propagation, and failure exit semantics.
 
-Remaining work:
+Implementation and CI verification are complete. PR #159 merged into `main` as `c5c6c258508a60ac5872f4f4504fe55d440af30c` after GitHub Actions Tests Run #2687 passed on implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9`.
 
-**CI verification → expand integration/safety coverage → review/refactor → deployment-boundary documentation → M59 completion.**
+The deployment-side scheduler remains intentionally out of scope and is proposed for the next design gate.
