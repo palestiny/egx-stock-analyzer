@@ -163,4 +163,14 @@ DEC-126 proposes M61 as the next analytical milestone. Repository review found t
 
 Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
-Status: **Accepted — first simulator slice merged and CI verified**. The accepted baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with strategy invalidation as the primary exit, configured maximum-holding-period safety exit, and explicit cost/slippage semantics.
+Status: **Accepted — simulator + point-in-time historical input boundary + Strategy v0 integration merged and verified**. The accepted baseline is event-driven, leakage-safe, signal-after-close, next-bar-open, single long-only simulation with strategy invalidation as the primary exit, configured maximum-holding-period safety exit, and explicit cost/slippage semantics.
+
+### M61 Historical Input Boundary
+
+DEC-127 is accepted and its implementation is now on `main`. Historical financial facts are consumed only through the provider-neutral `HistoricalFinancialSnapshot` boundary, where a snapshot is eligible only when its explicit `available_at` is not later than the decision date. The point-in-time provider also selects the latest revision available for each financial period end before choosing the two latest eligible periods.
+
+Current Yahoo statement selection by period_end remains unsuitable as evidence for leakage-safe historical performance claims because it does not prove public availability at the decision time.
+
+PR #168 integrated Strategy v0 with the production `StockAnalysisPipeline` and the point-in-time fundamental provider. PR #169 repaired the dependency-ordering mistake by restoring the accepted DEC-127 prerequisite boundary on `main`; its head `b3a5e0bcaf8015307268c0d66df351c0cca21c32` passed GitHub Actions Tests Run #2782 and PR #169 was merged at `87b121964bc782fbe6ee1f58d2b9a4682db37a7c`.
+
+M61 is **not complete yet**. The repository still needs an actual historical snapshot dataset/source, historical PriceBar assembly, data-quality boundary verification, and deterministic Strategy v0 evaluation against real historical observations before any performance conclusion is made.
