@@ -19,17 +19,17 @@ class AutomaticRetentionCommandResult:
     purge: PurgeAnalysisLifecycleResult | None
 
     @property
-    exit_code(self) -> int:
+    def exit_code(self) -> int:
         return 1 if self.status == "failed" else 0
 
     @property
-    purged_lifecycle_units(self) -> int:
+    def purged_lifecycle_units(self) -> int:
         if self.purge is None:
             return 0
         return len(self.purge.purged_run_ids) + len(self.purge.purged_snapshot_ids)
 
     @property
-    operation_id(self):
+    def operation_id(self):
         return None if self.purge is None else self.purge.operation_id
 
 
