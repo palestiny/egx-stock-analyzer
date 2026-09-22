@@ -24,8 +24,8 @@ def bar(day: int, open_: str, close: str) -> PriceBar:
         timeframe=Timeframe.DAILY,
         timestamp=START + timedelta(days=day),
         open=Price(Decimal(open_)),
-        high=Price(Decimal(max(open_, close))),
-        low=Price(Decimal(min(open_, close))),
+        high=Price(max(Decimal(open_), Decimal(close))),
+        low=Price(min(Decimal(open_), Decimal(close))),
         close=Price(Decimal(close)),
         volume=Volume(1000),
     )
@@ -40,13 +40,18 @@ def config(max_holding_bars: int = 3) -> BacktestConfiguration:
 
 
 def test_entry_is_generated_from_completed_bar_and_executes_next_bar_open():
-    bars = [bar(0, "100", "105"), bar(1, "110", "111"), bar(2, "120", "121")]
+    bars = [
+        bar(0, "100", "105"),
+        bar(1, "110", "111"),
+        bar(2, "120", "121"),
+        bar(3, "130", "131"),
+    ]
 
     strategy = BacktestStrategy(
         strategy_id="opportunity-classification",
         version="0",
         signal=lambda history: len(history) == 1,
-        position_valid=lambda history: True,
+        position_valid=lambda history: len(history) < 3,
     )
 
     result = BacktestSimulator.run(bars, strategy, config())
