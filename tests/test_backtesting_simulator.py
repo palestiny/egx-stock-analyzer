@@ -270,3 +270,38 @@ def test_invalid_configuration_is_rejected():
         assert False, "expected ValueError"
     except ValueError:
         pass
+
+
+
+def test_backtest_result_exposes_deterministic_aggregate_metrics():
+    bars = [
+        bar(0, "100", "100"),
+        bar(1, "100", "100"),
+        bar(2, "110", "110"),
+        bar(3, "110", "110"),
+    ]
+    strategy = BacktestStrategy(
+        strategy_id="metrics",
+        version="1",
+        signal=lambda history: len(history) == 1,
+        position_valid=lambda history: len(history) < 3,
+    )
+    result = BacktestSimulator.run(
+        bars,
+        strategy,
+        BacktestConfiguration(
+            max_holding_bars=10,
+            transaction_cost_rate=Decimal("0"),
+            slippage_rate=Decimal("0"),
+        ),
+    )
+
+    metrics = result.metrics
+    assert metrics.completed_trade_count == 1
+    assert metrics.open_trade_count == 0
+    assert metrics.winning_trade_count == 1
+    assert metrics.losing_trade_count == 0
+    assert metrics.win_rate == Decimal("1")
+    assert metrics.average_gross_return == Decimal("0.1")
+    assert metrics.average_net_return == Decimal("0.1")
+    assert metrics.cumulative_net_return == Decimal("0.1")
