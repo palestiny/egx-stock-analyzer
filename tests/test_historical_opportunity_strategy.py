@@ -75,14 +75,15 @@ def test_historical_strategy_uses_completed_bar_date_for_point_in_time_fundament
             },
         )()
 
+    policy = AnalysisInputAssemblyPolicy(momentum_lookback=3, volume_lookback=4)
     strategy = HistoricalOpportunityClassificationBacktestStrategy(
         stock,
         fundamentals,
-        AnalysisInputAssemblyPolicy(momentum_lookback=3, volume_lookback=4),
+        policy,
         analyze=analyze,
     ).to_backtest_strategy()
 
-    bars = [make_bar(stock.id, 18), make_bar(stock.id, 19)]
+    bars = [make_bar(stock.id, day) for day in range(15, 20)]
     assert strategy.signal(bars) is True
 
     assert fundamentals.calls == [(stock, date(2026, 9, 19))]
@@ -126,3 +127,17 @@ def test_historical_strategy_identity_matches_strategy_v0():
 
     assert strategy.strategy_id == "opportunity-classification"
     assert strategy.version == "0"
+
+
+def test_historical_strategy_rejects_insufficient_history_before_fundamental_lookup():
+    stock = Stock.create("EGAL", "Egypt Aluminium")
+    fundamentals = FakeFundamentalProvider()
+    strategy = HistoricalOpportunityClassificationBacktestStrategy(
+        stock,
+        fundamentals,
+        AnalysisInputAssemblyPolicy(momentum_lookback=3, volume_lookback=4),
+        analyze=lambda *args: None,
+    ).to_backtest_strategy()
+
+    assert strategy.signal([make_bar(stock.id, day) for day in range(15, 19)]) is False
+    assert fundamentals.calls == []
