@@ -4,11 +4,11 @@
   "schema_version": "1",
   "market_observations_artifact": {
     "path": "market_observations.csv",
-    "sha256": "6bb10cd89a6d406fd41a86f6ff169619acfa86dd3c91637c4f22589173621079",
-    "row_count": 3,
+    "sha256": "2211f91cf72c0350f6111770eb8f010ce8fc9adf1124c4073a1c4824d8fce3a8",
+    "row_count": 10,
     "coverage": {
-      "start": "2026-01-05T00:00:00+00:00",
-      "end": "2026-01-07T00:00:00+00:00",
+      "start": "2026-02-16T00:00:00+00:00",
+      "end": "2026-02-27T00:00:00+00:00",
       "stock_count": 1
     }
   },
