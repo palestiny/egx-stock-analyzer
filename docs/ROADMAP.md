@@ -8,6 +8,20 @@
 
 # Current Position
 
+## M60 — Production Maintenance Scheduling
+
+**Status:** 🟢 Complete — Deployment Mapping Merged
+
+DEC-124 was accepted and the Windows Task Scheduler deployment mapping was merged through PR #162 at `4fbf799f6262c4179946835ef4eae47cf8ecb6f1`.
+
+The accepted mapping runs the existing M59 maintenance command daily at 03:30 local host time, ignores overlapping invocations, applies a 30-minute task ceiling, and allows up to 3 scheduler restarts at 10-minute intervals. Deployment tooling lives under `deploy/windows/` and contains no retention or physical-deletion logic.
+
+Repository CI passed on implementation head `707b29560bdebf587c9c8fae176b01a4208cfae8` in GitHub Actions Tests Run #2709. The merge commit did not expose a separate workflow run through the available GitHub integration, so no post-merge CI run is claimed.
+
+Windows-host execution/registration verification remains an operational deployment task because this session does not have a Windows production host. The application-side M57/M58/M59 semantics remain unchanged.
+
+---
+
 ## M56 — Analysis Run & Snapshot Retention and Deletion
 
 **Status:** 🟢 Complete — Implementation Merged
@@ -144,6 +158,4 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-**M60 — Production Maintenance Scheduling Design Gate**
-
-The next proposed boundary is deployment-side scheduling of the existing M59 maintenance command. No scheduler technology, hosting model, frequency, overlap policy, or deployment configuration is committed yet; these require the M60 design gate.
+No new implementation milestone is committed yet. The next feature or operational boundary must be established through a fresh design gate rather than inferred from completed M60 work.

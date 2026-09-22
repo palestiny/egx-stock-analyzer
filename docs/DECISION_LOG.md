@@ -2897,3 +2897,21 @@ The duration remains configurable at the system/operator policy boundary. Automa
 M58 implementation is authorized within the accepted boundary. TDD must establish the 30-day boundary semantics, configuration validation, bounded execution, audit distinction, M57 reuse, restart/idempotency behavior, and protection invariants. M57 remains independently usable and authoritative for physical purge.
 
 See `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
+
+
+## DEC-125 — M60 Production Maintenance Scheduling Implementation Completion
+
+**Status:** Accepted  
+**Date:** 2026-09-22
+
+M60 implementation is complete within the accepted DEC-124 deployment boundary.
+
+### Validation
+
+PR #162 merged the Windows Task Scheduler mapping at `4fbf799f6262c4179946835ef4eae47cf8ecb6f1`. The implementation head `707b29560bdebf587c9c8fae176b01a4208cfae8` passed GitHub Actions Tests Run #2709.
+
+The mapping provides the accepted 03:30 daily trigger, IgnoreNew overlap handling, 30-minute execution ceiling, bounded scheduler restart policy, deployment-owned logs, and registration/removal scripts. It invokes the existing M59 maintenance command and does not implement retention or physical deletion itself.
+
+The available environment did not provide a Windows production host, so actual Task Scheduler registration and execution were not claimed as verified. That remains an operational deployment verification step.
+
+M57 remains the physical purge boundary, M58 remains the retention policy boundary, and M59 remains the application maintenance command boundary.
