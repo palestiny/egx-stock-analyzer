@@ -126,6 +126,18 @@ This prevents milestone accumulation from becoming architecture drift or a secon
 
 ---
 
+# M59 — Automatic Retention Trigger
+
+**Status:** 🟡 Design Proposed — Implementation Not Authorized
+
+M58 policy and implementation are complete. M59 now defines the missing operational trigger boundary for controlled automatic-retention execution.
+
+Design gate: `docs/DEC-123-M59-AUTOMATIC-RETENTION-TRIGGER-DESIGN-GATE.md`.
+
+The current recommendation is an explicit non-HTTP maintenance invocation owned by the application capability and scheduled by the operating environment. No implementation is authorized until the trigger decisions are accepted.
+
+---
+
 # Source of Truth
 
 For current project state use this order:
@@ -144,4 +156,4 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-**M58 policy accepted → implementation design/mapping → TDD RED → implement only within the accepted boundary.**
+**M59 automatic-retention trigger design gate → resolve trigger ownership/concurrency/cadence decisions → TDD RED → implement only within the accepted boundary.**
