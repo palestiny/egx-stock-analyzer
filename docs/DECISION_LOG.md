@@ -2956,3 +2956,43 @@ The main alternatives and trade-offs are documented in `docs/DEC-126-M61-BACKTES
 - trade-level explainable results.
 
 Implementation is authorized within this boundary. New SL/TP semantics, portfolio behavior, optimization, live execution, or material architectural expansion require a new decision gate.
+
+
+## DEC-127 — M61 Historical Point-in-Time Input Boundary
+
+**Status:** Proposed  
+**Date:** 2026-09-22
+
+### Context
+
+The M61 deterministic simulator is implemented and CI-verified, but historical Strategy v0 evaluation has not yet been established.
+
+Strategy v0 delegates to the production Opportunity Classification result, which requires both price bars and financial periods. The current Yahoo Finance fundamental source selects annual periods by period-end date from the provider's current financial statements. Period-end alone does not prove that the information was available at the historical decision timestamp.
+
+A naive historical loop could therefore be leakage-safe for prices while still leaking future fundamental information.
+
+### Proposed Decision
+
+Before producing historical Strategy v0 performance results, establish an explicit point-in-time historical financial-input boundary.
+
+A historical financial fact may be supplied to analysis at decision time T only when its explicit availability/effective timestamp is <= T.
+
+The preferred end-to-end solution is a provider-neutral historical financial snapshot dataset with availability semantics.
+
+A price-only diagnostic strategy may be used separately if explicitly versioned, but it must not be represented as Strategy v0 validation.
+
+Using current financial statements selected only by period-end is not accepted as evidence for a leakage-safe Strategy v0 backtest.
+
+### Alternatives
+
+1. **Historical point-in-time financial snapshots** — strongest semantics and reusable, but requires an appropriate historical source/dataset.
+2. **Separate price-only diagnostic strategy** — immediately testable with existing historical market data, but does not validate Strategy v0.
+3. **Period-end proxy** — minimal implementation effort, but availability leakage remains possible and it is unsuitable for performance claims.
+
+### Consequences
+
+The M61 simulator remains valid as a simulation mechanism, but aggregate Strategy v0 historical conclusions must wait until the historical-input boundary is resolved.
+
+No Strategy v0 classification thresholds are changed by this proposal.
+
+See `docs/DEC-127-M61-HISTORICAL-INPUT-DESIGN-GATE.md`.
