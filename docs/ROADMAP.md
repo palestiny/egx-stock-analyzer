@@ -10,7 +10,7 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟡 In Progress — Simulator Slice Complete
+**Status:** 🟡 In Progress — Historical Integration Boundary Complete; Real Historical Evaluation Pending
 
 DEC-126 is accepted. M61 targets historical validation rather than rebuilding technical/fundamental analysis.
 
@@ -18,7 +18,11 @@ Design gate: `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`.
 
 The accepted baseline is event-driven, point-in-time analysis, signal-after-close, next-bar-open execution, single long-only position, strategy invalidation as primary exit, configured maximum-holding-period safety exit, explicit cost/slippage configuration, and explainable trade-level results.
 
-PR #165 delivered the first simulator slice and was merged into `main`. GitHub Actions Tests Run #2745 passed. Remaining M61 work is strategy validation against real historical observations and aggregate-result validation.
+PR #165 delivered the first simulator slice and was merged into `main`. GitHub Actions Tests Run #2745 passed.
+
+DEC-127 is now accepted and implemented: historical financial inputs have a provider-neutral point-in-time boundary, and Strategy v0 is integrated with the production analysis pipeline. PR #168 delivered the integration; PR #169 repaired the prerequisite dependency ordering and was merged at `87b121964bc782fbe6ee1f58d2b9a4682db37a7c`. Its implementation head passed GitHub Actions Tests Run #2782.
+
+Remaining M61 work is the actual historical data assembly/source, leakage-boundary verification on real observations, deterministic Strategy v0 backtest execution, aggregate-result review, and final milestone validation.
 
 ---
 
