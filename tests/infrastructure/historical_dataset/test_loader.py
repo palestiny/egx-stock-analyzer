@@ -52,7 +52,7 @@ def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
         original + lines[-1] + "\n", encoding="utf-8"
     )
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    payload["market_observations_artifact"]["row_count"] = len(lines) - 1
+    payload["market_observations_artifact"]["row_count"] = len(lines)
     payload["market_observations_artifact"]["sha256"] = hashlib.sha256(
         (tmp_path / "market_observations.csv").read_bytes()
     ).hexdigest()
@@ -135,3 +135,42 @@ def test_financial_snapshots_are_deterministic() -> None:
     second = loader.load_financial_snapshots()
 
     assert first == second
+
+
+def test_rejects_unsupported_schema_version(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["schema_version"] = "2"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Unsupported historical dataset schema version",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_unpinned_or_unapproved_artifact_path(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["path"] = "unexpected.csv"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Artifact path is not allowed",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_invalid_sha256_format(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["sha256"] = "not-a-sha"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="sha256 must be a 64-character hexadecimal digest",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
