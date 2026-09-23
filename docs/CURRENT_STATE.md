@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-09-22  
+**Last verified:** 2026-09-23  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -173,7 +173,7 @@ Current Yahoo statement selection by period_end remains unsuitable as evidence f
 
 PR #168 integrated Strategy v0 with the production `StockAnalysisPipeline` and the point-in-time fundamental provider. PR #169 repaired the dependency-ordering mistake by restoring the accepted DEC-127 prerequisite boundary on `main`; its head `b3a5e0bcaf8015307268c0d66df351c0cca21c32` passed GitHub Actions Tests Run #2782 and PR #169 was merged at `87b121964bc782fbe6ee1f58d2b9a4682db37a7c`.
 
-M61 is **not complete yet**. The repository still needs an actual historical snapshot dataset/source, historical PriceBar assembly, data-quality boundary verification, and deterministic Strategy v0 evaluation against real historical observations before any performance conclusion is made.
+M61 is **not complete yet**. The active implementation is PR #171 (`m61-historical-dataset-schema`). The repository still needs actual historical coverage, data-quality boundary verification, deterministic Strategy v0 evaluation against real historical observations, aggregate/trade-level review, and final reproducibility validation before any performance conclusion is made.
 
 
 ### M61 Historical Dataset Boundary — DEC-128
