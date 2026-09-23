@@ -738,9 +738,9 @@ At the time of establishing these rules:
 - Local project is connected to GitHub.
 - Domain tests are passing.
 - The exact passing test count is maintained by the repository CI pipeline and may evolve as coverage grows.
-- Current implementation is through **M47 — Scheduled Workflow History Filtering**, with M48 cross-execution history implementation currently in PR #118. The project remains under active development; new significant capabilities require an explicit design gate.
+- Current implementation is through **M61 — Backtesting & Strategy Validation**. The project remains under active development; new significant capabilities require an explicit design gate.
 - The project remains under active development; new capabilities require an explicit design gate.
-- Market Data validation responsibilities remain under design.
+- Historical validation is the current analytical focus; production/backtesting evidence must preserve point-in-time data semantics and reproducibility.
 
 ---
 
