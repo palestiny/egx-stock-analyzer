@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -52,7 +53,6 @@ def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
     )
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     payload["market_observations_artifact"]["row_count"] = len(lines) - 1
-    import hashlib
     payload["market_observations_artifact"]["sha256"] = hashlib.sha256(
         (tmp_path / "market_observations.csv").read_bytes()
     ).hexdigest()
@@ -60,3 +60,78 @@ def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="Duplicate market observation"):
         HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def _copy_fixture(tmp_path: Path) -> None:
+    for name in ("manifest.json", "market_observations.csv", "financial_snapshots.csv"):
+        (tmp_path / name).write_bytes((FIXTURE / name).read_bytes())
+
+
+def test_rejects_manifest_with_unknown_field(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["unexpected"] = True
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="manifest schema is invalid"):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_market_row_count_mismatch(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["row_count"] = 999
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="row count mismatch"):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def test_rejects_malformed_financial_row(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    source = (tmp_path / "financial_snapshots.csv").read_text(encoding="utf-8")
+    lines = source.splitlines()
+    lines[1] = lines[1].replace("900000.00", "not-a-decimal")
+    (tmp_path / "financial_snapshots.csv").write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["sha256"] = hashlib.sha256(
+        (tmp_path / "financial_snapshots.csv").read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="Invalid financial snapshot"):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+def test_rejects_financial_snapshot_available_before_period_end(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    source = (tmp_path / "financial_snapshots.csv").read_text(encoding="utf-8")
+    lines = source.splitlines()
+    lines[1] = lines[1].replace("2025-02-15", "2024-12-30")
+    (tmp_path / "financial_snapshots.csv").write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["sha256"] = hashlib.sha256(
+        (tmp_path / "financial_snapshots.csv").read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="available_at cannot precede period_end",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+def test_financial_snapshots_are_deterministic() -> None:
+    loader = HistoricalDatasetLoader(FIXTURE)
+
+    first = loader.load_financial_snapshots()
+    second = loader.load_financial_snapshots()
+
+    assert first == second
