@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -44,10 +45,16 @@ class HistoricalDatasetLoader:
 
         market = self._artifact(payload["market_observations_artifact"])
         financial = self._artifact(payload["financial_snapshots_artifact"])
+        schema_version = self._string(payload["schema_version"], "schema_version")
+        if schema_version != "1":
+            raise HistoricalDatasetIntegrityError(
+                f"Unsupported historical dataset schema version: {schema_version}"
+            )
+
         manifest = HistoricalDatasetManifest(
             dataset_id=self._string(payload["dataset_id"], "dataset_id"),
             dataset_version=self._string(payload["dataset_version"], "dataset_version"),
-            schema_version=self._string(payload["schema_version"], "schema_version"),
+            schema_version=schema_version,
             market_observations=market,
             financial_snapshots=financial,
         )
@@ -146,6 +153,10 @@ class HistoricalDatasetLoader:
         if relative_path.is_absolute() or any(part == ".." for part in relative_path.parts):
             raise HistoricalDatasetIntegrityError("Artifact path must stay inside dataset root")
 
+        expected_paths = {"market_observations.csv", "financial_snapshots.csv"}
+        if relative_path.as_posix() not in expected_paths:
+            raise HistoricalDatasetIntegrityError("Artifact path is not allowed by dataset schema")
+
         path = self._root / relative_path
         try:
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -170,9 +181,12 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError("Dataset artifact counts must be integers") from exc
         if row_count < 0 or stock_count < 0:
             raise HistoricalDatasetIntegrityError("Dataset artifact counts cannot be negative")
+        sha256 = HistoricalDatasetLoader._string(value["sha256"], "sha256").lower()
+        if re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise HistoricalDatasetIntegrityError("sha256 must be a 64-character hexadecimal digest")
         return DatasetArtifact(
             path=Path(HistoricalDatasetLoader._string(value["path"], "path")),
-            sha256=HistoricalDatasetLoader._string(value["sha256"], "sha256"),
+            sha256=sha256,
             row_count=row_count,
             coverage=DatasetCoverage(
                 start=HistoricalDatasetLoader._string(coverage_value["start"], "coverage.start"),
