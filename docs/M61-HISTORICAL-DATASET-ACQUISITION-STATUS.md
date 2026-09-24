@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-09-24
+**Updated:** 2026-09-24 — source research refreshed
 
 ## Purpose
 
@@ -68,6 +68,36 @@ References:
 
 Historical financial evidence must come from EGX-published disclosures or financial-statement publications where the publication/availability date can be established. A later-known value without a defensible point-in-time availability date is not eligible for Strategy v0 evaluation.
 
+
+
+### Additional source research — 2026-09-24
+
+A fresh external-source review was performed before treating any provider as an acquisition solution.
+
+#### EGX.news — concrete paid historical-data candidate
+
+EGX.news publicly advertises complete daily historical OHLCV records for EGX-listed stocks, with CSV delivery and history extending back to IPO. The service currently prices the full historical daily record per stock and therefore represents a concrete acquisition candidate rather than a free public evidence source.
+
+This source is **not yet accepted** for the M61 dataset because provenance/licensing terms, exact ten-symbol coverage for 2021–2025, adjustment convention, and the corresponding point-in-time financial dataset still require validation.
+
+Reference: https://www.egx.news/en/our-data
+
+#### StockAnalysis — independent market cross-check candidate
+
+StockAnalysis exposes EGX historical-price pages and identifies S&P Global Market Intelligence as the data source. The reviewed pages state that historical prices are adjusted for stock splits and are updated daily.
+
+This is useful for independent market-data cross-checking, but the publicly surfaced pages are not sufficient evidence for the complete 2021–2025 ten-symbol dataset or for point-in-time financial availability. It is therefore **not accepted as the primary historical evidence source**.
+
+Reference examples:
+- https://stockanalysis.com/quote/egx/EGAL/history/
+- https://stockanalysis.com/quote/egx/EAST/history/
+
+#### Other API candidates
+
+Additional EGX API/data-service candidates were found during research. They are not accepted merely because they advertise historical bars. Any candidate must first prove the complete cohort coverage, source provenance, licensing/usage rights, deterministic extraction, adjustment convention, and point-in-time financial availability required by DEC-130.
+
+No candidate has been promoted into the production dataset boundary as a result of this research.
+
 ## Acquisition acceptance procedure
 
 For each source artifact:
@@ -87,7 +117,7 @@ For each source artifact:
 
 ## Current blocker
 
-The software-side dataset contract and loader are already implemented and protected by deterministic fixtures. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**.
+The software-side dataset contract, manifest/integrity checks, loader, and deterministic fixtures are already implemented. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**.
 
 We must not manufacture or silently substitute historical data merely to unblock the backtest. A dataset version becomes evaluable only after the evidence package above passes validation.
 
