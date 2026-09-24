@@ -100,6 +100,85 @@ class BacktestResult:
             cumulative_net_return=cumulative_net,
         )
 
+class BacktestSimulator:
+    @staticmethod
+    def run(
+        price_bars: list[PriceBar],
+        strategy: BacktestStrategy,
+        configuration: BacktestConfiguration,
+    ) -> BacktestResult:
+        BacktestSimulator._validate_configuration(configuration)
+        BacktestSimulator._validate_bars(price_bars)
+
+        trades: list[BacktestTrade] = []
+        open_trade_count = 0
+        position_index: int | None = None
+        signal_index: int | None = None
+
+        index = 0
+        while index < len(price_bars):
+            history = price_bars[: index + 1]
+
+            if position_index is None:
+                if not strategy.signal(history):
+                    index += 1
+                    continue
+
+                execution_index = index + 1
+                if execution_index >= len(price_bars):
+                    open_trade_count += 1
+                    break
+
+                position_index = execution_index
+                signal_index = index
+                index = execution_index
+                continue
+
+            holding_bars = index - position_index + 1
+            invalidated = not strategy.position_valid(history)
+            timed_out = holding_bars >= configuration.max_holding_bars
+
+            if not invalidated and not timed_out:
+                index += 1
+                continue
+
+            exit_index = index + 1
+            if exit_index >= len(price_bars):
+                open_trade_count += 1
+                break
+
+            entry_bar = price_bars[position_index]
+            exit_bar = price_bars[exit_index]
+            signal_bar = price_bars[signal_index]  # type: ignore[index]
+
+            reason = (
+                ExitReason.STRATEGY_INVALIDATION
+                if invalidated
+                else ExitReason.TIME_LIMIT
+            )
+
+            trade = BacktestSimulator._build_trade(
+                signal_bar=signal_bar,
+                entry_bar=entry_bar,
+                exit_bar=exit_bar,
+                strategy=strategy,
+                configuration=configuration,
+                exit_reason=reason,
+            )
+            trades.append(trade)
+
+            position_index = None
+            signal_index = None
+            index = exit_index
+
+        return BacktestResult(
+            strategy_id=strategy.strategy_id,
+            strategy_version=strategy.version,
+            configuration=configuration,
+            trades=tuple(trades),
+            open_trade_count=open_trade_count,
+        )
+
     @staticmethod
     def _build_trade(
         signal_bar: PriceBar,
