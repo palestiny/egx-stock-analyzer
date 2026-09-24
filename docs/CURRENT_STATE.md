@@ -185,3 +185,8 @@ The repository owns the dataset contract, schema, manifest, immutable version id
 The dataset must provide daily market observations and point-in-time financial snapshots with explicit availability and revision metadata. The physical artifact format remains a follow-up implementation decision.
 
 M61 remains in progress. No real historical performance conclusion is valid until an actual dataset version is available and the full historical evaluation path is verified.
+
+
+### M61 Dataset Schema — DEC-129
+
+DEC-129 is accepted. The first historical dataset implementation uses deterministic UTF-8 CSV artifacts with canonical Decimal text, an immutable manifest, SHA-256 integrity checks, and repository fixtures using the same contract. Financial availability is date-based for the daily Strategy v0 boundary. Parquet remains deferred pending real scale requirements.

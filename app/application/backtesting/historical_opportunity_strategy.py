@@ -30,8 +30,11 @@ class HistoricalOpportunityClassificationBacktestStrategy:
 
     def to_backtest_strategy(self) -> BacktestStrategy:
         def analyze_history(history: list[PriceBar]) -> StockAnalysisResult:
-            if not history:
-                raise ValueError("Historical analysis requires at least one completed price bar")
+            if len(history) < self._policy.minimum_price_bars:
+                raise ValueError(
+                    "Historical analysis requires at least "
+                    f"{self._policy.minimum_price_bars} completed price bars"
+                )
 
             as_of = self._as_of(history[-1])
             current_period, previous_period = self._fundamental_data_provider.get_periods(
@@ -50,6 +53,8 @@ class HistoricalOpportunityClassificationBacktestStrategy:
             )
 
         def is_buy(history: list[PriceBar]) -> bool:
+            if len(history) < self._policy.minimum_price_bars:
+                return False
             result = analyze_history(history)
             return result.opportunity.classification is OpportunityClassification.BUY
 

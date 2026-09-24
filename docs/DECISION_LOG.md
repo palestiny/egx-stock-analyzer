@@ -3037,3 +3037,23 @@ The physical artifact format is intentionally deferred to the implementation des
 ### M61 Completion Impact
 
 This decision does not complete M61. Completion still requires an actual historical dataset/source, production-compatible historical providers, data-quality verification, deterministic Strategy v0 execution over real coverage, aggregate/trade-level review, leakage/reproducibility verification, and final CI/documentation validation.
+
+
+# DEC-129 — Historical Dataset Schema and Manifest
+
+**Status:** Accepted  
+**Date:** 2026-09-22
+
+### Decision
+
+The first M61 dataset implementation uses UTF-8 CSV artifacts with canonical Decimal text, protected by an immutable manifest and SHA-256 checksums. Production-sized datasets remain externally stored; small fixtures live in the repository and use the same contracts.
+
+The dataset contains daily market observations and point-in-time financial snapshots. Financial availability uses a date for the daily Strategy v0 boundary. The loader validates manifest/schema, artifact hashes, row counts, deterministic ordering, domain constraints, and Decimal fidelity before exposing data to application providers.
+
+### Trade-offs
+
+CSV avoids a new runtime dependency and is transparent and deterministic, at the cost of weaker large-scale analytical filtering and larger artifacts. Parquet is deferred until actual scale requirements justify the added dependency and operational complexity. JSON/JSONL is rejected for the first implementation because CSV fits the tabular contract more directly.
+
+### Consequences
+
+The application contracts remain provider-neutral. The dataset layer does not own scoring, opportunity classification, or backtest execution. A future physical format change must preserve the provider boundary and be decided explicitly.

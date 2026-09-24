@@ -4,7 +4,6 @@ from datetime import date, timedelta
 from app.application.analysis.daily_market_analysis import StockAnalysisInput
 from app.application.fundamental_data.provider import FundamentalDataProvider
 from app.application.market_data.provider import MarketDataProvider
-from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.market_data.data_quality import DataQualityStatus
 from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.price_bar import PriceBar
@@ -51,7 +50,7 @@ class AnalysisInputAssembler:
             from_date,
             as_of,
         )
-        price_bars = self._build_price_bars(
+        price_bars = self.build_price_bars(
             observations,
             minimum_price_bars=self._policy.minimum_price_bars,
         )
@@ -72,7 +71,7 @@ class AnalysisInputAssembler:
         )
 
     @staticmethod
-    def _build_price_bars(
+    def build_price_bars(
         observations,
         *,
         minimum_price_bars: int,
@@ -100,3 +99,6 @@ class AnalysisInputAssembler:
             )
 
         return price_bars
+
+    # Backward-compatible alias for existing unit-level callers.
+    _build_price_bars = build_price_bars

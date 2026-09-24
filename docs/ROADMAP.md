@@ -182,3 +182,7 @@ Old milestone names, old branches, and conversation history must not be treated 
 # Next
 
 No new implementation milestone is committed yet. The next feature or operational boundary must be established through a fresh design gate rather than inferred from completed M60 work.
+
+### M61 Dataset Schema Gate
+
+DEC-129 is accepted: the first dataset format is deterministic UTF-8 CSV with canonical Decimal text, immutable manifest metadata, SHA-256 integrity verification, and repository-owned deterministic fixtures. Large artifacts remain external. The physical format can evolve later through a new decision gate if measured scale requires a columnar format.

@@ -1,0 +1,25 @@
+{
+  "dataset_id": "egx-m61-fixture",
+  "dataset_version": "1.0.0",
+  "schema_version": "1",
+  "market_observations_artifact": {
+    "path": "market_observations.csv",
+    "sha256": "2211f91cf72c0350f6111770eb8f010ce8fc9adf1124c4073a1c4824d8fce3a8",
+    "row_count": 10,
+    "coverage": {
+      "start": "2026-02-16T00:00:00+00:00",
+      "end": "2026-02-27T00:00:00+00:00",
+      "stock_count": 1
+    }
+  },
+  "financial_snapshots_artifact": {
+    "path": "financial_snapshots.csv",
+    "sha256": "6caf96d4ac1c070120e4aaff8026842c0c9876d94ac572bf0561f20c5ac456ba",
+    "row_count": 2,
+    "coverage": {
+      "start": "2024-12-31",
+      "end": "2025-12-31",
+      "stock_count": 1
+    }
+  }
+}
