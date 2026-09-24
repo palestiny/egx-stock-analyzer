@@ -10,9 +10,9 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟡 In Progress — Versioned Historical Dataset Boundary Accepted; Real Historical Evaluation Pending
+**Status:** 🟡 In Progress — Historical Dataset Acquisition Boundary Accepted; Real Historical Evaluation Pending
 
-DEC-126 is accepted. DEC-127 is accepted and implemented. DEC-128 is now accepted: production/backtesting historical evidence uses a versioned external dataset, with a small repository-owned deterministic fixture for automated tests.
+DEC-126 is accepted. DEC-127 is accepted and implemented. DEC-128 and DEC-129 are accepted and implemented. DEC-130 is now accepted: real historical evidence acquisition must use immutable, provenance-traceable dataset versions with explicit point-in-time, corporate-action, missing-data, symbol-mapping, and survivorship controls.
 
 Design gates:
 - `docs/DEC-126-M61-BACKTESTING-DESIGN-GATE.md`
@@ -21,7 +21,7 @@ Design gates:
 
 The dataset contract covers daily market observations, point-in-time financial snapshots, immutable dataset/version identity, schema/provenance metadata, and integrity verification. Large historical artifacts remain outside Git. The physical artifact format is intentionally deferred to the implementation design.
 
-Remaining M61 work: define the dataset schema/manifest implementation contract, add deterministic fixtures, implement versioned loading/integrity validation, integrate historical market data with the production analysis assembler, verify the existing data-quality boundary, execute Strategy v0 against real historical coverage, review aggregate/trade-level results, and complete final leakage/reproducibility validation.
+Remaining M61 work: acquire and preserve the bounded real historical cohort, validate source provenance and coverage, integrate the accepted dataset version with the production analysis assembler, verify the existing data-quality boundary, execute Strategy v0 against real historical coverage, review aggregate/trade-level results, and complete final leakage/reproducibility validation.
 
 ---
  
@@ -183,6 +183,6 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 No new implementation milestone is committed yet. The next feature or operational boundary must be established through a fresh design gate rather than inferred from completed M60 work.
 
-### M61 Dataset Schema Gate
+### M61 Dataset Schema and Acquisition Gates
 
-DEC-129 is accepted: the first dataset format is deterministic UTF-8 CSV with canonical Decimal text, immutable manifest metadata, SHA-256 integrity verification, and repository-owned deterministic fixtures. Large artifacts remain external. The physical format can evolve later through a new decision gate if measured scale requires a columnar format.
+DEC-129 is accepted: the first dataset format is deterministic UTF-8 CSV with canonical Decimal text, immutable manifest metadata, SHA-256 integrity verification, and repository-owned deterministic fixtures. DEC-130 is accepted: the first real evaluation uses a bounded ten-symbol cohort, 2021-01-01 through 2025-12-31 with 252 trading observations of warm-up, EGX-published provenance as the primary source where obtainable, explicit point-in-time financial evidence, declared corporate-action convention, explicit missing/suspension/symbol-change handling, and immutable dataset versions. Large artifacts remain external.
