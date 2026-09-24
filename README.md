@@ -217,13 +217,10 @@ The authoritative current project state is maintained in `docs/CURRENT_STATE.md`
 
 Current verified position:
 
-- **M57 — Physical Purge** is complete and merged.
-- M57 implementation was validated by GitHub Actions Run #2537 and merged through PR #151.
-- **M58 — Automatic Analysis Retention** is complete and merged through PR #157 at `f2294c34a10c994545e24175c956ee8524170142`.
-- **M59 — Controlled Maintenance Trigger** is complete and merged through PR #159 at `c5c6c258508a60ac5872f4f4504fe55d440af30c`; implementation head `9029a942c2705080f400b1b6ba7e993bd32c9ee9` passed GitHub Actions Run #2687.
-- M59 provides the application-side maintenance command only; no OS/container scheduler or application background worker is configured.
-- The next proposed milestone is **M60 — Production Maintenance Scheduling Design Gate**.
-- The current M58 design gate is `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md`.
-- M58 uses a 30-day `deleted_at` retention boundary, reuses M57 physical purge, remains disabled by default, and does not execute during application startup.
-
-Do not use older README, branch, or conversation milestone statements as current project state.
+- **M61 — Backtesting & Strategy Validation** is the active milestone.
+- DEC-126, DEC-127, DEC-128, DEC-129, and DEC-130 are accepted.
+- The deterministic backtest simulator and versioned historical-dataset contract are implemented and covered by repository tests.
+- The current M61 blocker is real historical evidence acquisition and validation for the bounded ten-symbol cohort; no historical performance conclusion is currently claimed.
+- Acquisition checkpoint: `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`.
+- Windows-host verification for the M60 deployment mapping remains an operational task.
+- Do not use older README, branch, or conversation milestone statements as current project state.
