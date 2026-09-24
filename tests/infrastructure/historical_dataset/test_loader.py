@@ -174,3 +174,52 @@ def test_rejects_invalid_sha256_format(tmp_path: Path) -> None:
         match="sha256 must be a 64-character hexadecimal digest",
     ):
         HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_market_coverage_metadata_mismatch(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["coverage"]["stock_count"] = 2
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="coverage stock count mismatch",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def test_rejects_financial_coverage_range_mismatch(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["coverage"]["start"] = "2020-01-01"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="coverage range mismatch",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+def test_rejects_ambiguous_financial_revisions(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    source = (tmp_path / "financial_snapshots.csv").read_text(encoding="utf-8")
+    lines = source.splitlines()
+    duplicate = lines[1].replace("900000.00", "901000.00")
+    (tmp_path / "financial_snapshots.csv").write_text(
+        source + duplicate + "\n",
+        encoding="utf-8",
+    )
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["row_count"] += 1
+    payload["financial_snapshots_artifact"]["sha256"] = hashlib.sha256(
+        (tmp_path / "financial_snapshots.csv").read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="ambiguous same-time revisions",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
