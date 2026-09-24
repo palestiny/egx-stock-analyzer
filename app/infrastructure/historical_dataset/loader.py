@@ -150,14 +150,6 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError("Financial snapshot revision cannot be empty")
             snapshots.append(item)
 
-        if snapshots != sorted(
-            snapshots,
-            key=lambda x: (str(x.stock_id), x.period_end, x.available_at, x.revision),
-        ):
-            raise HistoricalDatasetIntegrityError(
-                "Financial snapshots are not deterministically ordered"
-            )
-
         same_time_keys = [
             (item.stock_id, item.period_end, item.available_at)
             for item in snapshots
@@ -165,6 +157,14 @@ class HistoricalDatasetLoader:
         if len(same_time_keys) != len(set(same_time_keys)):
             raise HistoricalDatasetIntegrityError(
                 "Financial snapshots contain ambiguous same-time revisions"
+            )
+
+        if snapshots != sorted(
+            snapshots,
+            key=lambda x: (str(x.stock_id), x.period_end, x.available_at, x.revision),
+        ):
+            raise HistoricalDatasetIntegrityError(
+                "Financial snapshots are not deterministically ordered"
             )
 
         self._validate_coverage(
