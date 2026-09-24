@@ -173,7 +173,7 @@ Current Yahoo statement selection by period_end remains unsuitable as evidence f
 
 PR #168 integrated Strategy v0 with the production `StockAnalysisPipeline` and the point-in-time fundamental provider. PR #169 repaired the dependency-ordering mistake by restoring the accepted DEC-127 prerequisite boundary on `main`; its head `b3a5e0bcaf8015307268c0d66df351c0cca21c32` passed GitHub Actions Tests Run #2782 and PR #169 was merged at `87b121964bc782fbe6ee1f58d2b9a4682db37a7c`.
 
-M61 is **not complete yet**. The active implementation is PR #171 (`m61-historical-dataset-schema`). The repository still needs actual historical coverage, data-quality boundary verification, deterministic Strategy v0 evaluation against real historical observations, aggregate/trade-level review, and final reproducibility validation before any performance conclusion is made.
+M61 is **not complete yet**. The deterministic historical-dataset schema, acquisition gate, and integrity hardening are merged. The repository still needs actual historical coverage, data-quality boundary verification, deterministic Strategy v0 evaluation against real historical observations, aggregate/trade-level review, and final reproducibility validation before any performance conclusion is made.
 
 
 ### M61 Historical Dataset Boundary — DEC-128
@@ -194,10 +194,12 @@ DEC-129 is accepted. The first historical dataset implementation uses determinis
 
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `fb4bc72a6f0a3db21a490d03f1774c8feb354fef` (2026-09-24). No pull requests are currently open.
+The latest main commit is `f78e6f0de411493887ef7b705fead7f0a77b5fa8` (2026-09-24), merged through PR #176. No pull requests are currently open.
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
 Operational checkpoint: `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`.
 
-The two remaining historical-data branches are stale behind `main` and contain no unique commits relative to `main`; they are cleanup candidates. Branch deletion is not exposed by the current GitHub integration, so no deletion is claimed.
+The remaining historical-data branches are stale behind `main` and contain no unique commits relative to `main`; they are cleanup candidates. Branch deletion is not exposed by the current GitHub integration, so no deletion is claimed.
+
+PR #176 passed GitHub Actions Tests Run #2903 on implementation head `1c82024b78275a1c94f07a705071904d4cc96467` before merge. No separate post-merge workflow run was exposed by the available GitHub integration, so no post-merge CI run is claimed.
