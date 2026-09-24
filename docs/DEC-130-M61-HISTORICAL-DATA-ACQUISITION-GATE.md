@@ -1,6 +1,6 @@
 # DEC-130 — M61 Historical Dataset Acquisition & Provenance Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted  
 **Date:** 2026-09-24  
 **Milestone:** M61 — Backtesting & Strategy Validation
 
@@ -103,6 +103,82 @@ Before Strategy v0 results are treated as historical evidence, verify:
 The gate should be accepted only after committing to a bounded initial universe, concrete market-data source, concrete point-in-time financial source, source/licensing notes, evaluation period, warm-up requirement, and handling for symbol changes, suspensions, and missing observations.
 
 Until then, fixture/infrastructure work may continue, but production Strategy v0 evaluation remains gated.
+
+## Accepted Decisions
+
+### D1 — Primary Provenance Sources
+
+For the first real evaluation, the project will use **EGX-published data as the primary provenance source** where the required historical artifact can be obtained and preserved, with Yahoo Finance used as an independent market-data cross-check rather than the sole source of truth.
+
+EGX's current public site exposes market-watch data, listed-company information, disclosures, and financial-statements areas. The exchange also publishes index methodology and historical index information. Yahoo Finance is accepted as a secondary market-data source because its public historical-data pages expose daily OHLCV for EGX-related instruments such as the EGX 30 index. These sources establish candidates; the acquisition validator remains the authority for dataset acceptance.
+
+### D2 — Financial Evidence Source
+
+EGX company disclosures and financial-statements publications are the primary financial evidence source for the evaluation. Each imported financial record must retain the publication/availability timestamp or an explicitly documented equivalent before it can participate in point-in-time decisions.
+
+If a required historical availability timestamp cannot be established, that record is **unavailable for point-in-time Strategy v0 evaluation** rather than being treated as contemporaneous.
+
+### D3 — Initial Evaluation Cohort
+
+The first real evaluation cohort is intentionally bounded to these ten liquid, cross-sector symbols:
+
+COMI, EGAL, SWDY, ETEL, EAST, TMGH, PHDC, FWRY, EFID, HRHO.
+
+This cohort is a validation sample, not a claim about the complete EGX universe or historical index membership.
+
+A symbol may be excluded from a dataset version only when the exclusion reason is recorded in the manifest. The cohort can be expanded only through a new dataset version or an explicit gate update.
+
+### D4 — Evaluation Period and Warm-up
+
+The initial Strategy v0 evaluation window is **2021-01-01 through 2025-12-31**, with at least **252 prior trading observations** available before the first evaluated decision date for indicators requiring a one-year trading-history warm-up.
+
+The warm-up observations are part of the dataset but are not themselves scored as evaluation outcomes.
+
+### D5 — Corporate Actions
+
+The canonical evaluation price series will use **one declared adjustment convention per dataset version**. The first acquisition implementation must explicitly record whether the preserved source artifact is raw or adjusted and must not mix conventions across symbols.
+
+No silent adjustment, split repair, dividend adjustment, or resampling is permitted.
+
+### D6 — Missing Data, Suspensions, and Symbol Changes
+
+Missing observations and suspended trading periods remain explicit gaps. No forward-fill is permitted for market OHLCV or financial facts used by Strategy v0.
+
+Symbol changes require an explicit mapping artifact connecting source symbols to the stable internal stock identity. A mapping without evidence is not accepted.
+
+### D7 — Survivorship
+
+The initial cohort is a bounded validation cohort, so results must not be described as an unbiased estimate of full-EGX historical performance.
+
+Before full-market validation, historical universe membership methodology must be added as a separate dataset requirement. Current membership lists are not sufficient evidence of historical membership.
+
+### D8 — Dataset Versioning and Reproducibility
+
+Every accepted dataset version must contain:
+
+- immutable raw/preserved source artifacts;
+- a manifest;
+- SHA-256 checksums;
+- source/provider identity;
+- acquisition timestamp;
+- source symbol and internal identity mapping;
+- coverage start/end;
+- adjustment convention;
+- missing-data findings;
+- exclusions and reasons;
+- licensing/usage notes where available.
+
+Re-acquiring a source later creates a new dataset version rather than mutating an accepted version.
+
+## Gate Boundary After Acceptance
+
+Acceptance of DEC-130 authorizes **dataset acquisition and validation work**. It does **not** authorize treating Strategy v0 results as validated investment evidence until the acceptance checklist has passed for the actual dataset version.
+
+The immediate next implementation slice is therefore:
+
+Source Acquisition → Preserved Artifacts → Manifest/Checksums → Validation → Point-in-Time Dataset Loader → Strategy v0 Evaluation
+
+No ranking, optimization, live trading, or strategy-rule changes are introduced by this gate.
 
 ## Consequences
 
