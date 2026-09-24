@@ -3057,3 +3057,33 @@ CSV avoids a new runtime dependency and is transparent and deterministic, at the
 ### Consequences
 
 The application contracts remain provider-neutral. The dataset layer does not own scoring, opportunity classification, or backtest execution. A future physical format change must preserve the provider boundary and be decided explicitly.
+
+
+# DEC-130 — M61 Historical Dataset Acquisition & Provenance
+
+**Status:** Accepted  
+**Date:** 2026-09-24
+
+### Decision
+
+The first real Strategy v0 evaluation uses an immutable, provenance-traceable historical dataset. EGX-published data is the primary provenance source where the required historical artifact can be obtained and preserved; Yahoo Finance is a secondary market-data cross-check, not the sole source of truth.
+
+The initial evaluation cohort is COMI, EGAL, SWDY, ETEL, EAST, TMGH, PHDC, FWRY, EFID, and HRHO. The evaluation window is 2021-01-01 through 2025-12-31 with at least 252 prior trading observations as indicator warm-up.
+
+The dataset must preserve source/provider identity, acquisition timestamp, source-to-internal symbol mapping, coverage, adjustment convention, missing-data findings, exclusions, checksums, and usage/licensing notes where available. Financial facts require explicit point-in-time availability; a record without trustworthy availability timing is unavailable for leakage-safe evaluation. No forward-fill or silent corporate-action normalization is permitted.
+
+This gate authorizes dataset acquisition and validation only. It does not authorize treating Strategy v0 results as validated investment evidence until the actual dataset version passes the full acceptance checklist.
+
+### Trade-offs
+
+Using exchange-published provenance strengthens source traceability but may require preserved artifacts or acquisition procedures that are less convenient than consumer APIs. A bounded cohort enables controlled validation without pretending to represent the full EGX. Explicit provenance and immutable versions increase acquisition overhead but prevent later source changes from silently changing historical evidence.
+
+### Consequences
+
+The next M61 implementation boundary is:
+
+Source Acquisition → Preserved Artifacts → Manifest/Checksums → Validation → Point-in-Time Dataset Loader → Strategy v0 Evaluation
+
+No strategy-rule changes, ranking, optimization, portfolio construction, or live execution are introduced by DEC-130.
+
+See docs/DEC-130-M61-HISTORICAL-DATA-ACQUISITION-GATE.md.
