@@ -93,6 +93,8 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError("Invalid market observation") from exc
             if item.timestamp.tzinfo is None or item.timestamp.utcoffset() is None:
                 raise HistoricalDatasetIntegrityError("Market timestamp must be timezone-aware")
+            if not item.source.strip():
+                raise HistoricalDatasetIntegrityError("Market observation source cannot be empty")
             key = (item.stock_id, item.timeframe, item.timestamp)
             if key in seen:
                 raise HistoricalDatasetIntegrityError("Duplicate market observation")
@@ -103,6 +105,11 @@ class HistoricalDatasetLoader:
             observations, key=lambda x: (str(x.stock_id), x.timeframe, x.timestamp)
         ):
             raise HistoricalDatasetIntegrityError("Market observations are not deterministically ordered")
+        self._validate_coverage(
+            observations,
+            manifest.market_observations.coverage,
+            lambda item: item.timestamp,
+        )
         return observations
 
     def load_financial_snapshots(self) -> list[HistoricalFinancialSnapshotRecord]:
@@ -137,7 +144,20 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError(
                     "Financial snapshot available_at cannot precede period_end"
                 )
+            if not item.source.strip():
+                raise HistoricalDatasetIntegrityError("Financial snapshot source cannot be empty")
+            if not item.revision.strip():
+                raise HistoricalDatasetIntegrityError("Financial snapshot revision cannot be empty")
             snapshots.append(item)
+
+        same_time_keys = [
+            (item.stock_id, item.period_end, item.available_at)
+            for item in snapshots
+        ]
+        if len(same_time_keys) != len(set(same_time_keys)):
+            raise HistoricalDatasetIntegrityError(
+                "Financial snapshots contain ambiguous same-time revisions"
+            )
 
         if snapshots != sorted(
             snapshots,
@@ -146,6 +166,12 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError(
                 "Financial snapshots are not deterministically ordered"
             )
+
+        self._validate_coverage(
+            snapshots,
+            manifest.financial_snapshots.coverage,
+            lambda item: item.period_end,
+        )
         return snapshots
 
     def _verify_artifact(self, artifact: DatasetArtifact) -> None:
@@ -166,6 +192,38 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError(
                 f"Dataset artifact checksum mismatch: {artifact.path}"
             )
+
+
+    @staticmethod
+    def _validate_coverage(items: list, coverage: DatasetCoverage, key) -> None:
+        if not items:
+            if coverage.stock_count != 0:
+                raise HistoricalDatasetIntegrityError(
+                    "Dataset coverage stock count mismatch"
+                )
+            return
+
+        actual_values = [key(item) for item in items]
+        expected_start = HistoricalDatasetLoader._parse_coverage_value(coverage.start)
+        expected_end = HistoricalDatasetLoader._parse_coverage_value(coverage.end)
+
+        if min(actual_values) != expected_start or max(actual_values) != expected_end:
+            raise HistoricalDatasetIntegrityError("Dataset coverage range mismatch")
+
+        actual_stock_count = len({item.stock_id for item in items})
+        if actual_stock_count != coverage.stock_count:
+            raise HistoricalDatasetIntegrityError(
+                "Dataset coverage stock count mismatch"
+            )
+
+    @staticmethod
+    def _parse_coverage_value(value: str):
+        try:
+            return datetime.fromisoformat(value) if "T" in value else date.fromisoformat(value)
+        except ValueError as exc:
+            raise HistoricalDatasetIntegrityError(
+                "Dataset coverage range is invalid"
+            ) from exc
 
     @staticmethod
     def _artifact(value: object) -> DatasetArtifact:

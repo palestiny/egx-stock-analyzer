@@ -24,8 +24,6 @@ The dataset contract covers daily market observations, point-in-time financial s
 Remaining M61 work: acquire and preserve the bounded real historical cohort, validate source provenance and coverage, integrate the accepted dataset version with the production analysis assembler, verify the existing data-quality boundary, execute Strategy v0 against real historical coverage, review aggregate/trade-level results, and complete final leakage/reproducibility validation.
 
 ---
- 
----
 
 ## M60 — Production Maintenance Scheduling
 
@@ -181,8 +179,6 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-No new implementation milestone is committed yet. The next feature or operational boundary must be established through a fresh design gate rather than inferred from completed M60 work.
+The active M61 execution step is **real historical dataset acquisition and validation**.
 
-### M61 Dataset Schema and Acquisition Gates
-
-DEC-129 is accepted: the first dataset format is deterministic UTF-8 CSV with canonical Decimal text, immutable manifest metadata, SHA-256 integrity verification, and repository-owned deterministic fixtures. DEC-130 is accepted: the first real evaluation uses a bounded ten-symbol cohort, 2021-01-01 through 2025-12-31 with 252 trading observations of warm-up, EGX-published provenance as the primary source where obtainable, explicit point-in-time financial evidence, declared corporate-action convention, explicit missing/suspension/symbol-change handling, and immutable dataset versions. Large artifacts remain external.
+Use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.

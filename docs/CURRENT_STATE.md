@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-09-23  
+**Last verified:** 2026-09-24  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -190,3 +190,14 @@ M61 remains in progress. No real historical performance conclusion is valid unti
 ### M61 Dataset Schema — DEC-129
 
 DEC-129 is accepted. The first historical dataset implementation uses deterministic UTF-8 CSV artifacts with canonical Decimal text, an immutable manifest, SHA-256 integrity checks, and repository fixtures using the same contract. Financial availability is date-based for the daily Strategy v0 boundary. Parquet remains deferred pending real scale requirements.
+
+
+## 10. M61 Current Checkpoint
+
+The latest main commit is `fb4bc72a6f0a3db21a490d03f1774c8feb354fef` (2026-09-24). No pull requests are currently open.
+
+M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
+
+Operational checkpoint: `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`.
+
+The two remaining historical-data branches are stale behind `main` and contain no unique commits relative to `main`; they are cleanup candidates. Branch deletion is not exposed by the current GitHub integration, so no deletion is claimed.
