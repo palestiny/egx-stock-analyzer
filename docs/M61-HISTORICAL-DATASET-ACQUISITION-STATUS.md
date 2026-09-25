@@ -169,3 +169,24 @@ This checkpoint does not:
 - silently normalize corporate actions;
 - create a new persistence model;
 - claim full-EGX historical validity.
+
+
+### Mansa Markets validation — 2026-09-25
+
+The current Mansa API documentation materially strengthens this candidate:
+
+- Exchange code is `EGX`.
+- Historical endpoint is `GET /api/v1/markets/exchanges/{exchange_code}/stocks/{ticker}/history`.
+- It accepts explicit `from` and `to` dates, plus ordering and a row limit.
+- The documented response contains `date`, `open`, `high`, `low`, `close`, `adj_close`, and `volume`, with metadata including count and first/last dates.
+- The documentation states Egypt history can reach back to 1995 and identifies EGX live/history sourcing as official EGX data.
+- The documentation states historical access is on the Pro tier; current pricing documentation lists Pro at $50/month.
+- The service states commercial redistribution requires the Professional tier.
+
+This makes Mansa the first candidate with a documented API contract that maps directly onto the M61 market-data fields and bounded date-window requirement.
+
+However, **Mansa is still NOT ACCEPTED**. The critical missing evidence is an authenticated extraction for the exact ten-symbol cohort, including row counts and gaps, symbol mappings, corporate-action/adjustment semantics, raw response preservation, deterministic replay, and confirmation that the purchased usage rights cover our intended backtest storage/use.
+
+A direct unauthenticated API request from the available web access path was not retrievable, so no live EGAL response has been treated as evidence.
+
+Reference: https://mansaapi.com/docs
