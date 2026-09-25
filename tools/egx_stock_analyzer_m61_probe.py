@@ -9,6 +9,7 @@ It never writes API keys to output. Raw responses are only persisted when
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -28,7 +29,7 @@ def build_url(path: str, params: dict[str, str]) -> str:
     return f"{BASE_URL}{path}?{urllib.parse.urlencode(params)}"
 
 
-def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, dict]:
+def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, dict, bytes]:
     request = urllib.request.Request(
         build_url(path, params),
         headers={
@@ -41,20 +42,20 @@ def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, 
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             body = response.read()
-            return response.status, json.loads(body)
+            return response.status, json.loads(body), body
     except urllib.error.HTTPError as exc:
         body = exc.read()
         try:
             payload = json.loads(body)
         except json.JSONDecodeError:
             payload = {"raw_error": body.decode("utf-8", errors="replace")}
-        return exc.code, payload
+        return exc.code, payload, body
 
 
 def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path) -> dict:
     path = f"/api/v1/markets/exchanges/EGX/stocks/{urllib.parse.quote(symbol, safe='')}/history"
     params = {"from": FROM_DATE, "to": TO_DATE, "order": "asc", "limit": "20000"}
-    status, payload = request_json(path, params, api_key)
+    status, payload, raw_body = request_json(path, params, api_key)
 
     result = {
         "symbol": symbol,
@@ -81,6 +82,7 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                 "data_freshness": meta.get("data_freshness"),
             }
         )
+    result["raw_sha256"] = hashlib.sha256(raw_body).hexdigest()
     if status != 200:
         result["error"] = payload
 
