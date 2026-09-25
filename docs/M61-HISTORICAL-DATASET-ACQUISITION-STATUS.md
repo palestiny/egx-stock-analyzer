@@ -180,8 +180,7 @@ The current Mansa API documentation materially strengthens this candidate:
 - It accepts explicit `from` and `to` dates, plus ordering and a row limit.
 - The documented response contains `date`, `open`, `high`, `low`, `close`, `adj_close`, and `volume`, with metadata including count and first/last dates.
 - The documentation states Egypt history can reach back to 1995 and identifies EGX live/history sourcing as official EGX data.
-- The documentation states historical access is on the Pro tier; current pricing documentation lists Pro at $50/month.
-- The service states commercial redistribution requires the Professional tier.
+- The documentation states historical access is on the Pro tier and that the Pro plan uses the `professional` tier token. We do not hard-code a price here because pricing/plan details can change.
 
 This makes Mansa the first candidate with a documented API contract that maps directly onto the M61 market-data fields and bounded date-window requirement.
 
@@ -198,7 +197,7 @@ Official Mansa documentation adds two important acceptance constraints:
 
 - The history endpoint is explicitly documented as **Pro plan and above**, even though the pricing page describes the Free tier more broadly as including “real-time + historical quotes.” For M61 we therefore treat the endpoint-level documentation as the authoritative capability boundary until Mansa confirms otherwise.
 - Mansa's methodology states that historical prices are **as-published** and are not currently back-adjusted for splits or corporate actions. This is compatible with the M61 requirement to preserve source semantics, but it means the dataset must not be silently treated as split-adjusted. Any adjustment/total-return interpretation must be a separate, explicit transformation with its own provenance.
-- Mansa's licensing page allows caching for application use only within tier-specific windows (up to 24 hours on Free/Starter, up to 7 days on Professional). It distinguishes this from building a stored copy of the dataset. Institutional licensing is the documented tier for raw-data redistribution. M61 therefore cannot assume that a long-lived immutable raw archive of API responses is permitted under ordinary application-tier terms.
+- Mansa's licensing page allows caching for application use only within tier-specific windows (up to 24 hours on Free/Starter, up to 7 days on Professional). It explicitly distinguishes this from building a stored copy of the dataset. Institutional licensing is the documented tier for raw-data redistribution. M61 therefore cannot assume that a long-lived immutable raw archive of API responses is permitted under ordinary application-tier terms.
 - The terms also require API keys to remain confidential and prohibit circumventing authentication or tier restrictions.
 
 **Acceptance consequence:** Mansa remains a strong **acquisition/provenance candidate**, but a production M61 dataset cannot be frozen from Mansa until we have both (a) authenticated extraction evidence for the exact cohort and (b) explicit confirmation that the selected license permits the required immutable archival/backtest use. If archival rights are not included, Mansa may still be useful as a transient acquisition/cross-check source while another source supplies the legally storable historical artifact.
@@ -215,8 +214,8 @@ References:
 The current official API docs clarify the access boundary:
 
 - A free Standard API key can be issued instantly, but per-stock historical history is explicitly listed as Pro and above. Therefore creating a free key is useful for validating authentication and exchange/symbol discovery, but it is not evidence that the required historical endpoint is accessible.
-- The history endpoint remains explicitly documented with from/to, order, and limit (maximum 20,000), and returns daily OHLCV plus price_unit and metadata such as count and first/last dates.
-- Mansa also documents a separate Fundamentals Suite with fiscal-period financial figures and source-document URLs, but the documented coverage is not evidence that the required Egyptian point-in-time financial snapshots are available. We therefore keep financial acquisition as a separate acceptance gate.
+- The history endpoint remains explicitly documented with from/to, order, and limit (maximum 20,000), and returns daily OHLCV plus `adj_close`, `price_unit`, and metadata such as count and first/last dates.
+- Mansa also documents a separate Fundamentals Suite with fiscal-period financial figures and source-document URLs, but the documented coverage/example is not evidence that the required Egyptian point-in-time financial snapshots are available. We therefore keep financial acquisition as a separate acceptance gate.
 - The licensing page explicitly says application caching is time-limited (up to 7 days on Professional) and distinguishes caching from building a stored copy of the provider dataset. Raw redistribution requires Institutional licensing. This does not automatically prohibit an internal research/backtest artifact, but the intended long-lived immutable M61 archive must be confirmed with Mansa rather than inferred from the API subscription.
 
 **Updated execution decision:** first use the free key only for non-history discovery/authentication if available; do not purchase or integrate production history until Mansa confirms the historical tier and the permitted storage/use for an immutable research dataset. If that confirmation is not available, keep Mansa as a live/cross-check provider and acquire the frozen M61 artifact from a source whose storage rights are explicit.
