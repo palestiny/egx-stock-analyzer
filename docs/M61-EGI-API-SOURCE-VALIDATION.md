@@ -73,3 +73,25 @@ The repository already has the dataset contract, integrity validation, loader, a
 ## Guardrail
 
 Do not manufacture missing rows, forward-fill suspensions, silently adjust prices, or substitute later-known financial values merely to make the backtest executable.
+
+
+## Follow-up verification — 2026-09-25
+
+A fresh web verification still shows the EGI Swagger UI exposing the same historical-data surface, including:
+
+- `POST /api/Feed/GetSymbolsChartByDateRange`
+- `POST /api/Feed/GetAllSymbolsChartByDateRange`
+- `POST /api/Feed/GetSymbolHistory`
+- `GET /api/Feed/GetSymbolHistories`
+
+The Swagger index also lists the schemas `Period`, `DateInterval`, `HistoryReqDto`, `SymbolChartRequest`, and `SymbolChartByDateRequest`. This confirms that request/response models exist in the published OpenAPI surface, but the crawler-accessible Swagger page did not expose the individual schema properties. The direct `/swagger/v1/swagger.json` resource was also not retrievable through the available web access path.
+
+Therefore, the exact POST payload and returned JSON contract remain **UNVERIFIED**. No claim is made that an EGAL extraction has succeeded.
+
+An independent recent codebase was also found using a different Mubasher historical endpoint (`/api/symbol/a/EGX-{symbol}/history?type=full`) and mapping OHLCV fields, but that evidence concerns Mubasher rather than EGI and does not establish EGI compatibility.
+
+**Decision unchanged: EGI remains a candidate, not an accepted M61 historical dataset source.**
+
+References:
+- EGI public Swagger index: https://ticker.egidegypt.com/index.html
+- EGID describes itself as a wholly owned EGX subsidiary and authorized EGX market-data provider: https://www.linkedin.com/company/egid
