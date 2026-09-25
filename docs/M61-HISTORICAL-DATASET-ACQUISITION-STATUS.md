@@ -92,11 +92,44 @@ Reference examples:
 - https://stockanalysis.com/quote/egx/EGAL/history/
 - https://stockanalysis.com/quote/egx/EAST/history/
 
-#### Other API candidates
+#### Additional source research — 2026-09-25
 
-Additional EGX API/data-service candidates were found during research. They are not accepted merely because they advertise historical bars. Any candidate must first prove the complete cohort coverage, source provenance, licensing/usage rights, deterministic extraction, adjustment convention, and point-in-time financial availability required by DEC-130.
+##### Mansa Markets — API candidate
 
-No candidate has been promoted into the production dataset boundary as a result of this research.
+Mansa Markets currently documents an API with an EGX exchange history endpoint providing deep daily OHLCV history and states Egypt coverage back to 1995. The documentation describes the historical endpoint as a professional/API-key service.
+
+This is a **strong technical acquisition candidate for market OHLCV**, because it explicitly exposes a programmatic history endpoint and a stated historical depth. It is **not accepted yet**: we still need to verify the actual EGX-10 cohort, exact response schema, symbol mapping, corporate-action convention, reproducibility, pricing/usage rights, and whether the service can provide or be paired with the required point-in-time financial snapshots.
+
+Reference: https://mansamarkets.com/developers
+
+##### ICE — institutional market-data candidate
+
+ICE documents EGX historical and end-of-day data, including API/data-file delivery, with stated history from February 2012. It also documents normalized symbology and instrument status fields such as halted/suspended state.
+
+This is a **credible institutional fallback/cross-check candidate**, but it is not yet evaluated for M61 because access, licensing, exact cohort coverage, delivery format, and acquisition cost have not been verified.
+
+Reference: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx
+
+##### TradeGlob / TradingView route — technical candidate
+
+A public TradeGlob project documents historical OHLCV retrieval for EGX symbols through TradingView, including date-range retrieval and multi-symbol support.
+
+This is useful as a **technical cross-check candidate**, but it is not accepted as primary evidence because the documented route depends on TradingView access/authentication and the project itself does not establish redistribution rights, immutable raw-artifact provenance, or the required point-in-time financial dataset.
+
+Reference: https://github.com/ibrasonic/TradeGlob
+
+##### Research conclusion
+
+The source landscape now contains multiple concrete acquisition paths rather than only website scraping candidates:
+
+1. EGI public Feed API — documented historical endpoints; exact request/response contract still unverified.
+2. Mubasher historical endpoint — historical implementation evidence exists, but current public availability is unresolved.
+3. EGX.news — paid CSV historical dataset candidate.
+4. Mansa Markets — programmatic historical OHLCV API candidate with stated Egypt depth.
+5. ICE — institutional historical/EOD/API candidate.
+6. TradeGlob/TradingView — technical cross-check candidate.
+
+**None is accepted as the M61 dataset yet.** The next source-validation target is Mansa Markets because its published API contract most directly matches the production acquisition requirement; if access/terms fail, continue to EGX.news/ICE rather than weakening DEC-130.
 
 ## Acquisition acceptance procedure
 
