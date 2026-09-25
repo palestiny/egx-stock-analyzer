@@ -194,12 +194,20 @@ DEC-129 is accepted. The first historical dataset implementation uses determinis
 
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `f78e6f0de411493887ef7b705fead7f0a77b5fa8` (2026-09-24), merged through PR #176. No pull requests are currently open.
+The latest main commit is `541ea5c069fdb7c8ad7ede4d4a6ee5422f4fcd14` (2026-09-25), merged through PR #183.
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
 Operational checkpoint: `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`.
 
-The remaining historical-data branches are stale behind `main` and contain no unique commits relative to `main`; they are cleanup candidates. Branch deletion is not exposed by the current GitHub integration, so no deletion is claimed.
+Current source-validation documentation now covers EGI, Mubasher, Mansa Markets, and the separate point-in-time financial-source boundary. All remain explicitly **NOT ACCEPTED** pending live extraction evidence, provenance, licensing/storage validation, and deterministic integrity checks.
 
-PR #176 passed GitHub Actions Tests Run #2903 on implementation head `1c82024b78275a1c94f07a705071904d4cc96467` before merge. No separate post-merge workflow run was exposed by the available GitHub integration, so no post-merge CI run is claimed.
+The immediate executable work remains:
+1. authenticated Mansa market-source probe when valid access is available;
+2. close the COMI financial provenance chain and extract one required Strategy v0 metric deterministically;
+3. expand the same evidence package across the remaining nine symbols;
+4. freeze the immutable M61 dataset manifest only after DEC-130 acceptance passes.
+
+PR #180 and PR #181 are merged. PR #182 was superseded and closed after its branch diverged from main; its unique documentation content was reconstructed and merged through PR #183.
+
+Branch deletion is not exposed by the current GitHub integration, so no branch deletion is claimed.
