@@ -85,13 +85,46 @@ M61 must use the actual disclosure/publication evidence for each accepted snapsh
 - Issuer investor-relations archives demonstrate that dated quarterly/annual financial statements can be exposed with publication dates. These archives are useful for cross-checking availability and document identity.
 - AskBorsa currently states that it aggregates published financial statements for EGX-listed companies, provides normalized five-year data, and links figures back to source pages. It remains a third-party extraction/cross-check candidate rather than accepted primary provenance.
 
+## COMI — first end-to-end evidence package
+
+The first cohort member has now been traced through a concrete issuer document path.
+
+### 2024 annual consolidated statement
+
+- **Internal symbol:** COMI
+- **Issuer/security:** Commercial International Bank-Egypt (CIB) S.A.E.; EGX Reuters code COMI
+- **Statement type:** consolidated
+- **period_end:** 2024-12-31
+- **Document:** CIB Annual Report 2024 / consolidated financial statements
+- **Document identity:** issuer-hosted PDF, titled as consolidated financial statements / annual report
+- **Approval/publication evidence date:** 2025-02-18
+- **available_at:** 2025-02-18 (date-level evidence; exact intraday publication time not established)
+- **Evidence:** the consolidated statement itself says the financial statements were approved by the Board of Directors on February 18, 2025; the same issuer date is independently present on CIB's 4Q24 results release dated February 18, 2025.
+- **Source path:** CIB Investor Relations → Financial Statements / Annual Report.
+- **Primary-provenance status:** issuer evidence proven; EGX disclosure-chain linkage still **not proven**.
+- **Point-in-time rule for daily backtest:** because only a calendar date, not an exact public-release timestamp, is proven, do not make the statement eligible for a decision earlier on 2025-02-18. A conservative implementation should make it effective from the next eligible trading session unless exact intraday public availability is later proven.
+- **Raw checksum:** not yet recorded in repository; must be generated from the legally storable source artifact before dataset freeze.
+- **Metric extraction:** not yet promoted into the accepted historical dataset; this checkpoint proves provenance/availability evidence, not full metric-boundary acceptance.
+
+This is the first reproducible evidence chain:
+
+**COMI → issuer financial statement → period_end 2024-12-31 → approval/publication date 2025-02-18 → date-level available_at → conservative next-session eligibility**
+
+The remaining gap is material: M61 still needs the corresponding EGX/FRA disclosure identity or a documented justification for using the issuer archive as the operational provenance source.
+
 ## Current status
 
 **NOT ACCEPTED.**
 
-The next executable step is to prove the point-in-time acquisition path for one complete cohort member end-to-end:
+The COMI artifact is a **provenance evidence success**, not yet a cohort-wide financial-source acceptance.
 
-EGX disclosure -> publication evidence -> immutable document identity -> extracted metric -> available_at -> historical decision-date eligibility
+The next executable step is to:
+
+1. establish the matching EGX/FRA disclosure artifact for COMI, if publicly retrievable;
+2. generate and preserve the source-artifact checksum where licensing permits;
+3. extract one required Strategy v0 metric deterministically;
+4. prove the historical decision-date eligibility rule;
+5. repeat the same evidence package for the remaining nine symbols.
 
 Only after that path is reproducible should it be scaled across all ten symbols.
 
@@ -105,18 +138,20 @@ This checkpoint does not:
 - substitute third-party normalized values for primary disclosure evidence;
 - claim that current financial statements are valid for historical backtesting.
 
-
 ## Verified EGX/FRA boundary — 2026-09-25
 
 Fresh public-source verification confirms that the current EGX site exposes separate **Disclosures** and **Financial Statements** areas alongside market-watch data. The live market-watch page also identifies COMI by Reuters code, confirming that the bounded cohort can be resolved against the current EGX security identity.
 
-This is useful provenance evidence, but it does **not** yet prove that a complete historical COMI disclosure chain for 2021–2025 can be retrieved with publication timestamps and immutable document identity. We therefore do not mark COMI as accepted yet.
+This is useful provenance evidence, but it does **not** yet prove that a complete historical COMI disclosure chain for 2021–2025 can be retrieved with publication timestamps and immutable document identity.
 
-The FRA's current regulatory notices also demonstrate why filing deadlines cannot substitute for availability timestamps: for example, Resolution 65 of 2026 extended the deadline for 2025 annual statements to April 30, 2026, while Resolution 112 later extended the Q1 2026 consolidated-statement deadline to June 15, 2026. These are regulatory submission cutoffs, not proof of the exact public-availability time of an individual company's disclosure.
+The FRA's current regulatory notices also demonstrate why filing deadlines cannot substitute for availability timestamps: for example, Resolution 65 of 2026 extended the deadline for 2025 annual statements to April 30, 2026. This is a regulatory submission cutoff, not proof of the exact public-availability time of an individual company's disclosure.
 
-**Result:** EGX/FRA remains the primary provenance route; the next verification step is an actual historical disclosure artifact for one cohort member, preferably COMI, with a traceable publication date and document identity.
+**Result:** EGX/FRA remains the primary provenance route; the issuer archive has now proven one concrete COMI evidence path, while the EGX/FRA linkage remains open.
 
 References:
 - https://beta.egx.com.eg/en/market/market-watch
-- https://fra.gov.eg/en/fra_news/الرقابة-المالية-تقرر-مد-فترة-تقديم-القوائم-المالية-الدورية-المجمعة-للشركات-المقيدة-بالبورصة-إلى-15-يونيو-المقبل/
+- https://beta.egx.com.eg/en
 - https://fra.gov.eg/en/fra_news/الرقابة-المالية-تمدد-مدة-تقديم-القوائم-المالية-السنوية-للشركات-المقيدة-بالبورصة-حتى-نهاية-أبريل-المقبل/
+- https://www.cibeg.com/en/investor-relations
+- https://www.cibeg.com/-/media/project/downloads/investor-relations/ir-library/financial-statements/2024/q4/cib-consolidated-financial-statements-december-2024-english.pdf
+- https://www.cibeg.com/-/media/project/downloads/investor-relations/ir-library/earning-releases/2024/4q24-press-release.pdf
