@@ -190,3 +190,21 @@ However, **Mansa is still NOT ACCEPTED**. The critical missing evidence is an au
 A direct unauthenticated API request from the available web access path was not retrievable, so no live EGAL response has been treated as evidence.
 
 Reference: https://mansaapi.com/docs
+
+
+### Mansa Markets follow-up — 2026-09-25
+
+Official Mansa documentation adds two important acceptance constraints:
+
+- The history endpoint is explicitly documented as **Pro plan and above**, even though the pricing page describes the Free tier more broadly as including “real-time + historical quotes.” For M61 we therefore treat the endpoint-level documentation as the authoritative capability boundary until Mansa confirms otherwise.
+- Mansa's methodology states that historical prices are **as-published** and are not currently back-adjusted for splits or corporate actions. This is compatible with the M61 requirement to preserve source semantics, but it means the dataset must not be silently treated as split-adjusted. Any adjustment/total-return interpretation must be a separate, explicit transformation with its own provenance.
+- Mansa's licensing page allows caching for application use only within tier-specific windows (up to 24 hours on Free/Starter, up to 7 days on Professional). It distinguishes this from building a stored copy of the dataset. Institutional licensing is the documented tier for raw-data redistribution. M61 therefore cannot assume that a long-lived immutable raw archive of API responses is permitted under ordinary application-tier terms.
+- The terms also require API keys to remain confidential and prohibit circumventing authentication or tier restrictions.
+
+**Acceptance consequence:** Mansa remains a strong **acquisition/provenance candidate**, but a production M61 dataset cannot be frozen from Mansa until we have both (a) authenticated extraction evidence for the exact cohort and (b) explicit confirmation that the selected license permits the required immutable archival/backtest use. If archival rights are not included, Mansa may still be useful as a transient acquisition/cross-check source while another source supplies the legally storable historical artifact.
+
+References:
+- https://mansaapi.com/docs
+- https://mansaapi.com/methodology
+- https://mansaapi.com/licensing
+- https://mansaapi.com/terms
