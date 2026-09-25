@@ -208,3 +208,19 @@ References:
 - https://mansaapi.com/methodology
 - https://mansaapi.com/licensing
 - https://mansaapi.com/terms
+
+
+### Mansa documentation follow-up — 2026-09-25
+
+The current official API docs clarify the access boundary:
+
+- A free Standard API key can be issued instantly, but per-stock historical history is explicitly listed as Pro and above. Therefore creating a free key is useful for validating authentication and exchange/symbol discovery, but it is not evidence that the required historical endpoint is accessible.
+- The history endpoint remains explicitly documented with from/to, order, and limit (maximum 20,000), and returns daily OHLCV plus price_unit and metadata such as count and first/last dates.
+- Mansa also documents a separate Fundamentals Suite with fiscal-period financial figures and source-document URLs, but the documented coverage is not evidence that the required Egyptian point-in-time financial snapshots are available. We therefore keep financial acquisition as a separate acceptance gate.
+- The licensing page explicitly says application caching is time-limited (up to 7 days on Professional) and distinguishes caching from building a stored copy of the provider dataset. Raw redistribution requires Institutional licensing. This does not automatically prohibit an internal research/backtest artifact, but the intended long-lived immutable M61 archive must be confirmed with Mansa rather than inferred from the API subscription.
+
+**Updated execution decision:** first use the free key only for non-history discovery/authentication if available; do not purchase or integrate production history until Mansa confirms the historical tier and the permitted storage/use for an immutable research dataset. If that confirmation is not available, keep Mansa as a live/cross-check provider and acquire the frozen M61 artifact from a source whose storage rights are explicit.
+
+References:
+- https://mansaapi.com/docs
+- https://mansaapi.com/licensing
