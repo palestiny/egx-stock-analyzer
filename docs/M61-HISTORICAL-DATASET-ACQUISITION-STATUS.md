@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-09-24 — source research refreshed
+**Updated:** 2026-09-25 — source research refreshed
 
 ## Purpose
 
@@ -92,21 +92,44 @@ Reference examples:
 - https://stockanalysis.com/quote/egx/EGAL/history/
 - https://stockanalysis.com/quote/egx/EAST/history/
 
-#### EGI Egypt Feed API — validation candidate
+#### Additional source research — 2026-09-25
 
-The public EGI Egypt Swagger documentation exposes date-range historical chart operations including `GetSymbolsChartByDateRange`, `GetAllSymbolsChartByDateRange`, and `GetSymbolHistory`.
+##### Mansa Markets — API candidate
 
-This establishes a concrete API acquisition path, but it does **not** establish DEC-130 acceptance. Coverage, OHLCV semantics, corporate-action behavior, suspension/missing-data handling, deterministic replay, licensing/usage rights, and point-in-time financial evidence still require validation.
+Mansa Markets currently documents an API with an EGX exchange history endpoint providing deep daily OHLCV history and states Egypt coverage back to 1995. The documentation describes the historical endpoint as a professional/API-key service.
 
-Detailed checkpoint: `docs/M61-EGI-API-SOURCE-VALIDATION.md`.
+This is a **strong technical acquisition candidate for market OHLCV**, because it explicitly exposes a programmatic history endpoint and a stated historical depth. It is **not accepted yet**: we still need to verify the actual EGX-10 cohort, exact response schema, symbol mapping, corporate-action convention, reproducibility, pricing/usage rights, and whether the service can provide or be paired with the required point-in-time financial snapshots.
 
-Reference: https://ticker.egidegypt.com/index.html
+Reference: https://mansamarkets.com/developers
 
-### Other API candidates
+##### ICE — institutional market-data candidate
 
-Additional EGX API/data-service candidates were found during research. They are not accepted merely because they advertise historical bars. Any candidate must first prove the complete cohort coverage, source provenance, licensing/usage rights, deterministic extraction, adjustment convention, and point-in-time financial availability required by DEC-130.
+ICE documents EGX historical and end-of-day data, including API/data-file delivery, with stated history from February 2012. It also documents normalized symbology and instrument status fields such as halted/suspended state.
 
-No candidate has been promoted into the production dataset boundary as a result of this research.
+This is a **credible institutional fallback/cross-check candidate**, but it is not yet evaluated for M61 because access, licensing, exact cohort coverage, delivery format, and acquisition cost have not been verified.
+
+Reference: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx
+
+##### TradeGlob / TradingView route — technical candidate
+
+A public TradeGlob project documents historical OHLCV retrieval for EGX symbols through TradingView, including date-range retrieval and multi-symbol support.
+
+This is useful as a **technical cross-check candidate**, but it is not accepted as primary evidence because the documented route depends on TradingView access/authentication and the project itself does not establish redistribution rights, immutable raw-artifact provenance, or the required point-in-time financial dataset.
+
+Reference: https://github.com/ibrasonic/TradeGlob
+
+##### Research conclusion
+
+The source landscape now contains multiple concrete acquisition paths rather than only website scraping candidates:
+
+1. EGI public Feed API — documented historical endpoints; exact request/response contract still unverified.
+2. Mubasher historical endpoint — historical implementation evidence exists, but current public availability is unresolved.
+3. EGX.news — paid CSV historical dataset candidate.
+4. Mansa Markets — programmatic historical OHLCV API candidate with stated Egypt depth.
+5. ICE — institutional historical/EOD/API candidate.
+6. TradeGlob/TradingView — technical cross-check candidate.
+
+**None is accepted as the M61 dataset yet.** The next source-validation target is Mansa Markets because its published API contract most directly matches the production acquisition requirement; if access/terms fail, continue to EGX.news/ICE rather than weakening DEC-130.
 
 ## Acquisition acceptance procedure
 
@@ -146,3 +169,57 @@ This checkpoint does not:
 - silently normalize corporate actions;
 - create a new persistence model;
 - claim full-EGX historical validity.
+
+
+### Mansa Markets validation — 2026-09-25
+
+The current Mansa API documentation materially strengthens this candidate:
+
+- Exchange code is `EGX`.
+- Historical endpoint is `GET /api/v1/markets/exchanges/{exchange_code}/stocks/{ticker}/history`.
+- It accepts explicit `from` and `to` dates, plus ordering and a row limit.
+- The documented response contains `date`, `open`, `high`, `low`, `close`, `adj_close`, and `volume`, with metadata including count and first/last dates.
+- The documentation states Egypt history can reach back to 1995 and identifies EGX live/history sourcing as official EGX data.
+- The documentation states historical access is on the Pro tier and that the Pro plan uses the `professional` tier token. We do not hard-code a price here because pricing/plan details can change.
+
+This makes Mansa the first candidate with a documented API contract that maps directly onto the M61 market-data fields and bounded date-window requirement.
+
+However, **Mansa is still NOT ACCEPTED**. The critical missing evidence is an authenticated extraction for the exact ten-symbol cohort, including row counts and gaps, symbol mappings, corporate-action/adjustment semantics, raw response preservation, deterministic replay, and confirmation that the purchased usage rights cover our intended backtest storage/use.
+
+A direct unauthenticated API request from the available web access path was not retrievable, so no live EGAL response has been treated as evidence.
+
+Reference: https://mansaapi.com/docs
+
+
+### Mansa Markets follow-up — 2026-09-25
+
+Official Mansa documentation adds two important acceptance constraints:
+
+- The history endpoint is explicitly documented as **Pro plan and above**, even though the pricing page describes the Free tier more broadly as including “real-time + historical quotes.” For M61 we therefore treat the endpoint-level documentation as the authoritative capability boundary until Mansa confirms otherwise.
+- Mansa's methodology states that historical prices are **as-published** and are not currently back-adjusted for splits or corporate actions. This is compatible with the M61 requirement to preserve source semantics, but it means the dataset must not be silently treated as split-adjusted. Any adjustment/total-return interpretation must be a separate, explicit transformation with its own provenance.
+- Mansa's licensing page allows caching for application use only within tier-specific windows (up to 24 hours on Free/Starter, up to 7 days on Professional). It explicitly distinguishes this from building a stored copy of the dataset. Institutional licensing is the documented tier for raw-data redistribution. M61 therefore cannot assume that a long-lived immutable raw archive of API responses is permitted under ordinary application-tier terms.
+- The terms also require API keys to remain confidential and prohibit circumventing authentication or tier restrictions.
+
+**Acceptance consequence:** Mansa remains a strong **acquisition/provenance candidate**, but a production M61 dataset cannot be frozen from Mansa until we have both (a) authenticated extraction evidence for the exact cohort and (b) explicit confirmation that the selected license permits the required immutable archival/backtest use. If archival rights are not included, Mansa may still be useful as a transient acquisition/cross-check source while another source supplies the legally storable historical artifact.
+
+References:
+- https://mansaapi.com/docs
+- https://mansaapi.com/methodology
+- https://mansaapi.com/licensing
+- https://mansaapi.com/terms
+
+
+### Mansa documentation follow-up — 2026-09-25
+
+The current official API docs clarify the access boundary:
+
+- A free Standard API key can be issued instantly, but per-stock historical history is explicitly listed as Pro and above. Therefore creating a free key is useful for validating authentication and exchange/symbol discovery, but it is not evidence that the required historical endpoint is accessible.
+- The history endpoint remains explicitly documented with from/to, order, and limit (maximum 20,000), and returns daily OHLCV plus `adj_close`, `price_unit`, and metadata such as count and first/last dates.
+- Mansa also documents a separate Fundamentals Suite with fiscal-period financial figures and source-document URLs, but the documented coverage/example is not evidence that the required Egyptian point-in-time financial snapshots are available. We therefore keep financial acquisition as a separate acceptance gate.
+- The licensing page explicitly says application caching is time-limited (up to 7 days on Professional) and distinguishes caching from building a stored copy of the provider dataset. Raw redistribution requires Institutional licensing. This does not automatically prohibit an internal research/backtest artifact, but the intended long-lived immutable M61 archive must be confirmed with Mansa rather than inferred from the API subscription.
+
+**Updated execution decision:** first use the free key only for non-history discovery/authentication if available; do not purchase or integrate production history until Mansa confirms the historical tier and the permitted storage/use for an immutable research dataset. If that confirmation is not available, keep Mansa as a live/cross-check provider and acquire the frozen M61 artifact from a source whose storage rights are explicit.
+
+References:
+- https://mansaapi.com/docs
+- https://mansaapi.com/licensing
