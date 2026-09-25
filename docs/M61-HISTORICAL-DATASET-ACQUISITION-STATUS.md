@@ -92,7 +92,17 @@ Reference examples:
 - https://stockanalysis.com/quote/egx/EGAL/history/
 - https://stockanalysis.com/quote/egx/EAST/history/
 
-#### Other API candidates
+#### EGI Egypt Feed API — validation candidate
+
+The public EGI Egypt Swagger documentation exposes date-range historical chart operations including `GetSymbolsChartByDateRange`, `GetAllSymbolsChartByDateRange`, and `GetSymbolHistory`.
+
+This establishes a concrete API acquisition path, but it does **not** establish DEC-130 acceptance. Coverage, OHLCV semantics, corporate-action behavior, suspension/missing-data handling, deterministic replay, licensing/usage rights, and point-in-time financial evidence still require validation.
+
+Detailed checkpoint: `docs/M61-EGI-API-SOURCE-VALIDATION.md`.
+
+Reference: https://ticker.egidegypt.com/index.html
+
+### Other API candidates
 
 Additional EGX API/data-service candidates were found during research. They are not accepted merely because they advertise historical bars. Any candidate must first prove the complete cohort coverage, source provenance, licensing/usage rights, deterministic extraction, adjustment convention, and point-in-time financial availability required by DEC-130.
 
