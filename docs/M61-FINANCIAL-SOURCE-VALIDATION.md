@@ -104,3 +104,19 @@ This checkpoint does not:
 - introduce look-ahead handling outside the existing DEC-127 boundary;
 - substitute third-party normalized values for primary disclosure evidence;
 - claim that current financial statements are valid for historical backtesting.
+
+
+## Verified EGX/FRA boundary — 2026-09-25
+
+Fresh public-source verification confirms that the current EGX site exposes separate **Disclosures** and **Financial Statements** areas alongside market-watch data. The live market-watch page also identifies COMI by Reuters code, confirming that the bounded cohort can be resolved against the current EGX security identity.
+
+This is useful provenance evidence, but it does **not** yet prove that a complete historical COMI disclosure chain for 2021–2025 can be retrieved with publication timestamps and immutable document identity. We therefore do not mark COMI as accepted yet.
+
+The FRA's current regulatory notices also demonstrate why filing deadlines cannot substitute for availability timestamps: for example, Resolution 65 of 2026 extended the deadline for 2025 annual statements to April 30, 2026, while Resolution 112 later extended the Q1 2026 consolidated-statement deadline to June 15, 2026. These are regulatory submission cutoffs, not proof of the exact public-availability time of an individual company's disclosure.
+
+**Result:** EGX/FRA remains the primary provenance route; the next verification step is an actual historical disclosure artifact for one cohort member, preferably COMI, with a traceable publication date and document identity.
+
+References:
+- https://beta.egx.com.eg/en/market/market-watch
+- https://fra.gov.eg/en/fra_news/الرقابة-المالية-تقرر-مد-فترة-تقديم-القوائم-المالية-الدورية-المجمعة-للشركات-المقيدة-بالبورصة-إلى-15-يونيو-المقبل/
+- https://fra.gov.eg/en/fra_news/الرقابة-المالية-تمدد-مدة-تقديم-القوائم-المالية-السنوية-للشركات-المقيدة-بالبورصة-حتى-نهاية-أبريل-المقبل/
