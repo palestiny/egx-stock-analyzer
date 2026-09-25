@@ -1,4 +1,4 @@
-from egx_stock_analyzer_m61_probe import build_url
+from tools.egx_stock_analyzer_m61_probe import build_url
 
 
 def test_build_url_encodes_query_parameters():
