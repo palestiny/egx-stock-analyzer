@@ -17,26 +17,32 @@ def validate_history_points(points: Sequence[Mapping[str, object]]) -> list[str]
     seen_dates: set[str] = set()
 
     for index, point in enumerate(points):
-        missing = [field for field in REQUIRED_FIELDS if field not in point]
+        raw_date = point.get("date")
+        current_date: date | None = None
+        if "date" not in point:
+            findings.append(f"row[{index}]:missing=date")
+        else:
+            try:
+                current_date = date.fromisoformat(str(raw_date))
+            except ValueError:
+                findings.append(f"row[{index}]:invalid_date={raw_date}")
+
+            if current_date is not None:
+                date_key = current_date.isoformat()
+                if date_key in seen_dates:
+                    findings.append(f"row[{index}]:duplicate_date={date_key}")
+                seen_dates.add(date_key)
+                if previous_date is not None and current_date < previous_date:
+                    findings.append(f"row[{index}]:out_of_order={date_key}")
+                previous_date = current_date
+
+        missing = [field for field in REQUIRED_FIELDS if field not in point and field != "date"]
         if missing:
             findings.append(f"row[{index}]:missing={','.join(missing)}")
             continue
 
-        raw_date = point["date"]
-        try:
-            current_date = date.fromisoformat(str(raw_date))
-        except ValueError:
-            findings.append(f"row[{index}]:invalid_date={raw_date}")
+        if current_date is None:
             continue
-
-        date_key = current_date.isoformat()
-        if date_key in seen_dates:
-            findings.append(f"row[{index}]:duplicate_date={date_key}")
-        seen_dates.add(date_key)
-
-        if previous_date is not None and current_date < previous_date:
-            findings.append(f"row[{index}]:out_of_order={date_key}")
-        previous_date = current_date
 
         values: dict[str, float] = {}
         for field in ("open", "high", "low", "close", "volume"):
