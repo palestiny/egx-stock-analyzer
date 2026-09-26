@@ -19,6 +19,8 @@ import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
+from tools.m61_market_validation import validate_history_points
+
 COHORT = ("COMI", "EGAL", "SWDY", "ETEL", "EAST", "TMGH", "PHDC", "FWRY", "EFID", "HRHO")
 BASE_URL = "https://mansaapi.com"
 FROM_DATE = "2020-01-01"
@@ -80,6 +82,9 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                 "last_date": meta.get("last_date"),
                 "meta_count": meta.get("count"),
                 "data_freshness": meta.get("data_freshness"),
+                "validation_findings": validate_history_points(points)
+                if isinstance(points, list)
+                else ["points:not_list"],
             }
         )
     result["raw_sha256"] = hashlib.sha256(raw_body).hexdigest()
