@@ -20,6 +20,7 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "integration: tests that exercise the application with external infrastructure",
 ]
