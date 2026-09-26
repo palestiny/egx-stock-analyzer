@@ -59,3 +59,31 @@ For EGX.news, obtain a real COMI sample artifact first and verify:
 For Mansa, run the existing probe with valid credentials and preserve raw responses only when the licensing decision permits it.
 
 Neither source is accepted by this document alone.
+
+
+## 2026-09-26 source re-check
+
+### EGX.news / COMI
+
+The current public data page explicitly advertises a historical daily COMI sample and a $1-per-stock historical package, with daily OHLCV/turnover CSV fields and history since IPO/back to 1994. This confirms that COMI is a publicly advertised purchasable artifact candidate, but it is still not an acquired artifact. The public page does not establish corporate-action adjustment semantics or long-term transformation/retention rights.
+
+### Mansa documentation consistency issue
+
+Current Mansa public pages are not fully consistent about historical access by plan:
+
+- The pricing page advertises "real-time + historical quotes" on the free Standard tier.
+- The developer page explicitly labels the deep daily stock-history endpoint as Professional tier.
+- The methodology page says historical snapshots are retained indefinitely by Mansa.
+
+Therefore the repository must not encode a plan entitlement from marketing text alone. Before acquisition, record the exact entitlement returned for the project key and retain the relevant provider documentation snapshot/evidence.
+
+### Acceptance consequence
+
+No Mansa dataset is accepted solely because the API endpoint exists. The acquisition record must establish:
+1. the project's actual plan entitlement;
+2. access to the required 2020-2025 EGX history;
+3. exact response schema;
+4. corporate-action semantics;
+5. retention/transformation rights applicable to the intended M61 archive.
+
+This discrepancy is an explicit open item, not an assumption.
