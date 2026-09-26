@@ -22,7 +22,7 @@ def test_validator_detects_duplicates_and_ordering():
 
 def test_validator_detects_ohlcv_integrity_errors():
     points = [
-        {"date": "2025-01-02", "open": 10, "high": 8, "low": 9, "close": 11, "volume": -1},
+        {"date": "2025-01-02", "open": 8, "high": 10, "low": 9, "close": 7, "volume": -1},
     ]
     findings = validate_history_points(points)
     assert "row[0]:low_above_high" in findings
