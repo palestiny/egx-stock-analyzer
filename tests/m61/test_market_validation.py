@@ -35,3 +35,33 @@ def test_validator_reports_missing_and_invalid_fields():
     findings = validate_history_points([{"date": "bad", "open": "x"}])
     assert "row[0]:missing=high,low,close,volume" in findings
     assert "row[0]:invalid_date=bad" in findings
+
+
+def test_validator_preserves_decimal_precision_without_float_coercion():
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": "0.1000000000000000001",
+            "high": "0.1000000000000000002",
+            "low": "0.1000000000000000000",
+            "close": "0.10000000000000000015",
+            "volume": "100",
+        },
+    ]
+    assert validate_history_points(points) == []
+
+
+def test_validator_rejects_non_finite_decimal_values():
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": "NaN",
+            "high": "Infinity",
+            "low": "0.1",
+            "close": "0.1",
+            "volume": "100",
+        },
+    ]
+    findings = validate_history_points(points)
+    assert "row[0]:non_finite_open=NaN" in findings
+    assert "row[0]:non_finite_high=Infinity" in findings
