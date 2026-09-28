@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from datetime import date, timedelta
-from uuid import UUID
+from datetime import date
 
 from app.application.market_data.provider import MarketDataProvider
 from app.domain.market_data.raw_observation import RawPriceBarObservation
+from app.domain.stocks.stock import Stock
 
 
 class MarketDataConflictError(ValueError):
@@ -29,7 +29,7 @@ class OperationalMarketDataService:
 
     def ensure_daily_coverage(
         self,
-        stock_id: UUID,
+        stock: Stock,
         from_date: date,
         to_date: date,
     ) -> list[RawPriceBarObservation]:
@@ -37,25 +37,20 @@ class OperationalMarketDataService:
             raise ValueError("from_date cannot be after to_date")
 
         existing = self._store.get_daily_observations(
-            stock_id, from_date, to_date
+            stock.id, from_date, to_date
         )
         existing_dates = {item.timestamp.date() for item in existing}
         expected = self._session_calendar.expected_sessions(from_date, to_date)
         missing = [day for day in expected if day not in existing_dates]
 
         if missing:
-            requested_from = min(missing)
-            requested_to = max(missing)
             incoming = self._provider.get_daily_observations(
-                _StockIdentity(stock_id),
-                requested_from,
-                requested_to,
+                stock,
+                min(missing),
+                max(missing),
             )
             self._store.save(incoming)
 
-        return self._store.get_daily_observations(stock_id, from_date, to_date)
-
-
-@dataclass(frozen=True)
-class _StockIdentity:
-    id: UUID
+        return self._store.get_daily_observations(
+            stock.id, from_date, to_date
+        )
