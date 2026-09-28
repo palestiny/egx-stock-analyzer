@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-09-25 — source research refreshed
+**Updated:** 2026-09-28 — acquisition probe merged; source/licensing boundary refreshed
 
 ## Purpose
 
@@ -223,3 +223,23 @@ The current official API docs clarify the access boundary:
 References:
 - https://mansaapi.com/docs
 - https://mansaapi.com/licensing
+
+
+### Mansa acquisition probe — 2026-09-28
+
+The non-production Mansa acquisition probe has now been merged through PR #184 at `08c2fd14af5ce7144c85edbcbecd84f4cc9fd822`. Its implementation-head GitHub Actions run #2982 completed successfully. The probe remains deliberately non-accepting: it records provider/status/provenance metadata and can preserve raw responses only when explicitly requested.
+
+Current official Mansa documentation now states that:
+- the EGX history endpoint provides daily OHLCV deep history and Egypt coverage back to 1995;
+- per-stock history is a Pro/Professional-tier capability;
+- the current public Pro price is $50/month;
+- historical prices are served as-published and are not back-adjusted for splits/corporate actions;
+- Professional-tier caching is limited to 7 days, while raw redistribution requires Institutional licensing.
+
+Accordingly, **the remaining Mansa blocker is no longer software support**. It is project entitlement + legally permissible archival/use of the required historical artifact, followed by authenticated extraction of the exact ten-symbol cohort. The repository must not freeze a long-lived Mansa raw archive merely from the API endpoint's availability.
+
+References:
+- https://mansaapi.com/docs
+- https://mansaapi.com/licensing
+- https://mansaapi.com/methodology
+- https://mansaapi.com/terms
