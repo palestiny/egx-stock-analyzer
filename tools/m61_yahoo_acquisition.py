@@ -23,6 +23,8 @@ from uuid import UUID
 
 import yfinance as yf
 
+from app.infrastructure.stocks.m61_catalog import create_m61_stock_catalog
+
 SOURCE = "Yahoo Finance / yfinance"
 TICKER_SUFFIX = ".CA"
 DEFAULT_FROM = "2020-01-01"
@@ -104,7 +106,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def acquire(symbol: str, stock_id: UUID, output_dir: Path, from_date: str, to_date: str) -> dict:
+def resolve_stock_id(symbol: str) -> UUID:
+    stock = create_m61_stock_catalog().get(symbol)
+    if stock is None:
+        raise ValueError(f"Symbol is outside the bounded M61 cohort: {symbol}")
+    return stock.id
+
+
+def acquire(
+    symbol: str,
+    stock_id: UUID,
+    output_dir: Path,
+    from_date: str,
+    to_date: str,
+) -> dict:
     ticker = f"{symbol}{TICKER_SUFFIX}"
     history = yf.Ticker(ticker).history(
         start=from_date,
@@ -155,15 +170,23 @@ def acquire(symbol: str, stock_id: UUID, output_dir: Path, from_date: str, to_da
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Acquire M61 COMI history from Yahoo Finance.")
+    parser = argparse.ArgumentParser(
+        description="Acquire M61 historical data from Yahoo Finance."
+    )
     parser.add_argument("--symbol", default="COMI")
-    parser.add_argument("--stock-id", required=True, type=UUID)
     parser.add_argument("--from-date", default=DEFAULT_FROM)
     parser.add_argument("--to-date", default=DEFAULT_TO_EXCLUSIVE)
     parser.add_argument("--output-dir", type=Path, default=Path("m61-yahoo-acquisition"))
     args = parser.parse_args()
 
-    manifest = acquire(args.symbol, args.stock_id, args.output_dir, args.from_date, args.to_date)
+    stock_id = resolve_stock_id(args.symbol)
+    manifest = acquire(
+        args.symbol,
+        stock_id,
+        args.output_dir,
+        args.from_date,
+        args.to_date,
+    )
     print(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
 
