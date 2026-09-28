@@ -10,9 +10,11 @@ from app.application.market_data.operational_store import (
 )
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 from app.domain.market_data.timeframe import Timeframe
+from app.domain.stocks.stock import Stock
 
 
 COMI_ID = UUID("e443c130-8f6d-50dc-b25b-45f495593138")
+COMI = Stock.reconstitute(COMI_ID, "COMI", "Commercial International Bank")
 
 
 def observation(day: date, close: str = "100.00") -> RawPriceBarObservation:
@@ -35,6 +37,7 @@ class FakeProvider:
         self.calls: list[tuple[date, date]] = []
 
     def get_daily_observations(self, stock, from_date: date, to_date: date):
+        assert stock.id == COMI_ID
         self.calls.append((from_date, to_date))
         return [
             item
@@ -93,7 +96,7 @@ def test_empty_store_acquires_and_persists_only_expected_sessions() -> None:
     store = InMemoryStore()
 
     service(provider, store).ensure_daily_coverage(
-        COMI_ID,
+        COMI,
         date(2026, 9, 21),
         date(2026, 9, 27),
     )
@@ -109,10 +112,10 @@ def test_repeat_request_does_not_call_provider_for_covered_sessions() -> None:
     store = InMemoryStore()
     sut = service(provider, store)
 
-    sut.ensure_daily_coverage(COMI_ID, date(2026, 9, 21), date(2026, 9, 25))
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 25))
     provider.calls.clear()
 
-    sut.ensure_daily_coverage(COMI_ID, date(2026, 9, 21), date(2026, 9, 25))
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 25))
 
     assert provider.calls == []
 
@@ -124,10 +127,10 @@ def test_wider_request_acquires_only_the_missing_range() -> None:
     store = InMemoryStore()
     sut = service(provider, store)
 
-    sut.ensure_daily_coverage(COMI_ID, date(2026, 9, 21), date(2026, 9, 25))
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 25))
     provider.calls.clear()
 
-    sut.ensure_daily_coverage(COMI_ID, date(2026, 9, 21), date(2026, 9, 29))
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 29))
 
     assert provider.calls == [(date(2026, 9, 26), date(2026, 9, 29))]
     assert len(store.items) == 7
@@ -140,7 +143,7 @@ def test_weekend_dates_are_not_treated_as_missing_sessions() -> None:
     store = InMemoryStore()
 
     service(provider, store).ensure_daily_coverage(
-        COMI_ID,
+        COMI,
         date(2026, 9, 25),
         date(2026, 9, 28),
     )
