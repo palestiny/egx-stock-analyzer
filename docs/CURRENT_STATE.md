@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-09-24  
+**Last verified:** 2026-09-28  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -194,16 +194,16 @@ DEC-129 is accepted. The first historical dataset implementation uses determinis
 
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `541ea5c069fdb7c8ad7ede4d4a6ee5422f4fcd14` (2026-09-25), merged through PR #183.
+The latest main commit is `08c2fd14af5ce7144c85edbcbecd84f4cc9fd822` (2026-09-28), merged through PR #184.
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
 Operational checkpoint: `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`.
 
-Current source-validation documentation now covers EGI, Mubasher, Mansa Markets, and the separate point-in-time financial-source boundary. All remain explicitly **NOT ACCEPTED** pending live extraction evidence, provenance, licensing/storage validation, and deterministic integrity checks.
+Current source-validation documentation now covers EGI, Mubasher, Mansa Markets, and the separate point-in-time financial-source boundary. Mansa's non-production acquisition probe is merged and CI-verified, but Mansa remains **NOT ACCEPTED** pending authenticated cohort extraction, provenance, and licensing/storage validation.
 
 The immediate executable work remains:
-1. authenticated Mansa market-source probe when valid access is available;
+1. run the merged Mansa market-source probe with valid access when the project key has the required history entitlement and preserve evidence only within permitted terms;
 2. close the COMI financial provenance chain and extract one required Strategy v0 metric deterministically;
 3. expand the same evidence package across the remaining nine symbols;
 4. freeze the immutable M61 dataset manifest only after DEC-130 acceptance passes.
