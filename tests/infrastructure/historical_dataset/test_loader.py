@@ -16,8 +16,10 @@ def test_loads_manifest_and_verifies_artifacts() -> None:
     manifest = HistoricalDatasetLoader(FIXTURE).load_manifest()
 
     assert manifest.dataset_id == "egx-m61-fixture"
-    assert manifest.dataset_version == "1.0.0"
-    assert manifest.schema_version == "1"
+    assert manifest.dataset_version == "2.0.0"
+    assert manifest.schema_version == "2"
+    assert manifest.market_observations.provenance is not None
+    assert manifest.market_observations.provenance.provider == "test-fixture"
 
 
 def test_loads_decimal_market_values_without_float_conversion() -> None:
@@ -140,7 +142,7 @@ def test_financial_snapshots_are_deterministic() -> None:
 def test_rejects_unsupported_schema_version(tmp_path: Path) -> None:
     _copy_fixture(tmp_path)
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    payload["schema_version"] = "2"
+    payload["schema_version"] = "3"
     (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(
@@ -223,3 +225,26 @@ def test_rejects_ambiguous_financial_revisions(tmp_path: Path) -> None:
         match="ambiguous same-time revisions",
     ):
         HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+def test_rejects_missing_provenance_field(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    del payload["market_observations_artifact"]["provenance"]["source_url"]
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="provenance metadata is invalid"):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_naive_acquisition_timestamp(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["provenance"]["acquired_at"] = "2026-02-28T00:00:00"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="acquired_at must be timezone-aware",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()

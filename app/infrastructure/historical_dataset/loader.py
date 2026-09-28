@@ -10,6 +10,7 @@ from uuid import UUID
 from app.infrastructure.historical_dataset.models import (
     DatasetArtifact,
     DatasetCoverage,
+    DatasetProvenance,
     HistoricalDatasetManifest,
     HistoricalFinancialSnapshotRecord,
     HistoricalMarketObservation,
@@ -46,7 +47,7 @@ class HistoricalDatasetLoader:
         market = self._artifact(payload["market_observations_artifact"])
         financial = self._artifact(payload["financial_snapshots_artifact"])
         schema_version = self._string(payload["schema_version"], "schema_version")
-        if schema_version != "1":
+        if schema_version != "2":
             raise HistoricalDatasetIntegrityError(
                 f"Unsupported historical dataset schema version: {schema_version}"
             )
@@ -193,7 +194,6 @@ class HistoricalDatasetLoader:
                 f"Dataset artifact checksum mismatch: {artifact.path}"
             )
 
-
     @staticmethod
     def _validate_coverage(items: list, coverage: DatasetCoverage, key) -> None:
         if not items:
@@ -227,10 +227,14 @@ class HistoricalDatasetLoader:
 
     @staticmethod
     def _artifact(value: object) -> DatasetArtifact:
-        if not isinstance(value, dict) or set(value) != {"path", "sha256", "row_count", "coverage"}:
+        if not isinstance(value, dict) or set(value) != {
+            "path", "sha256", "row_count", "coverage", "provenance"
+        }:
             raise HistoricalDatasetIntegrityError("Dataset artifact manifest entry is invalid")
         coverage_value = value["coverage"]
-        if not isinstance(coverage_value, dict) or set(coverage_value) != {"start", "end", "stock_count"}:
+        if not isinstance(coverage_value, dict) or set(coverage_value) != {
+            "start", "end", "stock_count"
+        }:
             raise HistoricalDatasetIntegrityError("Dataset artifact coverage metadata is invalid")
         try:
             row_count = int(value["row_count"])
@@ -251,7 +255,78 @@ class HistoricalDatasetLoader:
                 end=HistoricalDatasetLoader._string(coverage_value["end"], "coverage.end"),
                 stock_count=stock_count,
             ),
+            provenance=HistoricalDatasetLoader._provenance(value["provenance"]),
         )
+
+    @staticmethod
+    def _provenance(value: object) -> DatasetProvenance:
+        if not isinstance(value, dict) or set(value) != {
+            "provider",
+            "source_url",
+            "acquired_at",
+            "symbol_mappings",
+            "corporate_action_convention",
+            "missing_data_findings",
+            "exclusions",
+            "licensing_notes",
+            "transformation_manifest",
+        }:
+            raise HistoricalDatasetIntegrityError("Dataset provenance metadata is invalid")
+
+        provider = HistoricalDatasetLoader._string(value["provider"], "provenance.provider")
+        source_url = HistoricalDatasetLoader._string(value["source_url"], "provenance.source_url")
+        acquired_at_raw = HistoricalDatasetLoader._string(
+            value["acquired_at"], "provenance.acquired_at"
+        )
+        try:
+            acquired_at = datetime.fromisoformat(acquired_at_raw)
+        except ValueError as exc:
+            raise HistoricalDatasetIntegrityError(
+                "provenance.acquired_at must be ISO-8601"
+            ) from exc
+        if acquired_at.tzinfo is None or acquired_at.utcoffset() is None:
+            raise HistoricalDatasetIntegrityError(
+                "provenance.acquired_at must be timezone-aware"
+            )
+
+        mappings = HistoricalDatasetLoader._string_sequence(
+            value["symbol_mappings"], "provenance.symbol_mappings"
+        )
+        if not mappings:
+            raise HistoricalDatasetIntegrityError(
+                "provenance.symbol_mappings cannot be empty"
+            )
+
+        return DatasetProvenance(
+            provider=provider,
+            source_url=source_url,
+            acquired_at=acquired_at,
+            symbol_mappings=mappings,
+            corporate_action_convention=HistoricalDatasetLoader._string(
+                value["corporate_action_convention"],
+                "provenance.corporate_action_convention",
+            ),
+            missing_data_findings=HistoricalDatasetLoader._string_sequence(
+                value["missing_data_findings"], "provenance.missing_data_findings"
+            ),
+            exclusions=HistoricalDatasetLoader._string_sequence(
+                value["exclusions"], "provenance.exclusions"
+            ),
+            licensing_notes=HistoricalDatasetLoader._string(
+                value["licensing_notes"], "provenance.licensing_notes"
+            ),
+            transformation_manifest=HistoricalDatasetLoader._string(
+                value["transformation_manifest"], "provenance.transformation_manifest"
+            ),
+        )
+
+    @staticmethod
+    def _string_sequence(value: object, field: str) -> tuple[str, ...]:
+        if not isinstance(value, list) or any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
+            raise HistoricalDatasetIntegrityError(f"{field} must be a list of non-empty strings")
+        return tuple(value)
 
     @staticmethod
     def _string(value: object, field: str) -> str:
