@@ -1,7 +1,7 @@
 {
   "dataset_id": "egx-m61-fixture",
-  "dataset_version": "1.0.0",
-  "schema_version": "1",
+  "dataset_version": "2.0.0",
+  "schema_version": "2",
   "market_observations_artifact": {
     "path": "market_observations.csv",
     "sha256": "2211f91cf72c0350f6111770eb8f010ce8fc9adf1124c4073a1c4824d8fce3a8",
@@ -10,6 +10,17 @@
       "start": "2026-02-16T00:00:00+00:00",
       "end": "2026-02-27T00:00:00+00:00",
       "stock_count": 1
+    },
+    "provenance": {
+      "provider": "test-fixture",
+      "source_url": "https://example.invalid/m61-fixture-market.csv",
+      "acquired_at": "2026-02-28T00:00:00+00:00",
+      "symbol_mappings": ["FIXTURE -> 00000000-0000-0000-0000-000000000001"],
+      "corporate_action_convention": "raw-as-published",
+      "missing_data_findings": ["2026-02-21 and 2026-02-22 are non-trading weekend dates; no gap inference is performed"],
+      "exclusions": [],
+      "licensing_notes": "test fixture only; not external market data",
+      "transformation_manifest": "identity transformation; no adjustment or resampling"
     }
   },
   "financial_snapshots_artifact": {
@@ -20,6 +31,17 @@
       "start": "2024-12-31",
       "end": "2025-12-31",
       "stock_count": 1
+    },
+    "provenance": {
+      "provider": "test-fixture",
+      "source_url": "https://example.invalid/m61-fixture-financial.csv",
+      "acquired_at": "2026-02-28T00:00:00+00:00",
+      "symbol_mappings": ["FIXTURE -> 00000000-0000-0000-0000-000000000001"],
+      "corporate_action_convention": "not-applicable",
+      "missing_data_findings": [],
+      "exclusions": [],
+      "licensing_notes": "test fixture only; not external financial data",
+      "transformation_manifest": "identity transformation; no normalization"
     }
   }
 }
