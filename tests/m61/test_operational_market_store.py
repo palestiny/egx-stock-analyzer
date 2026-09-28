@@ -6,6 +6,7 @@ import pytest
 
 from app.application.market_data.operational_store import (
     MarketDataConflictError,
+    MarketDataCoverageError,
     OperationalMarketDataService,
 )
 from app.domain.market_data.raw_observation import RawPriceBarObservation
@@ -149,6 +150,21 @@ def test_weekend_dates_are_not_treated_as_missing_sessions() -> None:
     )
 
     assert len(store.items) == 2
+
+
+def test_provider_gap_is_not_accepted_as_complete_coverage() -> None:
+    provider = FakeProvider([observation(date(2026, 9, 21))])
+    store = InMemoryStore()
+
+    with pytest.raises(MarketDataCoverageError) as error:
+        service(provider, store).ensure_daily_coverage(
+            COMI,
+            date(2026, 9, 21),
+            date(2026, 9, 22),
+        )
+
+    assert error.value.missing_dates == (date(2026, 9, 22),)
+    assert store.items == {}
 
 
 def test_identical_duplicate_is_idempotent() -> None:
