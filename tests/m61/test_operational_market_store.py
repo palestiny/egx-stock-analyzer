@@ -4,6 +4,7 @@ from uuid import UUID
 
 import pytest
 
+from app.application.market_data.acquisition import AcquisitionStatus
 from app.application.market_data.operational_store import (
     MarketDataConflictError,
     MarketDataCoverageError,
@@ -60,7 +61,7 @@ class WeekdayCalendar:
 
 class InMemoryStore:
     def __init__(self) -> None:
-        self.items: dict[tuple[UUID, Timeframe, datetime], RawPriceBarObservation] = {}
+        self.items: dict[tuple[UUID, Timeframe, datetime], RawPriceBarObservation] = {}\n        self.acquisitions = []
 
     def get_daily_observations(self, stock_id, from_date: date, to_date: date):
         return sorted(
@@ -73,7 +74,7 @@ class InMemoryStore:
             key=lambda item: item.timestamp,
         )
 
-    def save(self, observations):
+    def save_acquisition(self, record):\n        self.acquisitions.append(record)\n\n    def get_acquisitions(self, stock_id, from_date, to_date):\n        return [record for record in self.acquisitions if record.stock_id == stock_id and record.requested_from <= to_date and record.requested_to >= from_date]\n\n    def save(self, observations):
         for item in observations:
             key = (item.stock_id, item.timeframe, item.timestamp)
             existing = self.items.get(key)
@@ -133,7 +134,7 @@ def test_wider_request_acquires_only_the_missing_range() -> None:
 
     sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 29))
 
-    assert provider.calls == [(date(2026, 9, 26), date(2026, 9, 29))]
+    assert provider.calls == [(date(2026, 9, 28), date(2026, 9, 29))]
     assert len(store.items) == 7
 
 
@@ -187,3 +188,67 @@ def test_conflicting_duplicate_is_explicit_and_never_overwritten() -> None:
         store.save([incoming])
 
     assert store.items[(COMI_ID, Timeframe.DAILY, original.timestamp)] == original
+
+
+def test_successful_acquisition_records_provenance() -> None:
+    provider = FakeProvider(
+        [observation(date(2026, 9, day), str(100 + day)) for day in range(21, 26)]
+    )
+    store = InMemoryStore()
+
+    service(provider, store).ensure_daily_coverage(
+        COMI,
+        date(2026, 9, 21),
+        date(2026, 9, 25),
+    )
+
+    assert len(store.acquisitions) == 1
+    record = store.acquisitions[0]
+    assert record.status is AcquisitionStatus.SUCCEEDED
+    assert record.provider == "unknown"
+    assert record.source_symbol == "COMI"
+    assert record.stock_id == COMI_ID
+    assert record.requested_from == date(2026, 9, 21)
+    assert record.requested_to == date(2026, 9, 25)
+    assert record.actual_from == date(2026, 9, 21)
+    assert record.actual_to == date(2026, 9, 25)
+    assert record.row_count == 5
+    assert record.acquisition_id is not None
+
+
+def test_covered_request_creates_no_new_acquisition_record() -> None:
+    provider = FakeProvider(
+        [observation(date(2026, 9, day), str(100 + day)) for day in range(21, 26)]
+    )
+    store = InMemoryStore()
+    sut = service(provider, store)
+
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 25))
+    acquisition_count = len(store.acquisitions)
+
+    sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 25))
+
+    assert len(store.acquisitions) == acquisition_count
+    assert provider.calls == [(date(2026, 9, 21), date(2026, 9, 25))]
+
+
+def test_failed_provider_coverage_records_failure_provenance() -> None:
+    provider = FakeProvider([observation(date(2026, 9, 21))])
+    store = InMemoryStore()
+
+    with pytest.raises(MarketDataCoverageError):
+        service(provider, store).ensure_daily_coverage(
+            COMI,
+            date(2026, 9, 21),
+            date(2026, 9, 22),
+        )
+
+    assert len(store.acquisitions) == 1
+    record = store.acquisitions[0]
+    assert record.status is AcquisitionStatus.FAILED
+    assert record.requested_from == date(2026, 9, 21)
+    assert record.requested_to == date(2026, 9, 22)
+    assert record.actual_from == date(2026, 9, 21)
+    assert record.actual_to == date(2026, 9, 21)
+    assert record.row_count == 1
+    assert "2026-09-22" in (record.error or "")
