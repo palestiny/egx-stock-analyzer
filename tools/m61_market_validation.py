@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import date
-from math import isfinite
+from decimal import Decimal, InvalidOperation
 
 
 REQUIRED_FIELDS = ("date", "open", "high", "low", "close", "volume")
@@ -44,15 +44,16 @@ def validate_history_points(points: Sequence[Mapping[str, object]]) -> list[str]
         if current_date is None:
             continue
 
-        values: dict[str, float] = {}
+        values: dict[str, Decimal] = {}
         for field in ("open", "high", "low", "close", "volume"):
             try:
-                value = float(point[field])
-            except (TypeError, ValueError):
+                value = Decimal(str(point[field]))
+            except (TypeError, ValueError, InvalidOperation):
                 findings.append(f"row[{index}]:invalid_{field}={point[field]}")
                 continue
-            if not isfinite(value):
+            if not value.is_finite():
                 findings.append(f"row[{index}]:non_finite_{field}={point[field]}")
+                continue
             values[field] = value
 
         if all(field in values for field in ("open", "high", "low", "close")):
