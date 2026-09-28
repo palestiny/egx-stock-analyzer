@@ -93,19 +93,19 @@ This discrepancy is an explicit open item, not an assumption.
 
 ### EGI / Egyptian Exchange feed
 
-The public EGI Swagger surface currently documents both `POST /api/Feed/GetSymbolHistory` and date-range endpoints including `GetSymbolsChartByDateRange` and `GetAllSymbolsChartByDateRange`. This strengthens EGI as a primary-provenance acquisition path, but the exact request payload, authentication requirement, returned field semantics, and reproducible bulk extraction contract are still not validated. citeturn1search4
+The public EGI Swagger surface currently documents both `POST /api/Feed/GetSymbolHistory` and date-range endpoints including `GetSymbolsChartByDateRange` and `GetAllSymbolsChartByDateRange`. This strengthens EGI as a primary-provenance acquisition path, but the exact request payload, authentication requirement, returned field semantics, and reproducible bulk extraction contract are still not validated. (EGI Swagger: https://ticker.egidegypt.com/index.html)
 
 **Decision:** investigate the exact EGI request/response contract before writing an EGI production acquisition adapter. Do not treat the endpoint listing alone as historical-data evidence.
 
 ### EGX.news / COMI
 
-The current EGX.news data page explicitly advertises full daily historical OHLCV CSV data for listed EGX stocks and prices the historical daily record at $1 per stock, with COMI available as a stock page/data candidate. This establishes a concrete paid acquisition path, but the actual delivered artifact, provenance, corporate-action semantics, and retention/use terms still require verification before acceptance. citeturn1search0turn1search7
+The current EGX.news data page explicitly advertises full daily historical OHLCV CSV data for listed EGX stocks and prices the historical daily record at $1 per stock, with COMI available as a stock page/data candidate. This establishes a concrete paid acquisition path, but the actual delivered artifact, provenance, corporate-action semantics, and retention/use terms still require verification before acceptance. (EGX.news data page: https://www.egx.news/en/our-data; COMI page: https://www.egx.news/en/stock/commercial-international-bank)
 
 **Decision:** use COMI as the first artifact-level acceptance test if an artifact can be purchased/obtained with explicit permission to retain it for M61 research.
 
 ### Mansa
 
-The current official Mansa API documentation confirms EGX daily history to deep historical depth and identifies per-stock history as Pro and above. Its licensing page permits Professional caching for up to 7 days but distinguishes that from building a stored dataset copy. citeturn0search0turn0search1
+The current official Mansa API documentation confirms EGX daily history to deep historical depth and identifies per-stock history as Pro and above. Its licensing page permits Professional caching for up to 7 days but distinguishes that from building a stored dataset copy. (Mansa docs: https://mansaapi.com/docs; licensing: https://mansaapi.com/licensing)
 
 **Decision:** keep the merged Mansa probe ready, but do not freeze Mansa responses into the immutable M61 archive without confirming the project's actual entitlement and permitted long-lived research storage/use.
 
