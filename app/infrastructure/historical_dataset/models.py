@@ -39,11 +39,25 @@ class DatasetCoverage:
 
 
 @dataclass(frozen=True)
+class DatasetProvenance:
+    provider: str
+    source_url: str
+    acquired_at: datetime
+    symbol_mappings: tuple[str, ...]
+    corporate_action_convention: str
+    missing_data_findings: tuple[str, ...]
+    exclusions: tuple[str, ...]
+    licensing_notes: str
+    transformation_manifest: str
+
+
+@dataclass(frozen=True)
 class DatasetArtifact:
     path: Path
     sha256: str
     row_count: int
     coverage: DatasetCoverage
+    provenance: DatasetProvenance | None = None
 
 
 @dataclass(frozen=True)
