@@ -6,7 +6,10 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
 
-from tools.m61_yahoo_acquisition import normalize_history_rows, write_market_artifact
+from tools.m61_yahoo_acquisition import normalize_history_rows, resolve_stock_id, write_market_artifact
+
+
+COMI_ID = UUID("e443c130-8f6d-50dc-b25b-45f495593138")
 
 
 def test_normalize_history_rows_is_deterministic() -> None:
@@ -83,3 +86,16 @@ def test_write_market_artifact_writes_m61_columns(tmp_path: Path) -> None:
     assert data[0]["timeframe"] == "1d"
     assert data[0]["timestamp"] == "2021-01-04T00:00:00+00:00"
     assert data[0]["volume"] == "123"
+
+
+
+def test_resolve_stock_id_uses_canonical_m61_identity() -> None:
+    assert resolve_stock_id("COMI") == COMI_ID
+    assert resolve_stock_id(" comi ") == COMI_ID
+
+
+def test_resolve_stock_id_rejects_symbols_outside_m61_cohort() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="outside the bounded M61 cohort"):
+        resolve_stock_id("UNKNOWN")
