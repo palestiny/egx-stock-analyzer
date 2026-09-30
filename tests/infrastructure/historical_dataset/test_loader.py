@@ -16,10 +16,11 @@ def test_loads_manifest_and_verifies_artifacts() -> None:
     manifest = HistoricalDatasetLoader(FIXTURE).load_manifest()
 
     assert manifest.dataset_id == "egx-m61-fixture"
-    assert manifest.dataset_version == "2.0.0"
-    assert manifest.schema_version == "2"
+    assert manifest.dataset_version == "3.0.0"
+    assert manifest.schema_version == "3"
     assert manifest.market_observations.provenance is not None
     assert manifest.market_observations.provenance.provider == "test-fixture"
+    assert manifest.market_observations.provenance.raw_source_evidence.sha256 == manifest.market_observations.sha256
 
 
 def test_loads_decimal_market_values_without_float_conversion() -> None:
@@ -142,7 +143,7 @@ def test_financial_snapshots_are_deterministic() -> None:
 def test_rejects_unsupported_schema_version(tmp_path: Path) -> None:
     _copy_fixture(tmp_path)
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    payload["schema_version"] = "3"
+    payload["schema_version"] = "2"
     (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(
@@ -247,4 +248,27 @@ def test_rejects_naive_acquisition_timestamp(tmp_path: Path) -> None:
         HistoricalDatasetIntegrityError,
         match="acquired_at must be timezone-aware",
     ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_invalid_raw_source_checksum(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["provenance"]["raw_source_evidence"]["sha256"] = "not-a-sha"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="raw_source_evidence.sha256 must be a 64-character hexadecimal digest",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_missing_raw_source_evidence(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    del payload["financial_snapshots_artifact"]["provenance"]["raw_source_evidence"]
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="provenance metadata is invalid"):
         HistoricalDatasetLoader(tmp_path).load_manifest()
