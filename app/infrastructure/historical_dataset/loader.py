@@ -14,6 +14,7 @@ from app.infrastructure.historical_dataset.models import (
     HistoricalDatasetManifest,
     HistoricalFinancialSnapshotRecord,
     HistoricalMarketObservation,
+    RawSourceEvidence,
 )
 
 
@@ -47,7 +48,7 @@ class HistoricalDatasetLoader:
         market = self._artifact(payload["market_observations_artifact"])
         financial = self._artifact(payload["financial_snapshots_artifact"])
         schema_version = self._string(payload["schema_version"], "schema_version")
-        if schema_version != "2":
+        if schema_version != "3":
             raise HistoricalDatasetIntegrityError(
                 f"Unsupported historical dataset schema version: {schema_version}"
             )
@@ -270,6 +271,7 @@ class HistoricalDatasetLoader:
             "exclusions",
             "licensing_notes",
             "transformation_manifest",
+            "raw_source_evidence",
         }:
             raise HistoricalDatasetIntegrityError("Dataset provenance metadata is invalid")
 
@@ -317,6 +319,32 @@ class HistoricalDatasetLoader:
             ),
             transformation_manifest=HistoricalDatasetLoader._string(
                 value["transformation_manifest"], "provenance.transformation_manifest"
+            ),
+            raw_source_evidence=HistoricalDatasetLoader._raw_source_evidence(
+                value["raw_source_evidence"]
+            ),
+        )
+
+    @staticmethod
+    def _raw_source_evidence(value: object) -> RawSourceEvidence:
+        if not isinstance(value, dict) or set(value) != {"reference", "sha256", "retention"}:
+            raise HistoricalDatasetIntegrityError(
+                "provenance.raw_source_evidence metadata is invalid"
+            )
+        sha256 = HistoricalDatasetLoader._string(
+            value["sha256"], "provenance.raw_source_evidence.sha256"
+        ).lower()
+        if re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise HistoricalDatasetIntegrityError(
+                "provenance.raw_source_evidence.sha256 must be a 64-character hexadecimal digest"
+            )
+        return RawSourceEvidence(
+            reference=HistoricalDatasetLoader._string(
+                value["reference"], "provenance.raw_source_evidence.reference"
+            ),
+            sha256=sha256,
+            retention=HistoricalDatasetLoader._string(
+                value["retention"], "provenance.raw_source_evidence.retention"
             ),
         )
 
