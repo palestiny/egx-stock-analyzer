@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-09-28  
+**Last verified:** 2026-10-01  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -192,9 +192,21 @@ M61 remains in progress. No real historical performance conclusion is valid unti
 DEC-129 is accepted. The first historical dataset implementation uses deterministic UTF-8 CSV artifacts with canonical Decimal text, an immutable manifest, SHA-256 integrity checks, and repository fixtures using the same contract. Financial availability is date-based for the daily Strategy v0 boundary. Parquet remains deferred pending real scale requirements.
 
 
+### M61 Engineering Hardening Review — PR #201
+
+A project-wide engineering review was completed against the GitHub repository. The accepted hardening slice merged through PR #201 addresses the highest-confidence software-quality findings that could be completed without inventing external historical evidence:
+
+- the historical-dataset backtest runner no longer imports infrastructure adapters directly; it now consumes the existing application-facing market-data and historical-fundamental contracts;
+- deterministic integration tests are now explicitly classified and run in CI;
+- live EGAL and provider smoke tests are explicitly classified as external rather than being silently mixed with deterministic CI coverage;
+- pytest now declares both integration and external markers;
+- unit, deterministic integration, and frontend/build CI jobs all pass on the merged hardening head.
+
+This hardening does not claim that the real M61 historical dataset is accepted. Real historical acquisition, provenance closure, immutable dataset freeze, and evidence-backed Strategy v0 evaluation remain the analytical acceptance path.
+
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `08c2fd14af5ce7144c85edbcbecd84f4cc9fd822` (2026-09-28), merged through PR #184.
+The latest main commit is `f412f98a036030a79aa524aad8ebabee17c8e6bb` (2026-10-01), merged through PR #201.
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
