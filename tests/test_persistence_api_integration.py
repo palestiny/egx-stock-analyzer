@@ -39,6 +39,8 @@ from app.domain.technical_analysis.trend import TrendEvidence, TrendStatus
 from app.domain.technical_analysis.volume import VolumeEvidence, VolumeStatus
 from unittest.mock import patch
 
+pytestmark = pytest.mark.integration
+
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
