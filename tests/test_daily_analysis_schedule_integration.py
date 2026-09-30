@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 from unittest.mock import Mock
 
+import pytest
+
+pytestmark = pytest.mark.integration
+
 from app.application.analysis.daily_market_analysis import StockAnalysisInput
 from app.application.execution.daily_analysis_schedule import DailyAnalysisSchedule
 from app.application.execution.scheduled_trigger import ScheduledAnalysisTrigger

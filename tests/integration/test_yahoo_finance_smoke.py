@@ -3,6 +3,8 @@ import os
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 from app.domain.market_data.data_quality import DataQualityStatus
 from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.price_bar import PriceBar

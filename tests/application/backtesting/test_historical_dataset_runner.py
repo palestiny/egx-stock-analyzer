@@ -6,7 +6,9 @@ from uuid import UUID
 from app.application.backtesting.historical_dataset_runner import HistoricalDatasetBacktestRunner
 from app.domain.backtesting.simulator import BacktestConfiguration
 from app.domain.stocks.stock import Stock
+from app.infrastructure.historical_dataset.financial_source import HistoricalDatasetFundamentalSnapshotSource
 from app.infrastructure.historical_dataset.loader import HistoricalDatasetLoader
+from app.infrastructure.historical_dataset.market_provider import HistoricalDatasetMarketDataProvider
 
 
 FIXTURE = Path("tests/fixtures/historical_dataset/v1")
@@ -19,7 +21,12 @@ CONFIG = BacktestConfiguration(
 
 
 def test_dataset_runner_executes_production_strategy_boundary_deterministically() -> None:
-    runner = HistoricalDatasetBacktestRunner(STOCK, HistoricalDatasetLoader(FIXTURE))
+    loader = HistoricalDatasetLoader(FIXTURE)
+    runner = HistoricalDatasetBacktestRunner(
+        STOCK,
+        HistoricalDatasetMarketDataProvider(loader),
+        HistoricalDatasetFundamentalSnapshotSource(loader),
+    )
 
     first = runner.run(date(2026, 2, 16), date(2026, 2, 27), CONFIG)
     second = runner.run(date(2026, 2, 16), date(2026, 2, 27), CONFIG)

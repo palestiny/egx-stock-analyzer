@@ -5,6 +5,7 @@ from app.main import create_development_application_from_environment
 
 
 @pytest.mark.integration
+@pytest.mark.external
 def test_egal_real_data_vertical_slice() -> None:
     app = create_development_application_from_environment()
 
