@@ -1,7 +1,7 @@
 {
   "dataset_id": "egx-m61-fixture",
-  "dataset_version": "2.0.0",
-  "schema_version": "2",
+  "dataset_version": "3.0.0",
+  "schema_version": "3",
   "market_observations_artifact": {
     "path": "market_observations.csv",
     "sha256": "2211f91cf72c0350f6111770eb8f010ce8fc9adf1124c4073a1c4824d8fce3a8",
@@ -20,7 +20,12 @@
       "missing_data_findings": ["2026-02-21 and 2026-02-22 are non-trading weekend dates; no gap inference is performed"],
       "exclusions": [],
       "licensing_notes": "test fixture only; not external market data",
-      "transformation_manifest": "identity transformation; no adjustment or resampling"
+      "transformation_manifest": "identity transformation; no adjustment or resampling",
+      "raw_source_evidence": {
+        "reference": "tests/fixtures/historical_dataset/v1/market_observations.csv",
+        "sha256": "2211f91cf72c0350f6111770eb8f010ce8fc9adf1124c4073a1c4824d8fce3a8",
+        "retention": "repository fixture; synthetic test evidence"
+      }
     }
   },
   "financial_snapshots_artifact": {
@@ -41,7 +46,12 @@
       "missing_data_findings": [],
       "exclusions": [],
       "licensing_notes": "test fixture only; not external financial data",
-      "transformation_manifest": "identity transformation; no normalization"
+      "transformation_manifest": "identity transformation; no normalization",
+      "raw_source_evidence": {
+        "reference": "tests/fixtures/historical_dataset/v1/financial_snapshots.csv",
+        "sha256": "6caf96d4ac1c070120e4aaff8026842c0c9876d94ac572bf0561f20c5ac456ba",
+        "retention": "repository fixture; synthetic test evidence"
+      }
     }
   }
 }
