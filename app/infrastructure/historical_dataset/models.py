@@ -39,6 +39,13 @@ class DatasetCoverage:
 
 
 @dataclass(frozen=True)
+class RawSourceEvidence:
+    reference: str
+    sha256: str
+    retention: str
+
+
+@dataclass(frozen=True)
 class DatasetProvenance:
     provider: str
     source_url: str
@@ -49,6 +56,7 @@ class DatasetProvenance:
     exclusions: tuple[str, ...]
     licensing_notes: str
     transformation_manifest: str
+    raw_source_evidence: RawSourceEvidence
 
 
 @dataclass(frozen=True)
