@@ -43,7 +43,7 @@ def test_rejects_checksum_mismatch(tmp_path: Path) -> None:
     )
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="checksum mismatch"):
-        HistoricalDatasetLoader(tmp_path).load_manifest()
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
 
 
 def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
@@ -284,7 +284,7 @@ def test_rejects_raw_source_checksum_mismatch(tmp_path: Path) -> None:
         HistoricalDatasetIntegrityError,
         match="Raw-source evidence checksum mismatch",
     ):
-        HistoricalDatasetLoader(tmp_path).load_manifest()
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
 
 
 def test_rejects_raw_source_reference_escape(tmp_path: Path) -> None:
