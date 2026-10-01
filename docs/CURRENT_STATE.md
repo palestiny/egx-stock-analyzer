@@ -223,3 +223,18 @@ The immediate executable work remains:
 PR #180 and PR #181 are merged. PR #182 was superseded and closed after its branch diverged from main; its unique documentation content was reconstructed and merged through PR #183.
 
 Branch deletion is not exposed by the current GitHub integration, so no branch deletion is claimed.
+
+
+### M61 Backtest Warm-up Contract — PR #202
+
+PR #202 is merged at `b1fe311f07f15a5228ba694c4f5fe6181c825984`. The backtest domain now models `warmup_bars` explicitly in `BacktestConfiguration`. Warm-up observations remain visible to strategy history for indicator/state construction, but signals are not evaluated before the configured evaluation boundary. Negative warm-up values are rejected.
+
+This establishes the simulator contract only. It does **not** prove that the real M61 dataset contains the required 252 valid trading observations before the evaluation window. That remains part of dataset acceptance.
+
+CI for PR #202 passed for unit tests, deterministic integration tests, and frontend tests.
+
+### M61.3 Operational Conflict Durability — NOT ACCEPTED
+
+PR #195 remains draft. Issue #200 identifies the remaining DEC-131 gap: conflicting observations must produce a durable provider-neutral conflict event containing observation identity, existing/incoming observations or provenance, acquisition identity, and detection time. Raising `MarketDataConflictError` alone is insufficient.
+
+No merge or acceptance is claimed for this slice until the conflict-event contract and persistence boundary are implemented and verified.
