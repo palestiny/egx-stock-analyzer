@@ -11,21 +11,9 @@ from fastapi import Depends, FastAPI, HTTPException
 from app.api.observability import RequestObservabilityMiddleware
 
 from app.api.alert_candidate_response import AlertCandidateResponse
-from app.api.analysis_comparison_response import AnalysisComparisonResponse
-from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
-from app.application.reporting.calculate_snapshot_performance import (
-    AnalysisSnapshotPerformanceNotFoundError,
-    CalculateSnapshotPerformance,
-    InvalidSnapshotPerformanceError,
-)
-from app.application.reporting.compare_analysis_snapshots import (
-    AnalysisSnapshotNotFoundError,
-    CompareAnalysisSnapshots,
-    InvalidSnapshotComparisonError,
-)
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
 from app.api.authentication import ApiAuthentication
@@ -42,6 +30,7 @@ from app.application.analysis.list_analysis_runs import ListAnalysisRuns
 from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
 from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
 from app.api.management_routes import register_management_routes
+from app.api.comparison_routes import register_comparison_routes
 from app.application.security.authentication import Authenticator
 from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
@@ -131,50 +120,6 @@ def create_app(
             "status": identity.user_status.value if identity.user_status is not None else None,
         }
 
-    @app.get("/api/v1/comparisons/{symbol}")
-    def compare_analysis(
-        symbol: str,
-        before: UUID,
-        after: UUID,
-        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
-    ) -> dict[str, object]:
-        if compare_analysis_snapshots is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Analysis comparison is not configured",
-            )
-
-        try:
-            comparison = compare_analysis_snapshots.execute(
-                symbol,
-                before_snapshot_id=before,
-                after_snapshot_id=after,
-            )
-        except AnalysisSnapshotNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except InvalidSnapshotComparisonError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-
-        return AnalysisComparisonResponse.from_comparison(comparison).to_dict()
-
-    @app.get("/api/v1/performance/{symbol}")
-    def calculate_performance(
-        symbol: str,
-        before: UUID,
-        after: UUID,
-        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
-    ) -> dict[str, object]:
-        if calculate_snapshot_performance is None:
-            raise HTTPException(status_code=503, detail="Historical performance is not configured")
-        try:
-            performance = calculate_snapshot_performance.execute(
-                symbol, before_snapshot_id=before, after_snapshot_id=after
-            )
-        except AnalysisSnapshotPerformanceNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except InvalidSnapshotPerformanceError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
     @app.post("/api/v1/market-analysis")
     def run_market_analysis(identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         if run_configured_market_analysis is None:
@@ -211,6 +156,13 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
+    register_comparison_routes(
+        app,
+        api_authentication=api_authentication,
+        compare_analysis_snapshots=compare_analysis_snapshots,
+        calculate_snapshot_performance=calculate_snapshot_performance,
+    )
+
     register_management_routes(
         app,
         api_authentication=api_authentication,
