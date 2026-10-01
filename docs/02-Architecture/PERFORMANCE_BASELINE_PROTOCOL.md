@@ -14,6 +14,18 @@ Establish reproducible evidence for the current modular monolith before changing
 4. Historical/read-heavy endpoints: analysis history, runs, reports, and opportunities
 5. Backtest execution once an accepted historical dataset exists
 
+### Defined deterministic workloads
+
+The repository currently defines these provider-free baseline workloads:
+
+- `api.analysis_read.deterministic` — `GET /api/v1/analysis/COMI`, 10 measured repetitions, 2 warmups.
+- `application.analysis_history.deterministic` — `GetAnalysisHistory.execute("COMI")`, 10 measured repetitions, 2 warmups, empty-history path.
+- `application.stock_analysis.deterministic` — `StockAnalysisPipeline.analyze`, 16 deterministic daily bars, two financial periods, momentum/volume lookbacks of 5, 10 measured repetitions, 2 warmups.
+
+The analysis-computation workload intentionally excludes provider/network calls and measures the deterministic technical analysis, fundamental analysis, scoring, entry-context, and opportunity-classification path.
+
+These are workload definitions and harnesses; **no measured baseline values are claimed until the script is actually executed in the target repository environment**.
+
 ## Metrics
 
 Record at minimum:
