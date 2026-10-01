@@ -184,7 +184,7 @@ def test_wider_request_acquires_only_the_missing_range() -> None:
 
     sut.ensure_daily_coverage(COMI, date(2026, 9, 21), date(2026, 9, 29))
 
-    assert provider.calls == [(date(2026, 9, 28), date(2026, 9, 29)]
+    assert provider.calls == [(date(2026, 9, 28), date(2026, 9, 29))]
     assert len(store.items) == 7
 
 
