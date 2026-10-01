@@ -215,10 +215,6 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError(
                 "Raw-source evidence checksum mismatch"
             )
-        if evidence.sha256 != artifact.sha256:
-            raise HistoricalDatasetIntegrityError(
-                "Raw-source evidence checksum does not match the transformed artifact"
-            )
 
     @staticmethod
     def _validate_coverage(items: list, coverage: DatasetCoverage, key) -> None:
