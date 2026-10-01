@@ -43,7 +43,6 @@ from app.application.notifications.deliver_alert_by_symbol import (
 )
 
 
-
 class _OperatorTokenNotProvided:
     pass
 
