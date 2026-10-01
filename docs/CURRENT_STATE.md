@@ -253,3 +253,52 @@ PR #205 is merged at 2a3babd3b7227cc17d7868f52c1f6cf1dc9ebdbe. The historical da
 PR #207 is merged at 802e38617fec2ab50a5d26660c51bdd50b113710 after GitHub Actions Tests Run #3225 passed on head e4c9d00679e1b85b0d6ee584ac589c8e1bfb7b61. The M61 acquisition probe now preserves the exact provider response bytes when raw preservation is enabled, so the recorded SHA-256 is tied to the actual preserved artifact rather than a re-serialized JSON representation. Deterministic validation also requires 252 observations before the 2021-01-01 evaluation start and checks evaluation-window/coverage evidence. This is an acquisition-tool integrity gate only; it does not accept any real provider artifact or the immutable M61 dataset.
 
 The next acceptance boundary is now real COMI acquisition and provenance closure. No Strategy v0 performance conclusion should be made before the COMI artifact passes identity, coverage, data-quality, price-semantics, raw/transformed checksum, licensing/retention, and point-in-time financial evidence requirements.
+
+
+### M61.7 COMI Evidence Intake — ACCEPTED (software boundary)
+
+PR #209 is merged at `fc60ef11e891969f26b9060bd1a9d52c9bcb2a19` after GitHub Actions Tests Run #3262 passed.
+
+The repository now has a deterministic local COMI evidence-intake command at `tools/m61_comi_evidence_intake.py`. It consumes an already-acquired dataset and verifies the existing production historical-dataset integrity boundary, raw-source evidence, explicit COMI source-symbol mapping, single internal stock identity, 252 pre-evaluation observations, 2021–2025 evaluation coverage, corporate-action convention, licensing notes, and financial artifact presence.
+
+The intake tool does not download data, fabricate evidence, mutate the raw artifact, silently repair rows, or accept the repository's synthetic fixture as real market evidence. Its focused tests explicitly prove rejection of the synthetic fixture and missing datasets.
+
+This closes the remaining **software-side M61 evidence-intake path**.
+
+### M61 Stop Checkpoint — 2026-10-01
+
+The project is intentionally stopping here until real external evidence is available.
+
+Completed and verified:
+- M61 simulator and Strategy v0 integration;
+- point-in-time financial boundary;
+- versioned historical-dataset contract and loader;
+- operational acquisition provenance;
+- conflict durability;
+- exact raw-artifact checksum preservation;
+- deterministic M61 warm-up/evaluation-window validation;
+- COMI evidence-intake/acceptance tooling;
+- unit, deterministic integration, and frontend CI verification for the completed software slices.
+
+Still not accepted:
+- real COMI market artifact;
+- real COMI point-in-time financial evidence package;
+- immutable ten-symbol M61 dataset version;
+- Strategy v0 historical evaluation results;
+- aggregate/trade-level performance conclusions.
+
+The current external dependency is therefore **real, legally retainable historical evidence acquisition**, not missing application architecture.
+
+When work resumes, the sequence is fixed:
+1. acquire and preserve COMI evidence under permitted terms;
+2. run the M61 intake and resolve every finding;
+3. add the required point-in-time financial evidence;
+4. accept/freeze COMI;
+5. repeat for the remaining nine cohort symbols;
+6. freeze the immutable M61 dataset;
+7. run Strategy v0 evaluation;
+8. review trade-level and aggregate results;
+9. perform reproducibility verification;
+10. close M61 only after the complete evidence-backed gate passes.
+
+No performance conclusion is valid before that final sequence completes.
