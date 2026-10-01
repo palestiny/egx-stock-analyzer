@@ -29,7 +29,7 @@ def bar(index: int, open_price: str, close_price: str) -> PriceBar:
     )
 
 
-def test_warmup_bars_build_history_but_cannot_generate_evaluated_signals():
+def test_warmup_bars_build_history_before_first_evaluated_signal():
     bars = [
         bar(0, "100", "101"),
         bar(1, "101", "102"),
@@ -62,7 +62,7 @@ def test_warmup_bars_build_history_but_cannot_generate_evaluated_signals():
         ),
     )
 
-    assert observed_history_lengths == [4, 5, 6]
+    assert observed_history_lengths == [4]
     assert len(result.trades) == 1
     assert result.trades[0].signal_timestamp == bars[3].timestamp
 
