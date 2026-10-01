@@ -206,7 +206,7 @@ This hardening does not claim that the real M61 historical dataset is accepted. 
 
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `d3b663156cc19a223f59d44b5fab74be49adec03` (2026-10-01), merged through PR #204.
+The latest functional main merge is `d3b663156cc19a223f59d44b5fab74be49adec03` through PR #204; the follow-up state-documentation commit is `c3aa161420adb309a41cdd016977e6a4d53f43fa` (2026-10-01).
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
