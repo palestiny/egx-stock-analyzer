@@ -1,6 +1,6 @@
 # DEC-132 — M61 Operational Acquisition Provenance Design Gate
 
-**Status:** Proposed  
+**Status:** Accepted — implementation merged and verified  
 **Date:** 2026-09-28  
 **Milestone:** M61 — Backtesting & Strategy Validation
 
@@ -65,6 +65,22 @@ Operational acquisition records explain how the mutable operational store was po
 - Implementing the EGX trading calendar.
 - Building automatic provider fallback.
 
+## Acceptance Evidence
+
+The COMI operational slice now satisfies the exit criteria on `main`:
+
+- successful acquisition creates a durable provenance record;
+- requested and observed coverage are recorded separately;
+- fully covered requests create no additional provider acquisition;
+- incomplete provider coverage creates a durable failed acquisition and no incomplete market observations;
+- provider/runtime failures create durable failed acquisition evidence;
+- stable internal stock identity and provider source symbol are both retained;
+- acquisition history is queryable through the application-facing store boundary;
+- raw artifact SHA-256 remains optional and provider/license dependent;
+- the SQLite adapter and deterministic application tests cover restart-safe persistence and the accepted conflict boundary.
+
+PR #204 merged the operational market-data durability implementation. GitHub Actions for the current `main` head after the subsequent M61 raw-source closeout is green, and the focused M61 provenance/conflict tests are part of the repository test suite.
+
 ## Exit Criteria
 
-This gate can move to accepted when the COMI operational slice has the provenance tests above passing in the project test suite and the persistence boundary can query acquisition history without coupling analysis to the external provider.
+**Gate status: ACCEPTED.** The operational acquisition provenance boundary is implemented and verified. This gate does not accept any real external historical dataset; DEC-130 remains the separate acceptance boundary for the immutable M61 evaluation dataset.
