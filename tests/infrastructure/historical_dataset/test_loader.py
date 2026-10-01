@@ -43,7 +43,7 @@ def test_rejects_checksum_mismatch(tmp_path: Path) -> None:
     )
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="checksum mismatch"):
-        HistoricalDatasetLoader(tmp_path).load_manifest()
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
 
 
 def test_rejects_duplicate_market_observation(tmp_path: Path) -> None:
@@ -272,3 +272,29 @@ def test_rejects_missing_raw_source_evidence(tmp_path: Path) -> None:
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="provenance metadata is invalid"):
         HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def test_rejects_raw_source_checksum_mismatch(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["provenance"]["raw_source_evidence"]["sha256"] = "0" * 64
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Raw-source evidence checksum mismatch",
+    ):
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
+
+
+def test_rejects_raw_source_reference_escape(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["provenance"]["raw_source_evidence"]["reference"] = "../raw.csv"
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="raw_source_evidence.reference must stay inside dataset root",
+    ):
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()

@@ -195,6 +195,30 @@ class HistoricalDatasetLoader:
                 f"Dataset artifact checksum mismatch: {artifact.path}"
             )
 
+    def verify_raw_source_evidence(self) -> None:
+        manifest = self.load_manifest()
+        self._verify_raw_source_evidence(manifest.market_observations)
+        self._verify_raw_source_evidence(manifest.financial_snapshots)
+
+    def _verify_raw_source_evidence(self, artifact: DatasetArtifact) -> None:
+        evidence = artifact.provenance.raw_source_evidence
+        reference = Path(evidence.reference)
+        if reference.is_absolute() or any(part == ".." for part in reference.parts):
+            raise HistoricalDatasetIntegrityError(
+                "raw_source_evidence.reference must stay inside dataset root"
+            )
+        path = self._root / reference
+        try:
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        except OSError as exc:
+            raise HistoricalDatasetIntegrityError(
+                "Unable to read preserved raw-source evidence"
+            ) from exc
+        if digest != evidence.sha256:
+            raise HistoricalDatasetIntegrityError(
+                "Raw-source evidence checksum mismatch"
+            )
+
     @staticmethod
     def _validate_coverage(items: list, coverage: DatasetCoverage, key) -> None:
         if not items:
