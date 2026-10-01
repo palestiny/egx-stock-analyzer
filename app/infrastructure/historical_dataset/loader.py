@@ -97,6 +97,14 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError("Market timestamp must be timezone-aware")
             if not item.source.strip():
                 raise HistoricalDatasetIntegrityError("Market observation source cannot be empty")
+            if any(value <= 0 for value in (item.open, item.high, item.low, item.close)):
+                raise HistoricalDatasetIntegrityError("Market prices must be positive")
+            if item.high < max(item.open, item.close) or item.low > min(item.open, item.close):
+                raise HistoricalDatasetIntegrityError("OHLC relationship is invalid")
+            if item.low > item.high:
+                raise HistoricalDatasetIntegrityError("OHLC relationship is invalid")
+            if item.volume < 0:
+                raise HistoricalDatasetIntegrityError("Market volume cannot be negative")
             key = (item.stock_id, item.timeframe, item.timestamp)
             if key in seen:
                 raise HistoricalDatasetIntegrityError("Duplicate market observation")
