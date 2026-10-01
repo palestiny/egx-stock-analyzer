@@ -68,3 +68,39 @@ def validate_history_points(points: Sequence[Mapping[str, object]]) -> list[str]
             findings.append(f"row[{index}]:negative_volume")
 
     return findings
+
+
+def validate_m61_evaluation_window(points: Sequence[Mapping[str, object]]) -> list[str]:
+    """Validate the bounded M61 evaluation window and its 252-observation warm-up.
+
+    This intentionally does not infer an EGX trading calendar. It validates only
+    evidence present in the provider response: dates before the evaluation start,
+    evaluation-window coverage, and deterministic ordering/uniqueness.
+    """
+    findings: list[str] = []
+    parsed_dates: list[date] = []
+
+    for point in points:
+        try:
+            parsed_dates.append(date.fromisoformat(str(point.get("date"))))
+        except (TypeError, ValueError):
+            continue
+
+    if not parsed_dates:
+        return ["m61:no_valid_dates"]
+
+    evaluation_start = date(2021, 1, 1)
+    evaluation_end = date(2025, 12, 31)
+    warmup_count = sum(item < evaluation_start for item in parsed_dates)
+    evaluation_count = sum(evaluation_start <= item <= evaluation_end for item in parsed_dates)
+
+    if warmup_count < 252:
+        findings.append(f"m61:insufficient_warmup={warmup_count};required=252")
+    if evaluation_count == 0:
+        findings.append("m61:no_evaluation_window_rows")
+    if min(parsed_dates) > date(2020, 1, 1):
+        findings.append(f"m61:coverage_starts_after_requested={min(parsed_dates).isoformat()}")
+    if max(parsed_dates) < evaluation_end:
+        findings.append(f"m61:coverage_ends_before_evaluation_end={max(parsed_dates).isoformat()}")
+
+    return findings
