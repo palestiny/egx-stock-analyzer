@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -16,10 +16,6 @@ from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerfo
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
-from app.api.scheduled_workflow_execution_response import (
-    ScheduledWorkflowExecutionResponse,
-    ScheduledWorkflowExecutionsResponse,
-)
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
     CalculateSnapshotPerformance,
@@ -35,26 +31,20 @@ from app.application.analysis.result_store import AnalysisResultStore
 from app.api.authentication import ApiAuthentication
 from app.api.workflow_routes import register_workflow_routes
 from app.api.analysis_routes import register_analysis_routes
+from app.application.analysis.get_analysis_result import GetAnalysisResult
+from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
+from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.get_analysis_report import GetAnalysisReport
+from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_lifecycle_routes import register_analysis_lifecycle_routes
+from app.application.analysis.get_analysis_run import GetAnalysisRun
+from app.application.analysis.list_analysis_runs import ListAnalysisRuns
+from app.application.analysis.delete_analysis_run import DeleteAnalysisRun
+from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnapshot
 from app.api.management_routes import register_management_routes
 from app.application.security.authentication import Authenticator
 from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
-from app.application.execution.get_scheduled_workflow_history import (
-    GetScheduledWorkflowHistory,
-    InvalidScheduledWorkflowHistoryQueryError,
-)
-from app.application.execution.get_scheduled_workflow_execution_history import (
-    GetScheduledWorkflowExecutionHistory,
-    ScheduledWorkflowExecutionHistoryNotFoundError,
-    InvalidScheduledWorkflowExecutionHistoryQueryError,
-)
-from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
-from app.application.execution.recover_durable_scheduled_workflow import (
-    RecoverDurableScheduledWorkflow,
-    WorkflowExecutionNotFoundError,
-    WorkflowExecutionNotRecoverableError,
-)
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.notifications.deliver_alert_by_symbol import (
     AlertCandidateNotFoundError,
@@ -185,24 +175,6 @@ def create_app(
         except InvalidSnapshotPerformanceError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
-    @app.get("/api/v1/reports/{symbol}")
-    def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
-        if get_analysis_report is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Analysis reporting is not configured",
-            )
-
-        report = get_analysis_report.execute(symbol, identity=identity)
-        if report is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Analysis report not found for {symbol}",
-            )
-
-        response = AnalysisReportResponse.from_report(report)
-        return asdict(response)
-
     @app.post("/api/v1/market-analysis")
     def run_market_analysis(identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         if run_configured_market_analysis is None:
