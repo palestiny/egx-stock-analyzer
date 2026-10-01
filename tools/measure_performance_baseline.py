@@ -12,7 +12,10 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
-from app.application.analysis.result_store import AnalysisResultStore
+from app.application.analysis.result_store import AnalysisResultRecord, AnalysisResultStore
+from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.stocks.stock import Stock
 from app.application.performance.baseline import PerformanceSample, measure
 
 
@@ -115,6 +118,41 @@ def main() -> None:
         "environment": _environment(),
         "result": _sample_payload(sample),
     }
+
+    stock = Stock(symbol="COMI", name="Commercial International Bank", id=__import__("uuid").UUID("00000000-0000-0000-0000-000000000001"))
+    history = GetAnalysisHistory(InMemoryStockCatalog([stock]), store)
+    history_response = history.execute("COMI")
+    if history_response is None:
+        raise RuntimeError("deterministic history workload is not configured")
+
+    history_sample = measure(
+        lambda: history.execute("COMI"),
+        repetitions=10,
+        warmup_runs=2,
+    )
+
+    history_payload = {
+        "protocol": "PERFORMANCE_BASELINE_PROTOCOL",
+        "measured_at_utc": __import__("datetime").datetime.now(
+            __import__("datetime").UTC
+        ).isoformat(),
+        "workload": {
+            "id": "application.analysis_history.deterministic",
+            "method": "APPLICATION",
+            "operation": "GetAnalysisHistory.execute",
+            "symbol": "COMI",
+            "external_network": False,
+            "provider_calls": False,
+            "repetitions": history_sample.repetitions,
+            "warmup_runs": history_sample.warmup_runs,
+        },
+        "environment": _environment(),
+        "result": _sample_payload(history_sample),
+    }
+
+    history_output = Path("artifacts/performance/application-analysis-history-baseline.json")
+    history_output.parent.mkdir(parents=True, exist_ok=True)
+    history_output.write_text(json.dumps(history_payload, indent=2) + "\n", encoding="utf-8")
 
     output = Path("artifacts/performance/api-analysis-read-baseline.json")
     output.parent.mkdir(parents=True, exist_ok=True)
