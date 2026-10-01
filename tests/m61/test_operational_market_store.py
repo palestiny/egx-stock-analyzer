@@ -154,7 +154,7 @@ def test_empty_store_acquires_and_persists_only_expected_sessions() -> None:
     )
 
     assert len(store.items) == 5
-    assert provider.calls == [(date(2026, 9, 21), date(2026, 9, 27))]
+    assert provider.calls == [(date(2026, 9, 21), date(2026, 9, 25))]
 
 
 def test_repeat_request_does_not_call_provider_for_covered_sessions() -> None:
