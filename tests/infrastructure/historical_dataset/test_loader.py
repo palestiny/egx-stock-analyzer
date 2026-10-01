@@ -272,3 +272,41 @@ def test_rejects_missing_raw_source_evidence(tmp_path: Path) -> None:
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="provenance metadata is invalid"):
         HistoricalDatasetLoader(tmp_path).load_manifest()
+
+
+def _rewrite_market_fixture(tmp_path: Path, mutate) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "market_observations.csv"
+    import csv
+    with path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    mutate(rows)
+    fields = list(rows[0])
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_rejects_invalid_ohlc_relationship(tmp_path: Path) -> None:
+    _rewrite_market_fixture(tmp_path, lambda rows: rows[0].update({"high": "9.00"}))
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="OHLC relationship is invalid"):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def test_rejects_non_positive_market_price(tmp_path: Path) -> None:
+    _rewrite_market_fixture(tmp_path, lambda rows: rows[0].update({"close": "0"}))
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="Market prices must be positive"):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def test_rejects_negative_volume(tmp_path: Path) -> None:
+    _rewrite_market_fixture(tmp_path, lambda rows: rows[0].update({"volume": "-1"}))
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="Market volume cannot be negative"):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
