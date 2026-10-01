@@ -1,16 +1,43 @@
 from decimal import Decimal
-from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
+from app.application.backtesting.accepted_dataset import AcceptedHistoricalDataset
 from app.application.backtesting.validation_evidence import (
     BacktestValidationEvidence,
     BacktestValidationEvidenceError,
 )
-from app.domain.backtesting.simulator import (
-    BacktestConfiguration,
-    BacktestResult,
+from app.domain.backtesting.simulator import BacktestConfiguration, BacktestResult
+from app.infrastructure.historical_dataset.models import (
+    DatasetArtifact,
+    DatasetCoverage,
+    HistoricalDatasetManifest,
 )
+
+
+def accepted_dataset() -> AcceptedHistoricalDataset:
+    artifact = DatasetArtifact(
+        path=Path("market.csv"),
+        sha256="a" * 64,
+        row_count=1,
+        coverage=DatasetCoverage("2026-01-01", "2026-01-01", 1),
+    )
+    financial = DatasetArtifact(
+        path=Path("financial.csv"),
+        sha256="b" * 64,
+        row_count=1,
+        coverage=DatasetCoverage("2026-01-01", "2026-01-01", 1),
+    )
+    return AcceptedHistoricalDataset(
+        HistoricalDatasetManifest(
+            dataset_id="egx-m61",
+            dataset_version="1.0.0",
+            schema_version="1.0",
+            market_observations=artifact,
+            financial_snapshots=financial,
+        )
+    )
 
 
 def result() -> BacktestResult:
@@ -19,21 +46,12 @@ def result() -> BacktestResult:
         transaction_cost_rate=Decimal("0.001"),
         slippage_rate=Decimal("0.0005"),
     )
-    return BacktestResult(
-        strategy_id="strategy-v0",
-        strategy_version="1",
-        configuration=configuration,
-        trades=(),
-        open_trade_count=0,
-    )
+    return BacktestResult("strategy-v0", "1", configuration, (), 0)
 
 
 def evidence() -> BacktestValidationEvidence:
     return BacktestValidationEvidence(
-        dataset_id="egx-m61",
-        dataset_version="1.0.0",
-        dataset_market_artifact_sha256="a" * 64,
-        dataset_financial_artifact_sha256="b" * 64,
+        accepted_dataset=accepted_dataset(),
         strategy_id="strategy-v0",
         strategy_version="1",
         repository_commit="abc123",
@@ -46,19 +64,36 @@ def evidence() -> BacktestValidationEvidence:
 def test_accepts_reproducibility_metadata() -> None:
     item = evidence()
 
-    assert item.dataset_id == "egx-m61"
+    assert item.accepted_dataset.dataset_id == "egx-m61"
     assert item.result == result()
 
 
 def test_rejects_strategy_identity_mismatch() -> None:
     with pytest.raises(BacktestValidationEvidenceError, match="strategy_id"):
         BacktestValidationEvidence(
-            **{**evidence().__dict__, "strategy_id": "other"}
+            accepted_dataset=accepted_dataset(),
+            strategy_id="other",
+            strategy_version="1",
+            repository_commit="abc123",
+            runtime="python-3.13",
+            configuration=result().configuration,
+            result=result(),
         )
 
 
-def test_rejects_invalid_dataset_checksum() -> None:
-    with pytest.raises(BacktestValidationEvidenceError, match="SHA-256"):
+def test_rejects_result_configuration_mismatch() -> None:
+    configuration = BacktestConfiguration(
+        max_holding_bars=6,
+        transaction_cost_rate=Decimal("0.001"),
+        slippage_rate=Decimal("0.0005"),
+    )
+    with pytest.raises(BacktestValidationEvidenceError, match="configuration"):
         BacktestValidationEvidence(
-            **{**evidence().__dict__, "dataset_market_artifact_sha256": "invalid"}
+            accepted_dataset=accepted_dataset(),
+            strategy_id="strategy-v0",
+            strategy_version="1",
+            repository_commit="abc123",
+            runtime="python-3.13",
+            configuration=configuration,
+            result=result(),
         )
