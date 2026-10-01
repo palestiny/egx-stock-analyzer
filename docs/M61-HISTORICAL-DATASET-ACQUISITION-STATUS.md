@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-09-28 — acquisition probe merged; source/licensing boundary refreshed
+**Updated:** 2026-09-28 — acquisition probe is available in draft PR #193; source/licensing boundary refreshed
 
 ## Purpose
 
