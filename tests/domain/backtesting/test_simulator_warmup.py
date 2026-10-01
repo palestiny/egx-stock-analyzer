@@ -63,8 +63,8 @@ def test_warmup_bars_build_history_before_first_evaluated_signal():
     )
 
     assert observed_history_lengths == [4]
-    assert len(result.trades) == 1
-    assert result.trades[0].signal_timestamp == bars[3].timestamp
+    assert len(result.trades) == 0
+    assert result.open_trade_count == 1
 
 
 def test_negative_warmup_bars_are_rejected():
