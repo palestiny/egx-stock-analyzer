@@ -15,8 +15,9 @@ class HistoricalDatasetAcceptanceError(ValueError):
 class HistoricalDatasetAcceptanceValidator:
     """Gate a historical dataset before it can be used for strategy evaluation."""
 
-    def __init__(self, loader: HistoricalDatasetLoader) -> None:
+    def __init__(self, loader: HistoricalDatasetLoader, root: Path) -> None:
         self._loader = loader
+        self._root = root
 
     def validate(self) -> HistoricalDatasetManifest:
         try:
@@ -60,7 +61,7 @@ class HistoricalDatasetAcceptanceValidator:
                 )
 
     def _validate_raw_source_evidence(self, manifest: HistoricalDatasetManifest) -> None:
-        root = self._loader.root
+        root = self._root.resolve()
         for artifact_name, artifact in (
             ("market_observations", manifest.market_observations),
             ("financial_snapshots", manifest.financial_snapshots),
@@ -73,7 +74,7 @@ class HistoricalDatasetAcceptanceValidator:
                 )
             resolved = (root / reference).resolve()
             try:
-                resolved.relative_to(root.resolve())
+                resolved.relative_to(root)
             except ValueError as exc:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} raw source evidence escapes dataset root"
