@@ -184,6 +184,37 @@ class HistoricalDatasetLoader:
         )
         return snapshots
 
+    def verify_raw_source_evidence(self, manifest: HistoricalDatasetManifest | None = None) -> None:
+        manifest = manifest or self.load_manifest()
+        root = self._root.resolve()
+        for artifact_name, artifact in (
+            ("market_observations", manifest.market_observations),
+            ("financial_snapshots", manifest.financial_snapshots),
+        ):
+            evidence = artifact.provenance.raw_source_evidence
+            reference = Path(evidence.reference)
+            if reference.is_absolute() or any(part == ".." for part in reference.parts):
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} raw source evidence must stay inside dataset root"
+                )
+            resolved = (root / reference).resolve()
+            try:
+                resolved.relative_to(root)
+            except ValueError as exc:
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} raw source evidence escapes dataset root"
+                ) from exc
+            try:
+                digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+            except OSError as exc:
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} raw source evidence file cannot be read"
+                ) from exc
+            if digest != evidence.sha256:
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} raw source evidence checksum mismatch"
+                )
+
     def _verify_artifact(self, artifact: DatasetArtifact) -> None:
         relative_path = artifact.path
         if relative_path.is_absolute() or any(part == ".." for part in relative_path.parts):
