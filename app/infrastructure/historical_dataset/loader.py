@@ -62,8 +62,6 @@ class HistoricalDatasetLoader:
         )
         self._verify_artifact(manifest.market_observations)
         self._verify_artifact(manifest.financial_snapshots)
-        self._verify_raw_source_evidence(manifest.market_observations)
-        self._verify_raw_source_evidence(manifest.financial_snapshots)
         return manifest
 
     def load_market_observations(self) -> list[HistoricalMarketObservation]:
@@ -196,6 +194,11 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError(
                 f"Dataset artifact checksum mismatch: {artifact.path}"
             )
+
+    def verify_raw_source_evidence(self) -> None:
+        manifest = self.load_manifest()
+        self._verify_raw_source_evidence(manifest.market_observations)
+        self._verify_raw_source_evidence(manifest.financial_snapshots)
 
     def _verify_raw_source_evidence(self, artifact: DatasetArtifact) -> None:
         evidence = artifact.provenance.raw_source_evidence
