@@ -4,7 +4,9 @@ from dataclasses import asdict
 from datetime import date, datetime
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+
+from app.api.observability import RequestObservabilityMiddleware
 
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
@@ -19,8 +21,6 @@ from app.api.market_analysis_execution_response import MarketAnalysisExecutionRe
 from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
-from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
-from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
 from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
     ScheduledWorkflowExecutionsResponse,
@@ -50,13 +50,10 @@ from app.application.analysis.get_analysis_run import (
 )
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.security.authentication import (
-    AuthenticationError,
-    BearerTokenAuthenticator,
-    ConfiguredBearerTokenAuthenticator,
-    Authenticator,
-)
-from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
+from app.api.authentication import ApiAuthentication
+from app.api.workflow_routes import register_workflow_routes
+from app.application.security.authentication import Authenticator
+from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.identity.get_management_audit import GetManagementAudit, InvalidManagementAuditPageSizeError
 from app.application.identity.get_user_audit_history import (
@@ -130,6 +127,7 @@ def create_app(
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
+    app.add_middleware(RequestObservabilityMiddleware)
     get_analysis_result = GetAnalysisResult(result_store)
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -137,64 +135,11 @@ def create_app(
         if isinstance(operator_token, _OperatorTokenNotProvided)
         else operator_token if operator_token is not None else os.getenv("EGX_OPERATOR_TOKEN")
     )
-    operator_authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
-    authorizer = OperatorAuthorizer()
-
-    def require_authenticated(
-        authorization: str | None = Header(default=None),
-    ) -> AuthenticatedIdentity:
-        if legacy_test_composition:
-            return AuthenticatedIdentity.operator()
-        if authenticator is None:
-            if operator_authenticator is None:
-                raise HTTPException(status_code=503, detail="Authentication is not configured")
-            try:
-                return operator_authenticator.authenticate(authorization)
-            except AuthenticationError as error:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Authentication required",
-                    headers={"WWW-Authenticate": "Bearer"},
-                ) from error
-        try:
-            return authenticator.authenticate(authorization)
-        except AuthenticationError as error:
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication required",
-                headers={"WWW-Authenticate": "Bearer"},
-            ) from error
-
-    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
-        if legacy_test_composition:
-            return AuthenticatedIdentity.operator()
-        if authenticator is not None:
-            try:
-                identity = authenticator.authenticate(authorization)
-                authorizer.require(identity, Permission.OPERATOR)
-                return identity
-            except AuthenticationError as error:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Authentication required",
-                    headers={"WWW-Authenticate": "Bearer"},
-                ) from error
-            except AuthorizationError as error:
-                raise HTTPException(status_code=403, detail="Forbidden") from error
-        if operator_authenticator is None:
-            raise HTTPException(status_code=503, detail="Authentication is not configured")
-        try:
-            identity = operator_authenticator.authenticate(authorization)
-            authorizer.require(identity, Permission.OPERATOR)
-            return identity
-        except AuthenticationError as error:
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication required",
-                headers={"WWW-Authenticate": "Bearer"},
-            ) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
+    api_authentication = ApiAuthentication(
+        operator_token=configured_token,
+        authenticator=authenticator,
+        legacy_test_composition=legacy_test_composition,
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -202,7 +147,7 @@ def create_app(
 
     @app.get("/api/v1/auth/me")
     def get_authenticated_identity(
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         return {
             "subject": identity.subject,
@@ -220,7 +165,7 @@ def create_app(
         to_time: datetime | None = None,
         page_size: int = 50,
         offset: int = 0,
-        identity: AuthenticatedIdentity = Depends(require_operator),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
     ) -> dict[str, object]:
         if get_management_audit is None:
             raise HTTPException(status_code=503, detail="Management audit reporting is not configured")
@@ -250,7 +195,7 @@ def create_app(
         to_time: datetime | None = None,
         page_size: int = 50,
         offset: int = 0,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if get_user_audit_history is None:
             raise HTTPException(status_code=503, detail="User audit history is not configured")
@@ -274,7 +219,7 @@ def create_app(
 
 
     @app.get("/api/v1/users")
-    def list_users(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def list_users(_identity: AuthenticatedIdentity = Depends(api_authentication.require_operator)) -> dict[str, object]:
         if user_management is None:
             raise HTTPException(status_code=503, detail="User management is not configured")
         users = user_management.list_users(_identity)
@@ -286,7 +231,7 @@ def create_app(
         }
 
     @app.post("/api/v1/users")
-    def create_user(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def create_user(_identity: AuthenticatedIdentity = Depends(api_authentication.require_operator)) -> dict[str, object]:
         if user_management is None:
             raise HTTPException(status_code=503, detail="User management is not configured")
         try:
@@ -303,7 +248,7 @@ def create_app(
     def change_user_status(
         user_id: UUID,
         status: str,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
     ) -> dict[str, object]:
         if user_management is None:
             raise HTTPException(status_code=503, detail="User management is not configured")
@@ -322,7 +267,7 @@ def create_app(
     @app.post("/api/v1/users/{user_id}/credentials/rotate")
     def rotate_user_credential(
         user_id: UUID,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
     ) -> dict[str, object]:
         if user_management is None:
             raise HTTPException(status_code=503, detail="User management is not configured")
@@ -336,7 +281,7 @@ def create_app(
 
     @app.post("/api/v1/users/me/credentials/rotate")
     def rotate_own_credential(
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if user_management is None:
             raise HTTPException(status_code=503, detail="User management is not configured")
@@ -347,7 +292,7 @@ def create_app(
         return {"user_id": str(credential.user_id), "credential": credential.secret}
 
     @app.get("/api/v1/analysis/{symbol}")
-    def get_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+    def get_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         result = get_analysis_result.execute(symbol, identity=identity)
 
         if result is None:
@@ -360,7 +305,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/analysis/{symbol}")
-    def run_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+    def run_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         if run_stock_analysis_by_symbol is None:
             raise HTTPException(
                 status_code=503,
@@ -393,7 +338,7 @@ def create_app(
         symbol: str,
         from_date: date | None = None,
         to_date: date | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if get_analysis_history is None:
             raise HTTPException(status_code=503, detail="Analysis history is not configured")
@@ -410,7 +355,7 @@ def create_app(
     @app.delete("/api/v1/analysis-runs/{run_id}")
     def delete_analysis_run_route(
         run_id: UUID,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if delete_analysis_run is None:
             raise HTTPException(status_code=503, detail="Analysis lifecycle is not configured")
@@ -427,7 +372,7 @@ def create_app(
     @app.delete("/api/v1/analysis-snapshots/{snapshot_id}")
     def delete_analysis_snapshot_route(
         snapshot_id: UUID,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if delete_analysis_snapshot is None:
             raise HTTPException(status_code=503, detail="Analysis lifecycle is not configured")
@@ -446,7 +391,7 @@ def create_app(
         state: str | None = None,
         page_size: int = 50,
         cursor: str | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if list_analysis_runs is None:
             raise HTTPException(
@@ -478,7 +423,7 @@ def create_app(
         run_id: UUID,
         page_size: int = 50,
         cursor: str | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
     ) -> dict[str, object]:
         if get_analysis_run is None:
             raise HTTPException(
@@ -505,7 +450,7 @@ def create_app(
         symbol: str,
         before: UUID,
         after: UUID,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
     ) -> dict[str, object]:
         if compare_analysis_snapshots is None:
             raise HTTPException(
@@ -531,7 +476,7 @@ def create_app(
         symbol: str,
         before: UUID,
         after: UUID,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
+        _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator),
     ) -> dict[str, object]:
         if calculate_snapshot_performance is None:
             raise HTTPException(status_code=503, detail="Historical performance is not configured")
@@ -545,7 +490,7 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
     @app.get("/api/v1/reports/{symbol}")
-    def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+    def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         if get_analysis_report is None:
             raise HTTPException(
                 status_code=503,
@@ -563,7 +508,7 @@ def create_app(
         return asdict(response)
 
     @app.post("/api/v1/market-analysis")
-    def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+    def run_market_analysis(identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
         if run_configured_market_analysis is None:
             raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
 
@@ -581,7 +526,7 @@ def create_app(
         return asdict(response)
 
     @app.get("/api/v1/opportunities")
-    def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator)) -> dict[str, object]:
         if get_market_opportunity_ranking is None:
             raise HTTPException(status_code=503, detail="Market opportunity reporting is not configured")
 
@@ -598,174 +543,18 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
-    @app.get("/api/v1/workflows/executions")
-    def list_scheduled_workflow_executions(
-        occurrence_id: str | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_executions is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow execution reporting is not configured",
-            )
-
-        if occurrence_id is not None and not occurrence_id.strip():
-            raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
-
-        try:
-            if authenticator is None:
-                items = get_scheduled_workflow_executions.execute(
-                    occurrence_id=occurrence_id,
-                )
-            else:
-                items = get_scheduled_workflow_executions.execute(
-                    occurrence_id=occurrence_id,
-                    identity=identity,
-                )
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception("Scheduled workflow execution history failed", exc_info=error)
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow execution reporting failed",
-            ) from error
-
-        if occurrence_id is not None and not items:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Scheduled workflow execution not found for {occurrence_id}",
-            )
-
-        response = ScheduledWorkflowExecutionsResponse.from_items(items)
-        return asdict(response)
-
-    @app.get("/api/v1/workflows/history")
-    def get_scheduled_workflow_history_route(
-        page_size: int | None = None,
-        cursor: str | None = None,
-        from_state: str | None = None,
-        to_state: str | None = None,
-        occurred_from: datetime | None = None,
-        occurred_to: datetime | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_history is None:
-            raise HTTPException(status_code=503, detail="Scheduled workflow history is not configured")
-
-        try:
-            history = get_scheduled_workflow_history.execute(
-                identity,
-                page_size=page_size,
-                cursor=cursor,
-                from_state=from_state,
-                to_state=to_state,
-                occurred_from=occurred_from,
-                occurred_to=occurred_to,
-            )
-        except InvalidScheduledWorkflowHistoryQueryError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception("Scheduled workflow cross-execution history failed", exc_info=error)
-            raise HTTPException(status_code=500, detail="Scheduled workflow history failed") from error
-
-        response = ScheduledWorkflowHistoryResponse.from_read_model(history)
-        return asdict(response)
-    @app.get("/api/v1/workflows/executions/{execution_id}/history")
-    def get_scheduled_workflow_execution_history_route(
-        execution_id: UUID,
-        page_size: int | None = None,
-        cursor: str | None = None,
-        from_state: str | None = None,
-        to_state: str | None = None,
-        occurred_from: datetime | None = None,
-        occurred_to: datetime | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_execution_history is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow execution history is not configured",
-            )
-
-        try:
-            history = get_scheduled_workflow_execution_history.execute(
-                execution_id,
-                identity,
-                page_size=page_size,
-                cursor=cursor,
-                from_state=from_state,
-                to_state=to_state,
-                occurred_from=occurred_from,
-                occurred_to=occurred_to,
-            )
-        except ScheduledWorkflowExecutionHistoryNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except InvalidScheduledWorkflowExecutionHistoryQueryError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception(
-                "Scheduled workflow execution history failed for %s",
-                execution_id,
-                exc_info=error,
-            )
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow execution history failed",
-            ) from error
-
-        response = ScheduledWorkflowExecutionHistoryResponse.from_read_model(history)
-        return asdict(response)
-
-    @app.post("/api/v1/workflows/executions/{execution_id}/recover")
-    def recover_scheduled_workflow_execution(
-        execution_id: UUID,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if recover_durable_scheduled_workflow is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow recovery is not configured",
-            )
-
-        try:
-            if authenticator is None:
-                execution = recover_durable_scheduled_workflow.execute(
-                    execution_id,
-                    date.today(),
-                )
-            else:
-                execution = recover_durable_scheduled_workflow.execute(
-                    execution_id,
-                    date.today(),
-                    identity,
-                )
-        except WorkflowExecutionNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except WorkflowExecutionNotRecoverableError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception(
-                "Scheduled workflow recovery failed for %s",
-                execution_id,
-                exc_info=error,
-            )
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow recovery failed",
-            ) from error
-
-        response = ScheduledWorkflowExecutionResponse.from_execution(execution)
-        return asdict(response)
+    register_workflow_routes(
+        app,
+        api_authentication=api_authentication,
+        authenticator=authenticator,
+        get_scheduled_workflow_executions=get_scheduled_workflow_executions,
+        get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
+        get_scheduled_workflow_history=get_scheduled_workflow_history,
+        recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
+    )
 
     @app.post("/api/v1/alerts/{symbol}/deliver")
-    def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator)) -> dict[str, object]:
         if deliver_alert_by_symbol is None:
             raise HTTPException(status_code=503, detail="Alert delivery is not configured")
 
@@ -780,7 +569,7 @@ def create_app(
         return asdict(response)
 
     @app.get("/api/v1/alerts/{symbol}")
-    def get_alert(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+    def get_alert(symbol: str, _identity: AuthenticatedIdentity = Depends(api_authentication.require_operator)) -> dict[str, object]:
         if get_alert_candidate is None:
             raise HTTPException(
                 status_code=503,
