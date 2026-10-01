@@ -297,4 +297,4 @@ def test_rejects_raw_source_reference_escape(tmp_path: Path) -> None:
         HistoricalDatasetIntegrityError,
         match="raw_source_evidence.reference must stay inside dataset root",
     ):
-        HistoricalDatasetLoader(tmp_path).load_manifest()
+        HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
