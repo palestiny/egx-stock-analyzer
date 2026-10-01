@@ -19,7 +19,7 @@ import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tools.m61_market_validation import validate_history_points
+from tools.m61_market_validation import validate_history_points, validate_m61_evaluation_window
 
 COHORT = ("COMI", "EGAL", "SWDY", "ETEL", "EAST", "TMGH", "PHDC", "FWRY", "EFID", "HRHO")
 BASE_URL = "https://mansaapi.com"
@@ -82,9 +82,11 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                 "last_date": meta.get("last_date"),
                 "meta_count": meta.get("count"),
                 "data_freshness": meta.get("data_freshness"),
-                "validation_findings": validate_history_points(points)
-                if isinstance(points, list)
-                else ["points:not_list"],
+                "validation_findings": (
+                    validate_history_points(points) + validate_m61_evaluation_window(points)
+                    if isinstance(points, list)
+                    else ["points:not_list"]
+                ),
             }
         )
     result["raw_sha256"] = hashlib.sha256(raw_body).hexdigest()
@@ -93,10 +95,7 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
 
     if preserve_raw:
         output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / f"{symbol}.json").write_text(
-            json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2),
-            encoding="utf-8",
-        )
+        (output_dir / f"{symbol}.json").write_bytes(raw_body)
         result["raw_artifact"] = str(output_dir / f"{symbol}.json")
 
     return result
