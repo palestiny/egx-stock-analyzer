@@ -239,6 +239,10 @@ PR #204 is merged at d3b663156cc19a223f59d44b5fab74be49adec03. DEC-131 is now im
 
 The PR #195 draft slice is superseded by PR #204 and should not be treated as an independent acceptance target. The immutable M61 historical dataset remains a separate blocker; DEC-131 acceptance does not imply that the real ten-symbol dataset or its raw-source evidence chain is accepted.
 
+### M61.5 Operational Acquisition Provenance — ACCEPTED
+
+DEC-132 is now accepted. The operational acquisition provenance boundary is implemented and verified through the existing application service and durable SQLite store. Successful, incomplete, and failed acquisitions retain requested/observed coverage, provider/source-symbol identity, stable stock identity, timestamps, row counts, and optional raw-artifact hashes. Acquisition history is queryable through the application-facing store boundary. This closes the operational provenance design gate without accepting the real immutable M61 evaluation dataset.
+
 ### M61.4 Raw-source Evidence Verification — IMPLEMENTED
 
 PR #205 is merged at 2a3babd3b7227cc17d7868f52c1f6cf1dc9ebdbe. The historical dataset loader now exposes an explicit raw-source evidence acceptance check that validates dataset-relative evidence references and recomputes the preserved evidence SHA-256. Tamper and path-escape tests are covered by CI. This closes the software-side evidence-chain verification gap, but the synthetic repository fixture is not real market evidence; a real M61 dataset still requires an authenticated source artifact, preservation/usage rights, cohort coverage validation, and a frozen manifest.
