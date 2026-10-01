@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -35,7 +34,6 @@ from app.application.notifications.deliver_alert_by_symbol import (
     DeliverAlertBySymbol,
 )
 
-logger = logging.getLogger(__name__)
 
 
 class _OperatorTokenNotProvided:
