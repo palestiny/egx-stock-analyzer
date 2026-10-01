@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 from dataclasses import asdict
@@ -116,7 +118,15 @@ def create_app(
         get_analysis_history=get_analysis_history,
         get_analysis_report=get_analysis_report,
     )
-    register_analysis_lifecycle_routes(\n        app,\n        api_authentication=api_authentication,\n        get_analysis_run=get_analysis_run,\n        list_analysis_runs=list_analysis_runs,\n        delete_analysis_run=delete_analysis_run,\n        delete_analysis_snapshot=delete_analysis_snapshot,\n    )\n
+    register_analysis_lifecycle_routes(
+        app,
+        api_authentication=api_authentication,
+        get_analysis_run=get_analysis_run,
+        list_analysis_runs=list_analysis_runs,
+        delete_analysis_run=delete_analysis_run,
+        delete_analysis_snapshot=delete_analysis_snapshot,
+    )
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -229,7 +239,15 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
-    register_management_routes(\n        app,\n        api_authentication=api_authentication,\n        user_management=user_management,\n        get_management_audit=get_management_audit,\n        get_user_audit_history=get_user_audit_history,\n    )\n\n    register_workflow_routes(
+    register_management_routes(
+        app,
+        api_authentication=api_authentication,
+        user_management=user_management,
+        get_management_audit=get_management_audit,
+        get_user_audit_history=get_user_audit_history,
+    )
+
+    register_workflow_routes(
         app,
         api_authentication=api_authentication,
         authenticator=authenticator,
