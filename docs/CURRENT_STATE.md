@@ -246,3 +246,10 @@ DEC-132 is now accepted. The operational acquisition provenance boundary is impl
 ### M61.4 Raw-source Evidence Verification — IMPLEMENTED
 
 PR #205 is merged at 2a3babd3b7227cc17d7868f52c1f6cf1dc9ebdbe. The historical dataset loader now exposes an explicit raw-source evidence acceptance check that validates dataset-relative evidence references and recomputes the preserved evidence SHA-256. Tamper and path-escape tests are covered by CI. This closes the software-side evidence-chain verification gap, but the synthetic repository fixture is not real market evidence; a real M61 dataset still requires an authenticated source artifact, preservation/usage rights, cohort coverage validation, and a frozen manifest.
+
+
+### M61.6 Exact Raw Acquisition Artifact Integrity — ACCEPTED
+
+PR #207 is merged at 802e38617fec2ab50a5d26660c51bdd50b113710 after GitHub Actions Tests Run #3225 passed on head e4c9d00679e1b85b0d6ee584ac589c8e1bfb7b61. The M61 acquisition probe now preserves the exact provider response bytes when raw preservation is enabled, so the recorded SHA-256 is tied to the actual preserved artifact rather than a re-serialized JSON representation. Deterministic validation also requires 252 observations before the 2021-01-01 evaluation start and checks evaluation-window/coverage evidence. This is an acquisition-tool integrity gate only; it does not accept any real provider artifact or the immutable M61 dataset.
+
+The next acceptance boundary is now real COMI acquisition and provenance closure. No Strategy v0 performance conclusion should be made before the COMI artifact passes identity, coverage, data-quality, price-semantics, raw/transformed checksum, licensing/retention, and point-in-time financial evidence requirements.
