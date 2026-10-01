@@ -15,7 +15,11 @@ class OperationalMarketDataStore(Protocol):
     ) -> list[RawPriceBarObservation]:
         ...
 
-    def save(self, observations: list[RawPriceBarObservation]) -> None:
+    def persist_successful_acquisition(
+        self,
+        record: AcquisitionRecord,
+        observations: list[RawPriceBarObservation],
+    ) -> None:
         ...
 
     def save_acquisition(self, record: AcquisitionRecord) -> None:
@@ -27,4 +31,12 @@ class OperationalMarketDataStore(Protocol):
         from_date: date,
         to_date: date,
     ) -> list[AcquisitionRecord]:
+        ...
+
+    def get_conflict_events(
+        self,
+        stock_id: UUID,
+        from_date: date,
+        to_date: date,
+    ) -> list[object]:
         ...
