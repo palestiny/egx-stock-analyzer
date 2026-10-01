@@ -206,7 +206,7 @@ This hardening does not claim that the real M61 historical dataset is accepted. 
 
 ## 10. M61 Current Checkpoint
 
-The latest main commit is `f412f98a036030a79aa524aad8ebabee17c8e6bb` (2026-10-01), merged through PR #201.
+The latest main commit is `d3b663156cc19a223f59d44b5fab74be49adec03` (2026-10-01), merged through PR #204.
 
 M61 remains in progress. DEC-130 is accepted, but the repository does **not** contain an accepted real historical dataset version. The current blocker is acquisition and provenance validation for the bounded ten-symbol cohort.
 
@@ -233,8 +233,8 @@ This establishes the simulator contract only. It does **not** prove that the rea
 
 CI for PR #202 passed for unit tests, deterministic integration tests, and frontend tests.
 
-### M61.3 Operational Conflict Durability — NOT ACCEPTED
+### M61.3 Operational Conflict Durability — ACCEPTED
 
-PR #195 remains draft. Issue #200 identifies the remaining DEC-131 gap: conflicting observations must produce a durable provider-neutral conflict event containing observation identity, existing/incoming observations or provenance, acquisition identity, and detection time. Raising `MarketDataConflictError` alone is insufficient.
+PR #204 is merged at d3b663156cc19a223f59d44b5fab74be49adec03. DEC-131 is now implemented at the software-boundary level: operational market data has an application-facing persistence port, a SQLite durable adapter, acquisition-linked observations, and a provider-neutral MarketDataConflictEvent. A conflicting duplicate never overwrites the existing observation; the conflicted acquisition and conflict event are committed durably before MarketDataConflictError is raised. Restart-safe deterministic tests verify acquisition round-trip, idempotent duplicates, conflict durability, acquisition linkage, and preservation of the original observation.
 
-No merge or acceptance is claimed for this slice until the conflict-event contract and persistence boundary are implemented and verified.
+The PR #195 draft slice is superseded by PR #204 and should not be treated as an independent acceptance target. The immutable M61 historical dataset remains a separate blocker; DEC-131 acceptance does not imply that the real ten-symbol dataset or its raw-source evidence chain is accepted.
