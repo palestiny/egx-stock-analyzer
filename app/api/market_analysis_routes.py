@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict
 from datetime import date
 
@@ -11,6 +12,8 @@ from app.api.market_opportunity_view_response import MarketOpportunityViewRespon
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.security.identity import AuthenticatedIdentity, Permission
+
+logger = logging.getLogger(__name__)
 
 
 def register_market_analysis_routes(
@@ -32,6 +35,7 @@ def register_market_analysis_routes(
                 owner_user_id=identity.user_id if Permission.OPERATOR not in identity.permissions else None,
             )
         except Exception as error:
+            logger.exception("Market-wide analysis execution failed", exc_info=error)
             raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
         response_execution = getattr(execution, "execution", execution)
         response = MarketAnalysisExecutionResponse.from_execution(response_execution)
