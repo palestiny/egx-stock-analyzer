@@ -3,6 +3,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.application.market_data.acquisition import AcquisitionRecord
+from app.application.market_data.conflict import MarketDataConflictEvent
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 
 
@@ -38,5 +39,5 @@ class OperationalMarketDataStore(Protocol):
         stock_id: UUID,
         from_date: date,
         to_date: date,
-    ) -> list[object]:
+    ) -> list[MarketDataConflictEvent]:
         ...
