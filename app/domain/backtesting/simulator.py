@@ -17,6 +17,7 @@ class BacktestConfiguration:
     max_holding_bars: int
     transaction_cost_rate: Decimal
     slippage_rate: Decimal
+    warmup_bars: int = 0
 
 
 @dataclass(frozen=True)
@@ -115,7 +116,7 @@ class BacktestSimulator:
         position_index: int | None = None
         signal_index: int | None = None
 
-        index = 0
+        index = configuration.warmup_bars
         while index < len(price_bars):
             history = price_bars[: index + 1]
 
@@ -231,9 +232,73 @@ class BacktestSimulator:
             raise ValueError("transaction_cost_rate cannot be negative")
         if configuration.slippage_rate < 0:
             raise ValueError("slippage_rate cannot be negative")
+        if configuration.warmup_bars < 0:
+            raise ValueError("warmup_bars cannot be negative")
 
     @staticmethod
     def _validate_bars(price_bars: list[PriceBar]) -> None:
         for previous, current in zip(price_bars, price_bars[1:]):
             if current.timestamp <= previous.timestamp:
                 raise ValueError("price_bars must be strictly time ordered")
+
+def test_warmup_bars_build_history_but_cannot_generate_evaluated_signals():
+    bars = [
+        bar(0, "100", "101"),
+        bar(1, "101", "102"),
+        bar(2, "102", "103"),
+        bar(3, "110", "111"),
+        bar(4, "120", "121"),
+        bar(5, "130", "131"),
+    ]
+    observed_history_lengths = []
+
+    def signal(history):
+        observed_history_lengths.append(len(history))
+        return len(history) in {1, 4}
+
+    strategy = BacktestStrategy(
+        strategy_id="warmup",
+        version="1",
+        signal=signal,
+        position_valid=lambda history: len(history) < 6,
+    )
+
+    result = BacktestSimulator.run(
+        bars,
+        strategy,
+        BacktestConfiguration(
+            max_holding_bars=3,
+            transaction_cost_rate=Decimal("0"),
+            slippage_rate=Decimal("0"),
+            warmup_bars=3,
+        ),
+    )
+
+    assert observed_history_lengths == [4, 5, 6]
+    assert len(result.trades) == 1
+    assert result.trades[0].signal_timestamp == bars[3].timestamp
+
+
+def test_negative_warmup_bars_are_rejected():
+    bars = [bar(0, "100", "101")]
+    strategy = BacktestStrategy(
+        strategy_id="invalid-warmup",
+        version="1",
+        signal=lambda history: False,
+        position_valid=lambda history: True,
+    )
+
+    try:
+        BacktestSimulator.run(
+            bars,
+            strategy,
+            BacktestConfiguration(
+                max_holding_bars=1,
+                transaction_cost_rate=Decimal("0"),
+                slippage_rate=Decimal("0"),
+                warmup_bars=-1,
+            ),
+        )
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
