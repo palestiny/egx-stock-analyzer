@@ -58,9 +58,12 @@ def measure(
 def _percentile(values: tuple[float, ...], percentile: float) -> float:
     if not values:
         raise ValueError("at least one measurement is required")
+    if not 0 < percentile <= 1:
+        raise ValueError("percentile must be between 0 and 1")
+
     if len(values) == 1:
         return values[0]
 
     points = quantiles(values, n=100, method="inclusive")
-    rank = max(1, min(100, round(percentile * 100)))
-    return points[rank - 2] if rank == 1 else points[rank - 1]
+    rank = max(1, min(99, round(percentile * 100)))
+    return points[rank - 1]
