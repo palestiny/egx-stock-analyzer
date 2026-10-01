@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.domain.backtesting.simulator import (
@@ -7,16 +8,24 @@ from app.domain.backtesting.simulator import (
 )
 from app.domain.market_data.price import Price
 from app.domain.market_data.price_bar import PriceBar
+from app.domain.market_data.timeframe import Timeframe
+from app.domain.market_data.volume import Volume
+from app.domain.stocks.stock import Stock
+
+
+STOCK = Stock.create(symbol="TEST", name="Backtest Test Stock")
 
 
 def bar(index: int, open_price: str, close_price: str) -> PriceBar:
-    return PriceBar(
-        timestamp=index,
+    return PriceBar.create(
+        stock_id=STOCK.id,
+        timeframe=Timeframe.DAILY,
+        timestamp=datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=index),
         open=Price(Decimal(open_price)),
         high=Price(Decimal(open_price)),
         low=Price(Decimal(open_price)),
         close=Price(Decimal(close_price)),
-        volume=Decimal("1000"),
+        volume=Volume(1000),
     )
 
 
