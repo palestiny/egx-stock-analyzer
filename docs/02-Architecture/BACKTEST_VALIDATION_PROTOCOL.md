@@ -6,6 +6,26 @@
 
 Prove that a backtest is temporally correct, reproducible, and based on an accepted historical dataset before using its results as evidence.
 
+## Validation boundary
+
+The application layer now separates dataset acceptance from the pure domain simulator:
+
+```
+HistoricalDatasetLoader
+        ↓
+HistoricalDatasetAcceptanceValidator
+        ↓
+AcceptedHistoricalDataset
+        ↓
+BacktestSimulator
+        ↓
+BacktestValidationEvidence
+```
+
+`BacktestSimulator` remains infrastructure-agnostic. It receives price bars, strategy behavior, and configuration; it does not decide whether a dataset is licensed, provenance-complete, or accepted.
+
+A validated evidence record must carry the immutable identity of the accepted dataset, including artifact checksums. A manifest that has not passed the historical dataset acceptance validator must not be represented as accepted evidence.
+
 ## Point-in-time rules
 
 For a signal evaluated at bar index t:
@@ -81,10 +101,11 @@ Metrics must be interpreted with the dataset period and assumptions attached.
 Strategy v0 may be described as validated only when:
 
 1. the historical dataset passes its provenance/integrity gate;
-2. point-in-time regression tests pass;
-3. repeated runs are deterministic;
-4. costs/slippage are explicitly configured;
-5. out-of-sample evaluation is defined and untouched during development;
-6. results are reproducible from recorded inputs.
+2. the dataset is represented by `AcceptedHistoricalDataset` at the backtest application boundary;
+3. point-in-time regression tests pass;
+4. repeated runs are deterministic;
+5. costs/slippage are explicitly configured;
+6. out-of-sample evaluation is defined and untouched during development;
+7. results are reproducible from recorded inputs.
 
 A successful backtest is evidence about the tested historical scenario. It is not proof of future profitability.
