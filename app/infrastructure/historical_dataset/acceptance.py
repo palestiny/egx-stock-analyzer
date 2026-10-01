@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 from app.infrastructure.historical_dataset.loader import (
@@ -38,14 +39,14 @@ class HistoricalDatasetAcceptanceValidator:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} artifact provenance is required for backtest acceptance"
                 )
-            required_values = {
-                "provider": provenance.provider,
-                "source_url": provenance.source_url,
-                "corporate_action_convention": provenance.corporate_action_convention,
-                "licensing_notes": provenance.licensing_notes,
-                "transformation_manifest": provenance.transformation_manifest,
-            }
-            if any(not value.strip() for value in required_values.values()):
+            required_values = (
+                provenance.provider,
+                provenance.source_url,
+                provenance.corporate_action_convention,
+                provenance.licensing_notes,
+                provenance.transformation_manifest,
+            )
+            if any(not value.strip() for value in required_values):
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} provenance contains an empty acceptance field"
                 )
@@ -53,23 +54,27 @@ class HistoricalDatasetAcceptanceValidator:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} provenance symbol mappings are required"
                 )
-            if provenance.acquired_at.tzinfo is None or provenance.acquired_at.utcoffset() is None:
+            if not provenance.raw_source_evidence.reference.strip():
                 raise HistoricalDatasetAcceptanceError(
-                    f"{artifact_name} provenance acquisition time must be timezone-aware"
+                    f"{artifact_name} raw source evidence reference is required"
                 )
 
     def _validate_raw_source_evidence(self, manifest: HistoricalDatasetManifest) -> None:
-        root = self._root
+        root = self._loader.root
         for artifact_name, artifact in (
             ("market_observations", manifest.market_observations),
             ("financial_snapshots", manifest.financial_snapshots),
         ):
             evidence = artifact.provenance.raw_source_evidence  # type: ignore[union-attr]
             reference = Path(evidence.reference)
+            if reference.is_absolute() or any(part == ".." for part in reference.parts):
+                raise HistoricalDatasetAcceptanceError(
+                    f"{artifact_name} raw source evidence must stay inside dataset root"
+                )
+            resolved = (root / reference).resolve()
             try:
-                resolved = (root / reference).resolve()
                 resolved.relative_to(root.resolve())
-            except (OSError, ValueError) as exc:
+            except ValueError as exc:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} raw source evidence escapes dataset root"
                 ) from exc
@@ -77,14 +82,8 @@ class HistoricalDatasetAcceptanceValidator:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} raw source evidence file does not exist"
                 )
-            import hashlib
-
             digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
             if digest != evidence.sha256:
                 raise HistoricalDatasetAcceptanceError(
                     f"{artifact_name} raw source evidence checksum mismatch"
                 )
-
-    @property
-    def _root(self) -> Path:
-        return self._loader._root
