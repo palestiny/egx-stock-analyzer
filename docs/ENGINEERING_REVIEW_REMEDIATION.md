@@ -13,12 +13,12 @@ Convert the senior architecture review into an executable hardening backlog with
 | Area | Finding | Priority | Status |
 | --- | --- | --- | --- |
 | Observability | No first-class HTTP correlation/timing contract | High | **Implemented** |
-| CI | Missing dependency consistency, compile, static correctness gates | High | **Implemented; latest run pending** |
+| CI | Missing dependency consistency, compile, static correctness gates | High | **Implemented; verified on latest CI** |
 | API composition | `app/api/main.py` is oversized | Medium | **In progress: authentication + workflow route adapters extracted** |
 | Historical evidence | Real M61 dataset/provenance validation remains the primary evidence gap | Critical | In progress via M61 gates/PRs |
 | Backtesting | Real-cohort validation is not yet established | Critical | Blocked on accepted historical evidence |
-| Security | Add operational hardening without changing auth semantics | Medium | Planned |
-| Performance | No measured latency/throughput baseline | Medium | Planned |
+| Security | Add operational hardening without changing auth semantics | Medium | **Implemented; verification in CI** |
+| Performance | No measured latency/throughput baseline | Medium | **Protocol defined; measurement pending** |
 | Scalability | Synchronous market-wide execution is the current ceiling | Medium/Future | Planned after measurement |
 | Persistence | SQLite is appropriate for current scale; PostgreSQL migration deferred | Medium/Future | Decision: defer |
 | Frontend | Backend contracts are more mature than UI operational experience | Medium | Planned |
@@ -34,7 +34,7 @@ Convert the senior architecture review into an executable hardening backlog with
 
 ## Current verification note
 
-The latest observed GitHub Actions run passed unit tests, dependency consistency, compilation, deterministic integration, and frontend checks; the quality job failed only on Ruff F821 findings in the existing backtesting test code. Those leaked tests were moved into a dedicated test module and a warmup regression test was added; the latest head has not yet produced a new PR-triggered Actions run. Code inspection identified missing `AuthorizationError`/`Permission` imports in `main.py` after the authentication extraction; those imports were restored and dedicated authentication-adapter regression tests were added. A new Actions run has not yet been observed for the latest commit, so the branch is not marked green.
+The latest verified remediation CI run passed the unit, integration, frontend, and quality gates after the leaked backtesting tests were moved into a dedicated test module and the warmup lifecycle assertions were corrected. Observability/security-header and authentication-adapter regression coverage are included in the remediation branch. Performance measurement is still pending; the baseline protocol has been documented but no benchmark result is being treated as evidence yet.
 
 ## Next execution order
 
