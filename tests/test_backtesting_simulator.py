@@ -36,6 +36,7 @@ def config(max_holding_bars: int = 3) -> BacktestConfiguration:
         max_holding_bars=max_holding_bars,
         transaction_cost_rate=Decimal("0"),
         slippage_rate=Decimal("0"),
+        warmup_bars=0,
     )
 
 
