@@ -10,13 +10,10 @@ from app.api.observability import RequestObservabilityMiddleware
 
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
-from app.api.analysis_history_response import AnalysisHistoryResponse
 from app.api.analysis_run_response import AnalysisRunResponse
 from app.api.analysis_run_list_response import AnalysisRunListResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
-from app.api.analysis_report_response import AnalysisReportResponse
-from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
@@ -25,7 +22,6 @@ from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
     ScheduledWorkflowExecutionsResponse,
 )
-from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
     CalculateSnapshotPerformance,
@@ -36,7 +32,6 @@ from app.application.reporting.compare_analysis_snapshots import (
     CompareAnalysisSnapshots,
     InvalidSnapshotComparisonError,
 )
-from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.list_analysis_runs import (
     InvalidAnalysisRunListQueryError,
     ListAnalysisRuns,
@@ -52,6 +47,7 @@ from app.application.analysis.get_market_opportunity_ranking import GetMarketOpp
 from app.application.analysis.result_store import AnalysisResultStore
 from app.api.authentication import ApiAuthentication
 from app.api.workflow_routes import register_workflow_routes
+from app.api.analysis_routes import register_analysis_routes
 from app.application.security.authentication import Authenticator
 from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity, Permission
@@ -80,16 +76,11 @@ from app.application.execution.recover_durable_scheduled_workflow import (
     WorkflowExecutionNotFoundError,
     WorkflowExecutionNotRecoverableError,
 )
-from app.application.analysis.run_stock_analysis_by_symbol import (
-    RunStockAnalysisBySymbol,
-    UnknownStockSymbolError,
-)
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.notifications.deliver_alert_by_symbol import (
     AlertCandidateNotFoundError,
     DeliverAlertBySymbol,
 )
-from app.application.reporting.get_analysis_report import GetAnalysisReport
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +130,14 @@ def create_app(
         operator_token=configured_token,
         authenticator=authenticator,
         legacy_test_composition=legacy_test_composition,
+    )
+    register_analysis_routes(
+        app,
+        api_authentication=api_authentication,
+        get_analysis_result=get_analysis_result,
+        run_stock_analysis_by_symbol=run_stock_analysis_by_symbol,
+        get_analysis_history=get_analysis_history,
+        get_analysis_report=get_analysis_report,
     )
 
     @app.get("/health")
@@ -290,67 +289,6 @@ def create_app(
         except UserManagementError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         return {"user_id": str(credential.user_id), "credential": credential.secret}
-
-    @app.get("/api/v1/analysis/{symbol}")
-    def get_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
-        result = get_analysis_result.execute(symbol, identity=identity)
-
-        if result is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Analysis result not found for {symbol}",
-            )
-
-        response = AnalysisResultResponse.from_result(symbol, result)
-        return asdict(response)
-
-    @app.post("/api/v1/analysis/{symbol}")
-    def run_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated)) -> dict[str, object]:
-        if run_stock_analysis_by_symbol is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Analysis execution is not configured",
-            )
-
-        try:
-            run_stock_analysis_by_symbol.execute(symbol, date.today(), identity=identity)
-        except UnknownStockSymbolError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except RuntimeError as error:
-            logger.exception("Analysis execution failed for symbol %s", symbol, exc_info=error)
-            raise HTTPException(
-                status_code=500,
-                detail="Analysis execution failed",
-            ) from error
-
-        result = get_analysis_result.execute(symbol, identity=identity)
-        if result is None:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Analysis result was not stored for {symbol}",
-            )
-
-        response = AnalysisResultResponse.from_result(symbol, result)
-        return asdict(response)
-
-    @app.get("/api/v1/history/{symbol}")
-    def get_history(
-        symbol: str,
-        from_date: date | None = None,
-        to_date: date | None = None,
-        identity: AuthenticatedIdentity = Depends(api_authentication.require_authenticated),
-    ) -> dict[str, object]:
-        if get_analysis_history is None:
-            raise HTTPException(status_code=503, detail="Analysis history is not configured")
-        try:
-            items = get_analysis_history.execute(symbol, start_date=from_date, end_date=to_date, identity=identity)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        if items is None:
-            raise HTTPException(status_code=404, detail=f"Analysis history not found for {symbol}")
-        response = AnalysisHistoryResponse.from_items(symbol.strip().upper(), items)
-        return response.to_dict()
-
 
     @app.delete("/api/v1/analysis-runs/{run_id}")
     def delete_analysis_run_route(
