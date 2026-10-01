@@ -45,8 +45,12 @@ def test_probe_symbol_includes_deterministic_market_validation(monkeypatch, tmp_
 
     result = probe_symbol("EGAL", "secret-test-key", False, tmp_path)
 
+    findings = result["observed"]["validation_findings"]
     assert result["status_code"] == 200
-    assert result["observed"]["validation_findings"] == []
+    assert "m61:insufficient_warmup=0;required=252" in findings
+    assert "m61:coverage_starts_after_requested=2025-01-02" in findings
+    assert "m61:coverage_ends_before_evaluation_end=2025-01-03" in findings
+    assert not any(item.startswith("row[") for item in findings)
     assert result["raw_sha256"]
     assert not (tmp_path / "EGAL.json").exists()
 
