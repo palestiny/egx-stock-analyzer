@@ -1,5 +1,4 @@
 from app.infrastructure.historical_dataset.loader import (
-    HistoricalDatasetAcceptanceError,
     HistoricalDatasetIntegrityError,
     HistoricalDatasetLoader,
 )
