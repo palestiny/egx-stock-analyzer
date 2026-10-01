@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI
 
 from app.api.observability import RequestObservabilityMiddleware
 
@@ -17,7 +17,6 @@ from app.application.analysis.get_analysis_result import GetAnalysisResult
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.get_analysis_report import GetAnalysisReport
-from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_lifecycle_routes import register_analysis_lifecycle_routes
 from app.application.analysis.get_analysis_run import GetAnalysisRun
 from app.application.analysis.list_analysis_runs import ListAnalysisRuns
@@ -26,7 +25,7 @@ from app.application.analysis.delete_analysis_snapshot import DeleteAnalysisSnap
 from app.api.management_routes import register_management_routes
 from app.api.comparison_routes import register_comparison_routes
 from app.application.security.authentication import Authenticator
-from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
 from app.application.notifications.deliver_alert_by_symbol import (
