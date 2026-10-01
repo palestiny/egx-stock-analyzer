@@ -1,18 +1,34 @@
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from app.application.market_data.acquisition import AcquisitionRecord
 from app.application.market_data.provider import MarketDataProvider
+from app.application.market_data.store import OperationalMarketDataStore
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 from app.domain.stocks.stock import Stock
 
+if TYPE_CHECKING:
+    from app.application.market_data.conflict import MarketDataConflictEvent
+
 
 class MarketDataConflictError(ValueError):
-    def __init__(self, key, existing, incoming) -> None:
+    def __init__(
+        self,
+        key,
+        existing: RawPriceBarObservation,
+        incoming: RawPriceBarObservation,
+        *,
+        acquisition_id: UUID | None = None,
+        conflict_event: "MarketDataConflictEvent | None" = None,
+    ) -> None:
         super().__init__(f"Market data conflict for identity {key}")
         self.key = key
         self.existing = existing
         self.incoming = incoming
+        self.acquisition_id = acquisition_id
+        self.conflict_event = conflict_event
 
 
 class MarketDataCoverageError(ValueError):
@@ -35,7 +51,7 @@ class OperationalMarketDataService:
     def __init__(
         self,
         provider: MarketDataProvider,
-        store,
+        store: OperationalMarketDataStore,
         session_calendar,
         provider_name: str = "unknown",
     ) -> None:
@@ -84,7 +100,7 @@ class OperationalMarketDataService:
             incoming_dates = {
                 item.timestamp.date()
                 for item in incoming
-                if item.stock_id == stock.id
+                if item.stock_id == stock.id and item.timestamp is not None
             }
             requested_sessions = [
                 day for day in expected if range_start <= day <= range_end
@@ -111,22 +127,22 @@ class OperationalMarketDataService:
                 )
                 raise error
 
-            self._store.save(incoming)
-            self._store.save_acquisition(
-                AcquisitionRecord.success(
-                    provider=self._provider_name,
-                    source_symbol=stock.symbol,
-                    stock_id=stock.id,
-                    requested_from=range_start,
-                    requested_to=range_end,
-                    actual_from=self._actual_date(incoming),
-                    actual_to=self._actual_date(incoming, latest=True),
-                    requested_at=requested_at,
-                    completed_at=datetime.now(timezone.utc),
-                    row_count=len(incoming),
-                )
+            record = AcquisitionRecord.success(
+                provider=self._provider_name,
+                source_symbol=stock.symbol,
+                stock_id=stock.id,
+                requested_from=range_start,
+                requested_to=range_end,
+                actual_from=self._actual_date(incoming),
+                actual_to=self._actual_date(incoming, latest=True),
+                requested_at=requested_at,
+                completed_at=datetime.now(timezone.utc),
+                row_count=len(incoming),
             )
+            self._store.persist_successful_acquisition(record, incoming)
         except MarketDataCoverageError:
+            raise
+        except MarketDataConflictError:
             raise
         except Exception as exc:
             self._store.save_acquisition(
