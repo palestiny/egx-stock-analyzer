@@ -20,7 +20,7 @@ Convert the senior architecture review into an executable hardening backlog with
 | Security | Add operational hardening without changing auth semantics | Medium | **Implemented; verification in CI** |
 | Performance | No measured latency/throughput baseline | Medium | **Protocol defined; measurement pending** |
 | Scalability | Synchronous market-wide execution is the current ceiling | Medium/Future | Planned after measurement |
-| Persistence | SQLite is appropriate for current scale; PostgreSQL migration deferred | Medium/Future | Decision: defer |
+| Persistence | Mutation + management-audit atomicity was not proven | High | **Implemented; current CI verification pending** |
 | Frontend | Backend contracts are more mature than UI operational experience | Medium | Planned |
 | Documentation | Architecture/decision records are strong; remediation tracking needed | Medium | **Implemented** |
 
@@ -34,12 +34,12 @@ Convert the senior architecture review into an executable hardening backlog with
 
 ## Current verification note
 
-The latest verified remediation CI run passed the unit, integration, frontend, and quality gates after the leaked backtesting tests were moved into a dedicated test module and the warmup lifecycle assertions were corrected. Observability/security-header and authentication-adapter regression coverage are included in the remediation branch. Performance measurement is still pending; the baseline protocol has been documented but no benchmark result is being treated as evidence yet.
+The last verified remediation CI run (#3177) passed unit, integration, frontend, and quality gates before the latest persistence-transaction changes. Current-branch CI verification is still required. Observability/security-header and authentication-adapter regression coverage are included in the remediation branch. Performance measurement is still pending; the baseline protocol has been documented but no benchmark result is being treated as evidence yet.
 
 ## Next execution order
 
-1. Complete API composition-root decomposition without changing endpoint contracts.
-2. Add operational security hardening and regression coverage.
+1. Verify the atomic management mutation + audit transaction boundary in current CI.
+2. Complete API composition-root decomposition without changing endpoint contracts.
 3. Establish latency/throughput benchmarks for analysis and market-wide execution.
 4. Complete M61 historical dataset acquisition/validation and evidence manifest.
 5. Run deterministic Strategy v0 backtests and leakage/reproducibility checks.
