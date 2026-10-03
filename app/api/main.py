@@ -101,6 +101,8 @@ from app.api.technical_scanner_response import TechnicalScannerResponse
 from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
 from app.domain.market_intelligence.sectors import SectorDirection
 from app.api.sector_intelligence_response import SectorRankingResponse
+from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
+from app.api.fibonacci_response import FibonacciResponse
 from app.api.market_intelligence_response import MarketMoverRankingResponse
 
 logger = logging.getLogger(__name__)
@@ -143,6 +145,7 @@ def create_app(
     rank_momentum_leaders = RankMomentumLeaders(result_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
     rank_sectors = RankSectors(result_store)
+    scan_fibonacci = ScanFibonacciOpportunities(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -658,6 +661,27 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return SectorRankingResponse.from_ranking(result).to_dict()
+
+    @app.get("/api/v1/market-intelligence/fibonacci")
+    def scan_fibonacci_route(
+        levels: str = "",
+        tolerance_percent: Decimal = Decimal("1"),
+        limit: int = 20,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        parsed: dict[str, Decimal] = {}
+        for raw in levels.split(","):
+            parts = raw.split(":", 1)
+            if len(parts) == 2:
+                try:
+                    parsed[parts[0].strip().upper()] = Decimal(parts[1].strip())
+                except Exception as error:
+                    raise HTTPException(status_code=400, detail="Invalid fibonacci level") from error
+        try:
+            result = scan_fibonacci.execute(parsed, tolerance_percent=tolerance_percent, limit=limit)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return FibonacciResponse.from_result(result).to_dict()
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
