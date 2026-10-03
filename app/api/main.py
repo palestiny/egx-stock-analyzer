@@ -98,6 +98,9 @@ from app.application.research.get_stock_research import GetStockResearch, StockR
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.api.technical_scanner_response import TechnicalScannerResponse
+from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
+from app.domain.market_intelligence.sectors import SectorDirection
+from app.api.sector_intelligence_response import SectorRankingResponse
 from app.api.market_intelligence_response import MarketMoverRankingResponse
 
 logger = logging.getLogger(__name__)
@@ -139,6 +142,7 @@ def create_app(
     get_analysis_result = GetAnalysisResult(result_store)
     rank_momentum_leaders = RankMomentumLeaders(result_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
+    rank_sectors = RankSectors(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -635,6 +639,25 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return TechnicalScannerResponse.from_result(result).to_dict()
+
+    @app.get("/api/v1/market-intelligence/sectors")
+    def get_sector_intelligence(
+        symbols: str = "",
+        direction: str = "leading",
+        limit: int = 10,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        pairs = []
+        for raw in symbols.split(","):
+            parts = raw.split(":", 1)
+            if len(parts) == 2:
+                pairs.append(SectorInput(parts[0], parts[1]))
+        try:
+            sector_direction = SectorDirection(direction.strip().lower())
+            result = rank_sectors.execute(pairs, direction=sector_direction, limit=limit)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return SectorRankingResponse.from_ranking(result).to_dict()
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
