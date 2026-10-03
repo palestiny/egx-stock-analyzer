@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections import defaultdict
 from datetime import date
 from pathlib import Path
+from uuid import UUID
 
 from app.infrastructure.historical_dataset.loader import (
     HistoricalDatasetIntegrityError,
@@ -23,6 +23,24 @@ EVALUATION_START = date(2021, 1, 1)
 EVALUATION_END = date(2025, 12, 31)
 WARMUP_START = date(2020, 1, 1)
 REQUIRED_WARMUP = 252
+
+
+def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | None:
+    """Resolve one source symbol to its explicitly mapped internal stock ID."""
+    matches: list[UUID] = []
+    prefix = symbol.strip().upper() + "->"
+    for mapping in mappings:
+        normalized = mapping.replace(" ", "").upper()
+        if not normalized.startswith(prefix):
+            continue
+        _, raw_stock_id = normalized.split("->", 1)
+        try:
+            matches.append(UUID(raw_stock_id))
+        except ValueError:
+            continue
+
+    unique_matches = set(matches)
+    return next(iter(unique_matches)) if len(unique_matches) == 1 else None
 
 
 def build_report(root: Path) -> dict:
@@ -46,36 +64,63 @@ def build_report(root: Path) -> dict:
     report["checks"]["manifest"] = "PASS"
     report["checks"]["raw_source_evidence"] = "PASS"
 
-    comi_market = [item for item in market if item.source.strip()]
-    # The immutable dataset currently carries internal UUIDs; source identity is
-    # accepted only when the manifest explicitly records a COMI mapping.
-    mappings = (
-        manifest.market_observations.provenance.symbol_mappings
-        if manifest.market_observations.provenance
-        else ()
+    market_provenance = manifest.market_observations.provenance
+    financial_provenance = manifest.financial_snapshots.provenance
+
+    comi_stock_id = _resolve_symbol_mapping(
+        market_provenance.symbol_mappings,
+        COMI_SYMBOL,
     )
-    has_comi_mapping = any(COMI_SYMBOL in mapping.upper() for mapping in mappings)
-    report["checks"]["comi_identity_mapping"] = "PASS" if has_comi_mapping else "FAIL"
+    financial_stock_id = _resolve_symbol_mapping(
+        financial_provenance.symbol_mappings,
+        COMI_SYMBOL,
+    )
 
-    dates_by_stock: dict[str, list[date]] = defaultdict(list)
-    for item in comi_market:
-        dates_by_stock[str(item.stock_id)].append(item.timestamp.date())
+    report["checks"]["comi_identity_mapping"] = (
+        "PASS" if comi_stock_id is not None else "FAIL"
+    )
+    report["checks"]["financial_source_mapping"] = (
+        "PASS"
+        if financial_stock_id == comi_stock_id and financial_stock_id is not None
+        else "FAIL"
+    )
 
-    if not has_comi_mapping:
-        report["errors"].append("No explicit COMI source-symbol mapping in market provenance.")
+    if comi_stock_id is None:
+        report["errors"].append(
+            "Market provenance must contain exactly one valid COMI -> internal stock mapping."
+        )
         return report
 
-    if len(dates_by_stock) != 1:
-        report["errors"].append("COMI intake must resolve to exactly one internal stock identity.")
-        return report
+    if financial_stock_id != comi_stock_id:
+        report["errors"].append(
+            "Financial provenance COMI mapping must resolve to the same internal stock identity."
+        )
 
-    dates = dates_by_stock[next(iter(dates_by_stock))]
-    warmup = sum(WARMUP_START <= d < EVALUATION_START for d in dates)
-    evaluation = sum(EVALUATION_START <= d <= EVALUATION_END for d in dates)
+    comi_market = [item for item in market if item.stock_id == comi_stock_id]
+    comi_financial = [item for item in financial if item.stock_id == comi_stock_id]
+
+    report["checks"]["market_observation_identity"] = (
+        "PASS" if comi_market else "FAIL"
+    )
+    report["checks"]["financial_identity_mapping"] = (
+        "PASS" if comi_financial else "FAIL"
+    )
+
+    if not comi_market:
+        report["errors"].append("No market observations match the mapped COMI stock identity.")
+        return report
+    if not comi_financial:
+        report["errors"].append(
+            "No financial snapshots match the mapped COMI stock identity."
+        )
+
+    dates = [item.timestamp.date() for item in comi_market]
+    warmup = sum(WARMUP_START <= value < EVALUATION_START for value in dates)
+    evaluation = sum(EVALUATION_START <= value <= EVALUATION_END for value in dates)
 
     report["coverage"] = {
-        "first_date": min(dates).isoformat() if dates else None,
-        "last_date": max(dates).isoformat() if dates else None,
+        "first_date": min(dates).isoformat(),
+        "last_date": max(dates).isoformat(),
         "warmup_observations": warmup,
         "evaluation_observations": evaluation,
     }
@@ -83,28 +128,25 @@ def build_report(root: Path) -> dict:
     report["checks"]["252_warmup"] = "PASS" if warmup >= REQUIRED_WARMUP else "FAIL"
     report["checks"]["evaluation_window"] = (
         "PASS"
-        if dates and min(dates) <= WARMUP_START and max(dates) >= EVALUATION_END and evaluation
+        if min(dates) <= WARMUP_START
+        and max(dates) >= EVALUATION_END
+        and evaluation
         else "FAIL"
     )
-
-    provenance = manifest.market_observations.provenance
     report["checks"]["corporate_action_convention"] = (
-        "PASS" if provenance and provenance.corporate_action_convention.strip() else "FAIL"
+        "PASS" if market_provenance.corporate_action_convention.strip() else "FAIL"
     )
     report["checks"]["licensing_notes"] = (
-        "PASS" if provenance and provenance.licensing_notes.strip() else "FAIL"
+        "PASS" if market_provenance.licensing_notes.strip() else "FAIL"
     )
+    report["checks"]["financial_artifact"] = "PASS" if comi_financial else "FAIL"
 
-    failures = [name for name, result in report["checks"].items() if result != "PASS"]
+    failures = [
+        name for name, result in report["checks"].items() if result != "PASS"
+    ]
     report["status"] = "ACCEPTED" if not failures else "REJECTED"
     if failures:
         report["errors"].append("Failed checks: " + ", ".join(failures))
-    # Financial artifacts are required by the M61 contract; their presence and
-    # generic PIT-safe shape are validated by load_financial_snapshots().
-    report["checks"]["financial_artifact"] = "PASS" if financial else "FAIL"
-    if not financial:
-        report["status"] = "REJECTED"
-        report["errors"].append("Financial snapshot artifact is empty.")
     return report
 
 
