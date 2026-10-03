@@ -95,6 +95,8 @@ from app.application.notifications.deliver_alert_by_symbol import (
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
+from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
+from app.api.market_intelligence_response import MarketMoverRankingResponse
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +135,7 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
+    rank_momentum_leaders = RankMomentumLeaders(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -595,6 +598,23 @@ def create_app(
         response_execution = getattr(execution, "execution", execution)
         response = MarketAnalysisExecutionResponse.from_execution(response_execution)
         return asdict(response)
+
+    @app.get("/api/v1/market-intelligence/momentum")
+    def get_market_momentum(
+        symbols: str = "",
+        limit: int = 10,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        requested_symbols = [
+            symbol.strip().upper()
+            for symbol in symbols.split(",")
+            if symbol.strip()
+        ]
+        try:
+            ranking = rank_momentum_leaders.execute(requested_symbols, limit=limit)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return MarketMoverRankingResponse.from_ranking(ranking).to_dict()
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
