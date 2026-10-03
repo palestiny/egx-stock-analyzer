@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections import defaultdict
 from datetime import date
 from pathlib import Path
 from uuid import UUID
@@ -72,8 +71,18 @@ def build_report(root: Path) -> dict:
         market_provenance.symbol_mappings,
         COMI_SYMBOL,
     )
+    financial_stock_id = _resolve_symbol_mapping(
+        financial_provenance.symbol_mappings,
+        COMI_SYMBOL,
+    )
+
     report["checks"]["comi_identity_mapping"] = (
         "PASS" if comi_stock_id is not None else "FAIL"
+    )
+    report["checks"]["financial_source_mapping"] = (
+        "PASS"
+        if financial_stock_id == comi_stock_id and financial_stock_id is not None
+        else "FAIL"
     )
 
     if comi_stock_id is None:
@@ -82,29 +91,32 @@ def build_report(root: Path) -> dict:
         )
         return report
 
-    comi_market = [item for item in market if item.stock_id == comi_stock_id]
-    if not comi_market:
-        report["checks"]["market_observation_identity"] = "FAIL"
-        report["errors"].append("No market observations match the mapped COMI stock identity.")
-        return report
-    report["checks"]["market_observation_identity"] = "PASS"
+    if financial_stock_id != comi_stock_id:
+        report["errors"].append(
+            "Financial provenance COMI mapping must resolve to the same internal stock identity."
+        )
 
+    comi_market = [item for item in market if item.stock_id == comi_stock_id]
     comi_financial = [item for item in financial if item.stock_id == comi_stock_id]
+
+    report["checks"]["market_observation_identity"] = (
+        "PASS" if comi_market else "FAIL"
+    )
     report["checks"]["financial_identity_mapping"] = (
         "PASS" if comi_financial else "FAIL"
     )
+
+    if not comi_market:
+        report["errors"].append("No market observations match the mapped COMI stock identity.")
+        return report
     if not comi_financial:
         report["errors"].append(
             "No financial snapshots match the mapped COMI stock identity."
         )
 
-    dates_by_stock: dict[str, list[date]] = defaultdict(list)
-    for item in comi_market:
-        dates_by_stock[str(item.stock_id)].append(item.timestamp.date())
-
-    dates = dates_by_stock[next(iter(dates_by_stock))]
-    warmup = sum(WARMUP_START <= d < EVALUATION_START for d in dates)
-    evaluation = sum(EVALUATION_START <= d <= EVALUATION_END for d in dates)
+    dates = [item.timestamp.date() for item in comi_market]
+    warmup = sum(WARMUP_START <= value < EVALUATION_START for value in dates)
+    evaluation = sum(EVALUATION_START <= value <= EVALUATION_END for value in dates)
 
     report["coverage"] = {
         "first_date": min(dates).isoformat(),
@@ -128,14 +140,6 @@ def build_report(root: Path) -> dict:
         "PASS" if market_provenance.licensing_notes.strip() else "FAIL"
     )
     report["checks"]["financial_artifact"] = "PASS" if comi_financial else "FAIL"
-    report["checks"]["financial_source_mapping"] = (
-        "PASS"
-        if any(
-            COMI_SYMBOL in mapping.upper()
-            for mapping in financial_provenance.symbol_mappings
-        )
-        else "FAIL"
-    )
 
     failures = [
         name for name, result in report["checks"].items() if result != "PASS"
