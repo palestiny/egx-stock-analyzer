@@ -37,10 +37,7 @@ from app.application.security.authentication import Authenticator
 from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.reporting.get_alert_candidate import GetAlertCandidate
-from app.application.notifications.deliver_alert_by_symbol import (
-    AlertCandidateNotFoundError,
-    DeliverAlertBySymbol,
-)
+from app.application.notifications.deliver_alert_by_symbol import DeliverAlertBySymbol
 
 
 class _OperatorTokenNotProvided:
