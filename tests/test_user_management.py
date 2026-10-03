@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.application.identity.management_transaction import ManagementMutationTransaction
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.application.security.credentials import CredentialService, IssuedCredential
 from app.application.security.identity import AuthenticatedIdentity
@@ -37,6 +38,25 @@ class InMemoryCredentialStore:
     def revoke(self, credential_id, revoked_at, replacement_id=None):
         pass
 
+class InMemoryManagementTransaction(ManagementMutationTransaction):
+    def __init__(self, users, credentials, audit):
+        self.users = users
+        self.credentials = credentials
+        self.audit = audit
+
+    def create_user(self, user, credential, event):
+        self.users.save(user)
+        self.credentials.create(credential.stored, credential.verifier)
+        self.audit.append(event)
+
+    def set_user_status(self, user, event):
+        self.users.save(user)
+        self.audit.append(event)
+
+    def rotate_credential(self, credential_id, user_id, replacement, revoked_at, event):
+        self.credentials.replace(credential_id, user_id, replacement.stored, replacement.verifier, revoked_at)
+        self.audit.append(event)
+
 class AuditStore:
     def __init__(self):
         self.events=[]
@@ -47,7 +67,7 @@ def make_service(users=None):
     user_store=InMemoryUserStore(users)
     credentials=CredentialService(InMemoryCredentialStore())
     audit=AuditStore()
-    return UserManagementService(user_store, credentials, audit), user_store, audit
+    transaction=InMemoryManagementTransaction(user_store, credentials._store, audit)\n    return UserManagementService(user_store, credentials, audit, transaction), user_store, audit
 
 def test_operator_can_create_user_and_receives_one_time_credential():
     service, users, audit = make_service([User(uuid4(), UserStatus.ACTIVE)])
@@ -83,7 +103,7 @@ def test_user_can_rotate_own_durable_credential():
     credential_store=InMemoryCredentialStore()
     credentials=CredentialService(credential_store)
     issued=credentials.provision(user_id)
-    service=UserManagementService(InMemoryUserStore([target]), credentials, AuditStore())
+    audit=AuditStore()\n    transaction=InMemoryManagementTransaction(InMemoryUserStore([target]), credential_store, audit)\n    service=UserManagementService(transaction.users, credentials, audit, transaction)
     identity=AuthenticatedIdentity.user(user_id, credential_id=issued.id)
     replacement=service.rotate_own_credential(identity)
     assert replacement.user_id == user_id
