@@ -78,7 +78,7 @@ def create_app(
     app = FastAPI(title="EGX Stock Analyzer API")
     app.add_middleware(RequestObservabilityMiddleware)
     get_analysis_result = GetAnalysisResult(result_store)
-    legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
+    legacy_test_composition = (\n        isinstance(operator_token, _OperatorTokenNotProvided)\n        and authenticator is None\n        and bool(os.getenv("PYTEST_CURRENT_TEST"))\n    )
     configured_token = (
         None
         if isinstance(operator_token, _OperatorTokenNotProvided)
