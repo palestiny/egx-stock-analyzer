@@ -10,6 +10,7 @@ from app.application.security.identity import AuthenticatedIdentity
 from app.domain.identity.user import UserStatus
 from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
+from app.infrastructure.persistence.sqlite_management_mutation_transaction import SQLiteManagementMutationTransaction
 from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 
 
@@ -17,7 +18,7 @@ def make_service(path: Path):
     users = SQLiteUserStore(path)
     credentials = CredentialService(SQLiteCredentialStore(path))
     audit = SQLiteManagementAuditStore(path)
-    return UserManagementService(users, credentials, audit), users
+    transaction = SQLiteManagementMutationTransaction(path)\n    return UserManagementService(users, credentials, audit, transaction), users
 
 
 def test_user_management_survives_restart_and_rotates_credentials(tmp_path):
