@@ -48,7 +48,12 @@ def test_generates_buy_signal_from_upside_breakout():
     assert signal.targets[0].price == Decimal("109")
 
 
-def test_no_signal_when_breakout_conditions_are_absent():
+def test_no_signal_when_trend_is_not_breakout_aligned():
     store = make_store()
     record = store.get_record("COMI")
-    record.result.entry_context.current_price = None
+    record.result.technical_analysis = SimpleNamespace(
+        trend=TrendEvidence(TrendStatus.SIDEWAYS),
+        timeframe=Timeframe.DAILY,
+        volume=VolumeEvidence(VolumeStatus.ABOVE_AVERAGE, Decimal("1.5")),
+    )
+    assert GenerateSignal(store).execute("COMI") is None
