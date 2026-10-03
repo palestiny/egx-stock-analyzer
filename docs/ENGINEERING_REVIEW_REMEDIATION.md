@@ -53,3 +53,10 @@ The latest verified remediation CI run passed the unit, integration, frontend, a
 - Adding indicators solely to increase feature count
 - Optimizing strategy parameters before a fixed validation protocol exists
 - Treating provider smoke tests as historical evidence
+
+### Authentication fail-closed hardening
+
+- Legacy test composition is now recognized only while pytest is executing (`PYTEST_CURRENT_TEST` is present).
+- A production composition with omitted authentication configuration no longer silently authenticates every request as the operator; the HTTP adapter returns `503 Authentication is not configured`.
+- Explicit authentication configuration remains unchanged.
+- Credential storage tests now verify that issued secrets are not stored as plaintext, old secrets become invalid after rotation, and verifier-only persistence remains intact.
