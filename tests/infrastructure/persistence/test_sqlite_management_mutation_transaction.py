@@ -19,11 +19,23 @@ def make_service(path: Path, *, fail_audit: bool = False):
     credential_store = SQLiteCredentialStore(path)
     credentials = CredentialService(credential_store)
     audit = SQLiteManagementAuditStore(path)
+
+    def fail_audit_write() -> None:
+        raise RuntimeError("audit write failed")
+
     transaction = SQLiteManagementMutationTransaction(
         path,
-        audit_failure_hook=(lambda: (_ for _ in ()).throw(RuntimeError("audit write failed"))) if fail_audit else None,
+        audit_failure_hook=fail_audit_write if fail_audit else None,
     )
     return UserManagementService(users, credentials, audit, transaction), users, credential_store, audit
+
+
+def database_counts(path: Path) -> tuple[int, int, int]:
+    with sqlite3.connect(path) as connection:
+        return tuple(
+            connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("users", "user_credentials", "management_audit")
+        )
 
 
 def test_create_user_rolls_back_user_and_credential_when_audit_fails(tmp_path):
@@ -34,13 +46,9 @@ def test_create_user_rolls_back_user_and_credential_when_audit_fails(tmp_path):
         service.create_user(AuthenticatedIdentity.operator())
 
     assert users.list() == []
-    assert credentials.find_active_for_user(uuid4()) == []
     assert audit.list_events() == []
-
-    with sqlite3.connect(database) as connection:
-        assert connection.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0
-        assert connection.execute("SELECT COUNT(*) FROM user_credentials").fetchone()[0] == 0
-        assert connection.execute("SELECT COUNT(*) FROM management_audit").fetchone()[0] == 0
+    assert database_counts(database) == (0, 0, 0)
+    assert credentials.find_active_for_user(uuid4()) == []
 
 
 def test_status_change_rolls_back_when_audit_fails(tmp_path):
@@ -55,6 +63,7 @@ def test_status_change_rolls_back_when_audit_fails(tmp_path):
 
     assert users.get(user.id).status is UserStatus.ACTIVE
     assert audit.list_events() == []
+    assert database_counts(database) == (1, 0, 0)
 
 
 def test_credential_rotation_rolls_back_when_audit_fails(tmp_path):
@@ -72,3 +81,4 @@ def test_credential_rotation_rolls_back_when_audit_fails(tmp_path):
     active = credentials.find_active_for_user(user.id)
     assert [item.id for item in active] == [issued.id]
     assert audit.list_events() == []
+    assert database_counts(database) == (1, 1, 0)
