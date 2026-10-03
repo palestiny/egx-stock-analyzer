@@ -18,7 +18,8 @@ def make_service(path: Path):
     users = SQLiteUserStore(path)
     credentials = CredentialService(SQLiteCredentialStore(path))
     audit = SQLiteManagementAuditStore(path)
-    transaction = SQLiteManagementMutationTransaction(path)\n    return UserManagementService(users, credentials, audit, transaction), users
+    transaction = SQLiteManagementMutationTransaction(path)
+    return UserManagementService(users, credentials, audit, transaction), users
 
 
 def test_user_management_survives_restart_and_rotates_credentials(tmp_path):
