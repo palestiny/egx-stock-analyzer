@@ -106,6 +106,8 @@ from app.api.fibonacci_response import FibonacciResponse
 from app.api.market_intelligence_response import MarketMoverRankingResponse
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
 from app.api.breakout_response import BreakoutResponse
+from app.application.signals.generate_signal import GenerateSignal
+from app.api.signal_response import signal_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +151,7 @@ def create_app(
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
     scan_breakouts = ScanBreakouts(result_store)
+    generate_signal = GenerateSignal(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -707,6 +710,19 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return BreakoutResponse.from_result(result).to_dict()
+
+    @app.get("/api/v1/signals/{symbol}")
+    def get_signal(
+        symbol: str,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        try:
+            signal = generate_signal.execute(symbol)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        if signal is None:
+            raise HTTPException(status_code=404, detail=f"No actionable signal for {symbol.upper()}")
+        return signal_to_dict(signal)
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
