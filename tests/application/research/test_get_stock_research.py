@@ -10,14 +10,12 @@ from app.application.research.get_stock_research import (
     StockResearchNotFoundError,
 )
 from app.domain.entry_analysis.context import EntryContext
-from app.domain.entry_analysis.scoring import EntryQualityScore
 from app.domain.fundamental_analysis.result import FundamentalAnalysisResult
 from app.domain.opportunity.classification import (
     OpportunityClassification,
     OpportunityClassificationResult,
 )
 from app.domain.reporting.report import AnalysisReport
-from app.domain.scoring.stock_quality import StockQualityScore
 from app.domain.technical_analysis.momentum import MomentumEvidence, MomentumStatus
 from app.domain.technical_analysis.result import TechnicalAnalysisResult
 from app.domain.technical_analysis.support_resistance import PriceLevelEvidence, SupportResistanceEvidence
@@ -50,13 +48,13 @@ def _report() -> AnalysisReport:
         analysis_date=date(2026, 10, 3),
         technical_analysis=technical,
         fundamental_analysis=fundamental,
-        stock_quality=StockQualityScore(total_score=5),
+        stock_quality=Mock(total_score=5),
         entry_context=EntryContext(
             current_price=Price(Decimal("105")),
             nearest_support=technical.support_resistance.support_levels[0],
             nearest_resistance=technical.support_resistance.resistance_levels[0],
         ),
-        entry_quality=EntryQualityScore(total_score=2),
+        entry_quality=Mock(total_score=2),
         classification=OpportunityClassificationResult(OpportunityClassification.BUY),
     )
 
