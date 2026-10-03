@@ -104,6 +104,8 @@ from app.api.sector_intelligence_response import SectorRankingResponse
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
 from app.api.fibonacci_response import FibonacciResponse
 from app.api.market_intelligence_response import MarketMoverRankingResponse
+from app.application.market_intelligence.scan_breakouts import ScanBreakouts
+from app.api.breakout_response import BreakoutResponse
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +148,7 @@ def create_app(
     run_technical_scanner = RunTechnicalScanner(result_store)
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
+    scan_breakouts = ScanBreakouts(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -682,6 +685,28 @@ def create_app(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return FibonacciResponse.from_result(result).to_dict()
+
+    @app.get("/api/v1/market-intelligence/breakouts")
+    def scan_breakouts_route(
+        symbols: str = "",
+        tolerance_percent: Decimal = Decimal("1"),
+        limit: int = 20,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        requested_symbols = [
+            symbol.strip().upper()
+            for symbol in symbols.split(",")
+            if symbol.strip()
+        ]
+        try:
+            result = scan_breakouts.execute(
+                requested_symbols,
+                tolerance_percent=tolerance_percent,
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return BreakoutResponse.from_result(result).to_dict()
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
