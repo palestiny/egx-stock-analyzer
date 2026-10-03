@@ -2,50 +2,49 @@
 
 ## Status
 
-**NOT PROVEN — blocked on persistence transaction capability.**
+**IMPLEMENTED — verification pending current CI run.**
 
-The current `UserManagementService` performs a durable-looking mutation and then appends the management audit event. The application ports do not currently expose a shared transaction boundary:
+The concrete SQLite persistence boundary is now explicit. User/credential/audit mutations use SQLiteManagementMutationTransaction, which opens one SQLite connection and commits or rolls back the complete mutation as one unit.
 
-- `UserStore.save(...)`
-- `CredentialStore.create/replace/revoke(...)`
-- `ManagementAuditStore.append(...)`
+## Transaction boundary
 
-Therefore the system cannot currently prove atomicity between the business mutation and its audit record.
+The application mutation port is:
 
-## Required semantics
+- ManagementMutationTransaction.create_user(...)
+- ManagementMutationTransaction.set_user_status(...)
+- ManagementMutationTransaction.rotate_credential(...)
 
-For a mutation that changes user/credential state, we need one of these explicitly implemented semantics:
+The infrastructure implementation is SQLiteManagementMutationTransaction.
 
-1. **Atomic mutation + audit** — preferred if the concrete stores share one transactional durable backend.
-2. **Explicit post-commit audit failure** — acceptable only if the API/application contract makes the successful mutation and audit failure observable separately and retry behavior is idempotent.
-3. **Transactional outbox** — only if the existing persistence boundary cannot atomically contain the audit write and operational evidence justifies asynchronous delivery.
+Each operation contains the business-state write and its management-audit write inside the same SQLite transaction.
 
-We should not introduce a queue/broker merely to hide the current boundary.
+Credential issuance/rotation is prepared in the application layer without persisting first. The transaction then persists the prepared verifier and state together with the audit event. Plaintext credential secrets remain in the one-time IssuedCredential result only.
 
-## Current risk
+## Failure semantics
 
-For example:
+A deterministic audit_failure_hook is available on the SQLite transaction implementation for infrastructure tests. When it raises during audit append, SQLite rolls the entire transaction back.
 
-1. `set_status(...)` saves the new user status.
-2. `_record(...)` calls `audit_store.append(...)`.
-3. If audit append fails, the service raises after the user mutation has already occurred.
-4. A client seeing an error can retry, while the audit trail may be incomplete.
+Coverage added for:
 
-This is a real consistency boundary, not a logging concern.
+- create user + credential + audit rollback;
+- status mutation + audit rollback;
+- credential rotation + audit rollback;
+- post-failure inspection of users, credentials, and audit rows.
 
-## Verification gate
+This is failure injection for verification only; production composition does not configure the hook.
 
-Before declaring this gate PASS we need:
+## Required final verification
 
-- concrete implementations of UserStore/CredentialStore/ManagementAuditStore identified;
-- their transaction capabilities documented;
-- deterministic failure injection at the audit write boundary;
-- proof of either atomic rollback or an explicit post-commit failure contract;
-- retry/idempotency behavior tested;
-- no plaintext credential secret in audit/error/log output.
+Before declaring this gate PASS:
+
+- run the full unit/integration/quality CI suite on the current branch;
+- verify all management mutation tests pass;
+- verify the failure-injection tests pass;
+- verify credential rotation still invalidates the old secret;
+- verify no plaintext credential secret is persisted or emitted by audit/error paths.
 
 ## Decision
 
-**Do not merge the remediation PR on the basis of the current application-layer tests.**
+**Use atomic mutation + audit. Do not introduce an outbox, queue, or broker for this boundary.**
 
-Next implementation step is to locate/introduce the concrete persistence boundary and choose the smallest transaction design supported by it.
+The current SQLite same-file architecture provides the smallest transaction boundary needed by the domain. Revisit this decision only if measured workload or a future persistence migration invalidates the assumption.
