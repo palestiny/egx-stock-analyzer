@@ -99,7 +99,7 @@ class UserManagementService:
         if user.status is UserStatus.DELETED:
             raise UserManagementError("Deleted user cannot receive credentials")
         try:
-            active = self._credentials._store.find_active_for_user(user_id)
+            active = self._credentials.active_credentials_for_user(user_id)
             if not active:
                 raise ValueError("No durable credential is available for this user")
             prepared, revoked_at = self._credentials.prepare_rotation(active[-1].id, user_id)
