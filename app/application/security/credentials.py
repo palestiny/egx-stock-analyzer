@@ -22,6 +22,13 @@ class IssuedCredential:
     secret: str
 
 
+@dataclass(frozen=True)
+class PreparedCredential:
+    issued: IssuedCredential
+    stored: StoredCredential
+    verifier: str
+
+
 class CredentialStore(Protocol):
     def create(
         self,
@@ -63,23 +70,27 @@ class CredentialService:
     def __init__(self, store: CredentialStore) -> None:
         self._store = store
 
-    def provision(self, user_id: UUID) -> IssuedCredential:
+    def prepare_provision(self, user_id: UUID) -> PreparedCredential:
         credential_id = uuid4()
         secret = token_urlsafe(32)
-        credential = StoredCredential(
+        stored = StoredCredential(
             id=credential_id,
             user_id=user_id,
             status="active",
             created_at=datetime.now(timezone.utc),
         )
-        self._store.create(credential, _derive_verifier(secret))
-        return IssuedCredential(
-            id=credential_id,
-            user_id=user_id,
-            secret=secret,
+        return PreparedCredential(
+            issued=IssuedCredential(id=credential_id, user_id=user_id, secret=secret),
+            stored=stored,
+            verifier=_derive_verifier(secret),
         )
 
-    def rotate(self, credential_id: UUID, user_id: UUID) -> IssuedCredential:
+    def provision(self, user_id: UUID) -> IssuedCredential:
+        prepared = self.prepare_provision(user_id)
+        self._store.create(prepared.stored, prepared.verifier)
+        return prepared.issued
+
+    def prepare_rotation(self, credential_id: UUID, user_id: UUID) -> tuple[PreparedCredential, datetime]:
         replacement_id = uuid4()
         secret = token_urlsafe(32)
         replacement = StoredCredential(
@@ -88,14 +99,25 @@ class CredentialService:
             status="active",
             created_at=datetime.now(timezone.utc),
         )
+        return (
+            PreparedCredential(
+                issued=IssuedCredential(id=replacement_id, user_id=user_id, secret=secret),
+                stored=replacement,
+                verifier=_derive_verifier(secret),
+            ),
+            datetime.now(timezone.utc),
+        )
+
+    def rotate(self, credential_id: UUID, user_id: UUID) -> IssuedCredential:
+        prepared, revoked_at = self.prepare_rotation(credential_id, user_id)
         self._store.replace(
             credential_id=credential_id,
             user_id=user_id,
-            replacement=replacement,
-            replacement_verifier=_derive_verifier(secret),
-            revoked_at=datetime.now(timezone.utc),
+            replacement=prepared.stored,
+            replacement_verifier=prepared.verifier,
+            revoked_at=revoked_at,
         )
-        return IssuedCredential(id=replacement_id, user_id=user_id, secret=secret)
+        return prepared.issued
 
     def rotate_latest_for_user(self, user_id: UUID) -> IssuedCredential:
         active = self._store.find_active_for_user(user_id)
