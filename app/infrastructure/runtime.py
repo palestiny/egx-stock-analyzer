@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
+from app.infrastructure.persistence.sqlite_management_mutation_transaction import SQLiteManagementMutationTransaction
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
 from app.application.analysis.result_store import (
     AnalysisResultStore,
@@ -121,11 +122,13 @@ def create_infrastructure_runtime(
     credential_store = SQLiteCredentialStore(config.analysis_database_path)
     credential_service = CredentialService(credential_store)
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
+    management_transaction = SQLiteManagementMutationTransaction(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
         user_store=user_store,
         credential_service=credential_service,
         audit_store=management_audit_store,
+        transaction=management_transaction,
     )
     authenticator = DurableBearerTokenAuthenticator(
         credential_store=credential_store,
