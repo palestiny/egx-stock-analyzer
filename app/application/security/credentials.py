@@ -119,8 +119,11 @@ class CredentialService:
         )
         return prepared.issued
 
+    def active_credentials_for_user(self, user_id: UUID) -> list[StoredCredential]:
+        return self._store.find_active_for_user(user_id)
+
     def rotate_latest_for_user(self, user_id: UUID) -> IssuedCredential:
-        active = self._store.find_active_for_user(user_id)
+        active = self.active_credentials_for_user(user_id)
         if not active:
             raise ValueError("No durable credential is available for this user")
         return self.rotate(active[-1].id, user_id)
