@@ -1,0 +1,64 @@
+name: COMI Data Source Validation
+
+on:
+  push:
+    branches:
+      - experiment/comi-data-source-validation
+  workflow_dispatch:
+
+jobs:
+  fetch-comi-yahoo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install data client
+        run: python -m pip install --upgrade pip && pip install "yfinance>=0.2.66,<0.3"
+      - name: Fetch COMI 2021-2025
+        run: |
+          python - <<'PY'
+          import yfinance as yf
+          from pathlib import Path
+          import pandas as pd
+
+          df = yf.download(
+              "COMI.CA",
+              start="2021-01-01",
+              end="2026-01-01",
+              interval="1d",
+              auto_adjust=False,
+              progress=False,
+              actions=False,
+          )
+          if df.empty:
+              raise SystemExit("COMI.CA returned no rows")
+
+          if isinstance(df.columns, pd.MultiIndex):
+              df.columns = df.columns.get_level_values(0)
+
+          required = ["Open", "High", "Low", "Close", "Volume"]
+          missing = [c for c in required if c not in df.columns]
+          if missing:
+              raise SystemExit(f"Missing columns: {missing}")
+
+          out = df.reset_index()
+          out.columns = [str(c).lower().replace(" ", "_") for c in out.columns]
+          out = out.rename(columns={"date": "timestamp"})
+          Path("artifacts").mkdir(exist_ok=True)
+          out.to_csv("artifacts/COMI_yahoo_2021_2025.csv", index=False)
+
+          print("SOURCE=yahoo_finance")
+          print(f"ROWS={len(out)}")
+          print(f"FIRST={out['timestamp'].min()}")
+          print(f"LAST={out['timestamp'].max()}")
+          print(f"COLUMNS={list(out.columns)}")
+          print(out.head(3).to_string(index=False))
+          print(out.tail(3).to_string(index=False))
+          PY
+      - name: Upload dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: comi-yahoo-2021-2025
+          path: artifacts/COMI_yahoo_2021_2025.csv
