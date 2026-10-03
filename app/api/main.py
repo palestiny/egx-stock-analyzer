@@ -21,6 +21,7 @@ from app.api.user_audit_history_response import UserAuditHistoryResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
 from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
+from app.api.stock_research_response import StockResearchResponse
 from app.api.scheduled_workflow_execution_response import (
     ScheduledWorkflowExecutionResponse,
     ScheduledWorkflowExecutionsResponse,
@@ -93,6 +94,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
     DeliverAlertBySymbol,
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
+from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +133,7 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     get_analysis_result = GetAnalysisResult(result_store)
+    get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
         None
@@ -561,6 +564,19 @@ def create_app(
 
         response = AnalysisReportResponse.from_report(report)
         return asdict(response)
+
+    @app.get("/api/v1/research/{symbol}")
+    def get_stock_research_route(
+        symbol: str,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_stock_research is None:
+            raise HTTPException(status_code=503, detail="Stock research is not configured")
+        try:
+            view = get_stock_research.execute(symbol, identity=identity)
+        except StockResearchNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        return StockResearchResponse.from_view(view).to_dict()
 
     @app.post("/api/v1/market-analysis")
     def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
