@@ -1,0 +1,38 @@
+name: COMI TradeGlob Data Validation
+
+on:
+  push:
+    branches: [experiment/comi-data-source-validation]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install TradeGlob
+        run: pip install git+https://github.com/ibrasonic/tradeglob.git pandas
+      - name: Fetch COMI EGX 2021-2025
+        run: |
+          python - <<'PY'
+          from datetime import date
+          from tradeglob import TradeGlobFetcher
+          f=TradeGlobFetcher()
+          df=f.get_multiple(
+              stock_list=["COMI"], exchange="EGX", interval="Daily",
+              start=date(2021,1,1), end=date(2025,12,31),
+              columns="all", parallel=False, use_cache=False, )
+          print("rows:", len(df))
+          print("columns:", list(df.columns))
+          print(df.head())
+          print(df.tail())
+          df.to_csv("COMI_tradeglob_2021_2025.csv")
+          if len(df) < 500: raise SystemExit("INSUFFICIENT_ROWS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: comi-tradeglob-2021-2025
+          path: COMI_tradeglob_2021_2025.csv
