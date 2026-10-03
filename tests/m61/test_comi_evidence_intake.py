@@ -1,9 +1,11 @@
 from pathlib import Path
+from uuid import UUID
 
-from tools.m61_comi_evidence_intake import build_report
+from tools.m61_comi_evidence_intake import _resolve_symbol_mapping, build_report
 
 
 FIXTURE = Path("tests/fixtures/historical_dataset/v1")
+STOCK_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 def test_comi_intake_rejects_synthetic_fixture_without_m61_coverage() -> None:
@@ -22,3 +24,23 @@ def test_comi_intake_never_accepts_missing_dataset() -> None:
 
     assert report["status"] == "REJECTED"
     assert report["errors"]
+
+
+def test_symbol_mapping_requires_exactly_one_valid_comi_mapping() -> None:
+    assert _resolve_symbol_mapping(
+        (f"COMI -> {STOCK_ID}", "EGAL -> {STOCK_ID}"),
+        "COMI",
+    ) == STOCK_ID
+
+
+def test_symbol_mapping_rejects_ambiguous_comi_mapping() -> None:
+    other = UUID("00000000-0000-0000-0000-000000000002")
+
+    assert _resolve_symbol_mapping(
+        (f"COMI -> {STOCK_ID}", f"COMI -> {other}"),
+        "COMI",
+    ) is None
+
+
+def test_symbol_mapping_rejects_malformed_comi_mapping() -> None:
+    assert _resolve_symbol_mapping(("COMI -> not-a-uuid",), "COMI") is None
