@@ -25,6 +25,40 @@ Remaining M61 work: acquire and preserve the bounded real historical cohort, val
 
 ---
 
+# Future Product Direction
+
+The future Opportunity & Market Intelligence sequence is documented separately so it does not accidentally become an active implementation queue:
+
+**`docs/OPPORTUNITY-MARKET-INTELLIGENCE-ROADMAP.md`**
+
+The sequence is:
+
+```
+M61 Validation
+   ↓
+M62 Opportunity Engine
+   ↓
+M63 Market Scanner
+   ↓
+M64 Pattern Engine
+   ↓
+M65 Chart Intelligence
+   ↓
+M66 Alerts & Monitoring
+   ↓
+M67 Market Intelligence / Crash Radar
+   ↓
+M68 Opportunity Scoring
+   ↓
+M69 Outcome Intelligence
+   ↓
+M70 Telegram / AI Assistant
+```
+
+Only one milestone is active at a time. Therefore **M61 remains the only active milestone** until its acceptance gate is closed.
+
+---
+
 ## M60 — Production Maintenance Scheduling
 
 **Status:** 🟢 Complete — Deployment Mapping Merged
@@ -65,7 +99,7 @@ Implemented the accepted M56 lifecycle boundary using TDD, shared SQLite transac
 
 Every new milestone follows:
 
-```text
+```
 UNDERSTAND
    ↓
 MAP
@@ -101,7 +135,7 @@ No feature implementation starts before its design gate is accepted when the fea
 
 The project remains a modular monolith with clear boundaries:
 
-```text
+```
 API / Dashboard
       ↓
 Application Use Cases
@@ -132,32 +166,6 @@ A milestone is considered complete only when its design, tests, implementation, 
 Completed milestones are **historical records**, not active work queues.
 
 The active roadmap intentionally contains **one current milestone only**.
-
-## M58 — Automatic Analysis Retention
-
-**Status:** 🟢 Complete — Implementation Merged and CI Validated
-
-The M58 automatic-retention policy is accepted and implemented. Automatic retention is age-based, starts from logical deletion time, uses a **30-day preservation duration**, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration.
-
-Design gate: `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md` — Accepted.
-
-Implementation: PR #157, merged into `main` at `f2294c34a10c994545e24175c956ee8524170142`.
-
-The implementation was validated by the successful M58 CI run #2637 on the implementation head before merge. Post-merge workflow association for the merge commit is empty in GitHub's commit-workflow query, so no separate merge-commit CI run is claimed here.
-
-## M57 — Physical Purge
-
-**Status:** 🟢 Complete — Implementation Merged and CI Validated
-
-M57 provides a privileged, synchronous physical-purge capability for logically deleted analysis lifecycle data. It uses explicit selection or deterministic eligibility, a default batch limit of 100 lifecycle units, stable-ID ordering, one SQLite transaction per lifecycle unit, fail-stop semantics, mandatory management audit, and dry-run support. Automatic retention remains disabled.
-
-Design gate: `docs/DEC-120-M57-PHYSICAL-PURGE-DESIGN-GATE.md` — Accepted.
-
-Implementation: PR #151, merged into `main` at `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`.
-
-GitHub Actions Run #2537 completed successfully for implementation merge `3b20199581e2a6f313e3f83ca4c65780d5a9dbba`. A subsequent documentation closeout Run #2543 also completed successfully.
-
-This prevents milestone accumulation from becoming architecture drift or a second source of truth.
 
 ---
 
