@@ -52,3 +52,23 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  m61-tradeglob-probe:
+    if: github.ref == 'refs/heads/feature/m61-tradeglob-acquisition-probe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install TradeGlob
+        run: python -m pip install --upgrade pip && pip install git+https://github.com/ibrasonic/TradeGlob.git
+      - name: Run bounded EGX cohort probe
+        run: python scripts/m61_tradeglob_probe.py
+      - name: Upload probe artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m61-tradeglob-probe
+          path: artifacts/m61_tradeglob_probe/
+          if-no-files-found: error
