@@ -211,6 +211,42 @@ CI
 
 New dashboard, persistence, scheduling, alert-delivery, ranking, authentication, or other major capabilities require an explicit design gate before implementation.
 
+## Target Product Architecture
+
+The long-term product direction is a **market-agnostic Market Intelligence Platform**.
+
+EGX is the first market, not a permanent architectural boundary. The same analytical, scanning, signal, risk, portfolio, backtesting, alerting, and research capabilities are intended to operate across EGX, US, and future markets through shared contracts and market-specific adapters.
+
+```
+Shared Capability Core
+        ↓
+Market / Provider Adapters
+        ↓
+EGX | US | Future Markets
+```
+
+Provider limitations are modeled explicitly through market/data capability readiness. The system must not fabricate analysis when required evidence is unavailable.
+
+Trading automation is a separate execution boundary. The planned progression is:
+
+```
+Alert
+  ↓
+Paper Trading
+  ↓
+Assisted Execution
+  ↓
+Semi-Automatic Execution
+  ↓
+Fully Automated Execution (explicit live gate)
+```
+
+The complete capability inventory and parity checklist are maintained in `docs/MASTER-FEATURE-REGISTRY.md`.
+
+The architecture gate is `docs/DEC-133-MARKET-AGNOSTIC-MULTI-MARKET-ARCHITECTURE-DESIGN-GATE.md`.
+
+The post-M61 execution plan is `docs/M62-MARKET-INTELLIGENCE-EXECUTION-PLAN.md`.
+
 ## Current Milestone State
 
 The authoritative current project state is maintained in `docs/CURRENT_STATE.md` and `docs/ROADMAP.md`.
