@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/m61-tradeglob-acquisition-probe
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
