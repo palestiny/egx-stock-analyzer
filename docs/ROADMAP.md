@@ -177,6 +177,60 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 ---
 
+# Strategic Product Direction — Post-M61
+
+The project is no longer intended to remain EGX-only.
+
+The accepted product direction is to evolve the system toward a **market-agnostic Market Intelligence Platform**. The platform will provide one shared capability core and market-specific adapters.
+
+Target shape:
+
+```
+Market Intelligence Platform
+        |
+        +-- Shared Capability Core
+        |     +-- Analysis
+        |     +-- Scanners
+        |     +-- Signals
+        |     +-- Risk
+        |     +-- Portfolio
+        |     +-- Backtesting
+        |     +-- Alerts
+        |     +-- Research / AI
+        |     +-- Execution boundary
+        |
+        +-- Market Adapters
+              +-- EGX
+              +-- US
+              +-- Future markets
+```
+
+The complete target capability inventory is maintained in:
+
+- `docs/MASTER-FEATURE-REGISTRY.md`
+
+The architecture gate is:
+
+- `docs/DEC-133-MARKET-AGNOSTIC-MULTI-MARKET-ARCHITECTURE-DESIGN-GATE.md`
+
+The planned post-M61 execution sequence is:
+
+- `docs/M62-MARKET-INTELLIGENCE-EXECUTION-PLAN.md`
+
+This direction does **not** replace M61. M61 remains the current active milestone until its real historical-evidence acceptance sequence is complete.
+
+Automated trading is part of the long-term platform boundary, but live execution is explicitly gated. The intended progression is:
+
+```
+Alert
+  -> Paper Trading
+  -> Assisted Execution
+  -> Semi-Automatic Execution
+  -> Fully Automated Execution (explicit live gate)
+```
+
+No live trading capability is considered authorized merely because an execution adapter exists.
+
 # Next
 
 The active M61 execution step is **real historical dataset acquisition and validation**.
