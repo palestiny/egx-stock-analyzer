@@ -33,10 +33,10 @@ def transition_signal(signal: Signal, state: SignalMarketState) -> Signal:
     price = state.price
     if signal.direction.value == "BUY":
         invalidated = price <= signal.invalidation
-        triggered = price >= max(target.price for target in signal.targets)
+        triggered = price >= min(target.price for target in signal.targets)
     else:
         invalidated = price >= signal.invalidation
-        triggered = price <= min(target.price for target in signal.targets)
+        triggered = price <= max(target.price for target in signal.targets)
 
     status = SignalStatus.INVALIDATED if invalidated else SignalStatus.TRIGGERED if triggered else SignalStatus.ACTIVE
 
