@@ -46,11 +46,40 @@ Optional Execution Adapter
 
 The Safety / Execution Boundary is a mandatory architectural boundary, not a UI concern.
 
+### DEC-133 Decision Lifecycle Integration
+
+DEC-134 uses the existing six-stage DEC-133 lifecycle without adding a new lifecycle stage:
+
+**Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
+
+The real-time pipeline maps to that lifecycle as follows:
+
+- **Analytical State:** normalized real-time evidence plus integrity, freshness, session, and current-state context.
+- **Opportunity:** Scanner / Opportunity Detection identifies a setup or market state.
+- **Strategy Eligibility:** the versioned strategy determines whether the opportunity is eligible under its data, session, risk, and strategy constraints.
+- **Trade Plan:** the strategy produces the applicable entry/add/reduce/exit/re-entry/invalidation and risk/reward contract.
+- **Recommendation:** Recommendation / Alert produces an auditable decision-support output.
+- **Human Action:** the user may explicitly submit an action intent, including through a hotkey.
+
+The **Safety / Execution Boundary is not a seventh lifecycle stage**. It is the deterministic enforcement boundary that protects Human Action and any subsequent execution path.
+
+The following distinctions are mandatory:
+
+**Recommendation ≠ Order**  
+**Human Action ≠ Broker Order**  
+**Hotkey Intent ≠ Accepted Order**
+
+The protected flow is:
+
+**Recommendation → Human Action / Intent → Safety & Execution Boundary → validation / risk / state / freshness / idempotency / kill-switch checks → Execution Adapter → Broker**
+
+No UI, hotkey, AI component, strategy, or recommendation may bypass the Safety / Execution Boundary.
+
 ## 4. Resolved Design Decisions
 
 ### 4.1 Clock and timestamp semantics
 
-Preserve, when available: source/event time, receive time, processing time, decision time, and execution-related audit times. Source time identifies when the market event occurred; receive time identifies when the system knew about it. A monotonic local clock is used for duration/latency measurement. UTC timestamps are used for audit/correlation. Source time must never be overwritten by local receive time. If clock comparability is unreliable, precise source-to-system latency is reported as unavailable rather than guessed. citeturn0search0turn0search8
+Preserve, when available: source/event time, receive time, processing time, decision time, and execution-related audit times. Source time identifies when the market event occurred; receive time identifies when the system knew about it. A monotonic local clock is used for duration/latency measurement. UTC timestamps are used for audit/correlation. Source time must never be overwritten by local receive time. If clock comparability is unreliable, precise source-to-system latency is reported as unavailable rather than guessed.
 
 ### 4.2 Event ordering and sequence semantics
 
@@ -82,7 +111,7 @@ Missing, unsupported, stale, invalid, and unknown are distinct states. Absence n
 
 Freshness is relative to market/session state, instrument, event type, strategy requirements, and provider behavior. There is no universal stale threshold.
 
-Track last event time, last receive time, last valid continuity state, freshness status, and degradation reason. Execution-relevant decisions fail closed when required evidence is stale or integrity is unknown. User-facing views may display stale information only with explicit stale status. Freshness thresholds are versioned strategy/configuration data and are observable. citeturn0search0
+Track last event time, last receive time, last valid continuity state, freshness status, and degradation reason. Execution-relevant decisions fail closed when required evidence is stale or integrity is unknown. User-facing views may display stale information only with explicit stale status. Freshness thresholds are versioned strategy/configuration data and are observable.
 
 ### 4.6 Market-session state
 
@@ -141,13 +170,13 @@ Replay is mandatory for any strategy whose behavior depends on real-time conditi
 
 Retain, where available: source timestamps, receive timestamps, provider/venue, sequence/event identity, observed arrival order, duplicates, gaps, reconnect/recovery events, corrections, session state, and capability state.
 
-Two modes exist: market-time replay and system-observed replay. System-observed replay is authoritative for evaluating latency-sensitive live behavior because it reproduces what the live system actually received and when. Clean OHLCV history alone is insufficient for tick-level validation. citeturn0search4
+Two modes exist: market-time replay and system-observed replay. System-observed replay is authoritative for evaluating latency-sensitive live behavior because it reproduces what the live system actually received and when. Clean OHLCV history alone is insufficient for tick-level validation.
 
 ### 4.13 Latency budget and measurement
 
 Latency is measured as a chain: source event → receive → process → feature → strategy → recommendation → human action → execution boundary → broker acknowledgement/fill when available.
 
-Each measurable segment exposes p50, p95, p99, maximum/outlier, sample count, and clock-quality status. The architecture does not impose a universal millisecond target. Targets are strategy/provider/market specific and must be established from measured evidence. Tail latency, queueing, staleness, gaps, and reconnects are part of real-time quality. citeturn0search3turn0search8
+Each measurable segment exposes p50, p95, p99, maximum/outlier, sample count, and clock-quality status. The architecture does not impose a universal millisecond target. Targets are strategy/provider/market specific and must be established from measured evidence. Tail latency, queueing, staleness, gaps, and reconnects are part of real-time quality.
 
 ### 4.14 Hotkey safety and duplicate-action protection
 
@@ -157,7 +186,7 @@ The hotkey layer emits a human-action intent. Deterministic runtime enforcement 
 
 The UI and any AI component cannot bypass these checks. Repeated key presses, retries, reconnects, or duplicated messages must not create unintended duplicate actions. Every accepted/rejected intent is auditable.
 
-**Fail closed:** if execution-safety state cannot be established, the action is rejected rather than guessed. Safety enforcement belongs to deterministic runtime code, not the UI/model layer. citeturn0search2
+**Fail closed:** if execution-safety state cannot be established, the action is rejected rather than guessed. Safety enforcement belongs to deterministic runtime code, not the UI/model layer.
 
 ### 4.15 Position synchronization
 
@@ -244,8 +273,8 @@ DEC-134 can be accepted only when the repository documents and agrees on:
 13. measurable latency model and observability;
 14. scanner/opportunity boundary;
 15. strategy registry/versioning boundary;
-16. integration with the DEC-133 six-stage decision lifecycle;
-17. hotkey intent vs deterministic safety-enforcement boundary;
+16. explicit integration with the DEC-133 six-stage decision lifecycle, including all six stages and their real-time mapping;
+17. explicit separation of Recommendation, Human Action, Hotkey Intent, and Accepted Order, with the deterministic safety-enforcement boundary protecting the Human Action stage;
 18. duplicate-action/idempotency protection;
 19. position synchronization and reconciliation;
 20. kill-switch authority and recovery;
