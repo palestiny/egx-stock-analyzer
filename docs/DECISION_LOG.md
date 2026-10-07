@@ -3285,3 +3285,19 @@ Revisit DEC-133 if:
 
 See `docs/DEC-133-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md`.
 
+
+
+## DEC-134 — Real-Time & Active Trading Architecture Design Gate
+
+**Status:** Proposed — Owner Approval Required
+
+### Context
+The Market Intelligence architecture is intended to support both investment-oriented analysis and future short-horizon real-time active trading/scalping. This requires a tick/streaming architecture without creating a second analytical core or coupling the domain to a specific provider or broker.
+
+### Decision
+Register real-time/active trading as a separate product capability with its own architecture Design Gate. The capability is documented now, but implementation is not authorized until DEC-134 is accepted and the execution roadmap explicitly authorizes an implementation slice.
+
+The intended future decomposition is RT-01 through RT-08: real-time data architecture, tick engine, scanner, short-horizon strategy framework, tick replay/backtesting, paper trading, active-trading UI/hotkeys, and broker/execution adapter.
+
+### Consequences
+M61 remains the sole active execution milestone. The capability does not alter M61 acceptance semantics. Real-time strategies must use the DEC-133 decision lifecycle and cannot be considered authoritative merely because they are implemented.
