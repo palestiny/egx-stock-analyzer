@@ -52,12 +52,24 @@ Trade Plan
         ↓
 Recommendation / Alert
         ↓
-Human Action
+Human Action / Intent
+        ↓
+Safety / Execution Boundary
         ↓
 Optional Execution Adapter
 ```
 
-The real-time layer must not bypass the existing Decision & Trade Plan lifecycle established by DEC-133.
+The real-time layer must not bypass the existing six-stage Decision & Trade Plan lifecycle established by DEC-133:
+
+**Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
+
+The Safety / Execution Boundary is not an additional lifecycle stage. It protects the Human Action stage and any subsequent execution path.
+
+**Recommendation ≠ Order. Human Action ≠ Broker Order. Hotkey Intent ≠ Accepted Order.**
+
+The deterministic protected path is:
+
+**Recommendation → Human Action / Intent → Safety / Execution Boundary → validation / risk / state / freshness / idempotency / kill-switch checks → Execution Adapter → Broker.**
 
 ## Investment vs Active Trading
 
@@ -105,9 +117,9 @@ Promotion requires validation appropriate to its time horizon, including as appl
 
 The initial target is human-in-the-loop decision support.
 
-Hotkeys may accelerate a user-confirmed action, but they do not make the recommendation an order and do not authorize autonomous trading.
+Hotkeys emit human-action intent and may accelerate a user-confirmed action, but they do not make the recommendation an order and do not authorize autonomous trading. Every hotkey intent is subject to the deterministic Safety / Execution Boundary, including freshness, integrity, risk, position state, duplicate protection, idempotency, and kill-switch checks.
 
-Broker execution must be isolated behind an adapter and requires its own design/validation boundary.
+Broker execution must be isolated behind an adapter and requires its own design/validation boundary. No UI, hotkey, AI component, strategy, or recommendation may bypass the Safety / Execution Boundary.
 
 ## Planned decomposition
 
