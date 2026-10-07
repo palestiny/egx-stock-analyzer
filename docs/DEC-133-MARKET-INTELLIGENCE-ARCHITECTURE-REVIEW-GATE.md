@@ -1,6 +1,6 @@
 # DEC-133 — Market Intelligence Product Architecture Review Gate
 
-**Status:** Proposed — Owner Approval Required  
+**Status:** Accepted — Owner Approved  
 **Date:** 2026-10-07  
 **Scope:** Product roadmap architecture and execution governance after M61
 
