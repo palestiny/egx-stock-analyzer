@@ -3289,15 +3289,31 @@ See `docs/DEC-133-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md`.
 
 ## DEC-134 — Real-Time & Active Trading Architecture Design Gate
 
-**Status:** Proposed — Owner Approval Required
+**Status:** Accepted — Owner Approved
+**Date:** 2026-10-07
 
 ### Context
 The Market Intelligence architecture is intended to support both investment-oriented analysis and future short-horizon real-time active trading/scalping. This requires a tick/streaming architecture without creating a second analytical core or coupling the domain to a specific provider or broker.
 
 ### Decision
-Register real-time/active trading as a separate product capability with its own architecture Design Gate. The capability is documented now, but implementation is not authorized until DEC-134 is accepted and the execution roadmap explicitly authorizes an implementation slice.
+Accept DEC-134 as the architecture and contract boundary for Real-Time & Active Trading Intelligence.
 
-The intended future decomposition is RT-01 through RT-08: real-time data architecture, tick engine, scanner, short-horizon strategy framework, tick replay/backtesting, paper trading, active-trading UI/hotkeys, and broker/execution adapter.
+The accepted architecture uses provider-neutral normalized market events, an ingest/integrity gate, real-time state/tick processing, feature and opportunity detection, versioned strategy eligibility, trade plans, recommendations/alerts, explicit human action, and a mandatory Safety / Execution Boundary before any optional broker adapter.
+
+DEC-134 integrates with the DEC-133 lifecycle:
+
+**Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
+
+The Safety / Execution Boundary is not a seventh lifecycle stage. It deterministically protects human action and any subsequent execution path.
+
+**Recommendation ≠ Order. Human Action ≠ Broker Order. Hotkey Intent ≠ Accepted Order.**
+
+The accepted gate defines timestamp/clock semantics, ordering and sequence handling, gap/reconnect recovery, canonical trade/quote/tick/order-book contracts, stale-data policy, session state, state lifecycle, backpressure, market-wide scanner scaling, provider capabilities, Level-2 limitations, replay fidelity, latency measurement, hotkey safety, position reconciliation, kill-switch authority, paper/live equivalence, broker isolation, promotion criteria, and failure/recovery states.
+
+Implementation remains separately gated and is not authorized by DEC-134 alone.
 
 ### Consequences
-M61 remains the sole active execution milestone. The capability does not alter M61 acceptance semantics. Real-time strategies must use the DEC-133 decision lifecycle and cannot be considered authoritative merely because they are implemented.
+M61 remains the sole active execution milestone. The capability does not alter M61 acceptance semantics. RT implementation still requires explicit roadmap authorization and the relevant implementation/design gates. Real-time strategies must use the DEC-133 decision lifecycle and cannot be considered authoritative merely because they are implemented.
+
+### Revisit Conditions
+Revisit DEC-134 if provider-neutral contracts prove insufficient, market-specific semantics materially change the boundary, safety/execution requirements change, or measured replay/live evidence exposes an architectural defect.
