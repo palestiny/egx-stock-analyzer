@@ -25,6 +25,26 @@ Remaining M61 work: acquire and preserve the bounded real historical cohort, val
 
 ---
 
+# Product-Level Roadmap Extension
+
+The project uses **one execution roadmap**. Product capabilities that expand beyond the current milestone are documented as extensions rather than separate roadmaps.
+
+**Market Intelligence Extension:** `docs/extensions/MARKET_INTELLIGENCE.md`
+
+**Architecture Review Gate:** `docs/DEC-131-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md`
+
+The Market Intelligence extension defines the durable product target: evolve the current EGX analytical foundation into a market-agnostic Market Intelligence & Decision Support Platform covering structure, liquidity, participation, market regime, breadth, sector rotation, events, cross-stock context, opportunity intelligence, dynamic trade plans, validation, portfolio intelligence and multi-market adapters.
+
+The extension is currently **Proposed** and does not authorize implementation. DEC-131 must be accepted before MI implementation begins.
+
+The reviewed execution order after M61 is:
+
+`MI-01 Architecture → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market`
+
+Existing accepted capabilities are not duplicated. Each MI Design Gate must trace the existing decision/document/implementation before introducing a new boundary.
+
+---
+
 ## M60 — Production Maintenance Scheduling
 
 **Status:** 🟢 Complete — Deployment Mapping Merged
@@ -65,33 +85,19 @@ Implemented the accepted M56 lifecycle boundary using TDD, shared SQLite transac
 
 Every new milestone follows:
 
-```text
 UNDERSTAND
-   ↓
-MAP
-   ↓
-DESIGN
-   ↓
-TRADE-OFFS
-   ↓
-DECIDE
-   ↓
-DOCUMENT
-   ↓
-TDD RED
-   ↓
-GREEN
-   ↓
-REVIEW / REFACTOR
-   ↓
-GIT COMMIT
-   ↓
-GIT PUSH
-   ↓
-VERIFY
-   ↓
-NEXT DESIGN GATE
-```
+→ MAP
+→ DESIGN
+→ TRADE-OFFS
+→ DECIDE
+→ DOCUMENT
+→ TDD RED
+→ GREEN
+→ REVIEW / REFACTOR
+→ GIT COMMIT
+→ GIT PUSH
+→ VERIFY
+→ NEXT DESIGN GATE
 
 No feature implementation starts before its design gate is accepted when the feature changes architecture, persistence, ownership, lifecycle, or other significant system behavior.
 
@@ -101,17 +107,11 @@ No feature implementation starts before its design gate is accepted when the fea
 
 The project remains a modular monolith with clear boundaries:
 
-```text
 API / Dashboard
-      ↓
-Application Use Cases
-      ↓
-Domain
-      ↓
-Infrastructure
-      ↓
-External Providers / Persistence
-```
+→ Application Use Cases
+→ Domain
+→ Infrastructure
+→ External Providers / Persistence
 
 Cross-cutting rules:
 
@@ -129,15 +129,15 @@ Cross-cutting rules:
 
 A milestone is considered complete only when its design, tests, implementation, review/refactor, documentation, Git commit, and acceptance criteria are satisfied.
 
-Completed milestones are **historical records**, not active work queues.
+Completed milestones are historical records, not active work queues.
 
-The active roadmap intentionally contains **one current milestone only**.
+The active roadmap intentionally contains one current milestone only.
 
 ## M58 — Automatic Analysis Retention
 
 **Status:** 🟢 Complete — Implementation Merged and CI Validated
 
-The M58 automatic-retention policy is accepted and implemented. Automatic retention is age-based, starts from logical deletion time, uses a **30-day preservation duration**, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration.
+The M58 automatic-retention policy is accepted and implemented. Automatic retention is age-based, starts from logical deletion time, uses a 30-day preservation duration, covers deleted runs/correlated lifecycle data and runless deleted snapshots, is system/operator-owned, bounded, auditable, disabled by default, and fails safe on invalid configuration.
 
 Design gate: `docs/DEC-122-M58-AUTOMATIC-RETENTION-DESIGN-GATE.md` — Accepted.
 
