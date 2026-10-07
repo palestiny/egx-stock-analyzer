@@ -10,13 +10,14 @@
 | Mean reversion | sideways | range regime |
 | Volatility | high-volatility regime | clustered shocks |
 | Volume anomaly | injected volume spikes | event fixture |
-| Crash Radar | crash regime | negative shocks + volume |\n| Market Stress | cross-sectional shock | breadth + volatility + crash ratios |
+| Crash Radar | crash regime | negative shocks + volume |
+| Market Stress | cross-sectional shock | breadth + volatility + crash ratios |
 | Market Stress | crash/high-volatility | regime + event fixture |
 | Fundamental score | PIT snapshots | availability/revision metadata |
 | Financial trend | annual snapshots | revenue/net-income sequence |
 | Liquidity/solvency | current assets/liabilities | PIT snapshot |
 | Correlation | peer relationships | deterministic coefficients |
-| Alerts | events + regime transitions | event fixture |
+| Alerts | BUY opportunity + Crash Radar | AlertCandidate + AlertEvent |
 | Backtesting | full chronological bars | deterministic series |
 | Costs/slippage | simulator configuration | existing M61 simulator |
 | Risk metrics | synthetic trade paths | backtest outputs |
