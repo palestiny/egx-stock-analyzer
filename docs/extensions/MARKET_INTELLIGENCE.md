@@ -122,6 +122,16 @@ Entry, add, reduce, exit, invalidation, re-entry, risk/reward and recommendation
 Layer 6 — Validation & Portfolio  
 Backtesting, costs/slippage, lifecycle simulation, walk-forward, out-of-sample, robustness, portfolio exposure/risk and performance monitoring.
 
+## Decision Lifecycle
+
+The product uses an explicit decision lifecycle:
+
+**Analytical State → Opportunity → Strategy Eligibility → Dynamic Trade Plan → Recommendation → Human Action**
+
+Analytical state describes evidence. Opportunity detection identifies a potentially actionable state. Strategy eligibility determines whether a versioned strategy is allowed to act. The dynamic trade plan defines the strategy-specific action boundaries. Recommendation is the auditable decision-support output. Human action is outside the recommendation engine and, if automated execution is ever introduced, requires a separate safety/product gate.
+
+No stage may silently fabricate missing upstream evidence. Historical decision records preserve the decision-time evidence snapshot rather than being rewritten by later observations.
+
 ## Dynamic Trade Plan
 
 The target behavior is conceptually:
