@@ -62,9 +62,9 @@ This sequence is a planning dependency order, not an instruction to start work n
 
 The current authorized execution remains M61 real historical dataset acquisition and validation.
 
-DEC-133 is **Proposed — Owner Approval Required**. Until it is accepted, Market Intelligence implementation remains blocked except documentation required to close the gate.
+DEC-133 is **Accepted — Owner Approved**. Market Intelligence implementation remains governed by its accepted architecture boundary; downstream feature implementation still requires its own accepted Design Gate.
 
-After DEC-133 acceptance, **MI-01 Architecture/Contract Work During M61** may proceed while M61 remains active, only within the explicit DEC-133 boundary. Downstream MI feature implementation still requires its own accepted Design Gate.
+With DEC-133 accepted, **MI-01 Architecture/Contract Work During M61** may proceed while M61 remains active, only within the explicit DEC-133 boundary. Downstream MI feature implementation still requires its own accepted Design Gate.
 
 Existing accepted capabilities are not duplicated. Each MI Design Gate must trace:
 
