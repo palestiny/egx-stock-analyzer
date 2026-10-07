@@ -3,7 +3,7 @@
 **Project:** EGX Stock Analyzer  
 **Status:** Proposed product/capability extension  
 **Execution authority:** docs/ROADMAP.md  
-**Architecture review:** docs/DEC-131-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md
+**Architecture review:** docs/DEC-133-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md
 
 ## Purpose
 
@@ -126,9 +126,9 @@ Backtesting, costs/slippage, lifecycle simulation, walk-forward, out-of-sample, 
 
 The product uses an explicit decision lifecycle:
 
-**Analytical State → Opportunity → Strategy Eligibility → Dynamic Trade Plan → Recommendation → Human Action**
+**Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
 
-Analytical state describes evidence. Opportunity detection identifies a potentially actionable state. Strategy eligibility determines whether a versioned strategy is allowed to act. The dynamic trade plan defines the strategy-specific action boundaries. Recommendation is the auditable decision-support output. Human action is outside the recommendation engine and, if automated execution is ever introduced, requires a separate safety/product gate.
+Analytical state describes evidence. Opportunity detection identifies a potentially actionable state. Strategy eligibility determines whether a versioned strategy is allowed to act. The trade plan defines the strategy-specific action boundaries. Recommendation is the auditable decision-support output. Human action is outside the recommendation engine and, if automated execution is ever introduced, requires a separate safety/product gate.
 
 No stage may silently fabricate missing upstream evidence. Historical decision records preserve the decision-time evidence snapshot rather than being rewritten by later observations.
 
@@ -185,7 +185,7 @@ A recommendation must carry strategy version, timestamp, evidence snapshot, mark
 
 A recommendation without traceable evidence is incomplete.
 
-The Recommendation Engine is not authoritative until the thresholds defined in DEC-131 are satisfied.
+The Recommendation Engine is not authoritative until the thresholds defined in DEC-133 are satisfied.
 
 ## AI Boundary
 
@@ -215,7 +215,7 @@ EGX is the first implementation/validation market. US is the first expansion onl
 
 ## Planned MI Sequence
 
-M61 remains current. After M61 and DEC-131 acceptance:
+M61 remains current. After M61 and DEC-133 acceptance:
 
 MI-01 — Market Intelligence Architecture Gate  
 MI-02 — Dynamic Structure  
@@ -237,6 +237,11 @@ Each milestone requires its own Design Gate before implementation.
 ## Governance
 
 - ROADMAP.md is the only execution roadmap.
+- The active execution target is always the single current milestone declared in ROADMAP.md.
+- This extension is a product/capability target, not an execution queue.
+- Future MI sequence entries are planning targets only until their individual Design Gates are accepted.
+- Decision IDs are globally unique and are never reused.
+- Architecture-only MI-01 work is permitted during M61 only after DEC-133 acceptance and only within the boundary defined by DEC-133.
 - This file is the durable Market Intelligence capability extension.
 - Existing accepted decisions remain authoritative.
 - New capabilities must identify what already exists before adding code.
