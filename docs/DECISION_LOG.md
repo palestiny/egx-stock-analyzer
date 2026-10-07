@@ -3246,7 +3246,7 @@ No downstream MI implementation is authorized by this proposal alone.
 
 ### Architecture-Only MI-01 During M61
 
-After DEC-133 acceptance, MI-01 may perform architecture/contract work while M61 remains active, provided that:
+With DEC-133 accepted, MI-01 may perform architecture/contract work while M61 remains active, provided that:
 
 - it does not implement downstream Market Intelligence features;
 - it does not change M61 acceptance semantics;
