@@ -27,14 +27,18 @@ class InMemorySignalHistoryStore:
     def __init__(self) -> None:
         self._records: dict[UUID, list[SignalRecord]] = {}
         self._by_symbol: dict[str, UUID] = {}
+        self._by_identity: dict[tuple[str, str, str, datetime], UUID] = {}
 
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord:
         if not event.strip():
             raise ValueError("event is required")
-        signal_id = self._by_symbol.get(signal.symbol)
+        normalized = signal.symbol.strip().upper()
+        identity = (normalized, signal.strategy_id, signal.strategy_version, signal.generated_at)
+        signal_id = self._by_identity.get(identity)
         if signal_id is None:
             signal_id = uuid4()
-            self._by_symbol[signal.symbol] = signal_id
+            self._by_identity[identity] = signal_id
+        self._by_symbol[normalized] = signal_id
         record = SignalRecord(signal_id, signal, recorded_at, event)
         self._records.setdefault(signal_id, []).append(record)
         return record
