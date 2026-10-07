@@ -358,4 +358,4 @@ M61
 
 No MI milestone skips its own Design Gate.
 
-The branch containing this review remains a proposal until DEC-133 is accepted and verified.
+DEC-133 is accepted and verified on this branch; downstream Market Intelligence feature implementation remains separately gated.
