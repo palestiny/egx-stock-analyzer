@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid5
 
@@ -7,7 +7,6 @@ from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
 from app.domain.market_data.volume import Volume
 from app.domain.opportunity.classification import OpportunityClassification
-from app.domain.technical_analysis.scoring import TechnicalScore
 from app.infrastructure.synthetic_market.alert_harness import SyntheticAlertHarness
 from app.infrastructure.synthetic_market.feature_harness import (
     SyntheticFeatureReport,
@@ -44,8 +43,13 @@ def _bars(stock_id):
             volume=Volume(volume),
         )
         for index, (value, volume) in enumerate(
-            (("10", 100_000), ("9", 100_000), ("10", 100_000),
-             ("11", 100_000), ("10", 100_000))
+            (
+                ("10", 100_000),
+                ("9", 100_000),
+                ("10", 100_000),
+                ("11", 100_000),
+                ("10", 100_000),
+            )
         )
     )
 
@@ -86,17 +90,17 @@ def _opportunity(dataset_value, stock_id):
         ),
     )
     quality = SyntheticQualityReport(
-        decision_date=__import__("datetime").date(2025, 1, 5),
+        decision_date=date(2025, 1, 5),
         snapshots=(
             SyntheticQualitySnapshot(
                 symbol="TEST",
                 stock_id=stock_id,
-                decision_date=__import__("datetime").date(2025, 1, 5),
+                decision_date=date(2025, 1, 5),
                 fundamental_score=0,
                 technical_score=4,
                 total_score=4,
-                current_period_end=__import__("datetime").date(2024, 12, 31),
-                previous_period_end=__import__("datetime").date(2023, 12, 31),
+                current_period_end=date(2024, 12, 31),
+                previous_period_end=date(2023, 12, 31),
             ),
         ),
     )
