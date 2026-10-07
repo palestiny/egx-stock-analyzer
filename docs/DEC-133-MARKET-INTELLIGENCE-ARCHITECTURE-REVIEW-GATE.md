@@ -338,7 +338,7 @@ M61 remains the active execution milestone. However, after DEC-133 acceptance, M
 
 ## 15. Post-Acceptance Execution
 
-After DEC-133 acceptance:
+With DEC-133 accepted:
 
 M61
 → MI-01
