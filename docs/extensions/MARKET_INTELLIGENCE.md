@@ -218,7 +218,7 @@ EGX is the first implementation/validation market. US is the first expansion onl
 M61 remains current. After DEC-133 acceptance, MI-01 may perform architecture/contract work during M61 within the DEC-133 boundary; downstream MI implementation remains gated and future execution begins only when the roadmap authorizes it.
 
 
-MI-01 — Market Intelligence Architecture Gate  
+MI-01 — Market Intelligence Architecture & Contract Gate  
 MI-02 — Dynamic Structure  
 MI-03 — Liquidity Intelligence  
 MI-04 — Market Breadth & Regime  
