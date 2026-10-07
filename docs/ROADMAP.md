@@ -31,17 +31,46 @@ The project uses **one execution roadmap**. Product capabilities that expand bey
 
 **Market Intelligence Extension:** `docs/extensions/MARKET_INTELLIGENCE.md`
 
-**Architecture Review Gate:** `docs/DEC-131-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md`
+**Architecture Review Gate:** `docs/DEC-133-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md`
 
-The Market Intelligence extension defines the durable product target: evolve the current EGX analytical foundation into a market-agnostic Market Intelligence & Decision Support Platform covering structure, liquidity, participation, market regime, breadth, sector rotation, events, cross-stock context, opportunity intelligence, dynamic trade plans, validation, portfolio intelligence and multi-market adapters.
+## Workflow Clearance Model
 
-The extension is currently **Proposed** and does not authorize implementation. DEC-131 must be accepted before MI implementation begins.
+To prevent roadmap drift or context switching, project state is interpreted in four explicit levels:
 
-The reviewed execution order after M61 is:
+1. **ACTIVE EXECUTION** — the single milestone currently being executed.
+2. **PRODUCT TARGET** — durable future capability direction documented by an extension.
+3. **FUTURE EXECUTION ORDER** — planned sequence only; these items are not active work.
+4. **AUTHORIZED WORK** — implementation/design work explicitly permitted by an accepted Design Gate.
+
+### ACTIVE EXECUTION
+
+**M61 — Backtesting & Strategy Validation** remains the only active execution milestone.
+
+### PRODUCT TARGET
+
+The Market Intelligence extension is the durable product target. It does not replace this roadmap and does not authorize implementation by itself.
+
+### FUTURE EXECUTION ORDER
+
+After the applicable acceptance boundaries are satisfied, the planned order is:
 
 `MI-01 Architecture → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market`
 
-Existing accepted capabilities are not duplicated. Each MI Design Gate must trace the existing decision/document/implementation before introducing a new boundary.
+This sequence is a planning dependency order, not an instruction to start work now.
+
+### AUTHORIZED WORK
+
+The current authorized execution remains M61 real historical dataset acquisition and validation.
+
+DEC-133 is **Proposed — Owner Approval Required**. Until it is accepted, Market Intelligence implementation remains blocked except documentation required to close the gate.
+
+After DEC-133 acceptance, architecture/contract work for MI-01 may proceed while M61 remains active only within the explicit DEC-133 boundary. Downstream MI feature implementation still requires its own accepted Design Gate.
+
+Existing accepted capabilities are not duplicated. Each MI Design Gate must trace:
+
+`Existing capability → Existing decision/document → Current implementation → Gap → New change`
+
+If no meaningful gap exists, the milestone must not create a duplicate implementation.
 
 ---
 
