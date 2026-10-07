@@ -205,7 +205,7 @@ Any AI-derived signal used in a production recommendation requires an explicit e
 
 ## 10A. Decision Lifecycle Boundary
 
-The platform distinguishes five states that must not be collapsed into a single recommendation label:
+The platform distinguishes six lifecycle stages that must not be collapsed into a single recommendation label:
 
 **Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
 
