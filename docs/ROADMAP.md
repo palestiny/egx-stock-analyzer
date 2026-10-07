@@ -54,7 +54,7 @@ The Market Intelligence extension is the durable product target. It does not rep
 
 After the applicable acceptance boundaries are satisfied, the planned order is:
 
-`MI-01 Architecture → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market`
+`MI-01 Architecture & Contract → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market`
 
 This sequence is a planning dependency order, not an instruction to start work now.
 
@@ -64,7 +64,7 @@ The current authorized execution remains M61 real historical dataset acquisition
 
 DEC-133 is **Proposed — Owner Approval Required**. Until it is accepted, Market Intelligence implementation remains blocked except documentation required to close the gate.
 
-After DEC-133 acceptance, architecture/contract work for MI-01 may proceed while M61 remains active only within the explicit DEC-133 boundary. Downstream MI feature implementation still requires its own accepted Design Gate.
+After DEC-133 acceptance, **MI-01 Architecture/Contract Work During M61** may proceed while M61 remains active, only within the explicit DEC-133 boundary. Downstream MI feature implementation still requires its own accepted Design Gate.
 
 Existing accepted capabilities are not duplicated. Each MI Design Gate must trace:
 
