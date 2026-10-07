@@ -1,6 +1,6 @@
 # DEC-134 — Real-Time & Active Trading Architecture Design Gate
 
-**Status:** Proposed — Owner Approval Required  
+**Status:** Accepted — Owner Approved  
 **Parent:** Market Intelligence / Active Trading & Real-Time Scalping Intelligence  
 **Current active execution milestone:** M61 — Backtesting & Strategy Validation
 
@@ -296,6 +296,6 @@ After acceptance, individual RT slices still require explicit roadmap authorizat
 
 ## 9. Decision
 
-**Proposed — Owner Approval Required.**
+**Accepted — Owner Approved.**
 
 The architecture details above are now resolved at the gate level. Acceptance of DEC-134 is a separate owner decision and does not authorize implementation by itself.
