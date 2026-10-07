@@ -110,7 +110,7 @@ def _opportunity(dataset_value, stock_id):
 def test_alert_harness_emits_buy_alert_for_existing_buy_classification():
     dataset_value, stock_id = _dataset()
     opportunity = _opportunity(dataset_value, stock_id)
-    stress = SyntheticStressHarness().run(dataset_value)
+    stress = SyntheticStressHarness().run(dataset_value, lookback=2)
 
     report = SyntheticAlertHarness().run(dataset_value, opportunity, stress)
 
