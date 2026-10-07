@@ -3087,3 +3087,102 @@ Source Acquisition → Preserved Artifacts → Manifest/Checksums → Validation
 No strategy-rule changes, ranking, optimization, portfolio construction, or live execution are introduced by DEC-130.
 
 See docs/DEC-130-M61-HISTORICAL-DATA-ACQUISITION-GATE.md.
+
+
+# DEC-131 — Market Intelligence Product Architecture Review Gate
+
+**Status:** Proposed — Owner Approval Required  
+**Date:** 2026-10-07
+
+### Context
+
+The project needs to evolve from the current EGX analytical foundation toward a market-agnostic Market Intelligence & Decision Support Platform without creating a second roadmap or losing architectural control.
+
+A product-level Market Intelligence roadmap was reviewed and converted into a durable capability extension.
+
+### Proposed Decision
+
+Use one execution roadmap:
+
+- ROADMAP.md is the single execution authority.
+- docs/extensions/MARKET_INTELLIGENCE.md is the durable product/capability extension.
+- Major capability changes require their own Design Gates.
+- Existing accepted decisions and milestones remain authoritative and are not duplicated.
+- M61 remains the active execution milestone.
+
+The reviewed MI sequence is:
+
+M61 → MI-01 Architecture → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market.
+
+### Key Boundaries Under Review
+
+The gate establishes proposed boundaries for:
+
+- data availability and insufficient-data behavior;
+- provenance and evidence lineage;
+- instrument identity and corporate actions;
+- EGX-specific versus market-agnostic responsibilities;
+- strategy identity/versioning;
+- recommendation lifecycle;
+- AI usage;
+- recommendation authority;
+- overfitting and look-ahead prevention;
+- calibrated confidence;
+- product-level Definition of Done.
+
+### AI Boundary
+
+AI remains a replaceable capability. Deterministic market semantics, strategy rules, validation and evidence lineage remain in the core. AI may assist with explanation, research, event extraction, hypothesis generation and analyst interaction. AI-derived signals require explicit evidence and validation contracts before production use.
+
+### Recommendation Authority
+
+The Recommendation Engine must not be treated as authoritative merely because a backtest is profitable.
+
+Authority requires reproducible strategy/version contracts, provenance, point-in-time controls, deterministic insufficient-data behavior, temporal validation, explicit costs/slippage, robustness testing, evidence/invalidation metadata and production monitoring.
+
+### Overfitting and Look-Ahead
+
+The project will require temporal causality, immutable dataset versions, strategy versioning, separation of tuning from out-of-sample evaluation, walk-forward validation where applicable, explicit corporate-action semantics, no future-value substitution, survivorship controls and reproducibility.
+
+### Definition of Done
+
+The product-level target requires reliable evidence lineage, market-context intelligence, reproducible opportunity detection, strategy-versioned decision support, explicit invalidation and limitations, leakage-controlled historical validation, operational observability, market portability and accepted Design Gates.
+
+### Alternatives Considered
+
+1. Create a new roadmap for each product capability — rejected because it creates multiple competing sources of truth and roadmap drift.
+2. Keep the entire product target only inside ROADMAP.md — rejected because the detailed capability architecture would make the execution roadmap unnecessarily large and harder to maintain.
+3. Keep a separate Market Intelligence roadmap with independent execution status — rejected because it creates a second execution authority.
+4. Make AI the central decision engine — rejected because market truth, strategy semantics and validation must remain deterministic and auditable.
+5. Treat every market identically — rejected because market-specific data and semantics differ materially.
+
+### Consequences
+
+If accepted, the project will have one execution roadmap plus durable capability extensions. The Market Intelligence extension becomes the product target, while ROADMAP.md continues to answer the operational question: what is the project executing now?
+
+No MI implementation is authorized by this proposal alone.
+
+### Acceptance Requirement
+
+The owner must explicitly accept:
+
+- single-roadmap + extension governance;
+- MI milestone ordering;
+- data and capability boundaries;
+- EGX/core separation;
+- AI boundary;
+- recommendation-authority threshold;
+- anti-overfitting/look-ahead rules;
+- product-level Definition of Done.
+
+### Revisit Conditions
+
+Revisit DEC-131 if:
+
+- the product becomes a genuinely separate product;
+- market expansion proves the current adapter boundary insufficient;
+- evidence lineage cannot be preserved with the current architecture;
+- recommendation authority requires a materially different validation model;
+- a major regulatory/safety requirement changes the product boundary.
+
+See docs/DEC-131-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md.
