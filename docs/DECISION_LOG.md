@@ -34,6 +34,8 @@ We use the following statuses:
 | Superseded   | Replaced by a newer decision             |
 | Rejected     | Explicitly rejected                      |
 
+Decision IDs are globally unique, are never reused, and must be checked against the existing decision log before a new decision is assigned.
+
 ---
 
 # 3. Decision Template
