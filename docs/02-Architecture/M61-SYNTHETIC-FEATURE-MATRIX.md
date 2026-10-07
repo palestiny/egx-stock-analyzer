@@ -21,7 +21,11 @@
 | Backtesting | full chronological bars | deterministic series |
 | Costs/slippage | simulator configuration | existing M61 simulator |
 | Risk metrics | synthetic trade paths | backtest outputs |
-| Portfolio | multi-symbol panel | ten-symbol cohort |
+| Portfolio allocation | ten-symbol equal-weight cohort | position weights + cash reserve |
+| Portfolio concentration | per-name cap | max single-name constraint |
+| Portfolio performance | aligned multi-symbol returns | weighted portfolio return series |
+| Portfolio risk | drawdown + volatility | deterministic portfolio metrics |
+| Portfolio correlation | pairwise return series | average pairwise correlation |
 | Robustness | repeated seeds | deterministic scenario generation |
 
 ## Rule
