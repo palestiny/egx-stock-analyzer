@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid5
 
 from app.domain.market_data.price import Price
 from app.domain.market_data.price_bar import PriceBar
@@ -44,7 +44,7 @@ def bars(stock_id):
 
 
 def dataset(symbol: str):
-    stock_id = uuid4()
+    stock_id = uuid5(UUID("3e4e7e7b-2c77-4baf-8c6b-5b4c8b1b0d51"), symbol)
     series = SyntheticSymbolSeries(
         symbol=symbol,
         stock_id=stock_id,
