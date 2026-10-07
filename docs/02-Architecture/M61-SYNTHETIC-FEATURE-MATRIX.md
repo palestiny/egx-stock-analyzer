@@ -10,7 +10,7 @@
 | Mean reversion | sideways | range regime |
 | Volatility | high-volatility regime | clustered shocks |
 | Volume anomaly | injected volume spikes | event fixture |
-| Crash Radar | crash regime | negative shocks + volume |
+| Crash Radar | crash regime | negative shocks + volume |\n| Market Stress | cross-sectional shock | breadth + volatility + crash ratios |
 | Market Stress | crash/high-volatility | regime + event fixture |
 | Fundamental score | PIT snapshots | availability/revision metadata |
 | Financial trend | annual snapshots | revenue/net-income sequence |
