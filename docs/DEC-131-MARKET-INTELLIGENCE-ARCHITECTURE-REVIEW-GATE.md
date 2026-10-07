@@ -19,7 +19,7 @@ The proposed governance is:
 - DEC-131 = acceptance boundary for this architecture extension.
 - DECISION_LOG.md = durable decisions and rationale.
 
-The extension does not replace ROADMAP.md. New features do not create new roadmaps. M61 remains the active execution milestone until its own acceptance criteria are complete.
+The extension does not replace ROADMAP.md. New features do not create new roadmaps. M61 remains the active execution milestone until its own acceptance criteria are complete. DEC-131 acceptance does not authorize downstream feature implementation.
 
 ## 3. Review Result — Missing Features
 
@@ -202,6 +202,24 @@ AI must not silently own ground-truth market data, historical truth, strategy se
 
 Any AI-derived signal used in a production recommendation requires an explicit evidence contract and validation gate.
 
+
+## 10A. Decision Lifecycle Boundary
+
+The platform distinguishes five states that must not be collapsed into a single recommendation label:
+
+**Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action**
+
+- **Analytical State:** what the evidence says about the instrument/market at decision time.
+- **Opportunity:** a detected setup or state with supporting evidence; it is not yet a strategy decision.
+- **Strategy Eligibility:** whether a versioned strategy is permitted to act on that opportunity under its declared constraints, data-quality requirements and risk boundary.
+- **Trade Plan:** the strategy-specific entry/add/reduce/exit/re-entry/invalidation and risk/reward contract.
+- **Recommendation:** the auditable decision-support output produced from the eligible strategy and trade plan.
+- **Human Action:** the external user decision or future separately governed execution boundary.
+
+A recommendation is therefore not equivalent to an order, and an opportunity is not automatically a recommendation. Missing evidence or failed strategy eligibility must be able to stop the lifecycle without fabricating a downstream state.
+
+Historical records are immutable decision-time evidence snapshots. A later market update may create a new decision; it must not mutate the earlier decision's inputs or label.
+
 ## 10. Recommendation Authority
 
 The Recommendation Engine becomes authoritative only after:
@@ -313,6 +331,10 @@ DEC-131 may be accepted when the owner confirms:
 - product-level Definition of Done.
 
 Until acceptance, MI implementation remains blocked except documentation work required to close this gate.
+
+## 14A. Architecture-Only MI-01 During M61
+
+M61 remains the active execution milestone. However, after DEC-131 acceptance, MI-01 may perform contract/design work that does not implement downstream Market Intelligence features or alter M61 acceptance semantics. This prevents cross-cutting architecture gaps from being discovered only after M61 closes. Feature implementation remains gated by the relevant MI Design Gate.
 
 ## 15. Post-Acceptance Execution
 
