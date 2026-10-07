@@ -3116,7 +3116,7 @@ Use one execution roadmap with explicit separation between current work and futu
 
 The reviewed MI sequence is:
 
-M61 → MI-01 Architecture → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market.
+M61 → MI-01 Architecture & Contract → MI-02 Dynamic Structure → MI-03 Liquidity → MI-04 Breadth & Regime → MI-05 Sector/Cross-Stock → MI-06 Investor Flow → MI-07 Events/Corporate Actions → MI-08 Opportunity Intelligence → MI-09 Dynamic Trade Plan → MI-10 Decision Validation → MI-11 Scanner/Alerts → MI-12 Portfolio Intelligence → MI-13 US Adapter → MI-14 Multi-Market.
 
 ### Key Boundaries Under Review
 
