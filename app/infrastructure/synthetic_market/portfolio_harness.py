@@ -35,7 +35,8 @@ class SyntheticPortfolioHarness:
         if not dataset.series:
             raise ValueError("synthetic dataset cannot be empty")
 
-        weight = Decimal("1") / Decimal(len(dataset.series))
+        equal_weight = Decimal("1") / Decimal(len(dataset.series))
+        weight = min(equal_weight, self._configuration.max_single_name_weight)
         positions = [
             PortfolioPosition(symbol=series.symbol, weight=weight)
             for series in dataset.series
