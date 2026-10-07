@@ -3186,3 +3186,15 @@ Revisit DEC-131 if:
 - a major regulatory/safety requirement changes the product boundary.
 
 See docs/DEC-131-MARKET-INTELLIGENCE-ARCHITECTURE-REVIEW-GATE.md.
+
+
+### DEC-131 Revision — Decision Lifecycle and Architecture-Only MI-01
+
+**Status:** Proposed — Owner Approval Required  
+**Date:** 2026-10-07
+
+The review gate is revised to make the decision lifecycle explicit: Analytical State → Opportunity → Strategy Eligibility → Trade Plan → Recommendation → Human Action. These are distinct states; an opportunity does not automatically become a recommendation, and a recommendation is not an order.
+
+DEC-131 also permits architecture/contract work for MI-01 after acceptance while M61 remains active, provided that this work does not implement downstream Market Intelligence features or change M61 acceptance semantics. This avoids postponing cross-cutting contract discovery until after M61 while preserving milestone gates.
+
+The revision does not change the proposed single-roadmap governance, MI ordering, data boundaries, AI boundary, validation threshold, or product Definition of Done.
