@@ -17,8 +17,11 @@ class InMemoryTrackRecordStore:
         self._records: dict[UUID, SignalOutcomeRecord] = {}
 
     def record(self, outcome: SignalOutcomeRecord) -> None:
-        if outcome.signal_id in self._records:
-            raise ValueError("signal outcome already recorded")
+        existing = self._records.get(outcome.signal_id)
+        if existing is not None:
+            if existing != outcome:
+                raise ValueError("different outcome already recorded")
+            return
         self._records[outcome.signal_id] = outcome
 
     def get(self, signal_id: UUID) -> SignalOutcomeRecord | None:

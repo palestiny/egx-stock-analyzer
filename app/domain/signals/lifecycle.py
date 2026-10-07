@@ -54,5 +54,7 @@ def transition_signal(signal: Signal, state: SignalMarketState) -> Signal:
         evidence=signal.evidence,
         strategy_id=signal.strategy_id,
         strategy_version=signal.strategy_version,
-        data_timestamp=state.observed_at,
+        # `data_timestamp` describes the market data used to create the signal;
+        # lifecycle observation time belongs to the lifecycle event/history layer.
+        data_timestamp=signal.data_timestamp,
     )
