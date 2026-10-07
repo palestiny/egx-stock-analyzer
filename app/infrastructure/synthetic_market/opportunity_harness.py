@@ -5,11 +5,13 @@ from uuid import UUID
 
 from app.domain.entry_analysis.context import EntryContextAnalyzer
 from app.domain.entry_analysis.scoring import EntryQualityScore, EntryQualityScorer
+from app.domain.fundamental_analysis.scoring import FundamentalScore
 from app.domain.opportunity.classification import (
     OpportunityClassification,
     OpportunityClassifier,
 )
 from app.domain.scoring.stock_quality import StockQualityScore
+from app.domain.technical_analysis.scoring import TechnicalScore
 from app.domain.technical_analysis.support_resistance import SupportResistanceAnalyzer
 from app.domain.market_data.timeframe import Timeframe
 
@@ -71,8 +73,16 @@ class SyntheticOpportunityHarness:
             context = EntryContextAnalyzer.analyze(list(series.bars), levels)
             entry_quality = EntryQualityScorer.score(context)
             stock_quality = StockQualityScore(
-                fundamental_score=quality_snapshot.fundamental_score,
-                technical_score=quality_snapshot.technical_score,
+                fundamental_score=FundamentalScore(
+                    total=quality_snapshot.fundamental_score,
+                    contributions=(),
+                ),
+                technical_score=TechnicalScore(
+                    trend_points=0,
+                    momentum_points=0,
+                    volume_points=quality_snapshot.technical_score,
+                    total_score=quality_snapshot.technical_score,
+                ),
                 total_score=quality_snapshot.total_score,
             )
             classification = OpportunityClassifier.classify(
