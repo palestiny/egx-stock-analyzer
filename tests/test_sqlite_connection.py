@@ -1,5 +1,3 @@
-import sqlite3
-
 from app.infrastructure.persistence.sqlite_connection import (
     SQLITE_BUSY_TIMEOUT_MS,
     connect_sqlite,
