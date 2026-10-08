@@ -60,6 +60,8 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
         setLoadedRunId(null);
         setCursor(null);
         setError(requestError);
+      } finally {
+        if (active) setLoading(false);
       }
     }
 
