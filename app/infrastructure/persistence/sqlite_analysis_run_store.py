@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.analysis.run_store import AnalysisRunStore
 from app.domain.analysis_run import (
@@ -21,7 +22,7 @@ class SQLiteAnalysisRunStore(AnalysisRunStore):
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
+        connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
