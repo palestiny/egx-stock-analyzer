@@ -10,7 +10,7 @@ from app.application.execution.scheduled_workflow_execution import (
     ScheduledWorkflowExecutionState,
     ScheduledWorkflowExecutionStore,
 )
-from app.application.security.authorization import AuthorizationError, OwnershipAuthorizer
+from app.application.security.authorization import OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
 
 
