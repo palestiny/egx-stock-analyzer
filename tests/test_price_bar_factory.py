@@ -6,7 +6,6 @@ import pytest
 
 from app.domain.market_data.data_quality import (
     DataQualityAssessment,
-    DataQualityIssueCode,
     DataQualityStatus,
 )
 from app.domain.market_data.price_bar import PriceBar
