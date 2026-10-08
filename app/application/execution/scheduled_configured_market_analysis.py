@@ -1,4 +1,6 @@
-from datetime import date, datetime
+from datetime import datetime
+
+from app.application.clock import egx_today
 from app.application.analysis.run_configured_market_analysis import (
     RunConfiguredMarketAnalysis,
 )
@@ -19,6 +21,6 @@ class ScheduledConfiguredMarketAnalysis:
 
     def schedule(self, run_at: datetime) -> None:
         def operation() -> Execution:
-            return self._run_configured_market_analysis.execute(date.today())
+            return self._run_configured_market_analysis.execute(egx_today())
 
         self._scheduler.schedule(operation, run_at)
