@@ -144,3 +144,37 @@ def test_repeated_invalid_credentials_are_rate_limited():
 
     assert blocked.status_code == 429
     assert blocked.headers["retry-after"]
+
+
+
+def test_cors_allows_only_configured_origin(monkeypatch):
+    monkeypatch.setenv("EGX_CORS_ALLOWED_ORIGINS", "https://dashboard.example.com")
+    app = create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+
+    with TestClient(app) as client:
+        allowed = client.options(
+            "/api/v1/auth/me",
+            headers={
+                "Origin": "https://dashboard.example.com",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "authorization",
+            },
+        )
+        denied = client.options(
+            "/api/v1/auth/me",
+            headers={
+                "Origin": "https://evil.example",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert allowed.headers["access-control-allow-origin"] == "https://dashboard.example.com"
+    assert "access-control-allow-origin" not in denied.headers
+
+
+def test_cors_rejects_wildcard_with_credentials(monkeypatch):
+    import pytest
+
+    monkeypatch.setenv("EGX_CORS_ALLOWED_ORIGINS", "*")
+    with pytest.raises(ValueError, match="explicit origins"):
+        create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
