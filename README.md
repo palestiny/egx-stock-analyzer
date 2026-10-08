@@ -157,7 +157,7 @@ npm run build
 
 ## Deployment
 
-A containerized baseline is provided by `Dockerfile`, `frontend/Dockerfile`, and `compose.yaml`. See `docs/PRODUCTION_DEPLOYMENT.md` before exposing any instance to a network. TLS must terminate at a trusted reverse proxy or load balancer; the API container itself serves HTTP. Configure `EGX_OPERATOR_TOKEN`, persistent storage, explicit CORS origins when cross-origin access is needed, and upstream rate limiting before public exposure.
+A containerized baseline is provided by `Dockerfile`, `frontend/Dockerfile`, and `compose.yaml`. See `docs/HARDENING_PLAN.md` before exposing any instance to a network. TLS must terminate at a trusted reverse proxy or load balancer; the API container itself serves HTTP. Configure `EGX_OPERATOR_TOKEN`, persistent storage, explicit CORS origins when cross-origin access is needed, and upstream rate limiting before public exposure.
 
 ## Frontend Development
 
