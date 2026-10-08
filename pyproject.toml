@@ -2,7 +2,7 @@
 name = "egx-stock-analyzer"
 version = "0.1.0"
 description = "An automated analysis system for Egyptian Exchange stocks"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "yfinance>=0.2.66,<0.3",
     "fastapi>=0.141.1,<0.142",
@@ -13,6 +13,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.1,<10",
+    "pytest-cov>=6,<8",
+    "ruff>=0.11,<1.0",
+    "mypy>=1.15,<2",
 ]
 
 [tool.setuptools.packages.find]
@@ -25,3 +28,9 @@ markers = [
     "integration: tests that exercise the application with external infrastructure",
     "external: tests that require live third-party or provider credentials/access",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9"]
