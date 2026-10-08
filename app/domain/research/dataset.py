@@ -86,7 +86,13 @@ def validate_research_bars(bars: tuple[ResearchBar, ...], *, as_of: datetime | N
     if as_of is not None and as_of.tzinfo is None: raise ValueError("as-of timestamp must be timezone-aware")
     previous: datetime | None = None
     seen: set[datetime] = set()
+    series_identity: tuple[str, str, str, str, PriceAdjustment] | None = None
     for bar in bars:
+        current_identity = (bar.symbol, bar.timeframe, bar.provider, bar.dataset_version, bar.adjustment)
+        if series_identity is None:
+            series_identity = current_identity
+        elif current_identity != series_identity:
+            raise ValueError("research bars must share symbol, timeframe, provider, dataset version, and adjustment")
         if bar.quality is not ResearchDataQuality.VALID: raise ValueError(f"research-ineligible data quality: {bar.quality}")
         if as_of is not None and bar.source_timestamp > as_of: raise ValueError("future data is not eligible for the research point-in-time")
         if bar.source_timestamp in seen: raise ValueError("duplicate source timestamp is not allowed")

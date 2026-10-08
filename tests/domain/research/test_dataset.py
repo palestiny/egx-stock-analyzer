@@ -30,3 +30,15 @@ def test_rejects_non_valid_quality():
 
 def test_accepts_valid_point_in_time_series():
     validate_research_bars((bar(6),bar(7)), as_of=datetime(2026,10,7,23,tzinfo=timezone.utc))
+
+
+def test_rejects_mixed_symbols_in_one_series():
+    with pytest.raises(ValueError, match="share symbol"):
+        validate_research_bars((bar(6), bar(7, symbol="EGAL")))
+
+
+def test_rejects_mixed_adjustment_modes_in_one_series():
+    from app.domain.research.dataset import PriceAdjustment
+
+    with pytest.raises(ValueError, match="share symbol"):
+        validate_research_bars((bar(6), bar(7, adjustment=PriceAdjustment.ADJUSTED)))

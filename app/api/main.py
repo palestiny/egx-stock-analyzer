@@ -2,6 +2,7 @@ import logging
 import os
 from dataclasses import asdict
 from datetime import date, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException
