@@ -129,8 +129,8 @@ def verify_secret(secret: str, verifier: str) -> bool:
     try:
         algorithm, *parts = verifier.split("$")
         if algorithm == "sha256" and len(parts) == 1:
-            actual = hashlib.sha256(secret.encode("utf-8")).hexdigest()
-            return compare_digest(actual, parts[0])
+            actual_digest_hex = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+            return compare_digest(actual_digest_hex, parts[0])
         if algorithm != "pbkdf2_sha256" or len(parts) != 3:
             return False
         raw_iterations, raw_salt, raw_digest = parts
@@ -142,13 +142,13 @@ def verify_secret(secret: str, verifier: str) -> bool:
     except (ValueError, TypeError):
         return False
 
-    actual = hashlib.pbkdf2_hmac(
+    actual_digest_bytes = hashlib.pbkdf2_hmac(
         "sha256",
         secret.encode("utf-8"),
         salt,
         iterations,
     )
-    return compare_digest(actual, expected)
+    return compare_digest(actual_digest_bytes, expected)
 
 
 def utc_now() -> datetime:
