@@ -78,7 +78,7 @@ def test_strategy_only_receives_closed_prefix_and_future_mutation_does_not_chang
         observed_lengths.append(len(history))
         return target_strategy(history)
 
-    original = (bar(1), bar(2, open="100", high="108", low="98", close="105"), bar(3))
+    original = (bar(1), bar(2, open="100", high="112", low="98", close="111"), bar(3))
     changed_future = (bar(1), bar(2, open="100", high="108", low="98", close="105"), bar(3, open="150", high="160", low="140", close="155"))
     first = run_backtest(original, config=config(), strategy=strategy)
     second = run_backtest(changed_future, config=config(), strategy=target_strategy)
