@@ -58,6 +58,7 @@ class TradeRecord:
     gross_return: Decimal
     net_return: Decimal
     notional: Decimal
+    quantity: Decimal
     net_pnl: Decimal
 
 
@@ -85,6 +86,8 @@ class BacktestMetrics:
     cumulative_net_return: Decimal
     max_drawdown: Decimal
     exposure_bars: int
+    total_bars: int
+    time_in_market_ratio: Decimal
 
 
 @dataclass(frozen=True)
@@ -153,6 +156,8 @@ def _metrics(trades: tuple[TradeRecord, ...], unfilled: tuple[UnfilledDecision, 
         cumulative_net_return=(final_equity - initial_capital) / initial_capital,
         max_drawdown=max_drawdown,
         exposure_bars=exposure_bars,
+        total_bars=len(curve),
+        time_in_market_ratio=Decimal(exposure_bars) / Decimal(len(curve)) if curve else Decimal("0"),
     )
 
 
@@ -170,7 +175,7 @@ def run_backtest(
     run_id = _run_id(bars, config, initial_capital, parameters_json)
 
     def invalid(reason: str) -> BacktestResult:
-        metrics = BacktestMetrics(0, 0, 0, Decimal("0"), Decimal("0"), Decimal("0"), 0)
+        metrics = BacktestMetrics(0, 0, 0, Decimal("0"), Decimal("0"), Decimal("0"), 0, 0, Decimal("0"))
         return BacktestResult(
             BacktestStatus.INVALID, run_id, reason, config.dataset_version, config.provider,
             bars[0].source_timestamp if bars else None, bars[-1].source_timestamp if bars else None,
@@ -236,7 +241,7 @@ def run_backtest(
                     intent.signal_id, intent.side, position["fill"].decision_timestamp,
                     position["fill"].fill_timestamp, position["fill"].reference_price, position["fill"].fill_price,
                     position["fill"].commission, exit_eval.exit_timestamp, exit_eval.exit_price, exit_eval.reason,
-                    exit_eval.commission, exit_eval.gross_return, exit_eval.net_return, position["notional"], net_pnl,
+                    exit_eval.commission, exit_eval.gross_return, exit_eval.net_return, position["notional"], position["quantity"], net_pnl,
                 ))
                 position = None
 
