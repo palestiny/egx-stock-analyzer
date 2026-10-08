@@ -342,7 +342,7 @@ def test_warmup_bars_build_history_but_cannot_generate_evaluated_signals():
         ),
     )
 
-    assert observed_history_lengths == [4]
+    assert observed_history_lengths == [4, 7]
     assert len(result.trades) == 1
     assert result.trades[0].signal_timestamp == bars[3].timestamp
 
