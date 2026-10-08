@@ -1,4 +1,3 @@
-from uuid import UUID
 
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.security.identity import AuthenticatedIdentity, Permission
