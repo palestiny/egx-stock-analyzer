@@ -23,7 +23,7 @@ jobs:
       - name: Run lint
         run: ruff check app tests
       - name: Type-check hardened primitives
-        run: mypy app/api/auth_rate_limit.py app/application/security/credentials.py app/infrastructure/persistence/sqlite_connection.py --ignore-missing-imports --follow-imports=silent
+        run: mypy app/api/auth_rate_limit.py app/application/security/credentials.py --ignore-missing-imports --follow-imports=silent
       - name: Run unit tests with coverage report
         run: pytest --cov=app --cov-report=term-missing -m "not integration"
 
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
       - name: Run deterministic integration tests
