@@ -1,11 +1,13 @@
 import sqlite3
 from datetime import datetime
+import os
 from pathlib import Path
 from uuid import UUID
 
 from app.application.security.credentials import (
     CredentialStore,
     StoredCredential,
+    credential_lookup_key,
     verify_secret,
 )
 
@@ -38,6 +40,10 @@ class SQLiteCredentialStore(CredentialStore):
             connection.execute(
                 "CREATE INDEX IF NOT EXISTS idx_user_credentials_user_id ON user_credentials(user_id)"
             )
+            connection.execute(
+                "CREATE INDEX IF NOT EXISTS idx_user_credentials_status_verifier "
+                "ON user_credentials(status, verifier)"
+            )
 
     def create(self, credential: StoredCredential, verifier: str) -> None:
         with self._connect() as connection:
@@ -63,26 +69,52 @@ class SQLiteCredentialStore(CredentialStore):
         return credential.user_id if credential is not None else None
 
     def find_active_credential(self, secret: str) -> StoredCredential | None:
+        lookup_key = credential_lookup_key(secret)
         with self._connect() as connection:
-            rows = connection.execute(
+            row = connection.execute(
                 """
-                SELECT id, user_id, status, created_at, revoked_at, replaced_by, verifier
+                SELECT id, user_id, status, created_at, revoked_at, replaced_by
                 FROM user_credentials
-                WHERE status = 'active'
-                """
-            ).fetchall()
+                WHERE status = 'active' AND verifier = ?
+                LIMIT 1
+                """,
+                (lookup_key,),
+            ).fetchone()
 
-        for raw_id, raw_user_id, status, created_at, revoked_at, replaced_by, verifier in rows:
-            if verify_secret(secret, verifier):
-                return StoredCredential(
-                    id=UUID(raw_id),
-                    user_id=UUID(raw_user_id),
-                    status=status,
-                    created_at=datetime.fromisoformat(created_at),
-                    revoked_at=datetime.fromisoformat(revoked_at) if revoked_at else None,
-                    replaced_by=UUID(replaced_by) if replaced_by else None,
-                )
-        return None
+            # PBKDF2 records cannot be converted without seeing the original token.
+            # Keep a temporary, explicit migration escape hatch; it is disabled by
+            # default because it restores the expensive scan on failed credentials.
+            allow_legacy = os.getenv(
+                "EGX_ALLOW_LEGACY_PBKDF2_CREDENTIALS", ""
+            ).strip().lower() in {"1", "true", "yes", "on"}
+            if row is None and allow_legacy:
+                legacy_rows = connection.execute(
+                    """
+                    SELECT id, user_id, status, created_at, revoked_at, replaced_by, verifier
+                    FROM user_credentials
+                    WHERE status = 'active' AND verifier LIKE 'pbkdf2_sha256$%'
+                    """
+                ).fetchall()
+                for legacy in legacy_rows:
+                    if verify_secret(secret, legacy[6]):
+                        row = legacy[:6]
+                        connection.execute(
+                            "UPDATE user_credentials SET verifier = ? WHERE id = ?",
+                            (lookup_key, legacy[0]),
+                        )
+                        break
+
+        if row is None:
+            return None
+        raw_id, raw_user_id, status, created_at, revoked_at, replaced_by = row
+        return StoredCredential(
+            id=UUID(raw_id),
+            user_id=UUID(raw_user_id),
+            status=status,
+            created_at=datetime.fromisoformat(created_at),
+            revoked_at=datetime.fromisoformat(revoked_at) if revoked_at else None,
+            replaced_by=UUID(replaced_by) if replaced_by else None,
+        )
 
     def find_active_for_user(self, user_id: UUID) -> list[StoredCredential]:
         with self._connect() as connection:

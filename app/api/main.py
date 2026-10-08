@@ -5,8 +5,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
+from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
 from app.api.analysis_comparison_response import AnalysisComparisonResponse
 from app.api.analysis_history_response import AnalysisHistoryResponse
@@ -163,61 +164,72 @@ def create_app(
     operator_authenticator = BearerTokenAuthenticator(configured_token) if configured_token else None
     authorizer = OperatorAuthorizer()
 
+    auth_rate_limiter = AuthenticationRateLimiter()
+
+    def _client_key(request: Request) -> str:
+        return request.client.host if request.client is not None else "unknown"
+
+    def _reject_if_rate_limited(client_key: str) -> None:
+        if auth_rate_limiter.is_blocked(client_key):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many failed authentication attempts",
+                headers={"Retry-After": str(auth_rate_limiter.retry_after_seconds(client_key))},
+            )
+
     def require_authenticated(
+        request: Request,
         authorization: str | None = Header(default=None),
     ) -> AuthenticatedIdentity:
         if legacy_test_composition:
             return AuthenticatedIdentity.operator()
-        if authenticator is None:
-            if operator_authenticator is None:
-                raise HTTPException(status_code=503, detail="Authentication is not configured")
-            try:
-                return operator_authenticator.authenticate(authorization)
-            except AuthenticationError as error:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Authentication required",
-                    headers={"WWW-Authenticate": "Bearer"},
-                ) from error
-        try:
-            return authenticator.authenticate(authorization)
-        except AuthenticationError as error:
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication required",
-                headers={"WWW-Authenticate": "Bearer"},
-            ) from error
-
-    def require_operator(authorization: str | None = Header(default=None)) -> AuthenticatedIdentity:
-        if legacy_test_composition:
-            return AuthenticatedIdentity.operator()
-        if authenticator is not None:
-            try:
-                identity = authenticator.authenticate(authorization)
-                authorizer.require(identity, Permission.OPERATOR)
-                return identity
-            except AuthenticationError as error:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Authentication required",
-                    headers={"WWW-Authenticate": "Bearer"},
-                ) from error
-            except AuthorizationError as error:
-                raise HTTPException(status_code=403, detail="Forbidden") from error
-        if operator_authenticator is None:
+        client_key = _client_key(request)
+        _reject_if_rate_limited(client_key)
+        if authenticator is None and operator_authenticator is None:
             raise HTTPException(status_code=503, detail="Authentication is not configured")
         try:
-            identity = operator_authenticator.authenticate(authorization)
-            authorizer.require(identity, Permission.OPERATOR)
-            return identity
+            if authenticator is not None:
+                identity = authenticator.authenticate(authorization)
+            else:
+                identity = operator_authenticator.authenticate(authorization)
         except AuthenticationError as error:
+            auth_rate_limiter.record_failure(client_key)
             raise HTTPException(
                 status_code=401,
                 detail="Authentication required",
                 headers={"WWW-Authenticate": "Bearer"},
             ) from error
+        auth_rate_limiter.record_success(client_key)
+        return identity
+
+    def require_operator(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedIdentity:
+        if legacy_test_composition:
+            return AuthenticatedIdentity.operator()
+        client_key = _client_key(request)
+        _reject_if_rate_limited(client_key)
+        if authenticator is None and operator_authenticator is None:
+            raise HTTPException(status_code=503, detail="Authentication is not configured")
+        try:
+            if authenticator is not None:
+                identity = authenticator.authenticate(authorization)
+            else:
+                identity = operator_authenticator.authenticate(authorization)
+        except AuthenticationError as error:
+            auth_rate_limiter.record_failure(client_key)
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from error
+        try:
+            authorizer.require(identity, Permission.OPERATOR)
         except AuthorizationError as error:
             raise HTTPException(status_code=403, detail="Forbidden") from error
+        auth_rate_limiter.record_success(client_key)
+        return identity
 
     @app.get("/health")
     def health() -> dict[str, str]:

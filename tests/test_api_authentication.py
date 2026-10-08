@@ -123,3 +123,24 @@ def test_authenticated_identity_endpoint_rejects_missing_credentials():
         response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
+
+
+
+def test_repeated_invalid_credentials_are_rate_limited():
+    app = create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+
+    with TestClient(app) as client:
+        for _ in range(10):
+            response = client.get(
+                "/api/v1/analysis/EGAL",
+                headers={"Authorization": "Bearer wrong-token"},
+            )
+            assert response.status_code == 401
+
+        blocked = client.get(
+            "/api/v1/analysis/EGAL",
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+
+    assert blocked.status_code == 429
+    assert blocked.headers["retry-after"]
