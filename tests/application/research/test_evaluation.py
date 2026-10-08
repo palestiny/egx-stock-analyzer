@@ -12,7 +12,7 @@ def bar(day, *, open="100", high="105", low="95", close="102"):
 ZERO = ResearchCostConfig(Decimal("0"), Decimal("0"))
 
 def test_next_open_uses_following_bar_not_decision_close():
-    fill = next_open_entry((bar(6, close="103"), bar(7, open="108")), 0, side="LONG", costs=ZERO)
+    fill = next_open_entry((bar(6, close="103"), bar(7, open="108", high="110", close="109")), 0, side="LONG", costs=ZERO)
     assert fill.reference_price == Decimal("108")
     assert fill.fill_timestamp > fill.decision_timestamp
 
@@ -31,7 +31,7 @@ def test_same_bar_target_and_stop_uses_invalidation_first():
     assert result.exit_price == Decimal("90")
 
 def test_gap_through_long_stop_exits_at_open():
-    result = evaluate_exit_bar(bar(7, open="85", high="92", low="80"), side="LONG", target=Decimal("110"), invalidation=Decimal("90"), entry_price=Decimal("100"), costs=ZERO)
+    result = evaluate_exit_bar(bar(7, open="85", high="92", low="80", close="86"), side="LONG", target=Decimal("110"), invalidation=Decimal("90"), entry_price=Decimal("100"), costs=ZERO)
     assert result.exit_price == Decimal("85")
 
 def test_exit_costs_reduce_net_return():
