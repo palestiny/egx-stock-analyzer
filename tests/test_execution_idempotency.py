@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.domain.execution import Execution, ExecutionState
+from app.domain.execution import ExecutionState
 from app.application.execution.idempotency import ExecutionIdentity, ExecutionRegistry
 
 
