@@ -9,6 +9,7 @@ def test_rate_limiter_bounds_tracked_client_memory():
     )
     limiter.record_failure("client-a")
     limiter.record_failure("client-b")
+    limiter.record_failure("client-b")
     limiter.record_failure("client-c")
 
     assert len(limiter._failures) == 2
