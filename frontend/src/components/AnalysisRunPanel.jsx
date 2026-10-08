@@ -40,10 +40,34 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
   }
 
   useEffect(() => {
-    if (initialRunId) {
-      void loadRunById(initialRunId);
+    if (!initialRunId) return undefined;
+
+    let active = true;
+    async function loadInitialRun() {
+      try {
+        const result = await getAnalysisRun(initialRunId, {
+          pageSize: 50,
+          cursor: null,
+        });
+        if (!active) return;
+        setView(result);
+        setLoadedRunId(initialRunId);
+        setCursor(null);
+        setError(null);
+      } catch (requestError) {
+        if (!active) return;
+        setView(null);
+        setLoadedRunId(null);
+        setCursor(null);
+        setError(requestError);
+      }
     }
-  }, [initialRunId, loadRunById]);
+
+    void loadInitialRun();
+    return () => {
+      active = false;
+    };
+  }, [initialRunId, getAnalysisRun]);
 
   async function loadRunForLoadedRun(nextCursor) {
     if (!loadedRunId) {
