@@ -29,7 +29,7 @@ The system currently supports:
 - controlled automatic-retention maintenance command with dry-run and explicit process outcomes;
 - bounded workflow history queries including state/time filters and cross-execution history;
 - a read-only SQLite inspection tool;
-- CI for Python tests, frontend tests, and frontend production build.
+- CI for Python unit/integration tests on Python 3.12 and 3.13, frontend tests/build/lint, high-severity dependency audits, scoped type checks, coverage threshold, and container builds.
 
 ## Architecture
 
