@@ -27,8 +27,27 @@ export function UserAuditHistoryPanel({ getUserAuditHistory }) {
   }
 
   useEffect(() => {
-    load(0);
-  }, []);
+    let active = true;
+
+    async function loadInitialPage() {
+      try {
+        const result = await getUserAuditHistory({ offset: 0 });
+        if (active) setPage(result);
+      } catch (requestError) {
+        if (active) {
+          setPage(null);
+          setError(requestError);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadInitialPage();
+    return () => {
+      active = false;
+    };
+  }, [getUserAuditHistory]);
 
   return (
     <section className="panel" aria-label="personal audit history">
