@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.clock import egx_today
 from app.application.analysis.stock_analysis import StockAnalysisResult
 from app.application.analysis.run_stock_analysis_by_symbol import RunStockAnalysisBySymbol, UnknownStockSymbolError
 from app.application.security.identity import AuthenticatedIdentity
@@ -78,7 +79,7 @@ def test_post_analysis_runs_analysis_and_returns_result():
     assert response.status_code == 200
     assert response.json()["symbol"] == "EGAL"
     runner.execute.assert_called_once()
-    assert runner.execute.call_args.args == ("EGAL", date.today())
+    assert runner.execute.call_args.args == ("EGAL", egx_today())
     assert runner.execute.call_args.kwargs["identity"].user_id is not None
     store.get.assert_called_once_with("EGAL")
 
