@@ -41,7 +41,6 @@ class RunTechnicalScanner:
                 criteria.append(ScannerCriterion.ABOVE_AVERAGE_VOLUME)
             if result.opportunity.classification in {
                 OpportunityClassification.BUY,
-                OpportunityClassification.WATCH,
             }:
                 criteria.append(ScannerCriterion.ACTIONABLE_CLASSIFICATION)
 
