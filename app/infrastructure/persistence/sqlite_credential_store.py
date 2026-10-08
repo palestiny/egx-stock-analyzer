@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 from pathlib import Path
 from uuid import UUID
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.security.credentials import (
     CredentialStore,
@@ -20,7 +21,7 @@ class SQLiteCredentialStore(CredentialStore):
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._database_path)
+        return connect_sqlite(self._database_path)
 
     def _initialize(self) -> None:
         with self._connect() as connection:

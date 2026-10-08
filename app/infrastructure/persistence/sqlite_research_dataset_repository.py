@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 import hashlib
 import json
@@ -26,7 +27,7 @@ class SQLiteResearchDatasetRepository:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
+        connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 

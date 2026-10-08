@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 from uuid import UUID
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.domain.identity.user import User, UserStatus
 
@@ -13,7 +14,7 @@ class SQLiteUserStore:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._database_path)
+        return connect_sqlite(self._database_path)
 
     def _initialize(self) -> None:
         with self._connect() as connection:
