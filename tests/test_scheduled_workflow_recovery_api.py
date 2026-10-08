@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.clock import egx_today
 from app.application.execution.recover_durable_scheduled_workflow import (
     WorkflowExecutionNotFoundError,
     WorkflowExecutionNotRecoverableError,
@@ -65,7 +66,7 @@ def test_recovery_endpoint_delegates_and_returns_execution():
     assert response.status_code == 200
     assert response.json()["id"] == str(execution.id)
     assert response.json()["state"] == "completed"
-    assert recovery.calls == [(execution.id, date.today())]
+    assert recovery.calls == [(execution.id, egx_today())]
 
 
 def test_recovery_endpoint_maps_missing_execution_to_404():

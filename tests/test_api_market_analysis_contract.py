@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.clock import egx_today
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.domain.execution import Execution, ExecutionState
 
@@ -44,7 +45,7 @@ def test_post_market_analysis_executes_configured_universe():
     assert body["successful_stock_ids"] == ["EGAL"]
     assert body["failed_stock_ids"] == []
     capability.execute.assert_called_once()
-    assert capability.execute.call_args.args[0] == date.today()
+    assert capability.execute.call_args.args[0] == egx_today()
 
 
 def test_post_market_analysis_returns_partial_failures():

@@ -5,6 +5,7 @@ from unittest.mock import Mock
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
+from app.application.clock import egx_today
 from app.application.analysis.get_analysis_run import GetAnalysisRun
 from app.application.analysis.list_analysis_runs import ListAnalysisRuns
 from app.application.analysis.run_market_analysis import MarketAnalysisResult
@@ -131,6 +132,6 @@ def test_user_market_analysis_receives_authenticated_owner():
 
     assert response.status_code == 200
     configured.execute.assert_called_once_with(
-        date.today(),
+        egx_today(),
         owner_user_id=user_id,
     )

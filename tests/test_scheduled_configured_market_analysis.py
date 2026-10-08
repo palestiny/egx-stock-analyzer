@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from unittest.mock import Mock, patch
 
+from app.application.clock import egx_today
 from app.application.execution.scheduler import InProcessScheduler
 
 from app.application.execution.scheduled_configured_market_analysis import ScheduledConfiguredMarketAnalysis
@@ -27,8 +28,7 @@ def test_due_operation_uses_date_at_execution_time():
     trigger.schedule(datetime(2026, 9, 18, 22, 0))
     operation = scheduler.schedule.call_args.args[0]
 
-    with patch("app.application.execution.scheduled_configured_market_analysis.date") as mocked_date:
-        mocked_date.today.return_value = date(2026, 9, 19)
+    with patch("app.application.execution.scheduled_configured_market_analysis.egx_today", return_value=date(2026, 9, 19)):
         operation()
 
     capability.execute.assert_called_once_with(date(2026, 9, 19))
@@ -55,4 +55,4 @@ def test_due_operation_is_removed_by_existing_scheduler():
     scheduler.run_due(datetime(2026, 9, 18, 22, 1))
 
     assert scheduler.pending_count() == 0
-    capability.execute.assert_called_once_with(date.today())
+    capability.execute.assert_called_once_with(egx_today())
