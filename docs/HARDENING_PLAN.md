@@ -12,6 +12,8 @@
 - PR #243 — Python 3.12 and 3.13 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
+- PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
+- PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12 and 3.13, with frontend, integration, container-build, and dependency-audit jobs successful.
 
 ## Security and credential migration
 
@@ -77,6 +79,16 @@ Same-origin frontend/API routing is the default. For a separately hosted fronten
 - Configure explicit CORS origins only if cross-origin browser access is needed.
 - Validate provider terms and source quality separately; containerization does not certify market data or analytical results.
 - Do not treat research scores or backtests as guarantees of returns.
+
+## Remaining items requiring an owner decision or production environment
+
+- **M61 historical evidence and source acceptance:** intentionally not changed in this hardening pass, per request. The accepted real dataset, official/licensed bulk source or permitted fallback, provenance, point-in-time financial coverage, and reproducible Strategy v0 evaluation remain the main blocker. No profitability or production analytical-value claim is justified.
+- **Credential migration:** before deployment, reissue/rotate existing credentials that still use legacy PBKDF2 verification. Keep legacy compatibility disabled unless a controlled migration is protected by upstream throttling.
+- **Production perimeter:** the included Compose stack is HTTP-only and loopback-bound. A real deployment still needs a trusted TLS terminator, host/firewall restrictions, secret management, request-size/time limits, and edge rate-limit configuration. The Nginx limit in this repository is per instance and needs tuning for expected traffic.
+- **Operational recovery:** SQLite WAL, timeout, concurrency behavior, and a backup/restore smoke test are covered. A production operator still needs scheduled backups and a tested restore drill on the actual deployment volume.
+- **License:** no license was added because choosing the legal reuse terms requires the repository owner's explicit decision.
+- **Maintainability:** the large API composition module and workflow store were not split during this pass. The repository's sequential decision records are retained for traceability; overlapping hardening guidance was consolidated. Defer broad structural refactors until the M61 evidence gate is closed.
+- **Type-check scope:** CI now runs mypy on hardened authentication primitives, not the entire application. Expanding the checked surface remains follow-up work after the current M61 priority.
 
 ## License decision remains open
 
