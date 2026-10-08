@@ -2,6 +2,12 @@
 
 Python system for explainable analysis of Egyptian Exchange (EGX) stocks.
 
+## Financial Risk Disclaimer
+
+**For informational and educational research only.** This application is not investment, legal, tax, or financial advice and does not make a recommendation tailored to any individual. Market and financial data may be delayed, incomplete, revised, or incorrect; analytical scores and historical simulations are not guarantees of future results. Verify information with the relevant exchange and official disclosures, assess risk independently, and consult a qualified professional where appropriate. No brokerage order execution is provided.
+
+تنبيه: مخرجات النظام لأغراض المعلومات والبحث فقط، وليست توصية استثمارية أو ضمانًا للربح. قد تكون البيانات متأخرة أو ناقصة أو غير دقيقة؛ تحقّق من المصادر الرسمية وقيّم المخاطر بنفسك.
+
 ## Current Scope
 
 The system currently supports:
@@ -148,6 +154,10 @@ npm ci
 npm run test:run
 npm run build
 ```
+
+## Deployment
+
+A containerized baseline is provided by `Dockerfile`, `frontend/Dockerfile`, and `compose.yaml`. See `docs/PRODUCTION_DEPLOYMENT.md` before exposing any instance to a network. TLS must terminate at a trusted reverse proxy or load balancer; the API container itself serves HTTP. Configure `EGX_OPERATOR_TOKEN`, persistent storage, explicit CORS origins when cross-origin access is needed, and upstream rate limiting before public exposure.
 
 ## Frontend Development
 
