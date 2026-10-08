@@ -125,8 +125,9 @@ def _run_id(bars: tuple[ResearchBar, ...], config: ResearchRunConfig, initial_ca
         "initial_capital": str(initial_capital),
         "parameters": canonical_parameters,
         "bars": [
-            [bar.symbol, bar.timeframe, bar.source_timestamp.isoformat(), str(bar.open), str(bar.high),
-             str(bar.low), str(bar.close), str(bar.volume), bar.provider, bar.dataset_version, bar.adjustment.value]
+            [bar.symbol, bar.timeframe, bar.source_timestamp.isoformat(), bar.ingestion_timestamp.isoformat(),
+             str(bar.open), str(bar.high), str(bar.low), str(bar.close), str(bar.volume), bar.provider,
+             bar.dataset_version, bar.quality.value, bar.adjustment.value]
             for bar in bars
         ],
     }
@@ -207,12 +208,17 @@ def run_backtest(
             if fill is None:
                 unfilled.append(UnfilledDecision(intent.signal_id, bars[decision_index].source_timestamp, "next bar unavailable"))
             else:
-                notional = realized_equity
-                quantity = notional / fill.fill_price
-                position = {
-                    "intent": intent, "fill": fill, "quantity": quantity, "notional": notional,
-                    "target": intent.target, "invalidation": intent.invalidation,
-                }
+                if intent.side == "LONG" and not intent.invalidation < fill.fill_price < intent.target:
+                    unfilled.append(UnfilledDecision(intent.signal_id, fill.decision_timestamp, "target/invalidation do not bracket long entry fill"))
+                elif intent.side == "SHORT" and not intent.target < fill.fill_price < intent.invalidation:
+                    unfilled.append(UnfilledDecision(intent.signal_id, fill.decision_timestamp, "target/invalidation do not bracket short entry fill"))
+                else:
+                    notional = realized_equity
+                    quantity = notional / fill.fill_price
+                    position = {
+                        "intent": intent, "fill": fill, "quantity": quantity, "notional": notional,
+                        "target": intent.target, "invalidation": intent.invalidation,
+                    }
             pending = None
 
         if position is not None:
