@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from tracemalloc import start
 from uuid import UUID
 
 from app.domain.market_data.price import Price
