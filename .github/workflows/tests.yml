@@ -8,20 +8,30 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
     env:
       EGX_OPERATOR_TOKEN: test-operator-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
-      - name: Run unit tests
-        run: pytest -m "not integration"
+      - name: Run lint
+        run: ruff check app tests
+      - name: Type-check hardened primitives
+        run: mypy app/api/auth_rate_limit.py app/application/security/credentials.py app/infrastructure/persistence/sqlite_connection.py --ignore-missing-imports --follow-imports=silent
+      - name: Run unit tests with coverage report
+        run: pytest --cov=app --cov-report=term-missing -m "not integration"
 
   integration-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
     env:
       EGX_OPERATOR_TOKEN: test-operator-token
     steps:
@@ -52,3 +62,15 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install application and audit tool
+        run: python -m pip install --upgrade pip && pip install -e . pip-audit
+      - name: Audit installed dependencies
+        run: pip-audit
