@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
-  const [runId, setRunId] = useState(initialRunId);
+  const [manualRunId, setManualRunId] = useState(null);
+  const runId = manualRunId ?? initialRunId;
   const [loadedRunId, setLoadedRunId] = useState(null);
   const [view, setView] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(initialRunId));
 
-  async function loadRunById(normalizedRunId, nextCursor = null) {
+  const loadRunById = useCallback(async (normalizedRunId, nextCursor = null) => {
     setLoading(true);
     setError(null);
     try {
@@ -27,7 +28,7 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [getAnalysisRun]);
 
   async function loadRun(event, nextCursor = null) {
     event?.preventDefault();
@@ -39,11 +40,36 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
   }
 
   useEffect(() => {
-    if (initialRunId) {
-      setRunId(initialRunId);
-      loadRunById(initialRunId);
+    if (!initialRunId) return undefined;
+
+    let active = true;
+    async function loadInitialRun() {
+      try {
+        const result = await getAnalysisRun(initialRunId, {
+          pageSize: 50,
+          cursor: null,
+        });
+        if (!active) return;
+        setView(result);
+        setLoadedRunId(initialRunId);
+        setCursor(null);
+        setError(null);
+      } catch (requestError) {
+        if (!active) return;
+        setView(null);
+        setLoadedRunId(null);
+        setCursor(null);
+        setError(requestError);
+      } finally {
+        if (active) setLoading(false);
+      }
     }
-  }, [initialRunId]);
+
+    void loadInitialRun();
+    return () => {
+      active = false;
+    };
+  }, [initialRunId, getAnalysisRun]);
 
   async function loadRunForLoadedRun(nextCursor) {
     if (!loadedRunId) {
@@ -71,7 +97,7 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
           name="analysis-run-id"
           type="text"
           value={runId}
-          onChange={(event) => setRunId(event.target.value)}
+          onChange={(event) => setManualRunId(event.target.value)}
           placeholder="AnalysisRunId"
           autoComplete="off"
         />

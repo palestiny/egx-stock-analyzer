@@ -19,7 +19,7 @@ export function AnalysisRunsPage({ getAnalysisRuns, onSelectRun, onBack }) {
   const [view, setView] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function loadRuns(nextCursor = null) {
     setLoading(true);
@@ -43,8 +43,34 @@ export function AnalysisRunsPage({ getAnalysisRuns, onSelectRun, onBack }) {
   }
 
   useEffect(() => {
-    loadRuns(null);
-  }, [state]);
+    let active = true;
+
+    async function loadInitialRuns() {
+      try {
+        const result = await getAnalysisRuns({
+          state: state || undefined,
+          pageSize: 50,
+          cursor: null,
+        });
+        if (!active) return;
+        setView(result);
+        setCursor(null);
+        setError(null);
+      } catch (requestError) {
+        if (!active) return;
+        setView(null);
+        setCursor(null);
+        setError(requestError);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadInitialRuns();
+    return () => {
+      active = false;
+    };
+  }, [state, getAnalysisRuns]);
 
   return (
     <main className="app-shell">
@@ -70,7 +96,7 @@ export function AnalysisRunsPage({ getAnalysisRuns, onSelectRun, onBack }) {
           <select
             id="analysis-run-state"
             value={state}
-            onChange={(event) => setState(event.target.value)}
+            onChange={(event) => { setLoading(true); setState(event.target.value); }}
             disabled={loading}
           >
             {STATE_OPTIONS.map((option) => (
