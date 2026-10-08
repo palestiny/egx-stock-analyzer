@@ -13,7 +13,7 @@ from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
 
 from app.domain.analysis_run import AnalysisRun
-from app.domain.execution import Execution, ExecutionState
+from app.domain.execution import Execution
 from app.domain.identity.user import User, UserStatus
 from app.application.security.identity import LEGACY_OPERATOR_USER_ID
 
