@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
@@ -279,7 +279,7 @@ describe("Dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
 
     expect(screen.getByText("Loading latest analysis...")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Loading..." })).toBeDisabled();
+    expect(within(screen.getByLabelText("Stock Symbol").closest("form")).getByRole("button", { name: "Loading..." })).toBeDisabled();
 
     resolveReport(report);
     await waitFor(() => expect(screen.getByRole("heading", { name: "EGAL" })).toBeInTheDocument());
