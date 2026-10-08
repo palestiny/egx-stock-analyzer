@@ -183,6 +183,13 @@ def create_app(
     auth_rate_limiter = AuthenticationRateLimiter()
 
     def _client_key(request: Request) -> str:
+        trust_proxy_headers = os.getenv("EGX_TRUST_PROXY_HEADERS", "").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+        if trust_proxy_headers:
+            real_ip = request.headers.get("x-real-ip", "").strip()
+            if real_ip and "," not in real_ip:
+                return real_ip
         return request.client.host if request.client is not None else "unknown"
 
     def _reject_if_rate_limited(client_key: str) -> None:
