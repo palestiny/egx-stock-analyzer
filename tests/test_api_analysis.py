@@ -1,4 +1,3 @@
-from datetime import date
 from unittest.mock import Mock
 from uuid import uuid4
 
