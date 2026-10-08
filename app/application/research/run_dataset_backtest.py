@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from app.application.research.backtest import BacktestResult, Strategy, run_backtest
 from app.application.research.dataset_repository import ResearchDatasetRepository
-from app.domain.research.dataset import PriceAdjustment, ResearchRunConfig
+from app.domain.research.dataset import ResearchRunConfig
 
 
 class ResearchDatasetNotFoundError(LookupError):
