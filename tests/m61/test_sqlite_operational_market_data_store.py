@@ -5,10 +5,7 @@ from uuid import UUID
 import pytest
 
 from app.application.market_data.acquisition import AcquisitionStatus
-from app.application.market_data.operational_store import (
-    MarketDataConflictError,
-    OperationalMarketDataService,
-)
+from app.application.market_data.operational_store import MarketDataConflictError
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 from app.domain.market_data.timeframe import Timeframe
 from app.domain.stocks.stock import Stock
