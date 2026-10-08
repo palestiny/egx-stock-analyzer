@@ -19,15 +19,17 @@ from app.domain.research.dataset import (
     ResearchBar,
     ResearchCostConfig,
     ResearchRunConfig,
+    ResearchDataQuality,
 )
 
 
-def make_bar(day: int, *, symbol="COMI", timeframe="1d", provider="fixture", version="v1"):
+def make_bar(day: int, *, symbol="COMI", timeframe="1d", provider="fixture", version="v1", quality=ResearchDataQuality.VALID):
     timestamp = datetime(2026, 10, day, tzinfo=timezone.utc)
     return ResearchBar(
         symbol, timeframe, timestamp, timestamp,
         Decimal("100"), Decimal("105"), Decimal("95"), Decimal("100"),
         Decimal("1000"), provider, version,
+        quality=quality,
         adjustment=PriceAdjustment.UNADJUSTED,
     )
 
@@ -98,11 +100,12 @@ def test_dataset_with_mixed_bar_identity_fails_before_strategy_runs():
 
 
 def test_invalid_quality_is_reported_by_engine_not_hidden_by_repository():
-    bars = (make_bar(1),)
+    bars = (make_bar(1, quality=ResearchDataQuality.PARTIAL),)
     dataset = make_dataset(bars=bars)
     use_case = RunDatasetBacktest(InMemoryResearchDatasetRepository((dataset,)))
     result = use_case.execute(DatasetBacktestRequest("COMI", "1d", make_config()), lambda history: None)
-    assert result.status is BacktestStatus.COMPLETED
+    assert result.status is BacktestStatus.INVALID
+    assert "research-ineligible" in result.reason
 
 
 def test_duplicate_dataset_identity_is_rejected():
