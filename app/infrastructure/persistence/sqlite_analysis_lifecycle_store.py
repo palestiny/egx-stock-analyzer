@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.analysis.lifecycle_store import PurgeStoreResult
 
@@ -14,7 +15,7 @@ class SQLiteAnalysisLifecycleStore:
         self.initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
+        connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
