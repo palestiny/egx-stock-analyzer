@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import UUID
 
 from app.application.identity.management_audit import (
-    ManagementAuditPage,
     ManagementAuditQuery,
     ManagementAuditStore,
 )
