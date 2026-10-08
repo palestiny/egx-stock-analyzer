@@ -79,3 +79,17 @@ jobs:
         run: python -m pip install --upgrade pip && pip install -e . pip-audit
       - name: Audit installed dependencies
         run: pip-audit
+
+
+  container-build:
+    runs-on: ubuntu-latest
+    env:
+      EGX_OPERATOR_TOKEN: ci-only-placeholder-token
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build API image
+        run: docker build --file Dockerfile --tag egx-stock-analyzer-api:ci .
+      - name: Build frontend image
+        run: docker build --file frontend/Dockerfile --tag egx-stock-analyzer-frontend:ci .
