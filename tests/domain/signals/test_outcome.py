@@ -5,6 +5,7 @@ from uuid import uuid4
 import pytest
 
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
+from app.domain.signals.model import SignalDirection
 
 
 def test_outcome_requires_valid_reproducibility_metadata():
@@ -13,11 +14,14 @@ def test_outcome_requires_valid_reproducibility_metadata():
         signal_id=uuid4(),
         symbol="COMI",
         outcome=SignalOutcome.TARGET_HIT,
+        direction=SignalDirection.BUY,
         observed_at=now,
         entry_price=Decimal("100"),
         exit_price=Decimal("105"),
         realized_return=Decimal("0.05"),
         realized_r=Decimal("1"),
+        invalidation=Decimal("95"),
+        target_label="T1",
         strategy_id="breakout-trend",
         strategy_version="1.0",
         data_timestamp=now,
@@ -30,7 +34,9 @@ def test_outcome_rejects_zero_r():
     with pytest.raises(ValueError, match="realized R"):
         SignalOutcomeRecord(
             signal_id=uuid4(), symbol="COMI", outcome=SignalOutcome.INVALIDATED,
+            direction=SignalDirection.BUY,
             observed_at=now, entry_price=Decimal("100"), exit_price=Decimal("95"),
             realized_return=Decimal("-0.05"), realized_r=Decimal("0"),
+            invalidation=Decimal("95"), target_label=None,
             strategy_id="breakout-trend", strategy_version="1.0", data_timestamp=now,
         )
