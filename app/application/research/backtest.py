@@ -198,13 +198,12 @@ def run_backtest(
 
     for index, bar in enumerate(bars):
         # A decision from the prior closed bar may fill at this bar's open only.
-        if pending is not None and pending[0] == index:
+        if pending is not None and pending[0] + 1 == index:
             decision_index, intent = pending
             fill = next_open_entry(
-                bars[decision_index:], 0, side=intent.side, costs=config.costs,
+                bars[decision_index:index + 1], 0, side=intent.side, costs=config.costs,
                 execution_model=config.execution_model,
             )
-            # next_open_entry over a sliced series needs the decision bar and next bar.
             if fill is None:
                 unfilled.append(UnfilledDecision(intent.signal_id, bars[decision_index].source_timestamp, "next bar unavailable"))
             else:
@@ -242,9 +241,8 @@ def run_backtest(
                 if index + 1 >= len(bars):
                     unfilled.append(UnfilledDecision(intent.signal_id, bar.source_timestamp, "signal on final bar has no next bar"))
                 else:
+                    # Keep the decision index; the next loop iteration fills at the next bar open.
                     pending = (index, intent)
-                    # Pending tuple references the decision index; fill occurs at index + 1.
-                    pending = (index + 1, intent)
 
         if position is None:
             equity = realized_equity
