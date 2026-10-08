@@ -2,6 +2,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 from uuid import UUID, uuid4
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.analysis.result_store import AnalysisResultRecord
 from app.application.analysis.stock_analysis import StockAnalysisResult
@@ -19,7 +20,7 @@ class SQLiteAnalysisResultStore:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._database_path)
+        return connect_sqlite(self._database_path)
 
     def _initialize(self) -> None:
         with self._connect() as connection:
