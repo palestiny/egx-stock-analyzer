@@ -68,7 +68,7 @@ def test_mixed_identity_is_rejected_before_storage(tmp_path):
             datetime(2026, 10, 2, tzinfo=timezone.utc), Decimal("100"),
             Decimal("105"), Decimal("95"), Decimal("100"), Decimal("1000"),
             "fixture", "v1", ResearchDataQuality.VALID, PriceAdjustment.UNADJUSTED,
-        )))
+        ))))
     assert load(repo) is None
 
 
