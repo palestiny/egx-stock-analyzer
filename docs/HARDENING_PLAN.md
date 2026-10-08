@@ -7,12 +7,14 @@
 - PR #240 — immutable SQLite research-dataset persistence; CI passed before merge.
 - PR #241 — indexed SHA-256 lookup for newly issued high-entropy bearer tokens and process-local failed-authentication throttling; CI passed before merge.
 - PR #242 — shared SQLite connection configuration with WAL and a 5-second busy timeout; CI passed before merge.
+- PR #245 — UTC timestamps for market-data conflict events; CI passed before merge.
+- PR #246 — race-safe first-time WAL initialization; regression tests and CI passed before merge.
 
 ## In review
 
 - PR #243 — Python 3.12 compatibility, CI lint/type/coverage/dependency-audit gates, and Cairo calendar-date handling. CI must pass before merge.
 - PR #244 — Docker/Compose baseline, explicit CORS allowlist, and user-facing financial disclaimer. The stack must be built and tested in CI before merge.
-- PR #245 — UTC timestamps for market-data conflict events. CI must pass before merge.
+
 
 ## Remaining hardening work
 
