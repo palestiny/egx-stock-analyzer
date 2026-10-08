@@ -4,6 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.market_data.acquisition import (
     AcquisitionRecord,
@@ -24,7 +25,7 @@ class SQLiteOperationalMarketDataStore:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
+        connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
