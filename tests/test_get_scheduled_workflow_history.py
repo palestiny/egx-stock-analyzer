@@ -7,9 +7,6 @@ from app.application.execution.get_scheduled_workflow_history import (
     GetScheduledWorkflowHistory,
     InvalidScheduledWorkflowHistoryQueryError,
 )
-from app.application.execution.scheduled_workflow_execution import (
-    ScheduledWorkflowExecutionState,
-)
 from app.application.security.identity import AuthenticatedIdentity
 from app.domain.identity.user import UserStatus
 from app.application.security.authorization import AuthorizationError
