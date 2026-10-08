@@ -6,7 +6,6 @@ from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.identity.user_management import UserManagementService
 from app.application.security.credentials import CredentialService
-from app.application.security.identity import AuthenticatedIdentity
 from app.domain.identity.user import User, UserStatus
 
 class Users:
