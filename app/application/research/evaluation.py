@@ -58,5 +58,5 @@ def evaluate_exit_bar(bar: ResearchBar, *, side: str, target: Decimal, invalidat
     exit_price = reference_exit * (Decimal("1") - costs.slippage_rate if side == "LONG" else Decimal("1") + costs.slippage_rate)
     gross = (exit_price - entry_price) / entry_price if side == "LONG" else (entry_price - exit_price) / entry_price
     commission = exit_price * costs.commission_rate
-    net = gross - commission / entry_price
+    net = gross - costs.commission_rate - commission / entry_price
     return ExitEvaluation(bar.source_timestamp, exit_price, reason, gross, net, commission)
