@@ -9,7 +9,6 @@ from app.application.analysis.result_store import AnalysisResultRecord, Analysis
 from app.application.analysis.run_store import AnalysisRunStore
 from app.application.security.authorization import OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
-from app.domain.analysis_run import AnalysisRunOutcomeState
 from app.domain.execution import ExecutionState
 
 
