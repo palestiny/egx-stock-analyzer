@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 from app.application.identity.management_audit import ManagementAuditEvent, ManagementAuditStore
 
@@ -13,7 +14,7 @@ class SQLiteManagementAuditStore(ManagementAuditStore):
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return sqlite3.connect(self._database_path)
+        return connect_sqlite(self._database_path)
 
     def _initialize(self) -> None:
         with self._connect() as connection:
