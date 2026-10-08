@@ -5,6 +5,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
+from app.application.clock import egx_today
 from app.domain.market_data.data_quality import DataQualityStatus
 from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.price_bar import PriceBar
@@ -27,7 +28,7 @@ def test_comi_yahoo_to_price_bar_smoke() -> None:
     client = YahooFinanceHistoryClient(yfinance)
     adapter = YahooFinanceAdapter(client)
 
-    to_date = date.today()
+    to_date = egx_today()
     from_date = to_date - timedelta(days=30)
 
     observations = adapter.get_daily_observations(
