@@ -8,7 +8,6 @@ from app.application.analysis.lifecycle_store import (
 from app.application.analysis.run_store import AnalysisRunStore
 from app.application.security.authorization import AuthorizationError, OwnershipAuthorizer
 from app.application.security.identity import AuthenticatedIdentity
-from app.domain.execution import ExecutionState
 
 
 class AnalysisLifecycleNotFoundError(LookupError):
