@@ -35,7 +35,7 @@ def persist_history(store, execution):
 
 def test_cross_execution_history_is_newest_first_and_bounded(tmp_path: Path):
     store = SQLiteScheduledWorkflowExecutionStore(tmp_path / "workflow.db")
-    first = persist_history(
+    persist_history(
         store,
         make_execution("occ-1", when=datetime(2026, 9, 20, 9, 0, tzinfo=timezone.utc)),
     )

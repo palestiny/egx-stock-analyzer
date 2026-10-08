@@ -45,7 +45,7 @@ class DeleteAnalysisSnapshot:
 
         try:
             self._authorizer.require_owner_or_operator(identity, record.owner_user_id)
-        except AuthorizationError as error:
+        except AuthorizationError:
             self._lifecycle_store.record_rejection(
                 actor_user_id=identity.user_id,
                 action="analysis_snapshot.delete",

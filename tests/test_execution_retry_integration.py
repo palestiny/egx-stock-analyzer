@@ -5,7 +5,6 @@ import pytest
 pytestmark = pytest.mark.integration
 
 from app.application.execution.runner import ExecutionRunner
-from app.application.execution.runner import ExecutionRunner
 from app.domain.execution import Execution, ExecutionState
 
 
