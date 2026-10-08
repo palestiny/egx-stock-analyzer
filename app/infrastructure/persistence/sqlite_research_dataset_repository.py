@@ -146,11 +146,11 @@ class SQLiteResearchDatasetRepository:
                 SELECT source_timestamp, ingestion_timestamp, open, high, low, close, volume, quality
                 FROM research_bars
                 WHERE symbol = ? AND timeframe = ? AND provider = ? AND version = ? AND adjustment = ?
-                ORDER BY source_timestamp ASC
                 """,
                 identity,
             ).fetchall()
 
+        rows.sort(key=lambda row: datetime.fromisoformat(row[0]))
         if len(rows) != expected_count:
             raise RuntimeError("stored research dataset bar count does not match its manifest")
 
