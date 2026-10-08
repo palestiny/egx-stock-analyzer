@@ -110,19 +110,15 @@ class CredentialService:
         )
 
 
-def _derive_verifier(secret: str) -> str:
+def credential_lookup_key(secret: str) -> str:
+    """Return a fast indexed verifier for high-entropy opaque bearer tokens."""
     import hashlib
-    import os
-    import base64
 
-    salt = os.urandom(16)
-    digest = hashlib.pbkdf2_hmac(
-        "sha256",
-        secret.encode("utf-8"),
-        salt,
-        600_000,
-    )
-    return "pbkdf2_sha256$600000$" + base64.urlsafe_b64encode(salt).decode("ascii") + "$" + base64.urlsafe_b64encode(digest).decode("ascii")
+    return "sha256$" + hashlib.sha256(secret.encode("utf-8")).hexdigest()
+
+
+def _derive_verifier(secret: str) -> str:
+    return credential_lookup_key(secret)
 
 
 def verify_secret(secret: str, verifier: str) -> bool:
@@ -131,10 +127,16 @@ def verify_secret(secret: str, verifier: str) -> bool:
     from secrets import compare_digest
 
     try:
-        algorithm, raw_iterations, raw_salt, raw_digest = verifier.split("$", 3)
-        if algorithm != "pbkdf2_sha256":
+        algorithm, *parts = verifier.split("$")
+        if algorithm == "sha256" and len(parts) == 1:
+            actual = hashlib.sha256(secret.encode("utf-8")).hexdigest()
+            return compare_digest(actual, parts[0])
+        if algorithm != "pbkdf2_sha256" or len(parts) != 3:
             return False
+        raw_iterations, raw_salt, raw_digest = parts
         iterations = int(raw_iterations)
+        if not 1 <= iterations <= 2_000_000:
+            return False
         salt = base64.urlsafe_b64decode(raw_salt.encode("ascii"))
         expected = base64.urlsafe_b64decode(raw_digest.encode("ascii"))
     except (ValueError, TypeError):
