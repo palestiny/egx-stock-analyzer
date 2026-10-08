@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from decimal import Decimal
 
 from app.application.analysis.result_store import AnalysisResultStore
 from app.domain.market_intelligence.movers import (
