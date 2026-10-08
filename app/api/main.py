@@ -6,6 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
@@ -148,6 +149,21 @@ def create_app(
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
+    allowed_origins = [
+        origin.strip().rstrip("/")
+        for origin in os.getenv("EGX_CORS_ALLOWED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    if "*" in allowed_origins:
+        raise ValueError("EGX_CORS_ALLOWED_ORIGINS must use explicit origins, not '*'")
+    if allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allowed_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type"],
+        )
     get_analysis_result = GetAnalysisResult(result_store)
     rank_momentum_leaders = RankMomentumLeaders(result_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
@@ -168,6 +184,13 @@ def create_app(
     auth_rate_limiter = AuthenticationRateLimiter()
 
     def _client_key(request: Request) -> str:
+        trust_proxy_headers = os.getenv("EGX_TRUST_PROXY_HEADERS", "").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+        if trust_proxy_headers:
+            real_ip = request.headers.get("x-real-ip", "").strip()
+            if real_ip and "," not in real_ip:
+                return real_ip
         return request.client.host if request.client is not None else "unknown"
 
     def _reject_if_rate_limited(client_key: str) -> None:
