@@ -178,3 +178,30 @@ def test_cors_rejects_wildcard_with_credentials(monkeypatch):
     monkeypatch.setenv("EGX_CORS_ALLOWED_ORIGINS", "*")
     with pytest.raises(ValueError, match="explicit origins"):
         create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+
+
+
+def test_trusted_proxy_client_ips_are_used_only_when_enabled(monkeypatch):
+    app = create_app(InMemoryAnalysisResultStore(), operator_token="test-token")
+    monkeypatch.setenv("EGX_TRUST_PROXY_HEADERS", "true")
+
+    with TestClient(app) as client:
+        for _ in range(10):
+            blocked = client.get(
+                "/api/v1/analysis/EGAL",
+                headers={
+                    "Authorization": "Bearer wrong-token",
+                    "X-Real-IP": "198.51.100.10",
+                },
+            )
+            assert blocked.status_code == 401
+
+        other_client = client.get(
+            "/api/v1/analysis/EGAL",
+            headers={
+                "Authorization": "Bearer wrong-token",
+                "X-Real-IP": "198.51.100.11",
+            },
+        )
+
+    assert other_client.status_code == 401
