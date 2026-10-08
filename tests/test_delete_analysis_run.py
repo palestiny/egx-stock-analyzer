@@ -11,7 +11,6 @@ from app.application.analysis.lifecycle_store import (
     AnalysisLifecycleStore,
     LifecycleDeletionOutcome,
 )
-from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity
 from app.application.analysis.run_store import InMemoryAnalysisRunStore
 from app.domain.analysis_run import AnalysisRun
