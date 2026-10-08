@@ -14,6 +14,7 @@
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
 - PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
 - PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12 and 3.13, with frontend, integration, container-build, and dependency-audit jobs successful.
+- PR #255 — enforce frontend ESLint and high-severity npm audit in CI; fix React effect/lint findings and upgrade transitive `source-map-js` to patched 1.2.2; all CI jobs passed.
 
 ## Security and credential migration
 
