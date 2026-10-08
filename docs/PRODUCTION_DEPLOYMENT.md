@@ -15,7 +15,7 @@ The frontend is available at `http://localhost:8080` by default. The data databa
 
 ## TLS and reverse proxy
 
-This Compose stack serves HTTP only. It is suitable for local validation or for operation behind a trusted TLS-terminating reverse proxy. Do not expose it directly to the public internet without HTTPS, host-level firewall rules, request-size/time limits, access logs, and trusted proxy configuration. The API is not published to the host by default.
+This Compose stack serves HTTP only. It is suitable for local validation or for operation behind a trusted TLS-terminating reverse proxy. Do not expose it directly to the public internet without HTTPS, host-level firewall rules, request-size/time limits, access logs, and trusted proxy configuration. The API is not published to the host by default. Compose enables `EGX_TRUST_PROXY_HEADERS=true` because the API is only reachable through the frontend Nginx service, which overwrites `X-Real-IP`. Do not enable this flag if untrusted clients can reach the API directly or if the proxy does not overwrite that header.
 
 The API's failed-authentication limiter is process-local. In multi-worker or multi-instance deployments, add shared rate limiting at the trusted edge. If the API is placed behind a proxy, do not blindly trust forwarded headers; configure the server to trust only the actual proxy addresses.
 
