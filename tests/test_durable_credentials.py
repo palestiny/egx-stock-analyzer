@@ -112,3 +112,48 @@ def test_credential_survives_store_recreation(tmp_path):
     identity = auth.authenticate("Bearer " + issued.secret)
 
     assert identity.user_id == issued.user_id
+
+
+
+def test_new_credential_verifier_uses_indexable_sha256(tmp_path):
+    store, users, _, issued = make_auth(tmp_path)
+    connection = __import__("sqlite3").connect(tmp_path / "auth.db")
+    verifier = connection.execute(
+        "SELECT verifier FROM user_credentials WHERE id = ?", (str(issued.id),)
+    ).fetchone()[0]
+    indexes = {
+        row[1]
+        for row in connection.execute("PRAGMA index_list(user_credentials)").fetchall()
+    }
+    connection.close()
+
+    assert verifier.startswith("sha256$")
+    assert issued.secret not in verifier
+    assert "idx_user_credentials_status_verifier" in indexes
+    assert store.find_active_credential(issued.secret).id == issued.id
+
+
+def test_legacy_pbkdf2_credentials_are_not_scanned_by_default(tmp_path, monkeypatch):
+    import hashlib
+    import base64
+    import os
+    from datetime import datetime, timezone
+    from app.application.security.credentials import StoredCredential
+
+    store = SQLiteCredentialStore(tmp_path / "legacy.db")
+    users = SQLiteUserStore(tmp_path / "legacy.db")
+    user_id = uuid4()
+    users.save(User(user_id, UserStatus.ACTIVE))
+    secret = "legacy-token-secret"
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", secret.encode(), salt, 600_000)
+    verifier = "pbkdf2_sha256$600000$" + base64.urlsafe_b64encode(salt).decode() + "$" + base64.urlsafe_b64encode(digest).decode()
+    credential = StoredCredential(uuid4(), user_id, "active", datetime.now(timezone.utc))
+    store.create(credential, verifier)
+
+    monkeypatch.delenv("EGX_ALLOW_LEGACY_PBKDF2_CREDENTIALS", raising=False)
+    assert store.find_active_credential(secret) is None
+
+    monkeypatch.setenv("EGX_ALLOW_LEGACY_PBKDF2_CREDENTIALS", "true")
+    assert store.find_active_credential(secret).id == credential.id
+    assert store.find_active_credential(secret).id == credential.id
