@@ -142,7 +142,7 @@ def test_comparison_returns_404_for_missing_snapshot():
     app = create_app(InMemoryAnalysisResultStore(), compare_analysis_snapshots=capability)
 
     response = TestClient(app).get(
-        f"/api/v1/comparisons/EGAL?before=00000000-0000-0000-0000-000000000001&after=00000000-0000-0000-0000-000000000002"
+        "/api/v1/comparisons/EGAL?before=00000000-0000-0000-0000-000000000001&after=00000000-0000-0000-0000-000000000002"
     )
 
     assert response.status_code == 404
