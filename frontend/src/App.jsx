@@ -769,6 +769,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
           </section>
         </>
       )}
+      <p className="muted financial-disclaimer" role="note">
+        Informational research only — not investment advice or a guarantee of returns. Market data may be delayed or incomplete; verify official sources and assess risk independently.
+      </p>
     </main>
   );
 }
@@ -825,6 +828,9 @@ function LoginScreen({ onAuthenticated }) {
             {error.status === 401 ? "Invalid authentication credential." : error.message}
           </p>
         )}
+        <p className="muted financial-disclaimer" role="note">
+          Informational research only — not investment advice or a guarantee of returns.
+        </p>
       </section>
     </main>
   );
