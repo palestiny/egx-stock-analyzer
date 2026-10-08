@@ -7,6 +7,7 @@ services:
       EGX_ANALYSIS_DATABASE_PATH: /data/analysis.db
       EGX_OPERATOR_TOKEN: ${EGX_OPERATOR_TOKEN:?Set EGX_OPERATOR_TOKEN before starting}
       EGX_CORS_ALLOWED_ORIGINS: ${EGX_CORS_ALLOWED_ORIGINS:-}
+      EGX_TRUST_PROXY_HEADERS: "true"
     volumes:
       - egx-data:/data
     restart: unless-stopped
