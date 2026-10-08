@@ -225,4 +225,5 @@ def create_infrastructure_runtime(
         authenticator=authenticator,
         credential_service=credential_service,
         user_store=user_store,
+        user_management=user_management,
     )
