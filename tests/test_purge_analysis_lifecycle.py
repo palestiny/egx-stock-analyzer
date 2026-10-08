@@ -4,7 +4,6 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.application.analysis.lifecycle_store import PurgeStoreResult
 from app.application.analysis.purge_analysis_lifecycle import PurgeAnalysisLifecycle
 from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity

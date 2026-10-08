@@ -14,7 +14,7 @@ from app.application.execution.scheduled_workflow_execution import (
 from app.application.notifications.automatic_alert_delivery import (
     AutomaticAlertDeliveryState,
 )
-from app.domain.execution import Execution, ExecutionState
+from app.domain.execution import Execution
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )

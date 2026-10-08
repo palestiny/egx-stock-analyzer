@@ -6,7 +6,6 @@ import pytest
 from app.application.security.authentication import AuthenticationError
 from app.application.security.credentials import CredentialService
 from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
-from app.application.security.identity import AuthenticatedIdentity
 from app.domain.identity.user import User, UserStatus
 from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
 from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore

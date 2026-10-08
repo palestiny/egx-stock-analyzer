@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass
-from decimal import Decimal
 
 from app.domain.market_intelligence.fibonacci import FibonacciScanResult
 

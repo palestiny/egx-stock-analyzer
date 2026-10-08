@@ -8,7 +8,7 @@ from hashlib import sha256
 import json
 from typing import Callable
 
-from app.application.research.evaluation import EntryFill, ExitEvaluation, evaluate_exit_bar, next_open_entry
+from app.application.research.evaluation import evaluate_exit_bar, next_open_entry
 from app.domain.research.dataset import (
     ResearchBar,
     ResearchRunConfig,

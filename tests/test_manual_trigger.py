@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 from app.application.analysis.daily_market_analysis import StockAnalysisInput
 from app.application.execution.manual_trigger import ManualAnalysisTrigger
-from app.domain.execution import Execution, ExecutionState
+from app.domain.execution import Execution
 
 
 def test_manual_trigger_starts_daily_market_analysis():

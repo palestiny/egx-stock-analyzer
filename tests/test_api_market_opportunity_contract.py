@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-import pytest
 
 from app.api.main import create_app
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking

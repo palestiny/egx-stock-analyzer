@@ -34,6 +34,6 @@ markers = [
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "DTZ"]
+select = ["E4", "E7", "E9", "DTZ", "F401"]
 ignore = ["E402", "E701"]
-per-file-ignores = { "tests/**" = ["DTZ001"] }
+per-file-ignores = { "tests/**" = ["DTZ001"], "**/__init__.py" = ["F401"] }

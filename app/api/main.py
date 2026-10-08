@@ -58,7 +58,6 @@ from app.application.analysis.result_store import AnalysisResultStore
 from app.application.security.authentication import (
     AuthenticationError,
     BearerTokenAuthenticator,
-    ConfiguredBearerTokenAuthenticator,
     Authenticator,
 )
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer

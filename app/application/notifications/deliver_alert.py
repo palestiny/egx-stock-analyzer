@@ -1,6 +1,5 @@
 from app.application.notifications.delivery_store import (
     AlertDeliveryRecord,
-    AlertDeliveryStatus,
     AlertDeliveryStore,
 )
 from app.application.notifications.provider import NotificationProvider

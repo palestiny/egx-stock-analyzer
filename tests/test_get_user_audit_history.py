@@ -10,7 +10,6 @@ from app.application.identity.get_user_audit_history import (
 from app.application.identity.management_audit import (
     ManagementAuditEvent,
     ManagementAuditPage,
-    ManagementAuditQuery,
     ManagementAuditRecord,
 )
 from app.application.security.identity import AuthenticatedIdentity

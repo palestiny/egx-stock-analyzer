@@ -8,7 +8,6 @@ from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.stocks.stock import Stock
 from app.infrastructure.config import InfrastructureConfig
-from app.infrastructure.runtime import InfrastructureRuntime
 from app.main import (
     create_application,
     create_application_from_environment,
