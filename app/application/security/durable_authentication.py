@@ -1,4 +1,3 @@
-from secrets import compare_digest
 
 from app.application.identity.user_store import UserStore
 from app.application.security.authentication import AuthenticationError, ConfiguredBearerTokenAuthenticator
