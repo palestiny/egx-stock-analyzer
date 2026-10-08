@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 
 from app.application.identity.user_management import UserManagementError, UserManagementService
-from app.application.security.credentials import CredentialService, IssuedCredential
+from app.application.security.credentials import CredentialService
 from app.application.security.identity import AuthenticatedIdentity
 from app.domain.identity.user import User, UserStatus
 
