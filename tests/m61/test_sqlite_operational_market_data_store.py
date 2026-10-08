@@ -101,6 +101,7 @@ def test_conflict_is_durable_and_original_observation_is_unchanged(tmp_path):
     )
     assert len(events) == 1
     assert events[0].acquisition_id == second.acquisition_id
+    assert events[0].detected_at.tzinfo == timezone.utc
     assert events[0].existing_acquisition_id == first.acquisition_id
     assert events[0].existing_observation == original
     assert events[0].incoming_observation == incoming

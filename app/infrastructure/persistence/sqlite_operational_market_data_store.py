@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -179,7 +179,7 @@ class SQLiteOperationalMarketDataStore:
                 if existing == incoming:
                     continue
 
-                detected_at = datetime.now().astimezone()
+                detected_at = datetime.now(timezone.utc)
                 event = MarketDataConflictEvent(
                     conflict_id=uuid4(),
                     stock_id=record.stock_id,
