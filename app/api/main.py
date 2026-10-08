@@ -53,6 +53,7 @@ from app.application.analysis.get_analysis_run import (
     InvalidAnalysisRunQueryError,
 )
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
+from app.application.clock import egx_today
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.security.authentication import (
     AuthenticationError,
@@ -426,7 +427,7 @@ def create_app(
             )
 
         try:
-            run_stock_analysis_by_symbol.execute(symbol, date.today(), identity=identity)
+            run_stock_analysis_by_symbol.execute(symbol, egx_today(), identity=identity)
         except UnknownStockSymbolError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         except RuntimeError as error:
@@ -640,7 +641,7 @@ def create_app(
 
         try:
             execution = run_configured_market_analysis.execute(
-                date.today(),
+                egx_today(),
                 owner_user_id=identity.user_id if Permission.OPERATOR not in identity.permissions else None,
             )
         except Exception as error:
@@ -916,12 +917,12 @@ def create_app(
             if authenticator is None:
                 execution = recover_durable_scheduled_workflow.execute(
                     execution_id,
-                    date.today(),
+                    egx_today(),
                 )
             else:
                 execution = recover_durable_scheduled_workflow.execute(
                     execution_id,
-                    date.today(),
+                    egx_today(),
                     identity,
                 )
         except WorkflowExecutionNotFoundError as error:
