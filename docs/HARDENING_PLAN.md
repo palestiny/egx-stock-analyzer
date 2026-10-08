@@ -11,7 +11,7 @@
 - PR #246 — race-safe first-time WAL initialization; concurrency regression tests and CI passed before merge.
 - PR #243 — Python 3.12 and 3.13 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
-- PR #248 — removal of unused imports and enforcement of Ruff F401; in review.
+- PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
 
 ## Security and credential migration
 
