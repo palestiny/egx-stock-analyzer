@@ -103,8 +103,6 @@ def test_post_analysis_does_not_hide_analysis_input_value_errors():
     runner.execute.side_effect = ValueError("Market data provider returned no observations")
 
     app = create_app(store, runner)
-    client = TestClient(app)
-
     response = TestClient(app, raise_server_exceptions=False).post("/api/v1/analysis/EGAL")
 
     assert response.status_code == 500
