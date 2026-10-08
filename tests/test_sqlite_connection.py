@@ -26,3 +26,22 @@ def test_sqlite_connection_remains_usable_for_in_memory_database():
         assert connection.execute("SELECT value FROM sample").fetchone() == (1,)
     finally:
         connection.close()
+
+
+
+def test_concurrent_first_connections_enable_wal_without_lock_errors(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    database_path = tmp_path / "concurrent-first-open.db"
+
+    def open_and_close():
+        connection = connect_sqlite(database_path)
+        try:
+            return connection.execute("PRAGMA journal_mode").fetchone()[0].lower()
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        modes = list(pool.map(lambda _: open_and_close(), range(16)))
+
+    assert modes == ["wal"] * 16
