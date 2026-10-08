@@ -60,7 +60,11 @@ def test_entry_fills_at_next_open_and_target_closes_trade():
     assert trade.exit_reason == "TARGET"
     assert trade.exit_price == Decimal("110")
     assert trade.net_pnl == Decimal("100")
+    assert trade.quantity == Decimal("10")
     assert result.metrics.cumulative_net_return == Decimal("0.1")
+    assert result.metrics.exposure_bars == 1
+    assert result.metrics.total_bars == 3
+    assert result.metrics.time_in_market_ratio == Decimal("1") / Decimal("3")
 
 
 def test_signal_on_final_bar_is_recorded_unfilled():
@@ -139,3 +143,22 @@ def test_zero_trade_run_has_defined_metrics():
     assert result.metrics.completed_trades == 0
     assert result.metrics.win_rate == Decimal("0")
     assert result.metrics.cumulative_net_return == Decimal("0")
+
+
+
+def test_short_position_can_hit_target_and_records_quantity():
+    bars = (bar(1), bar(2, open="100", high="102", low="88", close="89"))
+    intent = EntryIntent("SHORT", Decimal("90"), Decimal("110"), "short-1")
+    result = run_backtest(
+        bars,
+        config=config(),
+        strategy=lambda history: intent if len(history) == 1 else None,
+        initial_capital=Decimal("1000"),
+    )
+    assert result.status is BacktestStatus.COMPLETED
+    assert len(result.trades) == 1
+    assert result.trades[0].side == "SHORT"
+    assert result.trades[0].exit_reason == "TARGET"
+    assert result.trades[0].net_pnl == Decimal("100")
+    assert result.trades[0].quantity == Decimal("10")
+    assert result.metrics.time_in_market_ratio == Decimal("0.5")
