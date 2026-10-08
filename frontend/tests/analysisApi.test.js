@@ -49,7 +49,7 @@ it("requests the market opportunity endpoint", async () => {
 
   await getMarketOpportunities(["egal", "ieec"]);
 
-  expect(global.fetch).toHaveBeenCalledWith(
+  expect(globalThis.fetch).toHaveBeenCalledWith(
     "/api/v1/opportunities?symbols=egal%2Cieec",
   );
 });
@@ -180,7 +180,7 @@ it("clears the session and emits auth expiry on HTTP 401", async () => {
 
 describe("getManagementAudit", () => {
   it("builds bounded audit query parameters", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ items: [], total_count: 0, offset: 0, page_size: 50, has_more: false }),
     });
@@ -195,7 +195,7 @@ describe("getManagementAudit", () => {
       offset: 100,
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/v1/management/audit?actor_user_id=actor-id&target_user_id=target-id&action=user_created&outcome=success&page_size=50&offset=100",
     );
   });
