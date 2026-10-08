@@ -7,7 +7,7 @@ export function AnalysisRunPanel({ getAnalysisRun, initialRunId = "" }) {
   const [view, setView] = useState(null);
   const [cursor, setCursor] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(initialRunId));
 
   const loadRunById = useCallback(async (normalizedRunId, nextCursor = null) => {
     setLoading(true);
