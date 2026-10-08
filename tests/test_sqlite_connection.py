@@ -45,3 +45,48 @@ def test_concurrent_first_connections_enable_wal_without_lock_errors(tmp_path):
         modes = list(pool.map(lambda _: open_and_close(), range(16)))
 
     assert modes == ["wal"] * 16
+
+
+def test_sqlite_wal_reader_can_read_committed_snapshot_during_writer_transaction(tmp_path):
+    database_path = tmp_path / "reader-writer.db"
+    writer = connect_sqlite(database_path)
+    reader = connect_sqlite(database_path)
+    try:
+        writer.execute("CREATE TABLE sample (value INTEGER)")
+        writer.execute("INSERT INTO sample VALUES (1)")
+        writer.commit()
+
+        writer.execute("BEGIN IMMEDIATE")
+        writer.execute("INSERT INTO sample VALUES (2)")
+
+        assert reader.execute("SELECT value FROM sample ORDER BY value").fetchall() == [(1,)]
+
+        writer.commit()
+        assert reader.execute("SELECT value FROM sample ORDER BY value").fetchall() == [
+            (1,),
+            (2,),
+        ]
+    finally:
+        reader.close()
+        writer.close()
+
+
+def test_sqlite_backup_can_be_restored_to_a_new_database(tmp_path):
+    source_path = tmp_path / "source.db"
+    backup_path = tmp_path / "backup.db"
+    source = connect_sqlite(source_path)
+    backup = connect_sqlite(backup_path)
+    try:
+        source.execute("CREATE TABLE sample (value TEXT NOT NULL)")
+        source.execute("INSERT INTO sample VALUES ('restore-check')")
+        source.commit()
+        source.backup(backup)
+    finally:
+        backup.close()
+        source.close()
+
+    restored = connect_sqlite(backup_path)
+    try:
+        assert restored.execute("SELECT value FROM sample").fetchone() == ("restore-check",)
+    finally:
+        restored.close()

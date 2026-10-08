@@ -6,16 +6,27 @@ from time import monotonic
 class AuthenticationRateLimiter:
     """Process-local sliding-window limiter for repeated failed authentication."""
 
-    def __init__(self, max_failures: int = 10, window_seconds: int = 60) -> None:
-        if max_failures < 1 or window_seconds < 1:
+    def __init__(
+        self,
+        max_failures: int = 10,
+        window_seconds: int = 60,
+        max_tracked_clients: int = 10_000,
+    ) -> None:
+        if max_failures < 1 or window_seconds < 1 or max_tracked_clients < 1:
             raise ValueError("rate-limit values must be positive")
         self._max_failures = max_failures
         self._window_seconds = window_seconds
+        self._max_tracked_clients = max_tracked_clients
         self._failures: dict[str, deque[float]] = {}
         self._lock = Lock()
 
     def _prune(self, key: str, now: float) -> deque[float]:
-        attempts = self._failures.setdefault(key, deque())
+        attempts = self._failures.get(key)
+        if attempts is None:
+            if len(self._failures) >= self._max_tracked_clients:
+                self._failures.pop(next(iter(self._failures)))
+            attempts = deque()
+            self._failures[key] = attempts
         cutoff = now - self._window_seconds
         while attempts and attempts[0] <= cutoff:
             attempts.popleft()
