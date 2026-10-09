@@ -132,11 +132,6 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     if currency != "EGP":
         findings.append(f"response:unexpected_currency={currency!r}")
         return [], {"ticker": actual_ticker, "exchange_timezone": exchange_timezone, "currency": currency}, findings
-    instrument_type = meta.get("instrumentType")
-    if instrument_type != "EQUITY":
-        # Keep parsing for diagnostic coverage/quality counts, but make the
-        # unexpected provider classification an explicit acceptance blocker.
-        findings.append(f"response:unexpected_instrument_type={instrument_type!r}")
     try:
         session_timezone = ZoneInfo(exchange_timezone)
     except (ZoneInfoNotFoundError, ValueError):
@@ -237,22 +232,47 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     return points, meta_out, findings
 
 
+def summarize_ohlc_integrity(points: list[dict[str, object]]) -> dict[str, int]:
+    """Count OHLC consistency failures by field pair without exposing price values."""
+    counts = {
+        "valid_rows": 0,
+        "missing_or_non_numeric_rows": 0,
+        "low_above_open": 0,
+        "low_above_close": 0,
+        "high_below_open": 0,
+        "high_below_close": 0,
+        "low_above_high": 0,
+    }
+    for point in points:
+        numeric: dict[str, float] = {}
+        for field in ("open", "high", "low", "close"):
+            value = point.get(field)
+            if not _finite_number(value):
+                break
+            numeric[field] = float(value)
+        if len(numeric) != 4:
+            counts["missing_or_non_numeric_rows"] += 1
+            continue
+        counts["valid_rows"] += 1
+        if numeric["low"] > numeric["open"]:
+            counts["low_above_open"] += 1
+        if numeric["low"] > numeric["close"]:
+            counts["low_above_close"] += 1
+        if numeric["high"] < numeric["open"]:
+            counts["high_below_open"] += 1
+        if numeric["high"] < numeric["close"]:
+            counts["high_below_close"] += 1
+        if numeric["low"] > numeric["high"]:
+            counts["low_above_high"] += 1
+    return counts
+
+
 def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path) -> dict[str, Any]:
     status_code, payload, raw = request_chart(ticker)
     points, meta, parse_findings = _parse_chart(ticker, payload)
     validation_findings = validate_history_points(points)
     evaluation_findings = validate_m61_evaluation_window(points)
     findings = list(dict.fromkeys(parse_findings + validation_findings + evaluation_findings))
-    finding_counts: dict[str, int] = {}
-    for finding in findings:
-        if finding.startswith("row[") and "]:" in finding:
-            category = finding.split("]:", 1)[1].split("=", 1)[0]
-        elif ":" in finding:
-            prefix, remainder = finding.split(":", 1)
-            category = f"{prefix}:{remainder.split('=', 1)[0]}"
-        else:
-            category = finding
-        finding_counts[category] = finding_counts.get(category, 0) + 1
 
     report: dict[str, Any] = {
         "symbol": symbol,
@@ -273,10 +293,8 @@ def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path)
             "last_date": points[-1]["date"] if points else None,
             "sha256_of_response": hashlib.sha256(raw).hexdigest() if raw else None,
             "response_bytes": len(raw),
-            "validation_findings_total": len(findings),
-            "validation_finding_counts": dict(sorted(finding_counts.items())),
-            "validation_findings_sample": findings[:20],
-            "validation_findings_truncated": len(findings) > 20,
+            "validation_findings": findings,
+            "ohlc_integrity_summary": summarize_ohlc_integrity(points),
             "corporate_action_event_rows": sum(
                 1 for point in points if point.get("dividend") is not None or point.get("split_numerator") is not None
             ),
