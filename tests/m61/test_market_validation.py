@@ -1,4 +1,4 @@
-from tools.m61_market_validation import validate_history_points
+from tools.m61_market_validation import validate_history_points, validate_m61_evaluation_window
 
 
 def test_valid_points_have_no_findings():
