@@ -57,14 +57,16 @@ class TelegramNotificationProvider(NotificationProvider):
                 json=payload,
                 timeout=self._timeout,
             )
-        except httpx.TimeoutException as error:
+        except httpx.TimeoutException:
+            # Do not chain transport exceptions: their request URL contains the bot token.
             raise TelegramNotificationProviderError(
                 "Telegram request timed out"
-            ) from error
+            ) from None
         except httpx.RequestError as error:
+            # Never expose the underlying exception/request URL in logs or tracebacks.
             raise TelegramNotificationProviderError(
                 f"Telegram request failed: {error.__class__.__name__}"
-            ) from error
+            ) from None
 
         if response.status_code >= 400:
             raise TelegramNotificationProviderError(
@@ -73,10 +75,10 @@ class TelegramNotificationProvider(NotificationProvider):
 
         try:
             body: dict[str, Any] = response.json()
-        except ValueError as error:
+        except ValueError:
             raise TelegramNotificationProviderError(
                 "Telegram returned an invalid response"
-            ) from error
+            ) from None
 
         if body.get("ok") is not True:
             description = body.get("description")
