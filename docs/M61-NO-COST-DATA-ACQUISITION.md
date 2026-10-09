@@ -81,3 +81,25 @@ If free sources cannot satisfy a gate, record the exact gap and exclude that cla
 A metadata-only probe completed at [GitHub Actions run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142) without preserving price rows. The endpoint returned HTTP 200 for all ten candidate tickers and broad date coverage through 2025-12-31 (FWRY began on 2019-08-14). However, this is **not a usable M61 dataset**: all ten responses reported `instrumentType=MUTUALFUND` and the OHLCV validator found hundreds of inconsistent/null rows per ticker. Terms and long-term storage rights also remain unverified.
 
 **Decision:** reject this Yahoo response as an M61 acceptance source for now. The run proves only that the endpoint responds and returns a long series; row count/coverage must not override identity and data-quality failures. Continue with the public EGID/EGX feed contract investigation rather than accepting this candidate.
+
+## No-cost source decision — live verification, 2026-10-09
+
+### Yahoo Finance chart endpoint: rejected for M61
+
+The no-cost probe returned HTTP 200 for all ten .CA candidates, with daily-looking history spanning 2019–2025. The returned metadata classified all ten as MUTUALFUND, and the existing OHLCV validator found hundreds of inconsistent/null observations per symbol. Do not use this response for Strategy v0. Details: [live probe run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
+
+### EGID/EGX history endpoint: not anonymously accessible
+
+The public Swagger document describes history/chart endpoints and declares a Bearer security scheme. A single COMI GetSymbolHistory request with no credentials returned HTTP 401. No authentication was attempted after that response. This means the public Swagger page is not an anonymous data feed; free account availability and storage terms are still unverified.
+
+### Other advertised free sites are not accepted by assumption
+
+- StockAnalysis says it has no programmatic API, prohibits automated scraping/bulk collection, and does not license data for building competing databases/products. Do not scrape it: https://stockanalysis.com/help/faq/api-access/ and https://stockanalysis.com/terms-of-use/
+- EGXAPI advertises a free API, but its published legal center labels the Terms of Service as a design draft with placeholder wording. It is not an acceptable research-data source until binding terms, provider identity, historical coverage, and data rights can be verified: https://egxapi.com/legal/
+- Paid sources remain out of scope because the project owner cannot pay.
+
+### Current no-cost execution path
+
+Do not fabricate data or quietly weaken M61. Use a real CSV that the owner can already export from an existing brokerage/account/platform only if that platform's terms permit the intended local research/storage. Run the existing evidence inspector and candidate-package builder, starting with COMI; preserve the original file and its checksum, and keep the candidate unaccepted until source rights, corporate-action semantics, warm-up, and financial availability gates pass. If no such export is available, the market-data portion remains blocked by source access, not by code.
+
+The point-in-time financial dataset remains a separate open blocker; market bars alone cannot satisfy the full M61 Strategy v0 acceptance gate.
