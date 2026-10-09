@@ -98,3 +98,8 @@ jobs:
         run: docker build --file Dockerfile --tag egx-stock-analyzer-api:ci .
       - name: Build frontend image
         run: docker build --file frontend/Dockerfile --tag egx-stock-analyzer-frontend:ci .
+      - name: Validate Nginx configuration on the Compose network
+        run: |
+          docker compose up -d --wait api
+          docker compose run --rm frontend nginx -t
+          docker compose down -v
