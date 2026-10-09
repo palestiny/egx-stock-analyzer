@@ -58,7 +58,7 @@ def test_inspector_extracts_request_and_response_schema_without_market_data():
 def test_inspector_fails_closed_when_swagger_is_unavailable():
     report = inspect_swagger({"error": "not found"}, 404, b"not found")
     assert report["status"] == "UNAVAILABLE"
-    assert report["found_target_operations"] if "found_target_operations" in report else True
+    assert "operations" not in report
 
 
 def test_inspector_handles_unexpected_swagger_shape():
