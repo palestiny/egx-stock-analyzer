@@ -449,11 +449,11 @@ def test_rejects_duplicate_canonical_csv_headers(
     loader_method: str,
 ) -> None:
     original = (FIXTURE / filename).read_text(encoding="utf-8")
-    header, remainder = original.split("\\n", 1)
+    header, remainder = original.split("\n", 1)
     old, new = header_replace
     assert old in header
     header = header.replace(old, new, 1)
-    _rewrite_artifact_csv(tmp_path, filename, header + "\\n" + remainder)
+    _rewrite_artifact_csv(tmp_path, filename, header + "\n" + remainder)
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="duplicate CSV headers"):
         getattr(HistoricalDatasetLoader(tmp_path), loader_method)()
@@ -474,7 +474,7 @@ def test_rejects_canonical_csv_rows_with_extra_fields(
     original = (FIXTURE / filename).read_text(encoding="utf-8")
     lines = original.splitlines()
     lines[1] += ",unexpected-extra-field"
-    _rewrite_artifact_csv(tmp_path, filename, "\\n".join(lines) + "\\n")
+    _rewrite_artifact_csv(tmp_path, filename, "\n".join(lines) + "\n")
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="missing or extra fields"):
         getattr(HistoricalDatasetLoader(tmp_path), loader_method)()
