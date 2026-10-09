@@ -162,6 +162,8 @@ The current `main` branch includes the following dataset-readiness improvements,
 - Stable development stock identities exist for the bounded cohort; these are identity fixtures and do not imply that real market data has been acquired.
 - The acceptance path checks internal COMI identity mapping, market/financial identity consistency, warm-up and evaluation coverage, corporate-action declaration, and explicit licensing attestation.
 - PR #290 — merged strict CSV parsing at both the external evidence inspector and canonical dataset loader: duplicate headers, malformed quoting, non-canonical headers, and rows with missing/extra fields are rejected/reported rather than collapsed or allowed to crash the intake path. CI passed.
+- PR #292 — aligned the pre-ingestion inspector with the annual acceptance rule: it reports missing evaluation years and does not reject a valid final trading session merely because it falls before December 31. CI passed.
+- PR #293 — the COMI acceptance gate now requires daily (1d) observations and rejects intraday-only or mixed-timeframe artifacts. CI passed.
 - PR #291 — merged a minimum annual evaluation-coverage gate: the COMI acceptance report now names missing years in 2021–2025 and does not require a market observation on the exact calendar date 2025-12-31. CI passed. This remains a minimum gate, not a substitute for an EGX session-calendar gap audit.
 - The candidate packaging workflow and commands are documented in `docs/M61-EXTERNAL-CSV-EVIDENCE-INTAKE.md`.
 
