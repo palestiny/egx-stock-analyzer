@@ -113,3 +113,19 @@ A live, non-persisting probe returned HTTP 200 for all ten candidate tickers. It
 A field-pair diagnostic showed that most findings are caused by the reported open falling outside the reported daily high/low range: COMI had 249 low-above-open and 140 high-below-open findings, while low/high versus close remained consistent for COMI. Several other tickers also had low/high versus close inconsistencies. This requires an independent reference to determine whether source field semantics or source values are wrong. The probe deliberately did not auto-drop, repair, or accept any row.
 
 **Conclusion:** Yahoo is reachable and offers apparent date-range coverage, but this live candidate fails the current data-quality gate. Source terms/long-term storage rights also remain unverified, and point-in-time financial snapshots are still absent. Strategy v0 eligibility remains false.
+
+
+### Follow-up bounded EGID route check
+
+The access probe now checks both documented history operations without credentials and without retaining price values:
+
+- `POST /api/DelayedFeed/getSymbolHistory`
+- `POST /api/Feed/GetSymbolHistory`
+
+Run locally with:
+
+```powershell
+python -m tools.m61_egid_access_probe
+```
+
+The existing observed `401` applies only to the DelayedFeed route. The Feed route must be checked separately; it is not assumed public or usable based on its name. Any successful response remains a candidate until field semantics, coverage, repeatability, and intended storage/use terms are verified.
