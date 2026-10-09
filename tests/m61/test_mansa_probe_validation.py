@@ -47,6 +47,7 @@ def test_probe_symbol_includes_deterministic_market_validation(monkeypatch, tmp_
 
     findings = result["observed"]["validation_findings"]
     assert result["status_code"] == 200
+    assert result["requested"]["from"] == "2019-01-01"
     assert "m61:insufficient_warmup=0;required=252" in findings
     assert "m61:coverage_starts_after_requested=2025-01-02" in findings
     assert "m61:coverage_ends_before_evaluation_end=2025-01-03" in findings
