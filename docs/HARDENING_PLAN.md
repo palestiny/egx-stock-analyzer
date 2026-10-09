@@ -122,6 +122,29 @@ No software license has been selected. A public GitHub repository without an exp
 
 No production Strategy v0 performance claim is permitted until the required historical market and point-in-time financial artifacts pass source, coverage, provenance, adjustment, missing-data, survivorship, and reproducibility acceptance. Fixture tests and deterministic engine tests do not replace this evidence.
 
+### Historical data acquisition path (candidates, not approvals)
+
+1. **Request a direct EGX data-service quotation and license.** The official EGX website exposes market-watch and index information, but the public pages alone do not establish a bulk historical export right or a redistribution license. Ask EGX for daily OHLCV and corporate-action-adjusted history, the point-in-time universe/listing status, point-in-time financial statements and disclosures, delivery format, historical depth, price, and permitted research/product use. Do not scrape the public website as a substitute for a written data agreement.
+2. **Commercial fallback: ICE Data Services.** ICE's EGX catalog advertises daily historical data from February 2012 and end-of-day/historical delivery through its data products. Coverage, corporate actions, point-in-time fundamentals, pricing, and redistribution rights must be confirmed in a written quote before acceptance.
+3. **Secondary commercial candidate: EGX.news.** Its public data page advertises daily historical OHLCV for EGX listings and minute-level CSV data. It is not the exchange itself. Treat it only as a candidate until vendor identity, sample quality, provenance, coverage, correction policy, and explicit contractual rights for research, storage, backtesting, and any intended product use are verified.
+4. **Yahoo/yfinance remains development-only.** It is not an accepted source for the evidence gate or a redistribution fallback unless current terms and the intended use are explicitly confirmed to permit it.
+
+Reference pages reviewed on 2026-10-09:
+- Official EGX market watch: https://beta.egx.com.eg/en/market/market-watch
+- ICE EGX data catalog: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx
+- EGX.news advertised data offering: https://www.egx.news/en/our-data
+
+### Minimum acceptance checklist
+
+- Obtain a written license/terms record covering local storage, historical research, derived outputs, and whether raw data may be redistributed or displayed to end users.
+- Reconcile a stratified sample against an authoritative source across liquid/illiquid names, corporate actions, suspensions, symbol changes, delisted names, and abnormal sessions.
+- Record provider, acquisition time, source timestamp semantics, original file hashes, dataset version, symbol mapping, coverage gaps, adjustment policy, and every correction/re-import.
+- Check OHLCV validity, duplicate/out-of-order bars, missing sessions, timezone/session boundaries, splits/dividends, and survivorship/look-ahead risks. Preserve unknowns as explicit quality states rather than silently repairing them.
+- Specify the point-in-time fundamentals/disclosure source separately; today's financial snapshots must not be backdated into historical strategy tests.
+- Run the frozen Strategy v0 with next-open execution, fees/slippage, an appropriate benchmark, no-lookahead tests, out-of-sample/rolling periods, and a reproducible report. Publish no profitability claim until this review passes.
+
+**Status:** no vendor has been approved, no licensed dataset has been accepted, and no Strategy v0 performance claim is authorized. The next operational action is a vendor quotation/sample request; this cannot be completed truthfully by code changes alone.
+
 
 ## Python runtime baseline
 
