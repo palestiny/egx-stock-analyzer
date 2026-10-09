@@ -75,3 +75,33 @@ def test_probe_classifies_transport_failure_without_credentials(monkeypatch):
 
     assert report["observed"]["classification"] == "UNVERIFIED_TRANSPORT_FAILURE"
     assert report["observed"]["transport_error_type"] == "URLError"
+
+
+
+def test_probe_allows_only_the_two_documented_history_routes():
+    try:
+        probe.probe_unauthenticated_history_access(history_path="/api/Settings/GetToken")
+    except ValueError as exc:
+        assert "allowlisted endpoints" in str(exc)
+    else:
+        raise AssertionError("non-history paths must not be probed")
+
+
+def test_probe_can_check_the_documented_feed_history_route_without_credentials(monkeypatch):
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["request"] = request
+        return _FakeResponse()
+
+    monkeypatch.setattr(probe.urllib.request, "urlopen", fake_urlopen)
+    report = probe.probe_unauthenticated_history_access(
+        history_path="/api/Feed/GetSymbolHistory"
+    )
+
+    assert report["endpoint"] == "/api/Feed/GetSymbolHistory"
+    assert report["observed"]["classification"] == "UNAUTHENTICATED_ENDPOINT_RESPONDED"
+    assert captured["request"].full_url.endswith("/api/Feed/GetSymbolHistory")
+    assert captured["request"].get_header("Authorization") is None
+    assert "123.45" not in json.dumps(report)
+    assert report["dataset_accepted"] is False
