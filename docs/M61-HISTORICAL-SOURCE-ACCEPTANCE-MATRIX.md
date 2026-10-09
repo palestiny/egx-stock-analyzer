@@ -8,7 +8,7 @@ Status: Working evidence matrix — not an acceptance decision.
 |---|---|---|---|---|---|---|
 | Mansa Markets | Documented EGX history API | Must verify 10-symbol extraction | Provider metadata + response checksum | Official methodology says historical prices are as-published; no back-adjustment for splits/corporate actions | Professional permits caching up to 7 days; long-lived stored copies are not established as permitted | Acquisition / cross-check candidate |
 | EGX.news | Daily historical CSV advertised for 276 stocks, back to 1994 | Cohort-specific artifact still required | Public product claim; artifact provenance still required | Not established from public product page | Not established from public product page | Archive candidate |
-| EGX / EGI | Historical endpoints documented | Exact response contract still unverified | Primary-market provenance target | Must establish source semantics | Must establish reuse rights | Primary provenance candidate |
+| EGX / EGI | Public OpenAPI contract retrieved; one no-auth history request returned HTTP 401 | Ten-symbol historical coverage not tested | Primary-market provenance target | History DTO discovered; response data not yet observed | Must establish legitimate access and reuse rights | Primary provenance candidate; auth boundary unresolved |
 | Mubasher | Historical endpoint reported by third-party implementations | Must verify current access | Not accepted | Not established | Not established | Cross-check candidate |
 
 ## 2026-09-28 source/licensing refresh
@@ -34,6 +34,8 @@ The current licensing page states that Professional permits caching responses fo
 The public EGI Swagger surface currently documents POST /api/Feed/GetSymbolHistory plus date-range endpoints including GetSymbolsChartByDateRange and GetAllSymbolsChartByDateRange. This strengthens EGI as a primary-provenance acquisition path, but the exact request payload, authentication requirement, returned field semantics, and reproducible bulk extraction contract are still not validated.
 
 **Decision:** investigate the exact EGI request/response contract before writing an EGI production acquisition adapter. Do not treat endpoint listing alone as historical-data evidence.
+
+| Yahoo Finance chart endpoint | Live probe returned HTTP 200 for all 10 candidate tickers; 1,555–1,716 rows each | Date range appears to cover 2019–2025, but FWRY begins 2019-08-14 | Response metadata and hashes available in diagnostic report; raw response not preserved | 319–436 OHLC consistency findings per ticker plus missing-value findings | Not verified for immutable archival/reuse | Candidate only; current quality gate fails |
 
 ## Acceptance rule
 
