@@ -70,6 +70,41 @@ def _copy_fixture(tmp_path: Path) -> None:
         (tmp_path / name).write_bytes((FIXTURE / name).read_bytes())
 
 
+def _rewrite_market_row(tmp_path: Path, old_values: str, new_values: str) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "market_observations.csv"
+    content = path.read_text(encoding="utf-8")
+    assert old_values in content
+    path.write_text(content.replace(old_values, new_values, 1), encoding="utf-8")
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["sha256"] = hashlib.sha256(
+        path.read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("new_values", "message"),
+    [
+        ("NaN,10.50,9.80,10.20,1000", "values must be finite"),
+        ("10.00,10.50,10.60,10.20,1000", "OHLC values are inconsistent"),
+        ("10.00,10.50,9.80,10.20,-1", "volume cannot be negative"),
+        ("0,10.50,9.80,10.20,1000", "prices must be positive"),
+    ],
+)
+def test_rejects_invalid_market_values(
+    tmp_path: Path, new_values: str, message: str
+) -> None:
+    _rewrite_market_row(
+        tmp_path,
+        "10.00,10.50,9.80,10.20,1000",
+        new_values,
+    )
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match=message):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
 def test_rejects_manifest_with_unknown_field(tmp_path: Path) -> None:
     _copy_fixture(tmp_path)
     payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
@@ -298,3 +333,20 @@ def test_rejects_raw_source_reference_escape(tmp_path: Path) -> None:
         match="raw_source_evidence.reference must stay inside dataset root",
     ):
         HistoricalDatasetLoader(tmp_path).verify_raw_source_evidence()
+
+
+
+def test_rejects_non_finite_financial_snapshot_values(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "financial_snapshots.csv"
+    content = path.read_text(encoding="utf-8")
+    assert "900000.00" in content
+    path.write_text(content.replace("900000.00", "NaN", 1), encoding="utf-8")
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["sha256"] = hashlib.sha256(
+        path.read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="values must be finite"):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()

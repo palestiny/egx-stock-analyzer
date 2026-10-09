@@ -1,4 +1,4 @@
-from tools.m61_market_validation import validate_history_points
+from tools.m61_market_validation import validate_history_points, validate_m61_evaluation_window
 
 
 def test_valid_points_have_no_findings():
@@ -65,3 +65,40 @@ def test_validator_rejects_non_finite_decimal_values():
     findings = validate_history_points(points)
     assert "row[0]:non_finite_open=NaN" in findings
     assert "row[0]:non_finite_high=Infinity" in findings
+
+
+def test_duplicate_rows_do_not_inflate_m61_warmup_count():
+    points = [
+        {
+            "date": "2020-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10,
+            "volume": 100,
+        }
+        for _ in range(252)
+    ]
+
+    findings = validate_m61_evaluation_window(points)
+
+    assert "m61:insufficient_warmup=1;required=252" in findings
+
+
+
+def test_validator_rejects_non_positive_prices():
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": 0,
+            "high": 1,
+            "low": -1,
+            "close": 0.5,
+            "volume": 100,
+        },
+    ]
+
+    findings = validate_history_points(points)
+
+    assert "row[0]:non_positive_open=0" in findings
+    assert "row[0]:non_positive_low=-1" in findings

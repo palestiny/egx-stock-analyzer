@@ -1,7 +1,8 @@
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
 
-from tools.m61_comi_evidence_intake import _resolve_symbol_mapping, build_report
+from tools.m61_comi_evidence_intake import _coverage_counts, _resolve_symbol_mapping, build_report
 
 
 FIXTURE = Path("tests/fixtures/historical_dataset/v1")
@@ -44,3 +45,27 @@ def test_symbol_mapping_rejects_ambiguous_comi_mapping() -> None:
 
 def test_symbol_mapping_rejects_malformed_comi_mapping() -> None:
     assert _resolve_symbol_mapping(("COMI -> not-a-uuid",), "COMI") is None
+
+
+
+def test_comi_coverage_counts_unique_sessions_across_full_warmup_history() -> None:
+    start = datetime(2019, 1, 1, tzinfo=timezone.utc)
+    timestamps = [start + timedelta(days=offset) for offset in range(252)]
+    timestamps.extend([timestamps[0], datetime(2021, 1, 4, tzinfo=timezone.utc)])
+
+    dates, warmup, evaluation = _coverage_counts(timestamps)
+
+    assert len(dates) == 253
+    assert warmup == 252
+    assert evaluation == 1
+
+
+def test_comi_coverage_uses_cairo_local_session_date() -> None:
+    # 22:30 UTC on 2020-12-31 is already 2021-01-01 in Cairo.
+    timestamp = datetime(2020, 12, 31, 22, 30, tzinfo=timezone.utc)
+
+    dates, warmup, evaluation = _coverage_counts([timestamp])
+
+    assert dates == [date(2021, 1, 1)]
+    assert warmup == 0
+    assert evaluation == 1

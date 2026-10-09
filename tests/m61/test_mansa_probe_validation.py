@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tools.egx_stock_analyzer_m61_probe import probe_symbol
+from tools.egx_stock_analyzer_m61_probe import probe_result_passes, probe_symbol
 
 
 def test_probe_symbol_includes_deterministic_market_validation(monkeypatch, tmp_path: Path):
@@ -47,6 +47,7 @@ def test_probe_symbol_includes_deterministic_market_validation(monkeypatch, tmp_
 
     findings = result["observed"]["validation_findings"]
     assert result["status_code"] == 200
+    assert result["requested"]["from"] == "2019-01-01"
     assert "m61:insufficient_warmup=0;required=252" in findings
     assert "m61:coverage_starts_after_requested=2025-01-02" in findings
     assert "m61:coverage_ends_before_evaluation_end=2025-01-03" in findings
@@ -132,3 +133,86 @@ def test_m61_probe_requires_252_observations_before_evaluation_start(monkeypatch
     result = probe_symbol("EGAL", "secret-test-key", False, tmp_path)
 
     assert "m61:insufficient_warmup=1;required=252" in result["observed"]["validation_findings"]
+
+
+
+def test_http_200_with_invalid_history_does_not_pass_evidence_gate(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (
+            200,
+            {"success": True, "data": {"points": []}, "meta": {"count": 0}},
+            b'{"success":true,"data":{"points":[]}}',
+        ),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    assert result["status_code"] == 200
+    assert result["observed"]["validation_findings"]
+    assert probe_result_passes(result) is False
+
+
+def test_probe_rejects_response_without_data_object(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (200, {"success": True}, b'{"success":true}'),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    assert "response:data_not_object" in result["observed"]["validation_findings"]
+    assert probe_result_passes(result) is False
+
+
+def test_probe_rejects_provider_meta_count_mismatch(monkeypatch, tmp_path: Path):
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10,
+            "volume": 100,
+        }
+    ]
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (
+            200,
+            {"success": True, "data": {"points": points}, "meta": {"count": 2}},
+            b"raw",
+        ),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    assert "response:meta_count_mismatch=2;actual=1" in result["observed"]["validation_findings"]
+    assert probe_result_passes(result) is False
+
+
+
+def test_probe_rejects_provider_response_for_different_symbol(monkeypatch, tmp_path: Path):
+    payload = {
+        "success": True,
+        "data": {
+            "exchange": "EGX",
+            "ticker": "EGAL",
+            "currency": "EGP",
+            "price_unit": "major",
+            "points": [],
+        },
+        "meta": {"count": 0},
+    }
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (200, payload, b"raw"),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    assert (
+        "response:identity_mismatch=ticker;expected=COMI;actual=EGAL"
+        in result["observed"]["validation_findings"]
+    )
+    assert probe_result_passes(result) is False

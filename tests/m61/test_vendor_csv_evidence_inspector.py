@@ -43,6 +43,7 @@ def test_inspector_finds_duplicate_and_out_of_order_dates(tmp_path: Path) -> Non
     report = inspect_csv(path, "COMI", "provider", "source")
     assert any("duplicate_date=2021-01-05" in item for item in report["validation_findings"])
     assert any("out_of_order=2021-01-04" in item for item in report["validation_findings"])
+    assert report["coverage"]["evaluation_observations_2021_2025"] == 2
 
 
 def test_inspector_finds_invalid_ohlc_and_negative_volume(tmp_path: Path) -> None:
@@ -88,3 +89,44 @@ def test_inspector_accepts_utf8_bom_and_quoted_thousands_separators(tmp_path: Pa
     report = inspect_csv(path, "COMI", "provider", "source")
     assert report["artifact"]["valid_row_count"] == 1
     assert report["row_errors"] == []
+
+
+
+def test_inspector_normalizes_timezone_aware_timestamp_to_cairo_date(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Timestamp,Open,High,Low,Close,Volume\n"
+        "2020-12-31T22:30:00Z,10,11,9,10,100\n",
+    )
+
+    report = inspect_csv(path, "COMI", "provider", "source")
+
+    assert report["coverage"]["first_date"] == "2021-01-01"
+    assert report["coverage"]["evaluation_observations_2021_2025"] == 1
+
+
+def test_inspector_rejects_timezone_naive_timestamp_values(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Timestamp,Open,High,Low,Close,Volume\n"
+        "2021-01-04T10:00:00,10,11,9,10,100\n",
+    )
+
+    report = inspect_csv(path, "COMI", "provider", "source")
+
+    assert report["artifact"]["valid_row_count"] == 0
+    assert len(report["row_errors"]) == 1
+    assert "explicit timezone" in report["row_errors"][0]
+
+
+def test_inspector_does_not_accept_partial_date_prefixes(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Date,Open,High,Low,Close,Volume\n"
+        "2021-01-04garbage,10,11,9,10,100\n",
+    )
+
+    report = inspect_csv(path, "COMI", "provider", "source")
+
+    assert report["artifact"]["valid_row_count"] == 0
+    assert len(report["row_errors"]) == 1

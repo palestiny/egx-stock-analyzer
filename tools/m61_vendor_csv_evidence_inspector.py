@@ -10,16 +10,20 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from tools.m61_market_validation import (
     validate_history_points,
     validate_m61_evaluation_window,
 )
+
+EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 
 ALIASES = {
     "date": ("date", "trading date", "timestamp", "datetime"),
@@ -55,9 +59,19 @@ def _column_map(fieldnames: list[str] | None) -> dict[str, str]:
 def _canonical_date(value: str) -> str:
     raw = value.strip()
     try:
-        return date.fromisoformat(raw[:10]).isoformat()
+        return date.fromisoformat(raw).isoformat()
+    except ValueError:
+        pass
+
+    try:
+        timestamp = datetime.fromisoformat(raw.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ValueError(f"Unsupported date value: {value!r}; expected ISO YYYY-MM-DD") from exc
+        raise ValueError(
+            f"Unsupported date value: {value!r}; expected ISO date or timezone-aware timestamp"
+        ) from exc
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise ValueError("Timestamp values must include an explicit timezone")
+    return timestamp.astimezone(EGX_TIMEZONE).date().isoformat()
 
 
 def _canonical_number(value: str) -> str:
@@ -80,7 +94,7 @@ def inspect_csv(path: Path, symbol: str, provider: str, source_reference: str) -
     except UnicodeDecodeError as exc:
         raise ValueError("CSV must be UTF-8 or UTF-8 with BOM") from exc
 
-    reader = csv.DictReader(decoded.splitlines())
+    reader = csv.DictReader(io.StringIO(decoded, newline=""))
     columns = _column_map(reader.fieldnames)
     points: list[dict[str, str]] = []
     row_errors: list[str] = []
@@ -94,7 +108,7 @@ def inspect_csv(path: Path, symbol: str, provider: str, source_reference: str) -
             row_errors.append(f"row[{index}]: {exc}")
 
     findings = validate_history_points(points) + validate_m61_evaluation_window(points)
-    dates = [date.fromisoformat(point["date"]) for point in points]
+    dates = sorted({date.fromisoformat(point["date"]) for point in points})
     return {
         "status": "CANDIDATE_ONLY",
         "acceptance_claim": False,
