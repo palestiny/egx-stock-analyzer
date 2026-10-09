@@ -213,3 +213,17 @@ def test_builder_accepts_explicit_provider_symbol_alias(tmp_path: Path) -> None:
     assert report["status"] == "CANDIDATE_ONLY"
     assert report["symbol"] == "COMI"
     assert (output / "market_observations.csv").is_file()
+
+
+def test_builder_rejects_duplicate_source_symbol_headers(tmp_path: Path) -> None:
+    market, financial = _inputs(
+        tmp_path,
+        "Ticker,Ticker,Date,Open,High,Low,Close,Volume\\n"
+        "COMI,COMI,2021-01-04,10,12,9,11,1200\\n",
+    )
+    output = tmp_path / "ambiguous-symbol-package"
+
+    with pytest.raises(ValueError, match="ambiguous source-symbol columns"):
+        _build(market, financial, output)
+
+    assert not output.exists()
