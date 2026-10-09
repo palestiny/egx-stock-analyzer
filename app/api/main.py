@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -11,6 +11,7 @@ from app.api.market_intelligence_routes import create_market_intelligence_router
 
 from app.api.user_management_routes import create_user_management_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
+from app.application.clock import egx_today
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
