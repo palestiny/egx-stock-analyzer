@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -26,13 +27,10 @@ def create_market_intelligence_router(
     scan_fibonacci: ScanFibonacciOpportunities,
     scan_breakouts: ScanBreakouts,
     generate_signal: GenerateSignal,
-    require_authenticated,
+    require_authenticated: Callable[..., AuthenticatedIdentity],
 ) -> APIRouter:
     """Register deterministic market-intelligence routes behind the app's auth boundary."""
     router = APIRouter()
-
-    def auth_dependency():
-        return Depends(require_authenticated)
 
     # The dependency object must be attached directly to each route parameter; this
     # local alias only keeps the route declarations readable.
