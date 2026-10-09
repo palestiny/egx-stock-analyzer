@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 import httpx
@@ -26,8 +27,7 @@ def test_allowed_chat_ids_requires_positive_numeric_allowlist() -> None:
         allowed_chat_ids("-1")
 
 
-@pytest.mark.asyncio
-async def test_health_command_replies_without_exposing_api_token() -> None:
+def test_health_command_replies_without_exposing_api_token() -> None:
     sent_messages: list[dict[str, object]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -39,24 +39,22 @@ async def test_health_command_replies_without_exposing_api_token() -> None:
             return httpx.Response(200, json={"status": "ok"})
         return httpx.Response(404, json={"detail": "not found"})
 
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
-    try:
-        await bot.handle_message({
-            "from": {"id": 123},
-            "chat": {"id": 123},
-            "text": "/health",
-        })
-    finally:
-        await client.aclose()
+    async def scenario() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
+            await bot.handle_message({
+                "from": {"id": 123},
+                "chat": {"id": 123},
+                "text": "/health",
+            })
 
+    asyncio.run(scenario())
     assert len(sent_messages) == 1
     assert "تعمل" in str(sent_messages[0]["text"])
     assert "api-secret" not in str(sent_messages)
 
 
-@pytest.mark.asyncio
-async def test_unauthorized_user_is_rejected_without_calling_egx_api() -> None:
+def test_unauthorized_user_is_rejected_without_calling_egx_api() -> None:
     sent_messages: list[dict[str, object]] = []
     api_calls: list[str] = []
 
@@ -68,17 +66,16 @@ async def test_unauthorized_user_is_rejected_without_calling_egx_api() -> None:
         api_calls.append(str(request.url))
         return httpx.Response(200, json={"status": "ok"})
 
-    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
-    try:
-        await bot.handle_message({
-            "from": {"id": 999},
-            "chat": {"id": 999},
-            "text": "/analyze EGAL",
-        })
-    finally:
-        await client.aclose()
+    async def scenario() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
+            await bot.handle_message({
+                "from": {"id": 999},
+                "chat": {"id": 999},
+                "text": "/analyze EGAL",
+            })
 
+    asyncio.run(scenario())
     assert api_calls == []
     assert len(sent_messages) == 1
     assert "غير مصرح" in str(sent_messages[0]["text"])
