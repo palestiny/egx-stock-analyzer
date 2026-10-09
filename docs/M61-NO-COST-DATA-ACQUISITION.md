@@ -80,7 +80,7 @@ If free sources cannot satisfy a gate, record the exact gap and exclude that cla
 
 A metadata-only probe completed at [GitHub Actions run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142) without preserving price rows. The endpoint returned HTTP 200 for all ten candidate tickers and broad date coverage through 2025-12-31 (FWRY began on 2019-08-14). However, this is **not a usable M61 dataset**: all ten responses reported `instrumentType=MUTUALFUND` and the OHLCV validator found hundreds of inconsistent/null rows per ticker. Terms and long-term storage rights also remain unverified.
 
-**Decision:** reject this Yahoo response as an M61 acceptance source for now. The run proves only that the endpoint responds and returns a long series; row count/coverage must not override identity and data-quality failures. Continue with the public EGID/EGX feed contract investigation rather than accepting this candidate.
+**Decision:** reject this Yahoo response as an M61 acceptance source. Row count and date coverage do not override incorrect instrument metadata or OHLCV integrity failures. A bounded COMI variant probe also tested `.EG`, `.EGX`, `.EY`, and the bare symbol: each returned HTTP 404, while `.CA` remained `MUTUALFUND` with 410 validation findings. No raw prices were saved. See [variant probe run #37922610741](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37922610741).
 
 ## No-cost source decision — live verification, 2026-10-09
 
@@ -103,3 +103,12 @@ The public Swagger document describes history/chart endpoints and declares a Bea
 Do not fabricate data or quietly weaken M61. Use a real CSV that the owner can already export from an existing brokerage/account/platform only if that platform's terms permit the intended local research/storage. Run the existing evidence inspector and candidate-package builder, starting with COMI; preserve the original file and its checksum, and keep the candidate unaccepted until source rights, corporate-action semantics, warm-up, and financial availability gates pass. If no such export is available, the market-data portion remains blocked by source access, not by code.
 
 The point-in-time financial dataset remains a separate open blocker; market bars alone cannot satisfy the full M61 Strategy v0 acceptance gate.
+
+
+## Follow-up source access results — 2026-10-09
+
+A second documented EGID history route, `POST /api/Feed/GetSymbolHistory`, was tested without credentials alongside `POST /api/DelayedFeed/getSymbolHistory`. Both returned HTTP 401. This establishes that neither route provides anonymous history access in the tested configuration; it does not rule out legitimate authorized access. No credentials were sent and no price values were retained. See [bounded access probe run #37922382383](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37922382383).
+
+The remaining public alternatives do not currently close the gap: the reviewed `egx-data` and `egxpy` projects rely on Yahoo-based retrieval; `borsa` documents quotes but not historical bars; StockAnalysis terms prohibit automated scraping/bulk collection; and EGXAPI's advertised free service does not yet have verifiable binding legal/data-retention terms.
+
+**Operational blocker:** no real accepted market dataset or complete point-in-time financial artifact is present in the repository. The existing CSV inspector, candidate builder, and intake gate are ready, but cannot create source evidence. Continue only when a real CSV/export is accessible under terms permitting local historical research/backtesting, or a legitimate free API account/key and its storage/use terms are verified. Do not use the synthetic fixture as market data.
