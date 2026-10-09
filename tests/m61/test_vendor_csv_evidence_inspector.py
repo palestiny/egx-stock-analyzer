@@ -77,9 +77,9 @@ def test_inspector_rejects_missing_required_column(tmp_path: Path) -> None:
 
 def test_inspector_accepts_utf8_bom_and_quoted_thousands_separators(tmp_path: Path) -> None:
     path = tmp_path / "COMI.csv"
-    path.write_bytes(
-        b"\\xef\\xbb\\xbfDate,Open,High,Low,Close,Volume\\n"
-        b'2021-01-04,"1,200","1,300","1,100","1,250","1,234"\\n'
+    path.write_text(
+        'Date,Open,High,Low,Close,Volume\\n2021-01-04,"1,200","1,300","1,100","1,250","1,234"\\n',
+        encoding="utf-8-sig",
     )
     report = inspect_csv(path, "COMI", "provider", "source")
     assert report["artifact"]["valid_row_count"] == 1
