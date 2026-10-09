@@ -7,6 +7,7 @@ and point-in-time financial evidence remain unverified; no result is accepted.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -51,9 +52,7 @@ def run_variant_probe() -> dict[str, Any]:
         "provider": "Yahoo Finance chart endpoint",
         "purpose": "COMI ticker-variant diagnostic only",
         "variants_tested": list(TICKER_VARIANTS),
-        "created_at_utc": __import__("datetime").datetime.now(
-            __import__("datetime").UTC
-        ).isoformat(),
+        "created_at_utc": datetime.now(UTC).isoformat(),
         "results": reports,
         "raw_prices_saved": False,
         "source_terms_verified": False,
