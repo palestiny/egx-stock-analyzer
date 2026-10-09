@@ -132,3 +132,37 @@ def test_builder_refuses_to_overwrite_an_existing_candidate(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="must not already exist"):
         _build(market, financial, output)
+
+
+
+def test_builder_rejects_extra_financial_csv_values(tmp_path: Path) -> None:
+    market, financial = _inputs(tmp_path)
+    content = financial.read_text(encoding="utf-8")
+    content = content.replace(
+        "2020-12-31,2021-03-01,1000,100,500,200,1",
+        "2020-12-31,2021-03-01,1000,100,500,200,1,unexpected",
+        1,
+    )
+    financial.write_text(content, encoding="utf-8")
+    output = tmp_path / "rejected-package"
+
+    with pytest.raises(ValueError, match="missing or extra CSV fields"):
+        _build(market, financial, output)
+
+    assert not output.exists()
+
+
+def test_builder_rejects_duplicate_financial_headers(tmp_path: Path) -> None:
+    market, financial = _inputs(tmp_path)
+    content = financial.read_text(encoding="utf-8").replace(
+        "period_end,available_at",
+        "period_end,period_end",
+        1,
+    )
+    financial.write_text(content, encoding="utf-8")
+    output = tmp_path / "rejected-package"
+
+    with pytest.raises(ValueError, match="exactly these canonical columns"):
+        _build(market, financial, output)
+
+    assert not output.exists()
