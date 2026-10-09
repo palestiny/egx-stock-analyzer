@@ -44,8 +44,13 @@ BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
 
 def build_url(ticker: str) -> str:
     """Build the fixed, bounded daily-history request for a known ticker."""
-    if ticker not in COHORT.values():
-        raise ValueError("ticker is not in the fixed M61 exploratory cohort")
+    allowed_tickers = {
+        f"{symbol}{suffix}"
+        for symbol in COHORT
+        for suffix in ("", ".CA", ".EG", ".EGX", ".EY")
+    }
+    if ticker not in allowed_tickers:
+        raise ValueError("ticker is not an allowlisted variant of the fixed M61 exploratory cohort")
     start = int(datetime.combine(FROM_DATE, datetime.min.time(), tzinfo=UTC).timestamp())
     end = int(datetime.combine(END_EXCLUSIVE, datetime.min.time(), tzinfo=UTC).timestamp())
     query = urllib.parse.urlencode(
