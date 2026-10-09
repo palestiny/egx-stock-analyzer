@@ -2,7 +2,6 @@ import logging
 import os
 from dataclasses import asdict
 from datetime import date, datetime
-from decimal import Decimal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -102,17 +101,9 @@ from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
-from app.api.technical_scanner_response import TechnicalScannerResponse
-from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
-from app.domain.market_intelligence.sectors import SectorDirection
-from app.api.sector_intelligence_response import SectorRankingResponse
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
-from app.api.fibonacci_response import FibonacciResponse
-from app.api.market_intelligence_response import MarketMoverRankingResponse
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
-from app.api.breakout_response import BreakoutResponse
 from app.application.signals.generate_signal import GenerateSignal
-from app.api.signal_response import signal_to_dict
 
 logger = logging.getLogger(__name__)
 
