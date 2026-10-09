@@ -12,7 +12,6 @@ import csv
 import hashlib
 import json
 import math
-import sys
 import urllib.error
 import urllib.parse
 import urllib.request
