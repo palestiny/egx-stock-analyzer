@@ -15,7 +15,7 @@ import json
 import shutil
 import tempfile
 from datetime import date, datetime, time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -89,7 +89,7 @@ def _financial_decimal(value: str, field: str, *, optional: bool = False) -> str
         return ""
     try:
         parsed = Decimal(raw.replace(",", ""))
-    except Exception as exc:
+    except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"Invalid financial {field}: {value!r}") from exc
     if not parsed.is_finite():
         raise ValueError(f"Financial {field} must be finite")
@@ -104,7 +104,11 @@ def _read_financial_snapshots(path: Path, stock_id: UUID, provider: str) -> list
         raise ValueError("Financial CSV must be UTF-8 or UTF-8 with BOM") from exc
 
     reader = csv.DictReader(io.StringIO(decoded, newline=""))
-    if not reader.fieldnames or set(reader.fieldnames) != set(FINANCIAL_INPUT_COLUMNS):
+    if (
+        not reader.fieldnames
+        or len(reader.fieldnames) != len(FINANCIAL_INPUT_COLUMNS)
+        or set(reader.fieldnames) != set(FINANCIAL_INPUT_COLUMNS)
+    ):
         raise ValueError(
             "Financial CSV must use exactly these canonical columns: "
             + ", ".join(FINANCIAL_INPUT_COLUMNS)
@@ -112,6 +116,8 @@ def _read_financial_snapshots(path: Path, stock_id: UUID, provider: str) -> list
 
     rows: list[dict[str, str]] = []
     for index, source_row in enumerate(reader, start=2):
+        if None in source_row or any(source_row.get(column) is None for column in FINANCIAL_INPUT_COLUMNS):
+            raise ValueError(f"Financial row {index} has missing or extra CSV fields")
         try:
             period_end = date.fromisoformat((source_row["period_end"] or "").strip())
             available_at = date.fromisoformat((source_row["available_at"] or "").strip())
