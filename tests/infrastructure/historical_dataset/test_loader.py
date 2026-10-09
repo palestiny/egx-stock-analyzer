@@ -409,3 +409,72 @@ def test_rejects_financial_row_source_mismatched_with_manifest_provider(tmp_path
         match="Financial snapshot source does not match manifest provider",
     ):
         HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+def _rewrite_artifact_csv(tmp_path: Path, filename: str, content: str) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / filename
+    path.write_text(content, encoding="utf-8", newline="")
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    artifact_key = (
+        "market_observations_artifact"
+        if filename == "market_observations.csv"
+        else "financial_snapshots_artifact"
+    )
+    payload[artifact_key]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize(
+    ("filename", "header_replace", "loader_method"),
+    [
+        (
+            "market_observations.csv",
+            ("volume", "close"),
+            "load_market_observations",
+        ),
+        (
+            "financial_snapshots.csv",
+            ("revision", "source"),
+            "load_financial_snapshots",
+        ),
+    ],
+)
+def test_rejects_duplicate_canonical_csv_headers(
+    tmp_path: Path,
+    filename: str,
+    header_replace: tuple[str, str],
+    loader_method: str,
+) -> None:
+    original = (FIXTURE / filename).read_text(encoding="utf-8")
+    header, remainder = original.split("\n", 1)
+    old, new = header_replace
+    assert old in header
+    header = header.replace(old, new, 1)
+    _rewrite_artifact_csv(tmp_path, filename, header + "\n" + remainder)
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="duplicate CSV headers"):
+        getattr(HistoricalDatasetLoader(tmp_path), loader_method)()
+
+
+@pytest.mark.parametrize(
+    ("filename", "loader_method"),
+    [
+        ("market_observations.csv", "load_market_observations"),
+        ("financial_snapshots.csv", "load_financial_snapshots"),
+    ],
+)
+def test_rejects_canonical_csv_rows_with_extra_fields(
+    tmp_path: Path,
+    filename: str,
+    loader_method: str,
+) -> None:
+    original = (FIXTURE / filename).read_text(encoding="utf-8")
+    lines = original.splitlines()
+    lines[1] += ",unexpected-extra-field"
+    _rewrite_artifact_csv(tmp_path, filename, "\n".join(lines) + "\n")
+
+    with pytest.raises(HistoricalDatasetIntegrityError, match="missing or extra fields"):
+        getattr(HistoricalDatasetLoader(tmp_path), loader_method)()

@@ -144,4 +144,40 @@ def test_inspector_rejects_unquoted_extra_values_in_csv_row(tmp_path: Path) -> N
 
     assert report["artifact"]["row_count"] == 1
     assert report["artifact"]["valid_row_count"] == 0
-    assert report["row_errors"] == ["row[2]: extra values beyond CSV header"]
+    assert report["row_errors"] == ["row[2]: expected 6 fields, got 7"]
+
+
+def test_inspector_reports_missing_values_instead_of_crashing(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Date,Open,High,Low,Close,Volume\n"
+        "2021-01-04,10,11,9,10\n",
+    )
+
+    report = inspect_csv(path, "COMI", "provider", "source")
+
+    assert report["artifact"]["row_count"] == 1
+    assert report["artifact"]["valid_row_count"] == 0
+    assert report["row_errors"] == ["row[2]: expected 6 fields, got 5"]
+
+
+def test_inspector_rejects_duplicate_unmapped_headers(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Date,Open,High,Low,Close,Volume,Note,Note\n"
+        "2021-01-04,10,11,9,10,100,a,b\n",
+    )
+
+    with pytest.raises(ValueError, match="CSV has duplicate headers"):
+        inspect_csv(path, "COMI", "provider", "source")
+
+
+def test_inspector_rejects_malformed_csv_quoting(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        'Date,Open,High,Low,Close,Volume\n'
+        '2021-01-04,10,11,9,10,"100\n',
+    )
+
+    with pytest.raises(ValueError, match="malformed quoting or structure"):
+        inspect_csv(path, "COMI", "provider", "source")
