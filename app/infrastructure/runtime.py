@@ -167,6 +167,8 @@ def create_infrastructure_runtime(
     get_scheduled_workflow_execution_history = GetScheduledWorkflowExecutionHistory(workflow_store)
     get_scheduled_workflow_history = GetScheduledWorkflowHistory(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
+        assert config.telegram_bot_token is not None
+        assert config.telegram_chat_id is not None
         telegram_notification_provider = TelegramNotificationProvider(
             config.telegram_bot_token,
             config.telegram_chat_id,
