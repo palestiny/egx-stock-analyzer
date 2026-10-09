@@ -6,6 +6,7 @@ from uuid import UUID
 from tools.m61_comi_evidence_intake import (
     _corporate_action_convention_is_explicit,
     _coverage_counts,
+    _daily_market_rows,
     _financial_availability_years,
     _evaluation_year_coverage,
     _license_attestation_is_explicit,
@@ -162,3 +163,25 @@ def test_evaluation_coverage_accepts_each_year_without_requiring_december_31_ses
 
     assert observed == [2021, 2022, 2023, 2024, 2025]
     assert missing == []
+
+
+def test_comi_intake_requires_daily_market_observations() -> None:
+    daily, only_daily = _daily_market_rows(
+        [SimpleNamespace(timeframe="1d"), SimpleNamespace(timeframe="1d")]
+    )
+    assert len(daily) == 2
+    assert only_daily
+
+
+def test_comi_intake_rejects_intraday_only_or_mixed_market_observations() -> None:
+    intraday, only_daily = _daily_market_rows(
+        [SimpleNamespace(timeframe="1h"), SimpleNamespace(timeframe="15m")]
+    )
+    assert intraday == []
+    assert not only_daily
+
+    daily, only_daily = _daily_market_rows(
+        [SimpleNamespace(timeframe="1d"), SimpleNamespace(timeframe="1h")]
+    )
+    assert len(daily) == 1
+    assert not only_daily
