@@ -270,3 +270,17 @@ References:
 - https://mansaapi.com/licensing
 - https://mansaapi.com/methodology
 - https://mansaapi.com/terms
+
+
+## No-budget execution update — 2026-10-09
+
+**Owner constraint:** no payment or paid subscription is available. Do not block M61 progress on EGX.news, Mansa Pro, ICE, or any other paid source.
+
+The paid-source candidates above are retained as historical research notes only; they are not the next action. The active path is now documented in [M61 No-Cost Data Acquisition](M61-NO-COST-DATA-ACQUISITION.md).
+
+1. Probe the ten Yahoo `.CA` ticker candidates using `tools/m61_free_market_probe.py`. This is a no-cost diagnostic path only. It must record actual response status, source timezone, coverage, raw-response checksum, adjustment fields, and validation findings; it must never auto-accept the source.
+2. Investigate the public EGID/EGX feed as the next no-cost alternative only after its exact request/response contract and historical range can be verified.
+3. Build point-in-time financial evidence from dated issuer/EGX disclosure documents without inventing availability dates. The current financial source gate remains separate and open.
+4. If the free market probe returns incomplete coverage or is blocked, record that result and continue testing a different free candidate. Do not silently substitute fixtures or synthesize bars.
+
+**Current status remains NOT ACCEPTED.** This update changes the acquisition strategy to respect the no-payment constraint; it does not claim that the free probe has already run successfully, that Yahoo terms permit long-term storage, or that the ten-symbol market-plus-financial dataset is complete.
