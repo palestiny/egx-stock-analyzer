@@ -44,7 +44,7 @@ def test_health_command_replies_without_exposing_api_token() -> None:
             bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
             await bot.handle_message({
                 "from": {"id": 123},
-                "chat": {"id": 123},
+                "chat": {"id": 123, "type": "private"},
                 "text": "/health",
             })
 
@@ -71,7 +71,7 @@ def test_unauthorized_user_is_rejected_without_calling_egx_api() -> None:
             bot = EgxTelegramBot("telegram-secret", "http://egx.test", "api-secret", frozenset({123}), http=client)
             await bot.handle_message({
                 "from": {"id": 999},
-                "chat": {"id": 999},
+                "chat": {"id": 999, "type": "private"},
                 "text": "/analyze EGAL",
             })
 
