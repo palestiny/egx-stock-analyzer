@@ -72,3 +72,8 @@ The project owner cannot pay for a historical-data package or professional API. 
 A free Yahoo chart probe has been added for local diagnostic use. It is explicitly `CANDIDATE_ONLY`, preserves exact response bytes only by opt-in, and does not imply long-term storage, redistribution, or commercial display rights. The public EGID/EGX feed remains a second candidate pending verification of its request/response contract and historical coverage.
 
 No source is accepted yet. The financial point-in-time dataset remains a separate open requirement. See [M61 No-Cost Data Acquisition](M61-NO-COST-DATA-ACQUISITION.md).
+
+
+## No-cost EGID contract discovery — 2026-10-09
+
+The repository now contains `tools/m61_egid_contract_probe.py` plus deterministic contract-parser tests. It inspects the published OpenAPI document only and intentionally does not call market-data operations or save price data. A discovered schema is not evidence that a history endpoint is free, reachable, deep enough, or licensed for long-term research storage. The next provider-specific implementation remains blocked on actual contract/access evidence, not on more generic infrastructure.
