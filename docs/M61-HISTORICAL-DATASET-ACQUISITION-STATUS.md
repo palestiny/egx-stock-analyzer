@@ -164,7 +164,7 @@ These are software and workflow checks. They do **not** constitute a real datase
 
 ## Current blocker
 
-The software-side dataset contract, manifest/integrity checks, loader, CSV inspector, candidate packager, source-symbol integrity checks, and deterministic fixtures are implemented. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**. No accepted real COMI artifact or complete ten-symbol dataset has been verified in the repository as of 2026-10-09. The TradeGlob/TradingView CI probe was closed without merge because its source rights and raw-artifact retention were not established.
+The software-side dataset contract, manifest/integrity checks, loader, CSV inspector, candidate packager, source-symbol integrity checks, and deterministic fixtures are implemented. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**. No accepted real COMI artifact or complete ten-symbol dataset has been verified in the repository as of 2026-10-09. The TradeGlob/TradingView CI probe was closed without merge because its source rights and raw-artifact retention were not established. Date-only financial `available_at` values are treated conservatively as eligible from the following calendar date; same-day use cannot be proven safe without an exact publication timestamp.
 
 We cannot honestly close the dataset issue using generated fixtures, Yahoo data with unresolved retention rights, or unverified API schema assumptions. At least one real market-data artifact and point-in-time financial snapshots must be acquired under terms that permit the intended local storage and backtesting, then pass the acceptance gate.
 
