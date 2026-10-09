@@ -180,6 +180,7 @@ def build_candidate_package(
     output_dir: Path,
     symbol: str,
     stock_id: str,
+    source_symbol: str | None = None,
     dataset_version: str,
     market_provider: str,
     market_source_reference: str,
@@ -242,9 +243,37 @@ def build_candidate_package(
     except UnicodeDecodeError as exc:
         raise ValueError("Market CSV must be UTF-8 or UTF-8 with BOM") from exc
     reader = csv.DictReader(io.StringIO(decoded_market, newline=""))
+    source_symbol_value = (source_symbol or normalized_symbol).strip()
+    if not source_symbol_value:
+        raise ValueError("source_symbol cannot be empty")
+    symbol_headers = {
+        "symbol", "ticker", "ticker symbol", "stock symbol", "security code",
+        "instrument symbol",
+    }
+    normalized_headers: dict[str, list[str]] = {}
+    for header in reader.fieldnames or []:
+        normalized_headers.setdefault(header.strip().casefold(), []).append(header)
+    matched_symbol_headers = [
+        header
+        for name in symbol_headers
+        for header in normalized_headers.get(name, [])
+    ]
+    if len(matched_symbol_headers) > 1:
+        raise ValueError(
+            "Market CSV has ambiguous source-symbol columns: "
+            + ", ".join(sorted(matched_symbol_headers))
+        )
+    source_symbol_header = matched_symbol_headers[0] if matched_symbol_headers else None
     mapped = inspection["columns"]["mapped"]
     market_rows: list[dict[str, str]] = []
-    for source_row in reader:
+    for row_number, source_row in enumerate(reader, start=2):
+        if source_symbol_header is not None:
+            observed_symbol = (source_row.get(source_symbol_header) or "").strip()
+            if observed_symbol.casefold() != source_symbol_value.casefold():
+                raise ValueError(
+                    f"Market row {row_number} source symbol mismatch: "
+                    f"expected {source_symbol_value!r}, got {observed_symbol!r}"
+                )
         session_date = date.fromisoformat(_canonical_date(source_row[mapped["date"]] or ""))
         timestamp = datetime.combine(
             session_date,
@@ -301,6 +330,13 @@ def build_candidate_package(
         financial_artifact_hash = _sha256((temporary_dir / "financial_snapshots.csv").read_bytes())
         mapping = f"{normalized_symbol}->{resolved_stock_id}"
 
+        canonical_mapping = f"{normalized_symbol}->{resolved_stock_id}"
+        market_symbol_mappings = list(dict.fromkeys((
+            canonical_mapping,
+            f"{source_symbol_value}->{resolved_stock_id}",
+        )))
+        financial_symbol_mappings = [canonical_mapping]
+
         def provenance(
             provider: str,
             source_reference: str,
@@ -311,12 +347,13 @@ def build_candidate_package(
             convention: str,
             findings: list[str],
             source_hash: str,
+            symbol_mappings: list[str],
         ) -> dict:
             return {
                 "provider": provider,
                 "source_url": source_reference,
                 "acquired_at": acquired_at.isoformat(),
-                "symbol_mappings": [mapping],
+                "symbol_mappings": symbol_mappings,
                 "corporate_action_convention": convention,
                 "missing_data_findings": findings,
                 "exclusions": list(exclusions),
@@ -356,6 +393,7 @@ def build_candidate_package(
                     corporate_action_convention,
                     market_missing,
                     market_hash,
+                    market_symbol_mappings,
                 ),
             },
             "financial_snapshots_artifact": {
@@ -377,6 +415,7 @@ def build_candidate_package(
                     "not-applicable",
                     [],
                     financial_hash,
+                    financial_symbol_mappings,
                 ),
             },
         }
@@ -436,6 +475,7 @@ def main() -> int:
     parser.add_argument("--financial-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--symbol", default="COMI")
+    parser.add_argument("--source-symbol", help="Exact symbol as represented in the market CSV")
     parser.add_argument("--stock-id", required=True)
     parser.add_argument("--dataset-version", required=True)
     parser.add_argument("--market-provider", required=True)
@@ -462,6 +502,7 @@ def main() -> int:
             output_dir=args.output_dir,
             symbol=args.symbol,
             stock_id=args.stock_id,
+            source_symbol=args.source_symbol,
             dataset_version=args.dataset_version,
             market_provider=args.market_provider,
             market_source_reference=args.market_source_reference,

@@ -12,6 +12,8 @@ python -m tools.m61_vendor_csv_evidence_inspector .\COMI.csv --symbol COMI --pro
 
 The report records the exact raw-file SHA-256, byte count, row counts, detected headers, coverage, duplicate/out-of-order dates, OHLCV validation findings, and the remaining acceptance gates. Keep the original downloaded artifact unchanged.
 
+When packaging a market CSV, the builder checks any recognized vendor symbol/ticker column against the declared source identity. If the provider uses an alias such as `COMI.CA`, pass `--source-symbol "COMI.CA"` while keeping `--symbol COMI` for the canonical project symbol. If the source CSV has no symbol column, preserve the delivery reference and independently verify that the file belongs to the declared stock.
+
 A report with zero row errors and validation findings is still only `CANDIDATE_ONLY`. The user must separately verify retention/use terms and price-adjustment semantics, reconcile missing sessions and symbol identity, and acquire point-in-time financial snapshots with publication/availability dates. Do not use this report alone to create an accepted M61 manifest or make strategy-performance claims.
 
 ## Build a canonical candidate package

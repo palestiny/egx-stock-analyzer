@@ -55,6 +55,21 @@ def test_symbol_mapping_rejects_malformed_comi_mapping() -> None:
     assert _resolve_symbol_mapping(("COMI -> not-a-uuid",), "COMI") is None
 
 
+def test_symbol_mapping_rejects_duplicate_identical_mappings() -> None:
+    mapping = "COMI -> 00000000-0000-0000-0000-000000000001"
+    assert _resolve_symbol_mapping((mapping, mapping), "COMI") is None
+
+
+def test_symbol_mapping_rejects_valid_and_malformed_duplicate_mappings() -> None:
+    assert _resolve_symbol_mapping(
+        (
+            "COMI -> 00000000-0000-0000-0000-000000000001",
+            "COMI -> not-a-uuid",
+        ),
+        "COMI",
+    ) is None
+
+
 
 def test_comi_coverage_counts_unique_sessions_across_full_warmup_history() -> None:
     start = datetime(2019, 1, 1, tzinfo=timezone.utc)
