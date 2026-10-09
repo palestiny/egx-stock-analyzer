@@ -293,8 +293,17 @@ A contract-only diagnostic, `tools/m61_egid_contract_probe.py`, now inspects the
 This is a preparation step, not a verified EGID acquisition. The tool must be run in an environment with network access; the actual history request, response semantics, free-access boundary, historical depth, and retention rights remain unverified. No EGID market data has been accepted.
 
 
+## No-cost probe outcome — 2026-10-09
+
+The first live no-cost probe returned HTTP 200 for all ten Yahoo `.CA` candidates and showed historical date ranges spanning 2019–2025. It did **not** produce acceptable evidence: every symbol response reported `instrumentType=MUTUALFUND` rather than `EQUITY`, and OHLCV validation found hundreds of row-level integrity/null findings per ticker. FWRY's returned history began on 2019-08-14; the others reported 2019-01-01. The run was metadata-only and did not preserve raw price data.
+
+Reference: [M61 live probe run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
+
+**Decision:** do not use these Yahoo results for Strategy v0 or mark the dataset accepted. The next no-cost target is to verify the public EGID/EGX history contract and then test one symbol. Point-in-time financial evidence remains independently open.
+
+
 ## Live no-cost acquisition probes — 2026-10-09
 
-- EGID's public OpenAPI contract was retrieved successfully. A bounded unauthenticated COMI history request returned HTTP 401. The endpoint requires authentication in its published contract; whether free credentials are available is unknown. No price values were saved.
-- Yahoo returned HTTP 200 for all ten .CA candidates, with 1,555–1,716 rows per symbol over the requested period. However, the response parser/validator reported 319–436 OHLC consistency findings per symbol plus missing-value findings. No raw responses or CSVs were preserved in this probe.
-- Therefore **neither source is accepted**. The Yahoo anomalies need root-cause investigation against an independent reference before any repair is considered. EGID needs a legitimate credential/access path. Source rights and point-in-time financial evidence remain open gates.
+- EGID's public OpenAPI contract was retrieved successfully. A bounded unauthenticated COMI history request returned HTTP 401. Whether free credentials are available is unknown. No price values were saved.
+- Yahoo returned HTTP 200 for all ten .CA candidates, with 1,555–1,716 rows per symbol over the requested period. The validator reported 319–436 OHLC consistency findings per ticker plus missing-value findings. A field-pair diagnostic indicates the open field frequently falls outside the reported high/low range.
+- Therefore **neither source is accepted**. The Yahoo anomalies need root-cause investigation and independent cross-checking before any repair is considered. EGID needs a legitimate credential/access path. Source rights and point-in-time financial evidence remain open gates.
