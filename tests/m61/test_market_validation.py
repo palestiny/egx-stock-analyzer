@@ -125,7 +125,7 @@ def _recent_warmup_rows() -> list[dict[str, object]]:
         if current.weekday() not in {4, 5}:
             days.append(current)
         current -= timedelta(days=1)
-    return [_m61_row(day) for day in reversed(days)]
+    return [_m61_row(date(2019, 12, 31)), *[_m61_row(day) for day in reversed(days)]]
 
 
 def test_evaluation_window_accepts_complete_year_coverage_when_last_session_is_december_30():
