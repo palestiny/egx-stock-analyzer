@@ -122,6 +122,14 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
     return result
 
 
+def probe_result_passes(result: dict) -> bool:
+    """A successful HTTP status is insufficient unless the evidence passes validation."""
+    return (
+        result.get("status_code") == 200
+        and not result.get("observed", {}).get("validation_findings", ["validation_missing"])
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Probe Mansa EGX historical OHLCV for M61.")
     parser.add_argument("--api-key-env", default="MANSA_API_KEY")
@@ -156,11 +164,7 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    return 0 if all(
-        result["status_code"] == 200
-        and not result.get("observed", {}).get("validation_findings", [])
-        for result in run["results"]
-    ) else 1
+    return 0 if all(probe_result_passes(result) for result in run["results"]) else 1
 
 
 if __name__ == "__main__":
