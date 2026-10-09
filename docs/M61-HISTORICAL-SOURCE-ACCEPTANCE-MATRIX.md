@@ -77,3 +77,15 @@ No source is accepted yet. The financial point-in-time dataset remains a separat
 ## No-cost EGID contract discovery — 2026-10-09
 
 The repository now contains `tools/m61_egid_contract_probe.py` plus deterministic contract-parser tests. It inspects the published OpenAPI document only and intentionally does not call market-data operations or save price data. A discovered schema is not evidence that a history endpoint is free, reachable, deep enough, or licensed for long-term research storage. The next provider-specific implementation remains blocked on actual contract/access evidence, not on more generic infrastructure.
+
+## No-cost source verification — 2026-10-09
+
+| Candidate | Observed result | Decision |
+|---|---|---|
+| Yahoo chart endpoint | HTTP 200 for all ten .CA tickers; MUTUALFUND metadata and hundreds of OHLCV/null findings per ticker | Reject for M61 |
+| EGID public history API | Swagger declares Bearer security; one unauthenticated COMI history request returned HTTP 401 | No anonymous access; free account/retention terms unverified |
+| StockAnalysis | Its terms prohibit automated scraping/bulk collection and programmatic use to build a competing database/product | Do not scrape or use as a dataset source |
+| EGXAPI | Free pricing advertised, but published legal terms are explicitly marked as draft placeholders | Not accepted until binding terms/provider identity are verified |
+| Existing brokerage/platform CSV export | Not yet supplied or verified | Potential no-cost intake route, conditional on source terms |
+
+The owner cannot pay for paid feeds. The remaining no-cost path is a real, permitted CSV export already available to the owner, followed by the existing immutable candidate builder and acceptance gate. No source is currently accepted, and point-in-time financial snapshots remain a separate blocker.
