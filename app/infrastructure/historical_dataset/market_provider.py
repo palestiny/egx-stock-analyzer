@@ -1,10 +1,13 @@
 from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from app.application.market_data.provider import MarketDataProvider
 from app.domain.market_data.raw_observation import RawPriceBarObservation
 from app.domain.market_data.timeframe import Timeframe
 from app.domain.stocks.stock import Stock
 from app.infrastructure.historical_dataset.loader import HistoricalDatasetLoader
+
+EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 
 
 class HistoricalDatasetMarketDataProvider(MarketDataProvider):
@@ -27,7 +30,7 @@ class HistoricalDatasetMarketDataProvider(MarketDataProvider):
         for observation in observations:
             if observation.stock_id != stock.id or observation.timeframe != Timeframe.DAILY.value:
                 continue
-            observation_date = observation.timestamp.date()
+            observation_date = self._session_date(observation.timestamp)
             if not from_date <= observation_date <= to_date:
                 continue
             if observation.volume != observation.volume.to_integral_value():
@@ -45,6 +48,12 @@ class HistoricalDatasetMarketDataProvider(MarketDataProvider):
                 )
             )
         return result
+
+    @staticmethod
+    def _session_date(timestamp: datetime) -> date:
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("Historical market timestamp must be timezone-aware")
+        return timestamp.astimezone(EGX_TIMEZONE).date()
 
     @staticmethod
     def _as_utc(timestamp: datetime) -> datetime:

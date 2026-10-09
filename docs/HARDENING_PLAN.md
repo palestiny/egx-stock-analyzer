@@ -134,6 +134,22 @@ Reference pages reviewed on 2026-10-09:
 - ICE EGX data catalog: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx
 - EGX.news advertised data offering: https://www.egx.news/en/our-data
 
+### Automated M61 acceptance report semantics
+
+The COMI intake gate counts unique Cairo-local trading dates, requires at least 252 distinct sessions before 2021, and checks the 2021–2025 evaluation window. The acquisition probe requests history from 2019-01-01 so the warm-up requirement is achievable; 2020-01-01 remains the latest acceptable first-coverage date.
+
+The loader rejects non-finite values, non-positive prices, inconsistent OHLC, negative volume, and duplicate daily sessions even when timestamps use different offsets. Timestamp-aware vendor CSVs are normalized to the Cairo session date; timezone-naive timestamps are rejected.
+
+For the automated licensing attestation, each market and financial source's `licensing_notes` must explicitly follow this semicolon-separated form:
+
+```text
+status=verified; evidence_reference=<contract-or-terms-reference>; permitted_uses=local_storage,historical_research,backtesting; redistribution=allowed
+```
+
+Use `redistribution=prohibited` when raw-data redistribution is not permitted. The reference records the owner-reviewed terms; the code cannot independently determine legal permission from prose. Commercial display/product rights must be reviewed separately before product use. Corporate-action convention must be one of `raw-as-published`, `unadjusted`, `split-adjusted`, `split-and-dividend-adjusted`, `total-return-adjusted`, or `vendor-adjusted`.
+
+Point-in-time financial evidence must include snapshots with `available_at` in each evaluation year 2021–2025. A period-end date alone is not proof that the information was publicly available then. This year-level check is a minimum gate, not a guarantee that every daily decision has a fresh financial snapshot.
+
 ### Minimum acceptance checklist
 
 - Obtain a written license/terms record covering local storage, historical research, derived outputs, and whether raw data may be redistributed or displayed to end users.

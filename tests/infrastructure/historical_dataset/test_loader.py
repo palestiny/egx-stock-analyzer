@@ -350,3 +350,28 @@ def test_rejects_non_finite_financial_snapshot_values(tmp_path: Path) -> None:
 
     with pytest.raises(HistoricalDatasetIntegrityError, match="values must be finite"):
         HistoricalDatasetLoader(tmp_path).load_financial_snapshots()
+
+
+
+def test_rejects_duplicate_daily_session_with_different_timestamp_offset(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "market_observations.csv"
+    content = path.read_text(encoding="utf-8")
+    first = content.splitlines()[1]
+    duplicate_session = first.replace(
+        "2026-02-16T00:00:00+00:00",
+        "2026-02-16T01:00:00+00:00",
+    )
+    path.write_text(content + duplicate_session + "\n", encoding="utf-8")
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["market_observations_artifact"]["row_count"] += 1
+    payload["market_observations_artifact"]["sha256"] = hashlib.sha256(
+        path.read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Duplicate daily market session in Cairo timezone",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()

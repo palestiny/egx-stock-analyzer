@@ -53,6 +53,53 @@ def _coverage_counts(timestamps) -> tuple[list[date], int, int]:
     return dates, warmup, evaluation
 
 
+_REQUIRED_LICENSE_USES = {"local_storage", "historical_research", "backtesting"}
+_ALLOWED_CORPORATE_ACTION_CONVENTIONS = {
+    "raw-as-published",
+    "unadjusted",
+    "split-adjusted",
+    "split-and-dividend-adjusted",
+    "total-return-adjusted",
+    "vendor-adjusted",
+}
+
+
+def _license_attestation_is_explicit(notes: str) -> bool:
+    """Require a structured owner attestation instead of treating any note as proof."""
+    fields: dict[str, str] = {}
+    for part in notes.split(";"):
+        key, separator, value = part.partition("=")
+        if separator:
+            fields[key.strip().casefold()] = value.strip()
+
+    evidence_reference = fields.get("evidence_reference", "")
+    permitted_uses = {
+        item.strip().casefold()
+        for item in fields.get("permitted_uses", "").split(",")
+        if item.strip()
+    }
+    return (
+        fields.get("status", "").casefold() == "verified"
+        and evidence_reference.casefold() not in {"", "unknown", "tbd", "none", "n/a"}
+        and _REQUIRED_LICENSE_USES.issubset(permitted_uses)
+        and fields.get("redistribution", "").casefold() in {"allowed", "prohibited"}
+    )
+
+
+def _corporate_action_convention_is_explicit(value: str) -> bool:
+    return value.strip().casefold() in _ALLOWED_CORPORATE_ACTION_CONVENTIONS
+
+
+def _financial_availability_years(snapshots) -> list[int]:
+    return sorted(
+        {
+            item.available_at.year
+            for item in snapshots
+            if EVALUATION_START <= item.available_at <= EVALUATION_END
+        }
+    )
+
+
 def build_report(root: Path) -> dict:
     loader = HistoricalDatasetLoader(root)
     report = {
@@ -147,10 +194,33 @@ def build_report(root: Path) -> dict:
         else "FAIL"
     )
     report["checks"]["corporate_action_convention"] = (
-        "PASS" if market_provenance.corporate_action_convention.strip() else "FAIL"
+        "PASS"
+        if _corporate_action_convention_is_explicit(
+            market_provenance.corporate_action_convention
+        )
+        else "FAIL"
     )
-    report["checks"]["licensing_notes"] = (
-        "PASS" if market_provenance.licensing_notes.strip() else "FAIL"
+    report["checks"]["market_licensing_attestation"] = (
+        "PASS"
+        if _license_attestation_is_explicit(market_provenance.licensing_notes)
+        else "FAIL"
+    )
+    report["checks"]["financial_licensing_attestation"] = (
+        "PASS"
+        if _license_attestation_is_explicit(financial_provenance.licensing_notes)
+        else "FAIL"
+    )
+    availability_years = _financial_availability_years(comi_financial)
+    required_years = list(range(EVALUATION_START.year, EVALUATION_END.year + 1))
+    missing_availability_years = [
+        year for year in required_years if year not in availability_years
+    ]
+    report["financial_coverage"] = {
+        "availability_years": availability_years,
+        "missing_availability_years": missing_availability_years,
+    }
+    report["checks"]["point_in_time_financial_coverage"] = (
+        "PASS" if not missing_availability_years else "FAIL"
     )
     report["checks"]["financial_artifact"] = "PASS" if comi_financial else "FAIL"
 

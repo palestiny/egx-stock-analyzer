@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -32,3 +32,21 @@ def test_market_provider_rejects_reversed_date_range() -> None:
         assert str(exc) == "from_date cannot be after to_date"
     else:
         raise AssertionError("Expected reversed date range to be rejected")
+
+
+
+def test_market_provider_uses_cairo_local_session_date() -> None:
+    timestamp = datetime(2020, 12, 31, 22, 30, tzinfo=timezone.utc)
+
+    assert HistoricalDatasetMarketDataProvider._session_date(timestamp) == date(2021, 1, 1)
+
+
+def test_market_provider_rejects_naive_session_timestamp() -> None:
+    timestamp = datetime(2021, 1, 4, 10, 0)
+
+    try:
+        HistoricalDatasetMarketDataProvider._session_date(timestamp)
+    except ValueError as exc:
+        assert str(exc) == "Historical market timestamp must be timezone-aware"
+    else:
+        raise AssertionError("Expected naive timestamp to be rejected")
