@@ -120,6 +120,7 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     actual_ticker = meta.get("symbol")
     if not isinstance(actual_ticker, str) or actual_ticker.upper() != ticker.upper():
         findings.append(f"response:ticker_mismatch={actual_ticker!r}")
+        return [], {"ticker": actual_ticker}, findings
     exchange_timezone = meta.get("exchangeTimezoneName")
     if not isinstance(exchange_timezone, str) or not exchange_timezone.strip():
         findings.append("response:missing_exchange_timezone")
@@ -177,10 +178,22 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
 
     points: list[dict[str, object]] = []
     for index, timestamp in enumerate(timestamps):
-        if isinstance(timestamp, bool) or not isinstance(timestamp, (int, float)):
+        if (
+            isinstance(timestamp, bool)
+            or not isinstance(timestamp, (int, float))
+            or not math.isfinite(timestamp)
+        ):
             findings.append(f"row[{index}]:invalid_timestamp")
             continue
-        session_day = datetime.fromtimestamp(timestamp, UTC).astimezone(session_timezone).date().isoformat()
+        try:
+            session_date = datetime.fromtimestamp(timestamp, UTC).astimezone(session_timezone).date()
+        except (OverflowError, OSError, ValueError):
+            findings.append(f"row[{index}]:timestamp_out_of_range")
+            continue
+        if not FROM_DATE <= session_date < END_EXCLUSIVE:
+            findings.append(f"row[{index}]:date_outside_requested_range={session_date.isoformat()}")
+            continue
+        session_day = session_date.isoformat()
         row: dict[str, object] = {
             "date": session_day,
             "open": arrays["open"][index],
