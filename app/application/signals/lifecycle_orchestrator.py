@@ -53,13 +53,12 @@ class SignalLifecycleOrchestrator:
             raise ValueError("entry price must be positive")
 
         latest = self._history.latest(signal.symbol)
-        same_identity = (
+        if (
             latest is not None
             and latest.signal.strategy_id == signal.strategy_id
             and latest.signal.strategy_version == signal.strategy_version
             and latest.signal.generated_at == signal.generated_at
-        )
-        if same_identity:
+        ):
             signal_id = latest.signal_id
             current = latest.signal
         else:
