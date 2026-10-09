@@ -375,3 +375,37 @@ def test_rejects_duplicate_daily_session_with_different_timestamp_offset(tmp_pat
         match="Duplicate daily market session in Cairo timezone",
     ):
         HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+
+def test_rejects_market_row_source_mismatched_with_manifest_provider(tmp_path: Path) -> None:
+    _rewrite_market_row(
+        tmp_path,
+        "10.00,10.50,9.80,10.20,1000,test-fixture",
+        "10.00,10.50,9.80,10.20,1000,wrong-provider",
+    )
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Market observation source does not match manifest provider",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_market_observations()
+
+
+def test_rejects_financial_row_source_mismatched_with_manifest_provider(tmp_path: Path) -> None:
+    _copy_fixture(tmp_path)
+    path = tmp_path / "financial_snapshots.csv"
+    content = path.read_text(encoding="utf-8")
+    assert "test-fixture" in content
+    path.write_text(content.replace("test-fixture", "wrong-provider", 1), encoding="utf-8")
+    payload = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    payload["financial_snapshots_artifact"]["sha256"] = hashlib.sha256(
+        path.read_bytes()
+    ).hexdigest()
+    (tmp_path / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(
+        HistoricalDatasetIntegrityError,
+        match="Financial snapshot source does not match manifest provider",
+    ):
+        HistoricalDatasetLoader(tmp_path).load_financial_snapshots()

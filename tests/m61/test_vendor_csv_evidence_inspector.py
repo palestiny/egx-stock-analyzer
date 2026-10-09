@@ -130,3 +130,18 @@ def test_inspector_does_not_accept_partial_date_prefixes(tmp_path: Path) -> None
 
     assert report["artifact"]["valid_row_count"] == 0
     assert len(report["row_errors"]) == 1
+
+
+
+def test_inspector_rejects_unquoted_extra_values_in_csv_row(tmp_path: Path) -> None:
+    path = _write_csv(
+        tmp_path / "COMI.csv",
+        "Date,Open,High,Low,Close,Volume\n"
+        "2021-01-04,10,11,9,10,100,unexpected-extra-value\n",
+    )
+
+    report = inspect_csv(path, "COMI", "provider", "source")
+
+    assert report["artifact"]["row_count"] == 1
+    assert report["artifact"]["valid_row_count"] == 0
+    assert report["row_errors"] == ["row[2]: extra values beyond CSV header"]
