@@ -63,3 +63,12 @@ The next implementation should only be created after:
 2. the EGI request/response contract is verified end-to-end.
 
 Avoid creating provider-specific transformation logic from public marketing/schema descriptions alone.
+
+
+## No-budget decision update — 2026-10-09
+
+The project owner cannot pay for a historical-data package or professional API. Paid candidates above remain reference options only and are not required for the next step.
+
+A free Yahoo chart probe has been added for local diagnostic use. It is explicitly `CANDIDATE_ONLY`, preserves exact response bytes only by opt-in, and does not imply long-term storage, redistribution, or commercial display rights. The public EGID/EGX feed remains a second candidate pending verification of its request/response contract and historical coverage.
+
+No source is accepted yet. The financial point-in-time dataset remains a separate open requirement. See [M61 No-Cost Data Acquisition](M61-NO-COST-DATA-ACQUISITION.md).
