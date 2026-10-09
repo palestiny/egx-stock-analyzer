@@ -1,4 +1,6 @@
 from datetime import date
+
+from app.application.clock import EGX_TIMEZONE
 from typing import Callable
 
 from app.application.analysis.input_assembler import AnalysisInputAssemblyPolicy
@@ -67,4 +69,4 @@ class HistoricalOpportunityClassificationBacktestStrategy:
 
     @staticmethod
     def _as_of(bar: PriceBar) -> date:
-        return bar.timestamp.date()
+        return bar.timestamp.astimezone(EGX_TIMEZONE).date()
