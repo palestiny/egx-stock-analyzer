@@ -81,21 +81,44 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
 
     if not isinstance(payload, dict):
         findings.append("response:not_object")
+    elif payload.get("success") is False:
+        findings.append("response:provider_reported_failure")
     if not isinstance(data, dict):
         findings.append("response:data_not_object")
         points = None
     else:
+        expected_identity = {
+            "exchange": "EGX",
+            "ticker": symbol.strip().upper(),
+            "currency": "EGP",
+        }
+        for field, expected in expected_identity.items():
+            actual = data.get(field)
+            if not isinstance(actual, str) or not actual.strip():
+                findings.append(f"response:missing_identity={field}")
+            elif actual.strip().upper() != expected:
+                findings.append(
+                    f"response:identity_mismatch={field};expected={expected};actual={actual.strip()}"
+                )
+        if not isinstance(data.get("price_unit"), str) or not data["price_unit"].strip():
+            findings.append("response:missing_identity=price_unit")
+
         points = data.get("points")
         if not isinstance(points, list):
             findings.append("response:points_not_list")
         else:
             findings.extend(validate_history_points(points))
             findings.extend(validate_m61_evaluation_window(points))
-            if isinstance(meta, dict) and isinstance(meta.get("count"), int):
-                if meta["count"] != len(points):
-                    findings.append(
-                        f"response:meta_count_mismatch={meta['count']};actual={len(points)}"
-                    )
+            if isinstance(meta, dict) and meta.get("count") is not None:
+                try:
+                    reported_count = int(meta["count"])
+                except (TypeError, ValueError):
+                    findings.append("response:meta_count_invalid")
+                else:
+                    if reported_count != len(points):
+                        findings.append(
+                            f"response:meta_count_mismatch={reported_count};actual={len(points)}"
+                        )
         result["observed"].update(
             {
                 "exchange": data.get("exchange"),
