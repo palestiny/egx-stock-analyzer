@@ -54,6 +54,8 @@ def validate_history_points(points: Sequence[Mapping[str, object]]) -> list[str]
             if not value.is_finite():
                 findings.append(f"row[{index}]:non_finite_{field}={point[field]}")
                 continue
+            if field in {"open", "high", "low", "close"} and value <= 0:
+                findings.append(f"row[{index}]:non_positive_{field}={point[field]}")
             values[field] = value
 
         if all(field in values for field in ("open", "high", "low", "close")):
