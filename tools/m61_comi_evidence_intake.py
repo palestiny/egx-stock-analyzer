@@ -45,9 +45,12 @@ def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | No
     return next(iter(unique_matches)) if len(unique_matches) == 1 else None
 
 
-def _egx_trading_dates(timestamps) -> list[date]:
-    """Return unique market-session dates using the EGX local calendar."""
-    return sorted({timestamp.astimezone(EGX_TIMEZONE).date() for timestamp in timestamps})
+def _coverage_counts(timestamps) -> tuple[list[date], int, int]:
+    """Count unique Cairo-local sessions in warm-up and evaluation windows."""
+    dates = sorted({timestamp.astimezone(EGX_TIMEZONE).date() for timestamp in timestamps})
+    warmup = sum(value < EVALUATION_START for value in dates)
+    evaluation = sum(EVALUATION_START <= value <= EVALUATION_END for value in dates)
+    return dates, warmup, evaluation
 
 
 def build_report(root: Path) -> dict:
@@ -124,9 +127,9 @@ def build_report(root: Path) -> dict:
     # The 252-observation warm-up is counted across the full pre-evaluation
     # history, not only calendar year 2020. Use distinct Cairo-local sessions so
     # duplicate rows and timezone offsets cannot inflate coverage.
-    dates = _egx_trading_dates([item.timestamp for item in comi_market])
-    warmup = sum(value < EVALUATION_START for value in dates)
-    evaluation = sum(EVALUATION_START <= value <= EVALUATION_END for value in dates)
+    dates, warmup, evaluation = _coverage_counts(
+        [item.timestamp for item in comi_market]
+    )
 
     report["coverage"] = {
         "first_date": min(dates).isoformat(),
