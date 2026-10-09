@@ -50,14 +50,14 @@ class RankSectors:
             if momentum is None:
                 continue
             buckets[item.sector].append(
-                (momentum, record.result.stock_quality.total_score)
+                (Decimal(str(momentum)), record.result.stock_quality.total_score)
             )
 
         snapshots = [
             SectorSnapshot(
                 sector=sector,
                 symbol_count=len(values),
-                average_momentum_percent=sum(v[0] for v in values) / len(values),
+                average_momentum_percent=sum((v[0] for v in values), Decimal("0")) / Decimal(len(values)),
                 average_score=Decimal(sum(v[1] for v in values)) / len(values),
             )
             for sector, values in buckets.items()
