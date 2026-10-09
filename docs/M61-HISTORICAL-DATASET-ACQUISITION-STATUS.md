@@ -291,3 +291,10 @@ The paid-source candidates above are retained as historical research notes only;
 A contract-only diagnostic, `tools/m61_egid_contract_probe.py`, now inspects the public Swagger/OpenAPI document and reports history/chart/token operations, declared request parameters, DTO schemas, and security schemes. It does not call data endpoints, authenticate, or download price data. It supports OpenAPI 3 and Swagger 2 metadata.
 
 This is a preparation step, not a verified EGID acquisition. The tool must be run in an environment with network access; the actual history request, response semantics, free-access boundary, historical depth, and retention rights remain unverified. No EGID market data has been accepted.
+
+
+## Live no-cost acquisition probes — 2026-10-09
+
+- EGID's public OpenAPI contract was retrieved successfully. A bounded unauthenticated COMI history request returned HTTP 401. The endpoint requires authentication in its published contract; whether free credentials are available is unknown. No price values were saved.
+- Yahoo returned HTTP 200 for all ten .CA candidates, with 1,555–1,716 rows per symbol over the requested period. However, the response parser/validator reported 319–436 OHLC consistency findings per symbol plus missing-value findings. No raw responses or CSVs were preserved in this probe.
+- Therefore **neither source is accepted**. The Yahoo anomalies need root-cause investigation against an independent reference before any repair is considered. EGID needs a legitimate credential/access path. Source rights and point-in-time financial evidence remain open gates.
