@@ -2,11 +2,12 @@ import logging
 import os
 from dataclasses import asdict
 from datetime import date, datetime
-from decimal import Decimal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.market_intelligence_routes import create_market_intelligence_router
 
 from app.api.user_management_routes import create_user_management_router
 
@@ -97,17 +98,10 @@ from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
-from app.api.technical_scanner_response import TechnicalScannerResponse
-from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
-from app.domain.market_intelligence.sectors import SectorDirection
-from app.api.sector_intelligence_response import SectorRankingResponse
+from app.application.market_intelligence.rank_sectors import RankSectors
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
-from app.api.fibonacci_response import FibonacciResponse
-from app.api.market_intelligence_response import MarketMoverRankingResponse
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
-from app.api.breakout_response import BreakoutResponse
 from app.application.signals.generate_signal import GenerateSignal
-from app.api.signal_response import signal_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +244,18 @@ def create_app(
             raise HTTPException(status_code=403, detail="Forbidden") from error
         auth_rate_limiter.record_success(client_key)
         return identity
+
+    app.include_router(
+        create_market_intelligence_router(
+            rank_momentum_leaders=rank_momentum_leaders,
+            run_technical_scanner=run_technical_scanner,
+            rank_sectors=rank_sectors,
+            scan_fibonacci=scan_fibonacci,
+            scan_breakouts=scan_breakouts,
+            generate_signal=generate_signal,
+            require_authenticated=require_authenticated,
+        )
+    )
 
     app.include_router(
         create_user_management_router(
@@ -521,115 +527,6 @@ def create_app(
         response_execution = getattr(execution, "execution", execution)
         response = MarketAnalysisExecutionResponse.from_execution(response_execution)
         return asdict(response)
-
-    @app.get("/api/v1/market-intelligence/momentum")
-    def get_market_momentum(
-        symbols: str = "",
-        limit: int = 10,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        requested_symbols = [
-            symbol.strip().upper()
-            for symbol in symbols.split(",")
-            if symbol.strip()
-        ]
-        try:
-            ranking = rank_momentum_leaders.execute(requested_symbols, limit=limit)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return MarketMoverRankingResponse.from_ranking(ranking).to_dict()
-
-    @app.get("/api/v1/market-intelligence/scanners/technical")
-    def run_technical_scanner_route(
-        symbols: str = "",
-        scanner_id: str = "trend-momentum-volume",
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        requested_symbols = [
-            symbol.strip().upper()
-            for symbol in symbols.split(",")
-            if symbol.strip()
-        ]
-        try:
-            result = run_technical_scanner.execute(requested_symbols, scanner_id=scanner_id)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return TechnicalScannerResponse.from_result(result).to_dict()
-
-    @app.get("/api/v1/market-intelligence/sectors")
-    def get_sector_intelligence(
-        symbols: str = "",
-        direction: str = "leading",
-        limit: int = 10,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        pairs = []
-        for raw in symbols.split(","):
-            parts = raw.split(":", 1)
-            if len(parts) == 2:
-                pairs.append(SectorInput(parts[0], parts[1]))
-        try:
-            sector_direction = SectorDirection(direction.strip().lower())
-            result = rank_sectors.execute(pairs, direction=sector_direction, limit=limit)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return SectorRankingResponse.from_ranking(result).to_dict()
-
-    @app.get("/api/v1/market-intelligence/fibonacci")
-    def scan_fibonacci_route(
-        levels: str = "",
-        tolerance_percent: Decimal = Decimal("1"),
-        limit: int = 20,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        parsed: dict[str, Decimal] = {}
-        for raw in levels.split(","):
-            parts = raw.split(":", 1)
-            if len(parts) == 2:
-                try:
-                    parsed[parts[0].strip().upper()] = Decimal(parts[1].strip())
-                except Exception as error:
-                    raise HTTPException(status_code=400, detail="Invalid fibonacci level") from error
-        try:
-            result = scan_fibonacci.execute(parsed, tolerance_percent=tolerance_percent, limit=limit)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return FibonacciResponse.from_result(result).to_dict()
-
-    @app.get("/api/v1/market-intelligence/breakouts")
-    def scan_breakouts_route(
-        symbols: str = "",
-        tolerance_percent: Decimal = Decimal("1"),
-        limit: int = 20,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        requested_symbols = [
-            symbol.strip().upper()
-            for symbol in symbols.split(",")
-            if symbol.strip()
-        ]
-        try:
-            result = scan_breakouts.execute(
-                requested_symbols,
-                tolerance_percent=tolerance_percent,
-                limit=limit,
-            )
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return BreakoutResponse.from_result(result).to_dict()
-
-    @app.get("/api/v1/signals/{symbol}")
-    def get_signal(
-        symbol: str,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        try:
-            signal = generate_signal.execute(symbol)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        if signal is None:
-            raise HTTPException(status_code=404, detail=f"No actionable signal for {symbol.upper()}")
-        return signal_to_dict(signal)
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
