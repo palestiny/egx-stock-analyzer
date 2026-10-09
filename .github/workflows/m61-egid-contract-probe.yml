@@ -1,0 +1,45 @@
+name: M61 EGID live contract verification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/m61-egid-contract-probe.yml"
+      - "tools/m61_egid_contract_probe.py"
+      - "tests/m61/test_egid_contract_probe.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m61-egid-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect-public-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch public OpenAPI contract (no authentication, no market data)
+        id: probe
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts/m61-egid-contract
+          python -m tools.m61_egid_contract_probe --output artifacts/m61-egid-contract/contract-report.json
+      - name: Upload contract metadata only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m61-egid-public-contract
+          path: artifacts/m61-egid-contract/contract-report.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Fail if the public contract could not be verified
+        if: steps.probe.outcome != 'success'
+        run: |
+          echo "EGID OpenAPI contract could not be verified. No market data was requested."
+          exit 1

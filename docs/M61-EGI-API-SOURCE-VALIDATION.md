@@ -95,3 +95,22 @@ An independent recent codebase was also found using a different Mubasher histori
 References:
 - EGI public Swagger index: https://ticker.egidegypt.com/index.html
 - EGID describes itself as a wholly owned EGX subsidiary and authorized EGX market-data provider: https://www.linkedin.com/company/egid
+
+
+## Live OpenAPI verification — 2026-10-09
+
+The public OpenAPI document was retrieved successfully from GitHub Actions run [#37967688648](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37967688648). It declares OpenAPI 3.0.1 and confirms the following request contracts:
+
+- `POST /api/Settings/GetToken` accepts an `AuthenticationParameterReqDto` with `Username` and `Password`.
+- `POST /api/Feed/GetSymbolHistory` and `POST /api/DelayedFeed/getSymbolHistory` accept `HistoryReqDto` with `SymbolCode`, `FromDate`, `ToDate`, `Skip`, and `Take`.
+- `GET /api/Feed/GetSymbolHistories` and `GET /api/DelayedFeed/GetSymbolHistories` expose corresponding query parameters.
+- `POST /api/Feed/GetSymbolsChartByDateRange` and `POST /api/Feed/GetAllSymbolsChartByDateRange` accept `SymbolChartByDateRequest` with `SYMBOLS_CODE`, `StartTime`, `EndTime`, and `period`.
+
+Important limitations discovered in the live contract:
+
+1. The OpenAPI security metadata declares a Bearer scheme on the history and token operations. The token endpoint's own unauthenticated behavior is therefore not established by the schema alone.
+2. The history operations declare HTTP 200 but do not describe response DTO schemas. We cannot safely map returned fields or infer daily-vs-intraday semantics from the contract.
+3. The earlier unauthenticated COMI history request returned HTTP 401. No credential guessing or authentication bypass was attempted.
+4. The contract-only workflow fetched metadata only. It did not request or preserve price rows, and it does not verify source licensing, historical depth, completeness, or point-in-time financial availability.
+
+**Decision remains NOT ACCEPTED.** The next live step requires an authorized EGID account/credential issued by the provider or a real provider-delivered CSV whose terms permit local historical research. With authorized access, perform a bounded COMI-only response-shape/coverage probe first, without persisting prices until storage/use rights are verified. Do not build a production adapter against guessed response fields.
