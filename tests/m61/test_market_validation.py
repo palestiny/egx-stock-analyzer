@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from tools.m61_market_validation import validate_history_points, validate_m61_evaluation_window
 
 
@@ -102,3 +104,41 @@ def test_validator_rejects_non_positive_prices():
 
     assert "row[0]:non_positive_open=0" in findings
     assert "row[0]:non_positive_low=-1" in findings
+
+
+def _m61_row(day: date) -> dict[str, object]:
+    return {
+        "date": day.isoformat(),
+        "open": 10,
+        "high": 11,
+        "low": 9,
+        "close": 10,
+        "volume": 100,
+    }
+
+
+def test_evaluation_window_accepts_complete_year_coverage_when_last_session_is_december_30():
+    warmup = [_m61_row(date(2019, 1, 1) + timedelta(days=index)) for index in range(252)]
+    evaluation = [
+        _m61_row(date(2021, 1, 4)),
+        _m61_row(date(2022, 1, 3)),
+        _m61_row(date(2023, 1, 2)),
+        _m61_row(date(2024, 1, 2)),
+        _m61_row(date(2025, 12, 30)),
+    ]
+
+    assert validate_m61_evaluation_window(warmup + evaluation) == []
+
+
+def test_evaluation_window_reports_missing_calendar_years():
+    warmup = [_m61_row(date(2019, 1, 1) + timedelta(days=index)) for index in range(252)]
+    evaluation = [
+        _m61_row(date(2021, 1, 4)),
+        _m61_row(date(2023, 1, 2)),
+        _m61_row(date(2025, 12, 30)),
+    ]
+
+    findings = validate_m61_evaluation_window(warmup + evaluation)
+
+    assert "m61:missing_evaluation_years=2022,2024" in findings
+    assert not any("coverage_ends_before_evaluation_end" in item for item in findings)

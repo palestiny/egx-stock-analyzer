@@ -103,9 +103,21 @@ def validate_m61_evaluation_window(points: Sequence[Mapping[str, object]]) -> li
         findings.append(f"m61:insufficient_warmup={warmup_count};required=252")
     if evaluation_count == 0:
         findings.append("m61:no_evaluation_window_rows")
+    evaluation_years = sorted(
+        {
+            item.year
+            for item in unique_dates
+            if evaluation_start <= item <= evaluation_end
+        }
+    )
+    required_years = list(range(evaluation_start.year, evaluation_end.year + 1))
+    missing_years = [year for year in required_years if year not in evaluation_years]
+    if missing_years:
+        findings.append(
+            "m61:missing_evaluation_years="
+            + ",".join(str(year) for year in missing_years)
+        )
     if min(unique_dates) > date(2020, 1, 1):
         findings.append(f"m61:coverage_starts_after_requested={min(unique_dates).isoformat()}")
-    if max(unique_dates) < evaluation_end:
-        findings.append(f"m61:coverage_ends_before_evaluation_end={max(unique_dates).isoformat()}")
 
     return findings
