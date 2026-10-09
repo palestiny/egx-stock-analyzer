@@ -83,3 +83,22 @@ def test_duplicate_rows_do_not_inflate_m61_warmup_count():
     findings = validate_m61_evaluation_window(points)
 
     assert "m61:insufficient_warmup=1;required=252" in findings
+
+
+
+def test_validator_rejects_non_positive_prices():
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": 0,
+            "high": 1,
+            "low": -1,
+            "close": 0.5,
+            "volume": 100,
+        },
+    ]
+
+    findings = validate_history_points(points)
+
+    assert "row[0]:non_positive_open=0" in findings
+    assert "row[0]:non_positive_low=-1" in findings
