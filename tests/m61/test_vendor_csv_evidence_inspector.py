@@ -75,7 +75,7 @@ def test_inspector_rejects_missing_required_column(tmp_path: Path) -> None:
         inspect_csv(path, "COMI", "provider", "source")
 
 
-def test_inspector_accepts_utf8_bom_and_thousands_separators(tmp_path: Path) -> None:
+def test_inspector_accepts_utf8_bom_and_quoted_thousands_separators(tmp_path: Path) -> None:
     path = tmp_path / "COMI.csv"
     path.write_bytes(
         b"\xef\xbb\xbfDate,Open,High,Low,Close,Volume\n"
