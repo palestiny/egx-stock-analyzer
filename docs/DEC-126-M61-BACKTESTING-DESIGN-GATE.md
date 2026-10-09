@@ -217,6 +217,19 @@ The maximum holding period is a required strategy configuration for the backtest
 
 Prove simulation semantics before adding multiple strategies, portfolios, optimization, or UI. The M61 application boundary binds the simulator to Strategy v0 through an adapter around the existing `StockAnalysisPipeline` result rather than reimplementing opportunity-classification rules.
 
+### D9 — Warm-up and evaluation window are separate
+
+**Accepted implementation invariant:**
+
+- The loaded data window may begin before the strategy evaluation window.
+- Bars before `evaluation_start_date` are available to seed indicators and point-in-time analysis, but cannot generate evaluation signals or trades.
+- `from_date` is the first date loaded from the provider; `evaluation_start_date` is the first eligible signal date.
+- The runner converts bar timestamps to the EGX `Africa/Cairo` session date when applying the evaluation boundary.
+- If no valid bar exists on or after the evaluation start, the run fails rather than silently returning a misleading empty evaluation.
+- Existing callers that omit `evaluation_start_date` retain the prior behavior, with the evaluation window beginning at `from_date`.
+
+This prevents pre-evaluation warm-up data from either being unavailable to indicators or contaminating the reported evaluation period.
+
 ## 9. Acceptance Criteria
 
 M61 is complete only when:
