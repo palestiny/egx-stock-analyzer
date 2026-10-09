@@ -226,7 +226,7 @@ def test_builder_rejects_duplicate_source_symbol_headers(tmp_path: Path) -> None
     )
     output = tmp_path / "ambiguous-symbol-package"
 
-    with pytest.raises(ValueError, match="ambiguous source-symbol columns"):
+    with pytest.raises(ValueError, match="CSV has duplicate headers"):
         _build(market, financial, output)
 
     assert not output.exists()
