@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.market_intelligence_routes import create_market_intelligence_router
 
 from app.api.user_management_routes import create_user_management_router
+from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
+from app.application.clock import egx_today
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
@@ -23,13 +25,7 @@ from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
-from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
-from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
 from app.api.stock_research_response import StockResearchResponse
-from app.api.scheduled_workflow_execution_response import (
-    ScheduledWorkflowExecutionResponse,
-    ScheduledWorkflowExecutionsResponse,
-)
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
@@ -54,7 +50,6 @@ from app.application.analysis.get_analysis_run import (
     InvalidAnalysisRunQueryError,
 )
 from app.application.analysis.get_market_opportunity_ranking import GetMarketOpportunityRanking
-from app.application.clock import egx_today
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.security.authentication import (
     AuthenticationError,
@@ -72,18 +67,13 @@ from app.domain.execution import ExecutionState
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_history import (
     GetScheduledWorkflowHistory,
-    InvalidScheduledWorkflowHistoryQueryError,
 )
 from app.application.execution.get_scheduled_workflow_execution_history import (
     GetScheduledWorkflowExecutionHistory,
-    ScheduledWorkflowExecutionHistoryNotFoundError,
-    InvalidScheduledWorkflowExecutionHistoryQueryError,
 )
 from app.application.execution.get_scheduled_workflow_executions import GetScheduledWorkflowExecutions
 from app.application.execution.recover_durable_scheduled_workflow import (
     RecoverDurableScheduledWorkflow,
-    WorkflowExecutionNotFoundError,
-    WorkflowExecutionNotRecoverableError,
 )
 from app.application.analysis.run_stock_analysis_by_symbol import (
     RunStockAnalysisBySymbol,
@@ -244,6 +234,17 @@ def create_app(
             raise HTTPException(status_code=403, detail="Forbidden") from error
         auth_rate_limiter.record_success(client_key)
         return identity
+
+    app.include_router(
+        create_scheduled_workflow_router(
+            get_scheduled_workflow_executions=get_scheduled_workflow_executions,
+            get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
+            get_scheduled_workflow_history=get_scheduled_workflow_history,
+            recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
+            authenticator=authenticator,
+            require_authenticated=require_authenticated,
+        )
+    )
 
     app.include_router(
         create_market_intelligence_router(
@@ -546,172 +547,6 @@ def create_app(
 
         response = MarketOpportunityViewResponse.from_view(view)
         return asdict(response)
-    @app.get("/api/v1/workflows/executions")
-    def list_scheduled_workflow_executions(
-        occurrence_id: str | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_executions is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow execution reporting is not configured",
-            )
-
-        if occurrence_id is not None and not occurrence_id.strip():
-            raise HTTPException(status_code=422, detail="occurrence_id cannot be empty")
-
-        try:
-            if authenticator is None:
-                items = get_scheduled_workflow_executions.execute(
-                    occurrence_id=occurrence_id,
-                )
-            else:
-                items = get_scheduled_workflow_executions.execute(
-                    occurrence_id=occurrence_id,
-                    identity=identity,
-                )
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception("Scheduled workflow execution history failed", exc_info=error)
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow execution reporting failed",
-            ) from error
-
-        if occurrence_id is not None and not items:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Scheduled workflow execution not found for {occurrence_id}",
-            )
-
-        response = ScheduledWorkflowExecutionsResponse.from_items(items)
-        return asdict(response)
-
-    @app.get("/api/v1/workflows/history")
-    def get_scheduled_workflow_history_route(
-        page_size: int | None = None,
-        cursor: str | None = None,
-        from_state: str | None = None,
-        to_state: str | None = None,
-        occurred_from: datetime | None = None,
-        occurred_to: datetime | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_history is None:
-            raise HTTPException(status_code=503, detail="Scheduled workflow history is not configured")
-
-        try:
-            history = get_scheduled_workflow_history.execute(
-                identity,
-                page_size=page_size,
-                cursor=cursor,
-                from_state=from_state,
-                to_state=to_state,
-                occurred_from=occurred_from,
-                occurred_to=occurred_to,
-            )
-        except InvalidScheduledWorkflowHistoryQueryError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception("Scheduled workflow cross-execution history failed", exc_info=error)
-            raise HTTPException(status_code=500, detail="Scheduled workflow history failed") from error
-
-        response = ScheduledWorkflowHistoryResponse.from_read_model(history)
-        return asdict(response)
-    @app.get("/api/v1/workflows/executions/{execution_id}/history")
-    def get_scheduled_workflow_execution_history_route(
-        execution_id: UUID,
-        page_size: int | None = None,
-        cursor: str | None = None,
-        from_state: str | None = None,
-        to_state: str | None = None,
-        occurred_from: datetime | None = None,
-        occurred_to: datetime | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_scheduled_workflow_execution_history is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow execution history is not configured",
-            )
-
-        try:
-            history = get_scheduled_workflow_execution_history.execute(
-                execution_id,
-                identity,
-                page_size=page_size,
-                cursor=cursor,
-                from_state=from_state,
-                to_state=to_state,
-                occurred_from=occurred_from,
-                occurred_to=occurred_to,
-            )
-        except ScheduledWorkflowExecutionHistoryNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except InvalidScheduledWorkflowExecutionHistoryQueryError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception(
-                "Scheduled workflow execution history failed for %s",
-                execution_id,
-                exc_info=error,
-            )
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow execution history failed",
-            ) from error
-
-        response = ScheduledWorkflowExecutionHistoryResponse.from_read_model(history)
-        return asdict(response)
-
-    @app.post("/api/v1/workflows/executions/{execution_id}/recover")
-    def recover_scheduled_workflow_execution(
-        execution_id: UUID,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if recover_durable_scheduled_workflow is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Scheduled workflow recovery is not configured",
-            )
-
-        try:
-            if authenticator is None:
-                execution = recover_durable_scheduled_workflow.execute(
-                    execution_id,
-                    egx_today(),
-                )
-            else:
-                execution = recover_durable_scheduled_workflow.execute(
-                    execution_id,
-                    egx_today(),
-                    identity,
-                )
-        except WorkflowExecutionNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except WorkflowExecutionNotRecoverableError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        except Exception as error:
-            logger.exception(
-                "Scheduled workflow recovery failed for %s",
-                execution_id,
-                exc_info=error,
-            )
-            raise HTTPException(
-                status_code=500,
-                detail="Scheduled workflow recovery failed",
-            ) from error
-
-        response = ScheduledWorkflowExecutionResponse.from_execution(execution)
-        return asdict(response)
-
     @app.post("/api/v1/alerts/{symbol}/deliver")
     def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if deliver_alert_by_symbol is None:
