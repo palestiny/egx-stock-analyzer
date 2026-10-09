@@ -347,3 +347,12 @@ Separately, the synthetic end-to-end test in [PR #312](https://github.com/palest
 **Real-market Strategy v0 evaluation: BLOCKED — no accepted real dataset.**
 
 Do not report real returns, trade counts, win rate, drawdown, or strategy profitability until a real dataset passes the acceptance gate. The next required input is a preserved provider-delivered COMI daily-history artifact covering the 252-session warm-up plus 2021–2025, together with point-in-time financial snapshots and explicit storage/research-use evidence. Run `python -m tools.m61_comi_evidence_intake <dataset-directory>` first; only a report with `status: ACCEPTED` may be used for the real evaluation.
+
+
+## No-dataset owner checkpoint — 2026-10-09
+
+The project owner has confirmed that no historical dataset is currently available to import. This is now treated as an external source-access blocker; no request is made for the owner to manually assemble CSVs.
+
+The next no-cost path is to request a limited COMI daily-history sample / developer access from EGID or EGX and obtain explicit retention/research-use terms. The ready-to-send request and acceptance sequence are in [M61 Official Data Access Request](M61-OFFICIAL-DATA-ACCESS-REQUEST.md).
+
+Until a provider grants an eligible artifact or a legally usable public source is verified, real-market M61 evaluation remains **BLOCKED**. Existing candidate probes and synthetic end-to-end tests do not satisfy this requirement.
