@@ -13,6 +13,7 @@
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
 - PR #269 — optional Caddy HTTPS production overlay with domain/ACME configuration; Caddy validation, Compose validation, and container builds passed.
 - PR #270 — expanded mypy to the full `app/api` package; fixed optional-authenticator narrowing and aligned market-analysis API test doubles with the typed application result contract. Ruff, mypy, unit tests, integration tests, frontend checks, dependency audit, and bounded container/Nginx validation passed.
+- PR #272 — expanded mypy to all 207 Python source files under `app`; fixed 31 typing findings across persistence, scheduling, authorization, data-quality, signal, backtest, and runtime composition boundaries. Ruff, full-application mypy, unit/integration tests, frontend checks, dependency audit, and container validation passed.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
 - PR #258 — Nginx security headers, hidden-file denial, request-size/read/send bounds, and upstream timeouts; container CI passed.
 - PR #259 — extracted scheduled-workflow history queries from the SQLite persistence store; all CI checks passed.
@@ -111,7 +112,7 @@ Same-origin frontend/API routing is the default. For a separately hosted fronten
 - **Operational recovery:** SQLite WAL, timeout, concurrency behavior, and a backup/restore smoke test are covered. A production operator still needs scheduled backups and a tested restore drill on the actual deployment volume.
 - **License:** no license was added because choosing the legal reuse terms requires the repository owner's explicit decision.
 - **Maintainability:** scheduled-workflow API routes have been split into focused market-intelligence, user-management/audit, and scheduled-workflow router modules; workflow history queries are separated from the main SQLite store. `app/infrastructure/persistence/sqlite_scheduled_workflow_execution_store.py` remains a larger persistence module; defer further decomposition until the M61 evidence gate is closed to avoid diverting effort from dataset acceptance. Sequential decision records are retained for traceability; overlapping hardening guidance was consolidated.
-- **Type-check scope:** CI now runs mypy across the complete `app/api` package and hardened authentication primitives, but does not yet type-check the entire application. Expanding type checking beyond the API should be a separate, incremental follow-up after the M61 evidence gate.
+- **Type-check scope:** CI now runs mypy across all of `app` (207 Python source files) with the current incremental strictness options. This catches type errors across the application but is not equivalent to strict mypy mode; stricter configuration can be introduced incrementally after the M61 evidence gate.
 
 ## License decision remains open
 
