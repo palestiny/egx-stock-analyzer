@@ -29,6 +29,15 @@ class PriceBarFactory:
         ):
             raise ValueError("VALID observation must contain all PriceBar values")
 
+        assert observation.stock_id is not None
+        assert observation.timeframe is not None
+        assert observation.timestamp is not None
+        assert observation.open is not None
+        assert observation.high is not None
+        assert observation.low is not None
+        assert observation.close is not None
+        assert observation.volume is not None
+
         return PriceBar.create(
             stock_id=observation.stock_id,
             timeframe=observation.timeframe,
