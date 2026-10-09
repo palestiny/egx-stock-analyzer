@@ -22,6 +22,34 @@ jobs:
       - name: Probe the fixed ten-symbol cohort without retaining prices
         continue-on-error: true
         run: python -m tools.m61_free_market_probe --output-dir ./artifacts/m61-free-probe
+      - name: Print bounded metadata-only findings
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path("artifacts/m61-free-probe/free-market-probe-report.json")
+          if report.exists():
+              payload = json.loads(report.read_text(encoding="utf-8"))
+              summary = []
+              for item in payload.get("symbols", []):
+                  observed = item.get("observed", {})
+                  summary.append({
+                      "symbol": item.get("symbol"),
+                      "ticker": item.get("ticker"),
+                      "http_status": item.get("status_code"),
+                      "timezone": observed.get("exchange_timezone"),
+                      "rows": observed.get("row_count"),
+                      "first_date": observed.get("first_date"),
+                      "last_date": observed.get("last_date"),
+                      "validation_findings_total": observed.get("validation_findings_total"),
+                      "validation_finding_counts": observed.get("validation_finding_counts"),
+                      "acceptance": item.get("acceptance"),
+                  })
+              print(json.dumps(summary, indent=2, sort_keys=True))
+          else:
+              print("No probe report was produced.")
+          PY
       - name: Upload metadata-only source findings
         if: always()
         uses: actions/upload-artifact@v4
