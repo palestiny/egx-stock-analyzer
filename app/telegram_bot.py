@@ -209,7 +209,28 @@ async def main() -> None:
     if not token or not api_token:
         raise RuntimeError("Set TELEGRAM_BOT_TOKEN and EGX_API_TOKEN before starting the bot")
     bot = EgxTelegramBot(token, api_base, api_token, allowed)
-    await bot.run()
+    try:
+        # Validate the credential before entering long polling. Without this,
+        # an invalid token only produces repeated polling errors with no clear
+        # indication that the service is unusable.
+        identity = await bot._telegram("getMe")
+        bot_name = identity.get("username", "unknown") if isinstance(identity, dict) else "unknown"
+        LOGGER.info("Telegram credentials validated; bot_username=%s", bot_name)
+
+        # Send a startup receipt to the allowlisted private users. Telegram
+        # user IDs are also their private-chat IDs after they have started the bot.
+        for user_id in sorted(allowed):
+            await bot._reply(
+                user_id,
+                f"✅ بوت EGX اشتغل بنجاح (@{bot_name}).\\n"
+                "اكتب /health للتأكد من اتصال واجهة التحليل، أو /help لعرض الأوامر.",
+            )
+        await bot.run()
+    except BaseException:
+        LOGGER.exception("Telegram bot failed during startup or shutdown")
+        raise
+    finally:
+        await bot.close()
 
 
 if __name__ == "__main__":
