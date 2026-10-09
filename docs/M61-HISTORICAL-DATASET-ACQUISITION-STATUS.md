@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-10-09 — strict canonical CSV parsing, annual evaluation-window coverage, and recent 252-session warm-up validation are being hardened; CI verification pending
+**Updated:** 2026-10-09 — validation hardening is merged and CI-verified; the real COMI artifact and point-in-time financial evidence are still missing.
 
 ## Purpose
 
@@ -331,3 +331,19 @@ A metadata-only repeat probe ([GitHub Actions run #37926352690](https://github.c
 This source is **not accepted for Strategy v0 evaluation**: identity and OHLC quality failures remain unresolved, source terms and long-term storage rights are unverified, and the endpoint does not provide point-in-time financial snapshots. Do not silently repair observations or infer data quality from HTTP success.
 
 Separately, the synthetic end-to-end test in [PR #312](https://github.com/palestiny/egx-stock-analyzer/pull/312) passed: schema-v3 manifest/checksums and both artifacts loaded, and the production HistoricalDatasetBacktestRunner completed two deterministic COMI runs with 2019–2020 warm-up and 2021 evaluation isolation. This validates software plumbing only, not real-EGX strategy performance.
+
+
+## Execution checkpoint — 2026-10-09 (verified against current main)
+
+- Current main commit: `a63a05a46186da87976d9e6fabb7d2899088a609`.
+- Current CI: [run #37927196545](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37927196545) succeeded for Python 3.12 unit/integration tests, frontend checks, dependency audit, and container build.
+- The synthetic M61 end-to-end test exercises the production historical dataset loader, market/fundamental provider adapters, Strategy v0 application boundary, and deterministic backtest runner twice; both results must match. It is test-only data and is not evidence of strategy performance.
+- The latest bounded Yahoo candidate is rejected because provider metadata identified the requested EGX symbols as mutual funds and the OHLCV response failed validation. The anonymous EGID history request returned HTTP 401. These responses are not retained or used as accepted market data.
+- Repository and Library search found no acquired real COMI market CSV or point-in-time financial artifact available for an actual evaluation run.
+
+### Current result
+
+**Engineering execution path: VERIFIED on synthetic test data.**  
+**Real-market Strategy v0 evaluation: BLOCKED — no accepted real dataset.**
+
+Do not report real returns, trade counts, win rate, drawdown, or strategy profitability until a real dataset passes the acceptance gate. The next required input is a preserved provider-delivered COMI daily-history artifact covering the 252-session warm-up plus 2021–2025, together with point-in-time financial snapshots and explicit storage/research-use evidence. Run `python -m tools.m61_comi_evidence_intake <dataset-directory>` first; only a report with `status: ACCEPTED` may be used for the real evaluation.
