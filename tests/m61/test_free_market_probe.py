@@ -140,3 +140,17 @@ def test_probe_rejects_overwriting_nonempty_evidence_directory(monkeypatch, tmp_
         assert exc.code == 2
     else:
         raise AssertionError("CLI must refuse to overwrite an evidence directory")
+
+
+def test_parse_chart_fails_closed_on_wrong_market_timezone_or_currency():
+    payload = _payload()
+    payload["chart"]["result"][0]["meta"]["exchangeTimezoneName"] = "America/New_York"
+    points, _, findings = probe._parse_chart("COMI.CA", payload)
+    assert points == []
+    assert "response:unexpected_exchange_timezone='America/New_York'" in findings
+
+    payload = _payload()
+    payload["chart"]["result"][0]["meta"]["currency"] = "USD"
+    points, _, findings = probe._parse_chart("COMI.CA", payload)
+    assert points == []
+    assert "response:unexpected_currency='USD'" in findings
