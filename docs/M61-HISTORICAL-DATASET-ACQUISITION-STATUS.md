@@ -154,6 +154,9 @@ The current `main` branch includes the following dataset-readiness improvements,
 
 - Candidate package builder preserves the source CSV bytes, records raw and normalized SHA-256 hashes, emits a manifest, and refuses to overwrite an existing candidate package.
 - PR #284 — merged source-symbol integrity protection: when a vendor CSV contains a ticker/symbol column, every row must match the declared provider symbol; explicit aliases such as `COMI.CA` are recorded alongside the canonical COMI identity. CI passed.
+- PR #285 — deduplicate case-insensitive source-symbol aliases so a canonical `COMI` mapping cannot be emitted twice; CI passed.
+- PR #286 and #288 — fail closed on incomplete/inconsistent provider response metadata, including missing success/count/coverage fields, empty history, non-integer counts, and mismatched first/last dates; CI passed.
+- PR #287 — date-only financial availability is conservatively eligible only from the following calendar date, avoiding same-day look-ahead when exact publication time is unknown; CI passed.
 - PR #224 — closed without merge: the TradeGlob/TradingView probe would upload externally sourced raw price files as CI artifacts without verified retention/use rights. It is not an accepted acquisition path.
 - Vendor CSV intake rejects malformed rows rather than silently skipping them into a package.
 - Stable development stock identities exist for the bounded cohort; these are identity fixtures and do not imply that real market data has been acquired.
