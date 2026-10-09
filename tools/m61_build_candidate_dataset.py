@@ -103,25 +103,32 @@ def _read_financial_snapshots(path: Path, stock_id: UUID, provider: str) -> list
     except UnicodeDecodeError as exc:
         raise ValueError("Financial CSV must be UTF-8 or UTF-8 with BOM") from exc
 
-    reader = csv.DictReader(io.StringIO(decoded, newline=""))
-    if (
-        not reader.fieldnames
-        or len(reader.fieldnames) != len(FINANCIAL_INPUT_COLUMNS)
-        or set(reader.fieldnames) != set(FINANCIAL_INPUT_COLUMNS)
-    ):
-        raise ValueError(
-            "Financial CSV must use exactly these canonical columns: "
-            + ", ".join(FINANCIAL_INPUT_COLUMNS)
-        )
-
-    rows: list[dict[str, str]] = []
-    for index, source_row in enumerate(reader, start=2):
-        if None in source_row or any(
-            source_row.get(column) is None for column in FINANCIAL_INPUT_COLUMNS
+    try:
+        reader = csv.reader(io.StringIO(decoded, newline=""), strict=True)
+        headers = next(reader, None)
+        if (
+            not headers
+            or len(headers) != len(set(headers))
+            or len(headers) != len(FINANCIAL_INPUT_COLUMNS)
+            or set(headers) != set(FINANCIAL_INPUT_COLUMNS)
         ):
             raise ValueError(
-                f"Financial row {index} has missing or extra CSV fields"
+                "Financial CSV must use exactly these canonical columns: "
+                + ", ".join(FINANCIAL_INPUT_COLUMNS)
             )
+
+        source_rows: list[tuple[int, dict[str, str]]] = []
+        for index, values in enumerate(reader, start=2):
+            if len(values) != len(headers):
+                raise ValueError(
+                    f"Financial row {index} has missing or extra CSV fields"
+                )
+            source_rows.append((index, dict(zip(headers, values, strict=True))))
+    except csv.Error as exc:
+        raise ValueError("Financial CSV contains malformed quoting") from exc
+
+    rows: list[dict[str, str]] = []
+    for index, source_row in source_rows:
         try:
             period_end = date.fromisoformat((source_row["period_end"] or "").strip())
             available_at = date.fromisoformat((source_row["available_at"] or "").strip())

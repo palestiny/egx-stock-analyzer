@@ -261,3 +261,38 @@ def test_builder_deduplicates_case_insensitive_canonical_symbol_alias(tmp_path: 
     assert manifest.market_observations.provenance.symbol_mappings == (
         "COMI->" + STOCK_ID,
     )
+
+
+
+def test_builder_rejects_malformed_financial_csv_quoting(tmp_path: Path) -> None:
+    market, financial = _inputs(tmp_path)
+    content = financial.read_text(encoding="utf-8")
+    content = content.replace(
+        "2020-12-31,2021-03-01,1000,100,500,200,1",
+        '2020-12-31,2021-03-01,"1000,100,500,200,1',
+        1,
+    )
+    financial.write_text(content, encoding="utf-8")
+    output = tmp_path / "malformed-financial-package"
+
+    with pytest.raises(ValueError, match="malformed quoting"):
+        _build(market, financial, output)
+
+    assert not output.exists()
+
+
+def test_builder_rejects_financial_csv_row_with_missing_fields(tmp_path: Path) -> None:
+    market, financial = _inputs(tmp_path)
+    content = financial.read_text(encoding="utf-8")
+    content = content.replace(
+        "2020-12-31,2021-03-01,1000,100,500,200,1",
+        "2020-12-31,2021-03-01,1000,100,500,200",
+        1,
+    )
+    financial.write_text(content, encoding="utf-8")
+    output = tmp_path / "missing-financial-field-package"
+
+    with pytest.raises(ValueError, match="missing or extra CSV fields"):
+        _build(market, financial, output)
+
+    assert not output.exists()
