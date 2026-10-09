@@ -200,9 +200,14 @@ def build_report(root: Path) -> dict:
         )
         else "FAIL"
     )
-    report["checks"]["licensing_attestation"] = (
+    report["checks"]["market_licensing_attestation"] = (
         "PASS"
         if _license_attestation_is_explicit(market_provenance.licensing_notes)
+        else "FAIL"
+    )
+    report["checks"]["financial_licensing_attestation"] = (
+        "PASS"
+        if _license_attestation_is_explicit(financial_provenance.licensing_notes)
         else "FAIL"
     )
     availability_years = _financial_availability_years(comi_financial)
