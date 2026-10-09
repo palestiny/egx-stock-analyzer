@@ -88,7 +88,7 @@ Same-origin frontend/API routing is the default. For a separately hosted fronten
 - **Production perimeter:** the included Compose stack is HTTP-only and loopback-bound. A real deployment still needs a trusted TLS terminator, host/firewall restrictions, secret management, request-size/time limits, and edge rate-limit configuration. The Nginx limit in this repository is per instance and needs tuning for expected traffic.
 - **Operational recovery:** SQLite WAL, timeout, concurrency behavior, and a backup/restore smoke test are covered. A production operator still needs scheduled backups and a tested restore drill on the actual deployment volume.
 - **License:** no license was added because choosing the legal reuse terms requires the repository owner's explicit decision.
-- **Maintainability:** the large API composition module and workflow store were not split during this pass. The repository's sequential decision records are retained for traceability; overlapping hardening guidance was consolidated. Defer broad structural refactors until the M61 evidence gate is closed.
+- **Maintainability:** scheduled-workflow API routes have been extracted from the API composition module. `app/infrastructure/persistence/sqlite_scheduled_workflow_execution_store.py` remains a larger persistence module; defer further decomposition until the M61 evidence gate is closed to avoid diverting effort from dataset acceptance. The repository's sequential decision records are retained for traceability; overlapping hardening guidance was consolidated.
 - **Type-check scope:** CI now runs mypy on hardened authentication primitives, not the entire application. Expanding the checked surface remains follow-up work after the current M61 priority.
 
 ## License decision remains open
