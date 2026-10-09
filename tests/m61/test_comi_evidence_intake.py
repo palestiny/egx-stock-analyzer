@@ -1,8 +1,16 @@
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import UUID
 
-from tools.m61_comi_evidence_intake import _coverage_counts, _resolve_symbol_mapping, build_report
+from tools.m61_comi_evidence_intake import (
+    _corporate_action_convention_is_explicit,
+    _coverage_counts,
+    _financial_availability_years,
+    _license_attestation_is_explicit,
+    _resolve_symbol_mapping,
+    build_report,
+)
 
 
 FIXTURE = Path("tests/fixtures/historical_dataset/v1")
@@ -69,3 +77,43 @@ def test_comi_coverage_uses_cairo_local_session_date() -> None:
     assert dates == [date(2021, 1, 1)]
     assert warmup == 0
     assert evaluation == 1
+
+
+
+def test_license_gate_requires_explicit_verified_scope_and_reference() -> None:
+    assert _license_attestation_is_explicit(
+        "status=verified; evidence_reference=contract-2026-001; "
+        "permitted_uses=local_storage,historical_research,backtesting; "
+        "redistribution=prohibited"
+    )
+    assert not _license_attestation_is_explicit("test fixture only; not external market data")
+    assert not _license_attestation_is_explicit(
+        "status=verified; evidence_reference=contract-2026-001; "
+        "permitted_uses=local_storage,historical_research; redistribution=prohibited"
+    )
+
+
+def test_corporate_action_gate_rejects_unknown_conventions() -> None:
+    assert _corporate_action_convention_is_explicit("raw-as-published")
+    assert _corporate_action_convention_is_explicit("split-adjusted")
+    assert not _corporate_action_convention_is_explicit("unknown")
+    assert not _corporate_action_convention_is_explicit("")
+
+
+def test_financial_availability_coverage_uses_evaluation_years_only() -> None:
+    snapshots = [
+        SimpleNamespace(available_at=date(year, 6, 1))
+        for year in range(2021, 2027)
+    ]
+
+    assert _financial_availability_years(snapshots) == [2021, 2022, 2023, 2024, 2025]
+
+
+def test_financial_availability_coverage_preserves_missing_years() -> None:
+    snapshots = [
+        SimpleNamespace(available_at=date(2021, 6, 1)),
+        SimpleNamespace(available_at=date(2023, 6, 1)),
+        SimpleNamespace(available_at=date(2026, 2, 1)),
+    ]
+
+    assert _financial_availability_years(snapshots) == [2021, 2023]
