@@ -230,3 +230,34 @@ def test_builder_rejects_duplicate_source_symbol_headers(tmp_path: Path) -> None
         _build(market, financial, output)
 
     assert not output.exists()
+
+
+def test_builder_deduplicates_case_insensitive_canonical_symbol_alias(tmp_path: Path) -> None:
+    market, financial = _inputs(tmp_path)
+    output = tmp_path / "canonical-symbol-package"
+    kwargs = {
+        "market_csv": market,
+        "financial_csv": financial,
+        "output_dir": output,
+        "symbol": "COMI",
+        "stock_id": STOCK_ID,
+        "source_symbol": "comi",
+        "dataset_version": "candidate-2026-10-09-003",
+        "market_provider": "Test Vendor",
+        "market_source_reference": "https://example.invalid/market-delivery",
+        "market_acquired_at": "2026-10-09T00:00:00+03:00",
+        "market_licensing_notes": "status=unverified; evidence_reference=unknown; permitted_uses=; redistribution=prohibited",
+        "corporate_action_convention": "raw-as-published",
+        "financial_provider": "Test Financial Source",
+        "financial_source_reference": "https://example.invalid/financial-delivery",
+        "financial_acquired_at": "2026-10-09T00:00:00+03:00",
+        "financial_licensing_notes": "status=unverified; evidence_reference=unknown; permitted_uses=; redistribution=prohibited",
+    }
+
+    report = build_candidate_package(**kwargs)
+
+    assert report["status"] == "CANDIDATE_ONLY"
+    manifest = HistoricalDatasetLoader(output).load_manifest()
+    assert manifest.market_observations.provenance.symbol_mappings == (
+        "COMI->" + STOCK_ID,
+    )
