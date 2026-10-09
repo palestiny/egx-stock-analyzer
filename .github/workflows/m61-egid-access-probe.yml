@@ -1,0 +1,29 @@
+name: M61 EGID access probe
+
+on:
+  push:
+    branches: [m61/egid-access-boundary-v3]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-access-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Probe documented history routes without credentials
+        run: python -m tools.m61_egid_access_probe | tee egid-access-report.json
+      - name: Upload metadata-only probe report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m61-egid-access-report
+          path: egid-access-report.json
+          if-no-files-found: warn
+          retention-days: 7
