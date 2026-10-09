@@ -176,6 +176,18 @@ def summarize_openapi(document: dict[str, Any]) -> dict[str, object]:
                 collect_schema_refs(child)
 
     collect_schema_refs(selected)
+    pending_schema_names = list(referenced_schema_names)
+    visited_schema_names: set[str] = set()
+    while pending_schema_names:
+        schema_name = pending_schema_names.pop()
+        if schema_name in visited_schema_names:
+            continue
+        visited_schema_names.add(schema_name)
+        referenced_schema = schemas.get(schema_name)
+        previous_refs = set(referenced_schema_names)
+        collect_schema_refs(referenced_schema)
+        pending_schema_names.extend(referenced_schema_names - previous_refs)
+
     schema_summaries: dict[str, object] = {}
     for name, schema in sorted(schemas.items()):
         if (
