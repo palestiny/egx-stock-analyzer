@@ -183,8 +183,8 @@ class SQLiteOperationalMarketDataStore:
                 event = MarketDataConflictEvent(
                     conflict_id=uuid4(),
                     stock_id=record.stock_id,
-                    timeframe=incoming.timeframe.value,
-                    timestamp=incoming.timestamp,
+                    timeframe=key[1],
+                    timestamp=datetime.fromisoformat(key[2]),
                     acquisition_id=record.acquisition_id,
                     detected_at=detected_at,
                     existing_acquisition_id=UUID(existing_row[8]) if existing_row[8] else None,
@@ -353,11 +353,12 @@ class SQLiteOperationalMarketDataStore:
 
     @staticmethod
     def _serialize_observation(observation: RawPriceBarObservation) -> str:
+        stock_id, timeframe, timestamp = SQLiteOperationalMarketDataStore._observation_key(observation)
         return json.dumps(
             {
-                "stock_id": str(observation.stock_id),
-                "timeframe": observation.timeframe.value,
-                "timestamp": observation.timestamp.isoformat(),
+                "stock_id": stock_id,
+                "timeframe": timeframe,
+                "timestamp": timestamp,
                 "open": str(observation.open) if observation.open is not None else None,
                 "high": str(observation.high) if observation.high is not None else None,
                 "low": str(observation.low) if observation.low is not None else None,
