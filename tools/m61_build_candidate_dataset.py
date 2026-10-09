@@ -328,8 +328,6 @@ def build_candidate_package(
 
         market_artifact_hash = _sha256((temporary_dir / "market_observations.csv").read_bytes())
         financial_artifact_hash = _sha256((temporary_dir / "financial_snapshots.csv").read_bytes())
-        mapping = f"{normalized_symbol}->{resolved_stock_id}"
-
         canonical_mapping = f"{normalized_symbol}->{resolved_stock_id}"
         market_symbol_mappings = [canonical_mapping]
         if source_symbol_value.casefold() != normalized_symbol.casefold():
