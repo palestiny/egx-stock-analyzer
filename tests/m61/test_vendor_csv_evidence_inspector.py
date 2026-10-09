@@ -150,8 +150,8 @@ def test_inspector_rejects_unquoted_extra_values_in_csv_row(tmp_path: Path) -> N
 def test_inspector_reports_missing_values_instead_of_crashing(tmp_path: Path) -> None:
     path = _write_csv(
         tmp_path / "COMI.csv",
-        "Date,Open,High,Low,Close,Volume\\n"
-        "2021-01-04,10,11,9,10\\n",
+        "Date,Open,High,Low,Close,Volume\n"
+        "2021-01-04,10,11,9,10\n",
     )
 
     report = inspect_csv(path, "COMI", "provider", "source")
@@ -164,8 +164,8 @@ def test_inspector_reports_missing_values_instead_of_crashing(tmp_path: Path) ->
 def test_inspector_rejects_duplicate_unmapped_headers(tmp_path: Path) -> None:
     path = _write_csv(
         tmp_path / "COMI.csv",
-        "Date,Open,High,Low,Close,Volume,Note,Note\\n"
-        "2021-01-04,10,11,9,10,100,a,b\\n",
+        "Date,Open,High,Low,Close,Volume,Note,Note\n"
+        "2021-01-04,10,11,9,10,100,a,b\n",
     )
 
     with pytest.raises(ValueError, match="CSV has duplicate headers"):
@@ -175,8 +175,8 @@ def test_inspector_rejects_duplicate_unmapped_headers(tmp_path: Path) -> None:
 def test_inspector_rejects_malformed_csv_quoting(tmp_path: Path) -> None:
     path = _write_csv(
         tmp_path / "COMI.csv",
-        'Date,Open,High,Low,Close,Volume\\n'
-        '2021-01-04,10,11,9,10,"100\\n',
+        'Date,Open,High,Low,Close,Volume\n'
+        '2021-01-04,10,11,9,10,"100\n',
     )
 
     with pytest.raises(ValueError, match="malformed quoting or structure"):
