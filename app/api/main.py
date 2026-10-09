@@ -100,6 +100,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
+from app.application.market_intelligence.rank_sectors import RankSectors
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
