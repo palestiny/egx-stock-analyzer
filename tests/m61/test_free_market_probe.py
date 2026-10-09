@@ -76,6 +76,33 @@ def test_parse_chart_fails_closed_when_timezone_is_missing():
     assert "response:missing_exchange_timezone" in findings
 
 
+def test_parse_chart_rejects_ticker_mismatch_without_returning_rows():
+    payload = _payload()
+    payload["chart"]["result"][0]["meta"]["symbol"] = "EGAL.CA"
+    points, _, findings = probe._parse_chart("COMI.CA", payload)
+    assert points == []
+    assert any(item.startswith("response:ticker_mismatch=") for item in findings)
+
+
+def test_parse_chart_excludes_rows_outside_requested_date_range():
+    payload = _payload()
+    payload["chart"]["result"][0]["timestamp"][0] = int(
+        datetime(2018, 12, 31, tzinfo=UTC).timestamp()
+    )
+    points, _, findings = probe._parse_chart("COMI.CA", payload)
+    assert len(points) == 1
+    assert points[0]["date"] == "2021-01-03"
+    assert "row[0]:date_outside_requested_range=2018-12-31" in findings
+
+
+def test_parse_chart_skips_non_finite_timestamps():
+    payload = _payload()
+    payload["chart"]["result"][0]["timestamp"][0] = float("nan")
+    points, _, findings = probe._parse_chart("COMI.CA", payload)
+    assert len(points) == 1
+    assert "row[0]:invalid_timestamp" in findings
+
+
 def test_probe_saves_raw_bytes_and_candidate_csv_only_when_requested(monkeypatch, tmp_path: Path):
     raw = json.dumps(_payload(), separators=(",", ":")).encode()
     monkeypatch.setattr(
