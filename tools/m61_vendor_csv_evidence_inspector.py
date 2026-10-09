@@ -94,21 +94,35 @@ def inspect_csv(path: Path, symbol: str, provider: str, source_reference: str) -
     except UnicodeDecodeError as exc:
         raise ValueError("CSV must be UTF-8 or UTF-8 with BOM") from exc
 
-    reader = csv.DictReader(io.StringIO(decoded, newline=""))
-    columns = _column_map(reader.fieldnames)
-    points: list[dict[str, str]] = []
-    row_errors: list[str] = []
-    for index, row in enumerate(reader, start=2):
-        if None in row:
-            row_errors.append(f"row[{index}]: extra values beyond CSV header")
-            continue
-        try:
-            point = {"date": _canonical_date(row[columns["date"]] or "")}
-            for field in ("open", "high", "low", "close", "volume"):
-                point[field] = _canonical_number(row[columns[field]] or "")
-            points.append(point)
-        except (ValueError, TypeError) as exc:
-            row_errors.append(f"row[{index}]: {exc}")
+    try:
+        reader = csv.reader(io.StringIO(decoded, newline=""), strict=True)
+        fieldnames = next(reader, None)
+        if not fieldnames:
+            raise ValueError("CSV has no header row")
+        if len(fieldnames) != len(set(fieldnames)):
+            raise ValueError("CSV has duplicate headers")
+        columns = _column_map(fieldnames)
+        points: list[dict[str, str]] = []
+        row_errors: list[str] = []
+        for index, values in enumerate(reader, start=2):
+            # Match DictReader behavior for trailing/intentional blank lines.
+            if not values:
+                continue
+            if len(values) != len(fieldnames):
+                row_errors.append(
+                    f"row[{index}]: expected {len(fieldnames)} fields, got {len(values)}"
+                )
+                continue
+            row = dict(zip(fieldnames, values, strict=True))
+            try:
+                point = {"date": _canonical_date(row[columns["date"]] or "")}
+                for field in ("open", "high", "low", "close", "volume"):
+                    point[field] = _canonical_number(row[columns[field]] or "")
+                points.append(point)
+            except (ValueError, TypeError) as exc:
+                row_errors.append(f"row[{index}]: {exc}")
+    except csv.Error as exc:
+        raise ValueError("CSV contains malformed quoting or structure") from exc
 
     findings = validate_history_points(points) + validate_m61_evaluation_window(points)
     dates = sorted({date.fromisoformat(point["date"]) for point in points})
@@ -125,7 +139,7 @@ def inspect_csv(path: Path, symbol: str, provider: str, source_reference: str) -
             "row_count": len(points) + len(row_errors),
             "valid_row_count": len(points),
         },
-        "columns": {"source_headers": reader.fieldnames, "mapped": columns},
+        "columns": {"source_headers": fieldnames, "mapped": columns},
         "coverage": {
             "first_date": min(dates).isoformat() if dates else None,
             "last_date": max(dates).isoformat() if dates else None,
