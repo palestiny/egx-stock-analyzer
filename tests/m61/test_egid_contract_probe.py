@@ -77,6 +77,14 @@ def test_summary_handles_swagger_v2_and_missing_optional_contract_sections():
     report = summarize_openapi(
         {
             "swagger": "2.0",
+            "host": "ticker.egidegypt.com",
+            "basePath": "/v1",
+            "securityDefinitions": {
+                "ApiKeyAuth": {"type": "apiKey", "name": "Authorization", "in": "header"}
+            },
+            "definitions": {
+                "HistoryRequest": {"type": "object", "properties": {"symbol": {"type": "string"}}}
+            },
             "paths": {
                 "/api/Feed/GetSymbolHistories": {
                     "get": {
@@ -90,7 +98,9 @@ def test_summary_handles_swagger_v2_and_missing_optional_contract_sections():
     )
 
     assert report["openapi_version"] == "2.0"
-    assert report["security_scheme_names"] == []
+    assert report["security_scheme_names"] == ["ApiKeyAuth"]
+    assert report["server_urls"] == ["https://ticker.egidegypt.com/v1"]
+    assert "HistoryRequest" in report["relevant_schemas"]
     assert report["relevant_operations"][0]["method"] == "GET"
     assert report["relevant_operations"][0]["request_body"] is None
 
