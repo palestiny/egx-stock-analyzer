@@ -284,3 +284,12 @@ The paid-source candidates above are retained as historical research notes only;
 4. If the free market probe returns incomplete coverage or is blocked, record that result and continue testing a different free candidate. Do not silently substitute fixtures or synthesize bars.
 
 **Current status remains NOT ACCEPTED.** This update changes the acquisition strategy to respect the no-payment constraint; it does not claim that the free probe has already run successfully, that Yahoo terms permit long-term storage, or that the ten-symbol market-plus-financial dataset is complete.
+
+
+## No-cost probe outcome — 2026-10-09
+
+The first live no-cost probe returned HTTP 200 for all ten Yahoo `.CA` candidates and showed historical date ranges spanning 2019–2025. It did **not** produce acceptable evidence: every symbol response reported `instrumentType=MUTUALFUND` rather than `EQUITY`, and the OHLCV validator found hundreds of row-level integrity/null findings per ticker. FWRY's returned history began on 2019-08-14; the others reported 2019-01-01. The run was metadata-only and did not preserve raw price data.
+
+Reference: [M61 live probe run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
+
+**Decision:** do not use these Yahoo results for Strategy v0 or mark the dataset accepted. The next no-cost target is to validate the public EGID/EGX feed's exact request/response schema and historical coverage. Point-in-time financial evidence remains independently open.
