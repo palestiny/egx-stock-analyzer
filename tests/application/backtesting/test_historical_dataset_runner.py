@@ -6,6 +6,7 @@ import pytest
 from uuid import UUID
 
 from app.application.backtesting.historical_dataset_runner import HistoricalDatasetBacktestRunner
+from app.application.clock import EGX_TIMEZONE
 from app.domain.backtesting.simulator import BacktestConfiguration
 from app.domain.stocks.stock import Stock
 from app.infrastructure.historical_dataset.financial_source import HistoricalDatasetFundamentalSnapshotSource
@@ -57,7 +58,7 @@ def test_dataset_runner_uses_pre_evaluation_bars_only_for_warmup() -> None:
 
     assert result.configuration.warmup_bars == 6
     assert all(
-        trade.signal_timestamp.astimezone().date() >= date(2026, 2, 24)
+        trade.signal_timestamp.astimezone(EGX_TIMEZONE).date() >= date(2026, 2, 24)
         for trade in result.trades
     )
 
