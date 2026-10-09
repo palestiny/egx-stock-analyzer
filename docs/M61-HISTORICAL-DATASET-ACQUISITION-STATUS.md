@@ -153,6 +153,8 @@ For each source artifact:
 The current `main` branch includes the following dataset-readiness improvements, with the latest main CI run passing:
 
 - Candidate package builder preserves the source CSV bytes, records raw and normalized SHA-256 hashes, emits a manifest, and refuses to overwrite an existing candidate package.
+- PR #284 — merged source-symbol integrity protection: when a vendor CSV contains a ticker/symbol column, every row must match the declared provider symbol; explicit aliases such as `COMI.CA` are recorded alongside the canonical COMI identity. CI passed.
+- PR #224 — closed without merge: the TradeGlob/TradingView probe would upload externally sourced raw price files as CI artifacts without verified retention/use rights. It is not an accepted acquisition path.
 - Vendor CSV intake rejects malformed rows rather than silently skipping them into a package.
 - Stable development stock identities exist for the bounded cohort; these are identity fixtures and do not imply that real market data has been acquired.
 - The acceptance path checks internal COMI identity mapping, market/financial identity consistency, warm-up and evaluation coverage, corporate-action declaration, and explicit licensing attestation.
@@ -162,7 +164,7 @@ These are software and workflow checks. They do **not** constitute a real datase
 
 ## Current blocker
 
-The software-side dataset contract, manifest/integrity checks, loader, CSV inspector, candidate packager, and deterministic fixtures are implemented. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**. No accepted real COMI artifact or complete ten-symbol dataset has been verified in the repository as of 2026-10-09.
+The software-side dataset contract, manifest/integrity checks, loader, CSV inspector, candidate packager, source-symbol integrity checks, and deterministic fixtures are implemented. The remaining blocker is **real historical evidence acquisition with acceptable provenance and usage rights**. No accepted real COMI artifact or complete ten-symbol dataset has been verified in the repository as of 2026-10-09. The TradeGlob/TradingView CI probe was closed without merge because its source rights and raw-artifact retention were not established.
 
 We cannot honestly close the dataset issue using generated fixtures, Yahoo data with unresolved retention rights, or unverified API schema assumptions. At least one real market-data artifact and point-in-time financial snapshots must be acquired under terms that permit the intended local storage and backtesting, then pass the acceptance gate.
 
