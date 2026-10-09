@@ -6,6 +6,9 @@ from app.api.main import create_app
 from app.application.clock import egx_today
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
+from uuid import uuid4
+
+from app.application.analysis.run_market_analysis import MarketAnalysisResult
 from app.domain.execution import Execution
 
 
@@ -17,7 +20,7 @@ def test_post_market_analysis_returns_execution_metadata():
     execution.finish()
 
     capability = Mock(spec=RunConfiguredMarketAnalysis)
-    capability.execute.return_value = execution
+    capability.execute.return_value = MarketAnalysisResult(execution=execution, analysis_run_id=uuid4())
 
     app = create_app(
         InMemoryAnalysisResultStore(),
@@ -54,7 +57,7 @@ def test_post_market_analysis_does_not_accept_symbol_list():
     execution.complete()
 
     capability = Mock(spec=RunConfiguredMarketAnalysis)
-    capability.execute.return_value = execution
+    capability.execute.return_value = MarketAnalysisResult(execution=execution, analysis_run_id=uuid4())
 
     app = create_app(
         InMemoryAnalysisResultStore(),

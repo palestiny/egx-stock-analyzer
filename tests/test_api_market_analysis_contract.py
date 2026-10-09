@@ -6,13 +6,15 @@ from fastapi.testclient import TestClient
 from app.api.main import create_app
 from app.application.clock import egx_today
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.analysis.run_market_analysis import MarketAnalysisResult
+from uuid import uuid4
 from app.domain.execution import Execution, ExecutionState
 
 
 AS_OF = date(2026, 9, 18)
 
 
-def execution(state: ExecutionState) -> Execution:
+def execution(state: ExecutionState) -> MarketAnalysisResult:
     result = Execution.create()
     result.start()
     if state is ExecutionState.COMPLETED:
@@ -25,7 +27,7 @@ def execution(state: ExecutionState) -> Execution:
     else:
         result.record_stock_failure("EGAL", "analysis failed")
         result.fail()
-    return result
+    return MarketAnalysisResult(execution=result, analysis_run_id=uuid4())
 
 
 def test_post_market_analysis_executes_configured_universe():
