@@ -91,6 +91,8 @@ def test_telegram_provider_maps_timeout_without_exposing_token():
         provider.send(make_candidate(), "telegram")
 
     assert TOKEN not in str(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__suppress_context__ is True
 
 
 def test_telegram_provider_requires_configuration():
