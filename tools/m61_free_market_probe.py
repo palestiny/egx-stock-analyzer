@@ -132,6 +132,11 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     if currency != "EGP":
         findings.append(f"response:unexpected_currency={currency!r}")
         return [], {"ticker": actual_ticker, "exchange_timezone": exchange_timezone, "currency": currency}, findings
+    instrument_type = meta.get("instrumentType")
+    if instrument_type != "EQUITY":
+        # Keep parsing for diagnostic coverage/quality counts, but make the
+        # unexpected provider classification an explicit acceptance blocker.
+        findings.append(f"response:unexpected_instrument_type={instrument_type!r}")
     try:
         session_timezone = ZoneInfo(exchange_timezone)
     except (ZoneInfoNotFoundError, ValueError):
@@ -238,6 +243,16 @@ def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path)
     validation_findings = validate_history_points(points)
     evaluation_findings = validate_m61_evaluation_window(points)
     findings = list(dict.fromkeys(parse_findings + validation_findings + evaluation_findings))
+    finding_counts: dict[str, int] = {}
+    for finding in findings:
+        if finding.startswith("row[") and "]:" in finding:
+            category = finding.split("]:", 1)[1].split("=", 1)[0]
+        elif ":" in finding:
+            prefix, remainder = finding.split(":", 1)
+            category = f"{prefix}:{remainder.split('=', 1)[0]}"
+        else:
+            category = finding
+        finding_counts[category] = finding_counts.get(category, 0) + 1
 
     report: dict[str, Any] = {
         "symbol": symbol,
@@ -258,7 +273,10 @@ def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path)
             "last_date": points[-1]["date"] if points else None,
             "sha256_of_response": hashlib.sha256(raw).hexdigest() if raw else None,
             "response_bytes": len(raw),
-            "validation_findings": findings,
+            "validation_findings_total": len(findings),
+            "validation_finding_counts": dict(sorted(finding_counts.items())),
+            "validation_findings_sample": findings[:20],
+            "validation_findings_truncated": len(findings) > 20,
             "corporate_action_event_rows": sum(
                 1 for point in points if point.get("dividend") is not None or point.get("split_numerator") is not None
             ),
