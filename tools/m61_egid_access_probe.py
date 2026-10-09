@@ -9,7 +9,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 BASE_URL = "https://ticker.egidegypt.com"
-HISTORY_PATH = "/api/DelayedFeed/getSymbolHistory"
+HISTORY_PATHS = ("/api/DelayedFeed/getSymbolHistory", "/api/Feed/GetSymbolHistory")
+HISTORY_PATH = HISTORY_PATHS[0]
 MAX_RESPONSE_BYTES = 1_000_000
 
 
@@ -33,8 +34,12 @@ def _shape(value: object, path: str = "$") -> dict[str, object]:
     return {"type": type(value).__name__}
 
 
-def probe_unauthenticated_history_access(timeout: float = 12.0) -> dict[str, Any]:
-    """Request at most ten COMI daily rows, without credentials or persistence."""
+def probe_unauthenticated_history_access(
+    timeout: float = 12.0, history_path: str = HISTORY_PATH
+) -> dict[str, Any]:
+    """Request at most ten COMI daily rows from a documented endpoint, without credentials or persistence."""
+    if history_path not in HISTORY_PATHS:
+        raise ValueError("history_path must be one of the documented, allowlisted endpoints")
     payload = {
         "FromDate": "2025-01-01T00:00:00",
         "ToDate": "2025-01-05T23:59:59",
@@ -43,7 +48,7 @@ def probe_unauthenticated_history_access(timeout: float = 12.0) -> dict[str, Any
         "Take": 10,
     }
     request = urllib.request.Request(
-        f"{BASE_URL}{HISTORY_PATH}",
+        f"{BASE_URL}{history_path}",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Accept": "application/json",
@@ -93,7 +98,7 @@ def probe_unauthenticated_history_access(timeout: float = 12.0) -> dict[str, Any
 
     report: dict[str, Any] = {
         "provider": "EGID",
-        "endpoint": HISTORY_PATH,
+        "endpoint": history_path,
         "request": {
             "symbol": "COMI",
             "from": payload["FromDate"],
@@ -121,10 +126,22 @@ def probe_unauthenticated_history_access(timeout: float = 12.0) -> dict[str, Any
 
 
 def main() -> int:
-    report = probe_unauthenticated_history_access()
-    print(json.dumps(report, indent=2, sort_keys=True))
-    classification = report["observed"]["classification"]
-    return 2 if classification == "UNVERIFIED_TRANSPORT_FAILURE" else 0
+    reports = [
+        probe_unauthenticated_history_access(history_path=path)
+        for path in HISTORY_PATHS
+    ]
+    output = {
+        "provider": "EGID",
+        "probes": reports,
+        "price_values_persisted": False,
+        "source_terms_verified": False,
+        "dataset_accepted": False,
+    }
+    print(json.dumps(output, indent=2, sort_keys=True))
+    return 2 if any(
+        report["observed"]["classification"] == "UNVERIFIED_TRANSPORT_FAILURE"
+        for report in reports
+    ) else 0
 
 
 if __name__ == "__main__":
