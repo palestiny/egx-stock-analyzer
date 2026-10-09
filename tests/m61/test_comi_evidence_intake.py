@@ -7,6 +7,7 @@ from tools.m61_comi_evidence_intake import (
     _corporate_action_convention_is_explicit,
     _coverage_counts,
     _financial_availability_years,
+    _evaluation_year_coverage,
     _license_attestation_is_explicit,
     _resolve_symbol_mapping,
     build_report,
@@ -132,3 +133,32 @@ def test_financial_availability_coverage_preserves_missing_years() -> None:
     ]
 
     assert _financial_availability_years(snapshots) == [2021, 2023]
+
+
+def test_evaluation_coverage_reports_missing_calendar_years() -> None:
+    dates = [
+        date(2020, 12, 31),
+        date(2021, 1, 4),
+        date(2023, 6, 1),
+        date(2025, 12, 30),
+    ]
+
+    observed, missing = _evaluation_year_coverage(dates)
+
+    assert observed == [2021, 2023, 2025]
+    assert missing == [2022, 2024]
+
+
+def test_evaluation_coverage_accepts_each_year_without_requiring_december_31_session() -> None:
+    dates = [
+        date(2021, 1, 4),
+        date(2022, 1, 3),
+        date(2023, 1, 2),
+        date(2024, 1, 2),
+        date(2025, 12, 30),
+    ]
+
+    observed, missing = _evaluation_year_coverage(dates)
+
+    assert observed == [2021, 2022, 2023, 2024, 2025]
+    assert missing == []
