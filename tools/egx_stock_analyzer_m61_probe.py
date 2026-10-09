@@ -23,7 +23,7 @@ from tools.m61_market_validation import validate_history_points, validate_m61_ev
 
 COHORT = ("COMI", "EGAL", "SWDY", "ETEL", "EAST", "TMGH", "PHDC", "FWRY", "EFID", "HRHO")
 BASE_URL = "https://mansaapi.com"
-FROM_DATE = "2020-01-01"
+FROM_DATE = "2019-01-01"
 TO_DATE = "2025-12-31"
 
 
