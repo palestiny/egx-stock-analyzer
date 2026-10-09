@@ -195,6 +195,8 @@ def create_app(
             if authenticator is not None:
                 identity = authenticator.authenticate(authorization)
             else:
+                if operator_authenticator is None:
+                    raise HTTPException(status_code=503, detail="Authentication is not configured")
                 identity = operator_authenticator.authenticate(authorization)
         except AuthenticationError as error:
             auth_rate_limiter.record_failure(client_key)
@@ -525,8 +527,7 @@ def create_app(
             logger.exception("Market-wide analysis execution failed", exc_info=error)
             raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
 
-        response_execution = getattr(execution, "execution", execution)
-        response = MarketAnalysisExecutionResponse.from_execution(response_execution)
+        response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
         return asdict(response)
 
     @app.get("/api/v1/opportunities")
