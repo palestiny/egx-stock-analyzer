@@ -46,6 +46,12 @@ def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | No
 
 
 
+
+def _only_stock_identity(records, stock_id: UUID) -> bool:
+    """Require a single-symbol vertical-slice artifact to contain one identity only."""
+    return bool(records) and {item.stock_id for item in records} == {stock_id}
+
+
 def _daily_market_rows(market) -> tuple[list, bool]:
     """Return daily observations and whether the artifact contains only daily bars."""
     daily = [item for item in market if item.timeframe == "1d"]
@@ -182,9 +188,15 @@ def build_report(root: Path) -> dict:
     report["checks"]["market_observation_identity"] = (
         "PASS" if comi_market else "FAIL"
     )
+    report["checks"]["market_single_stock_identity"] = (
+        "PASS" if _only_stock_identity(market, comi_stock_id) else "FAIL"
+    )
     report["checks"]["daily_timeframe"] = "PASS" if only_daily_timeframe else "FAIL"
     report["checks"]["financial_identity_mapping"] = (
         "PASS" if comi_financial else "FAIL"
+    )
+    report["checks"]["financial_single_stock_identity"] = (
+        "PASS" if _only_stock_identity(financial, comi_stock_id) else "FAIL"
     )
 
     if not comi_market:
