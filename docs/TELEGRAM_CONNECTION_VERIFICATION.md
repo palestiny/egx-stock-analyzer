@@ -22,19 +22,13 @@ These tests are part of the normal unit-test suite and CI.
 
 The real-send test is marked `integration` and `external`, so normal CI explicitly excludes it. It sends one clearly labeled `connection_test` message to the configured chat. Run it only when you intend to send that message.
 
-From the repository root, run the helper. It prompts for the bot token with hidden input, prompts for the destination chat ID, sets the environment variables only for the test process, and removes them in a `finally` block. The token is not placed in shell command history or printed by the script:
+From the repository root, run the helper. It prompts for the bot token with hidden input, prompts for the destination chat ID, sets the environment variables only for the duration of the script, and removes them in a `finally` block. The token is not placed in shell command history or printed by the script:
 
 ```powershell
-.\\scripts\\test_telegram_live.ps1
+.\scripts\test_telegram_live.ps1
 ```
 
-If the opt-in flag is absent, the live test skips. If the flag is present but credentials are missing, it fails with a generic configuration message without printing their values. After the test, clear the session variables:
-
-```powershell
-Remove-Item Env:EGX_TELEGRAM_LIVE_TEST -ErrorAction SilentlyContinue
-Remove-Item Env:EGX_TELEGRAM_BOT_TOKEN -ErrorAction SilentlyContinue
-Remove-Item Env:EGX_TELEGRAM_CHAT_ID -ErrorAction SilentlyContinue
-```
+If the opt-in flag is absent, the live test skips. If the flag is present but credentials are missing, it fails with a generic configuration message without printing their values. The helper clears the environment variables automatically, including when the test fails.
 
 A passing live test verifies Telegram accepted the message. It does not prove that the bot's scheduled analysis, alert eligibility, or production scheduler has been exercised end-to-end. The API's `POST /api/v1/alerts/{symbol}/deliver?channel=telegram` path additionally requires an existing alert candidate for that symbol.
 
