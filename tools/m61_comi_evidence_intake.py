@@ -12,6 +12,7 @@ import json
 from datetime import date
 from pathlib import Path
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from app.infrastructure.historical_dataset.loader import (
     HistoricalDatasetIntegrityError,
@@ -23,6 +24,7 @@ EVALUATION_START = date(2021, 1, 1)
 EVALUATION_END = date(2025, 12, 31)
 WARMUP_START = date(2020, 1, 1)
 REQUIRED_WARMUP = 252
+EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 
 
 def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | None:
@@ -41,6 +43,11 @@ def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | No
 
     unique_matches = set(matches)
     return next(iter(unique_matches)) if len(unique_matches) == 1 else None
+
+
+def _egx_trading_dates(timestamps) -> list[date]:
+    """Return unique market-session dates using the EGX local calendar."""
+    return sorted({timestamp.astimezone(EGX_TIMEZONE).date() for timestamp in timestamps})
 
 
 def build_report(root: Path) -> dict:
@@ -114,8 +121,11 @@ def build_report(root: Path) -> dict:
             "No financial snapshots match the mapped COMI stock identity."
         )
 
-    dates = [item.timestamp.date() for item in comi_market]
-    warmup = sum(WARMUP_START <= value < EVALUATION_START for value in dates)
+    # The 252-observation warm-up is counted across the full pre-evaluation
+    # history, not only calendar year 2020. Use distinct Cairo-local sessions so
+    # duplicate rows and timezone offsets cannot inflate coverage.
+    dates = _egx_trading_dates([item.timestamp for item in comi_market])
+    warmup = sum(value < EVALUATION_START for value in dates)
     evaluation = sum(EVALUATION_START <= value <= EVALUATION_END for value in dates)
 
     report["coverage"] = {
