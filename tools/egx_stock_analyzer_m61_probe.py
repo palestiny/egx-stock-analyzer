@@ -76,13 +76,18 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
     }
 
     data = payload.get("data") if isinstance(payload, dict) else None
-    meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
+    raw_meta = payload.get("meta") if isinstance(payload, dict) else None
+    meta = raw_meta if isinstance(raw_meta, dict) else {}
     findings: list[str] = []
 
     if not isinstance(payload, dict):
         findings.append("response:not_object")
     elif payload.get("success") is False:
         findings.append("response:provider_reported_failure")
+    if not isinstance(payload, dict) or payload.get("success") is not True:
+        findings.append("response:success_flag_not_true")
+    if not isinstance(raw_meta, dict):
+        findings.append("response:meta_not_object")
     if not isinstance(data, dict):
         findings.append("response:data_not_object")
         points = None
@@ -109,7 +114,11 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
         else:
             findings.extend(validate_history_points(points))
             findings.extend(validate_m61_evaluation_window(points))
-            if isinstance(meta, dict) and meta.get("count") is not None:
+            if not points:
+                findings.append("response:empty_history")
+            if "count" not in meta or meta.get("count") is None:
+                findings.append("response:meta_count_missing")
+            else:
                 try:
                     reported_count = int(meta["count"])
                 except (TypeError, ValueError):
@@ -119,6 +128,32 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                         findings.append(
                             f"response:meta_count_mismatch={reported_count};actual={len(points)}"
                         )
+            if points:
+                actual_first = str(points[0].get("date", "")).strip()
+                actual_last = str(points[-1].get("date", "")).strip()
+                for field, actual in (("first_date", actual_first), ("last_date", actual_last)):
+                    reported = meta.get(field)
+                    if not isinstance(reported, str) or not reported.strip():
+                        findings.append(f"response:meta_{field}_missing")
+                    else:
+                        try:
+                            reported_date = datetime.fromisoformat(
+                                reported.strip().replace("Z", "+00:00")
+                            ).date() if "T" in reported else datetime.strptime(
+                                reported.strip(), "%Y-%m-%d"
+                            ).date()
+                            actual_date = datetime.fromisoformat(
+                                actual.replace("Z", "+00:00")
+                            ).date() if "T" in actual else datetime.strptime(
+                                actual, "%Y-%m-%d"
+                            ).date()
+                        except ValueError:
+                            findings.append(f"response:meta_{field}_invalid")
+                        else:
+                            if reported_date != actual_date:
+                                findings.append(
+                                    f"response:meta_{field}_mismatch={reported_date.isoformat()};actual={actual_date.isoformat()}"
+                                )
         result["observed"].update(
             {
                 "exchange": data.get("exchange"),
