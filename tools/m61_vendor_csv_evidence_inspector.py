@@ -99,6 +99,9 @@ def inspect_csv(path: Path, symbol: str, provider: str, source_reference: str) -
     points: list[dict[str, str]] = []
     row_errors: list[str] = []
     for index, row in enumerate(reader, start=2):
+        if None in row:
+            row_errors.append(f"row[{index}]: extra values beyond CSV header")
+            continue
         try:
             point = {"date": _canonical_date(row[columns["date"]] or "")}
             for field in ("open", "high", "low", "close", "volume"):
