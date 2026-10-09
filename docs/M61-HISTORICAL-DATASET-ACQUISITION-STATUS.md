@@ -166,6 +166,8 @@ The current `main` branch includes the following dataset-readiness improvements,
 - PR #293 — the COMI acceptance gate now requires daily (1d) observations and rejects intraday-only or mixed-timeframe artifacts. CI passed.
 - PR #294 — the COMI vertical-slice gate now rejects extra market/financial stock identities rather than filtering COMI rows and silently ignoring other identities. CI passed.
 - PR #295 — financial CSV candidate intake now rejects malformed quoting, duplicate/incorrect headers, and rows with missing/extra fields before writing a candidate package. CI passed.
+- PR #296 — the M61 validator now rejects stale warm-up history and gaps over 31 calendar days inside the most recent 252 pre-evaluation observations. CI passed.
+- PR #297 — the backtest runner separates loaded warm-up history from `evaluation_start_date`, prevents pre-evaluation signals, and uses Cairo-local session dates for point-in-time financial lookups. CI passed.
 - PR #291 — merged a minimum annual evaluation-coverage gate: the COMI acceptance report now names missing years in 2021–2025 and does not require a market observation on the exact calendar date 2025-12-31. CI passed. This remains a minimum gate, not a substitute for an EGX session-calendar gap audit.
 - The candidate packaging workflow and commands are documented in `docs/M61-EXTERNAL-CSV-EVIDENCE-INTAKE.md`.
 
