@@ -28,21 +28,21 @@ EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 
 
 def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | None:
-    """Resolve one source symbol to its explicitly mapped internal stock ID."""
-    matches: list[UUID] = []
+    """Resolve exactly one well-formed source-symbol mapping."""
     prefix = symbol.strip().upper() + "->"
-    for mapping in mappings:
-        normalized = mapping.replace(" ", "").upper()
-        if not normalized.startswith(prefix):
-            continue
-        _, raw_stock_id = normalized.split("->", 1)
-        try:
-            matches.append(UUID(raw_stock_id))
-        except ValueError:
-            continue
+    matches = [
+        mapping.replace(" ", "").upper()
+        for mapping in mappings
+        if mapping.replace(" ", "").upper().startswith(prefix)
+    ]
+    if len(matches) != 1:
+        return None
 
-    unique_matches = set(matches)
-    return next(iter(unique_matches)) if len(unique_matches) == 1 else None
+    _, raw_stock_id = matches[0].split("->", 1)
+    try:
+        return UUID(raw_stock_id)
+    except ValueError:
+        return None
 
 
 def _coverage_counts(timestamps) -> tuple[list[date], int, int]:
