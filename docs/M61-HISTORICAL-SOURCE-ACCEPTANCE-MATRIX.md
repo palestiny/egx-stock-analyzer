@@ -35,7 +35,7 @@ The public EGI Swagger surface currently documents POST /api/Feed/GetSymbolHisto
 
 **Decision:** investigate the exact EGI request/response contract before writing an EGI production acquisition adapter. Do not treat endpoint listing alone as historical-data evidence.
 
-| Yahoo Finance chart endpoint | Live probe returned HTTP 200 for all 10 candidate tickers; 1,555–1,716 rows each | Date range appears to cover 2019–2025, but FWRY begins 2019-08-14 | Response metadata and hashes available in diagnostic report; raw response not preserved | 319–436 OHLC consistency findings per ticker plus missing-value findings | Not verified for immutable archival/reuse | Candidate only; current quality gate fails |
+| Yahoo Finance chart endpoint | Live probe returned HTTP 200 for all 10 candidate tickers; 1,555–1,716 rows each | Date range appears to cover 2019–2025, but FWRY begins 2019-08-14 | Metadata report available; raw response not preserved | 319–436 OHLC consistency findings per ticker, mainly open outside daily high/low | Not verified for immutable archival/reuse | Candidate only; current quality gate fails |
 
 ## Acceptance rule
 
