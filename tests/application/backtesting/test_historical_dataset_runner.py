@@ -1,6 +1,8 @@
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+
+import pytest
 from uuid import UUID
 
 from app.application.backtesting.historical_dataset_runner import HistoricalDatasetBacktestRunner
@@ -36,3 +38,42 @@ def test_dataset_runner_executes_production_strategy_boundary_deterministically(
     assert first.strategy_version == "0"
     assert first.configuration == CONFIG
     assert first.completed_trade_count == len(first.trades)
+
+
+def test_dataset_runner_uses_pre_evaluation_bars_only_for_warmup() -> None:
+    loader = HistoricalDatasetLoader(FIXTURE)
+    runner = HistoricalDatasetBacktestRunner(
+        STOCK,
+        HistoricalDatasetMarketDataProvider(loader),
+        HistoricalDatasetFundamentalSnapshotSource(loader),
+    )
+
+    result = runner.run(
+        date(2026, 2, 16),
+        date(2026, 2, 27),
+        CONFIG,
+        evaluation_start_date=date(2026, 2, 24),
+    )
+
+    assert result.configuration.warmup_bars == 6
+    assert all(
+        trade.signal_timestamp.astimezone().date() >= date(2026, 2, 24)
+        for trade in result.trades
+    )
+
+
+def test_dataset_runner_rejects_evaluation_start_outside_loaded_window() -> None:
+    loader = HistoricalDatasetLoader(FIXTURE)
+    runner = HistoricalDatasetBacktestRunner(
+        STOCK,
+        HistoricalDatasetMarketDataProvider(loader),
+        HistoricalDatasetFundamentalSnapshotSource(loader),
+    )
+
+    with pytest.raises(ValueError, match="evaluation_start_date"):
+        runner.run(
+            date(2026, 2, 16),
+            date(2026, 2, 27),
+            CONFIG,
+            evaluation_start_date=date(2026, 2, 10),
+        )
