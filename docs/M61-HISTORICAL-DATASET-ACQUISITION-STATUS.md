@@ -322,3 +322,12 @@ A one-time non-persisting check returned 1,556–1,700 daily bars per M61 symbol
 A deterministic synthetic dataset generator is available at `tools/m61_generate_test_dataset.py`, documented in [M61 Test Dataset Bootstrap](M61-TEST-DATASET-BOOTSTRAP.md). It generates schema-v3 artifacts for the ten-symbol cohort and lets engineering exercise dataset loading, analysis, and backtesting plumbing without waiting for source acquisition.
 
 This does **not** change the status above: the generated prices and financial values are synthetic placeholders, not accepted EGX market data, and must not be used for strategy evaluation or investment decisions.
+
+
+## Bounded Yahoo chart probe — 2026-10-09
+
+A metadata-only GitHub Actions probe completed for the fixed ten-symbol cohort. All ten .CA chart requests returned HTTP 200 with Africa/Cairo timezone metadata and observations extending through 2025-12-31. Nine symbols returned 1,716 daily rows each; FWRY returned 1,555 rows and began on 2019-08-14. The probe reported 340–457 validation findings per symbol, including repeated OHLC high/low relationship violations and null/invalid values. It did not preserve or publish source price rows.
+
+This confirms technical endpoint reachability only. The candidate is **rejected for Strategy v0 evaluation at this stage**: the observed validation findings are unresolved, source terms and long-term storage rights are unverified, and the probe contains no point-in-time financial snapshots. Do not silently repair these observations or infer that a successful HTTP response establishes dataset quality.
+
+The end-to-end engineering path was also exercised using the explicitly synthetic generator: schema-v3 manifest/checksums and both artifacts were loaded, and the production HistoricalDatasetBacktestRunner completed two deterministic COMI runs with 2019–2020 warm-up and 2021 evaluation isolation. CI passed. This validates software plumbing only; it is not real-EGX backtest evidence.
