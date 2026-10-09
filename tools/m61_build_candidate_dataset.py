@@ -116,8 +116,12 @@ def _read_financial_snapshots(path: Path, stock_id: UUID, provider: str) -> list
 
     rows: list[dict[str, str]] = []
     for index, source_row in enumerate(reader, start=2):
-        if None in source_row or any(source_row.get(column) is None for column in FINANCIAL_INPUT_COLUMNS):
-            raise ValueError(f"Financial row {index} has missing or extra CSV fields")
+        if None in source_row or any(
+            source_row.get(column) is None for column in FINANCIAL_INPUT_COLUMNS
+        ):
+            raise ValueError(
+                f"Financial row {index} has missing or extra CSV fields"
+            )
         try:
             period_end = date.fromisoformat((source_row["period_end"] or "").strip())
             available_at = date.fromisoformat((source_row["available_at"] or "").strip())
