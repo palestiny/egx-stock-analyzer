@@ -100,6 +100,10 @@ class EgxTelegramBot:
         text = message.get("text", "")
         if not isinstance(user_id, int) or not isinstance(chat_id, int):
             return
+        # Private chats only: never leak analysis/report payloads into groups.
+        if chat.get("type") != "private":
+            await self._reply(chat_id, "استخدم البوت في محادثة خاصة فقط لحماية بيانات التحليل.")
+            return
         if user_id not in self.allowed_user_ids:
             LOGGER.warning("Rejected Telegram user id=%s", user_id)
             await self._reply(chat_id, "غير مصرح لك باستخدام بوت EGX. تواصل مع المسؤول.")
