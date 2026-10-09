@@ -50,9 +50,10 @@ def _resolve_ref(ref: str, schemas: dict[str, Any]) -> tuple[str, dict[str, Any]
 
 
 def _schema_summary(schema: Any, schemas: dict[str, Any], depth: int = 0) -> dict[str, Any]:
+    """Summarize field names/types only; never dump large provider schemas into CI logs."""
     if not isinstance(schema, dict):
         return {"schema_type": "unknown"}
-    if depth >= 3:
+    if depth >= 2:
         return {"schema_type": schema.get("type", "object"), "truncated": True}
 
     ref = schema.get("$ref")
@@ -63,24 +64,45 @@ def _schema_summary(schema: Any, schemas: dict[str, Any], depth: int = 0) -> dic
             result["definition"] = _schema_summary(resolved, schemas, depth + 1)
         return result
 
-    result = {
+    result: dict[str, Any] = {
         key: schema[key]
         for key in ("type", "format", "description", "enum", "required")
         if key in schema and isinstance(schema[key], (str, int, float, list))
     }
     properties = schema.get("properties")
     if isinstance(properties, dict):
+        names = sorted(properties)
         result["properties"] = {
-            str(name): _schema_summary(value, schemas, depth + 1)
-            for name, value in properties.items()
+            str(name): _property_summary(properties[name], schemas)
+            for name in names[:60]
         }
+        if len(names) > 60:
+            result["properties_truncated"] = len(names) - 60
     items = schema.get("items")
     if isinstance(items, dict):
-        result["items"] = _schema_summary(items, schemas, depth + 1)
-    for union in ("oneOf", "anyOf", "allOf"):
-        options = schema.get(union)
-        if isinstance(options, list):
-            result[union] = [_schema_summary(item, schemas, depth + 1) for item in options]
+        result["items"] = _property_summary(items, schemas)
+    return result
+
+
+def _property_summary(schema: Any, schemas: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(schema, dict):
+        return {"type": "unknown"}
+    result: dict[str, Any] = {}
+    for key in ("type", "format", "description", "enum"):
+        value = schema.get(key)
+        if isinstance(value, (str, int, float, list)):
+            result[key] = value
+    ref = schema.get("$ref")
+    if isinstance(ref, str):
+        name, _ = _resolve_ref(ref, schemas)
+        result["$ref"] = name
+    items = schema.get("items")
+    if isinstance(items, dict):
+        result["items"] = {
+            key: items[key]
+            for key in ("type", "format", "$ref")
+            if key in items and isinstance(items[key], (str, int, float))
+        }
     return result
 
 
