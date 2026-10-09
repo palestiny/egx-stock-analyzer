@@ -61,7 +61,7 @@ def test_probe_classifies_unauthorized_access_without_returning_error_body(monke
 
     assert report["observed"]["http_status"] == 401
     assert report["observed"]["classification"] == "AUTH_REQUIRED_OR_ACCESS_DENIED"
-    assert report["observed"]["response_shape"] is None
+    assert report["observed"]["response_shape"]["keys"] == ["error"]
     assert "auth required" not in json.dumps(report)
     assert report["dataset_accepted"] is False
 
