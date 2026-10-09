@@ -103,3 +103,16 @@ The public Swagger document describes history/chart endpoints and declares a Bea
 Do not fabricate data or quietly weaken M61. Use a real CSV that the owner can already export from an existing brokerage/account/platform only if that platform's terms permit the intended local research/storage. Run the existing evidence inspector and candidate-package builder, starting with COMI; preserve the original file and its checksum, and keep the candidate unaccepted until source rights, corporate-action semantics, warm-up, and financial availability gates pass. If no such export is available, the market-data portion remains blocked by source access, not by code.
 
 The point-in-time financial dataset remains a separate open blocker; market bars alone cannot satisfy the full M61 Strategy v0 acceptance gate.
+
+
+## TradingView-backed diagnostic — not an eligible data source
+
+A one-time, non-persisting diagnostic using a TradingView-backed client returned 1,556–1,700 daily bars for the ten-symbol cohort over 2019–2025, with no basic OHLC relationship or numeric-missingness findings. This result is useful only as a technical comparison; no price rows were written to disk or committed.
+
+Do **not** use TradeGlob/TradingView extraction to build or refresh the M61 dataset. TradingView's current Terms of Use restrict market data to display-only use and prohibit automated data collection and non-display processing, including algorithmic decision-making. That conflicts with this project's automated research/backtesting purpose unless explicit written authorization and applicable data-provider rights are obtained.
+
+References:
+- https://www.tradingview.com/policies/
+- https://www.tradingview.com/support/solutions/43000674726-why-is-my-account-banned-due-to-suspicious-activity/
+
+**Decision:** technically consistent data does not equal legally usable data. This route is rejected for automated dataset acquisition; do not repeat automated collection or persist the diagnostic results.

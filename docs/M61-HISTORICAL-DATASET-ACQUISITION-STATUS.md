@@ -310,3 +310,8 @@ Reference: [M61 live probe run #37920812142](https://github.com/palestiny/egx-st
 - Paid sources remain excluded because no payment is possible.
 
 Operational next step: intake a real market CSV from a source already accessible to the owner only if its terms permit local historical research/storage. Use tools/m61_vendor_csv_evidence_inspector.py and tools/m61_build_candidate_dataset.py for immutable evidence packaging. If no eligible CSV is available, record the dataset blocker rather than generating synthetic rows. Point-in-time financial coverage remains independently unresolved.
+
+
+## TradingView-backed cross-check — 2026-10-09
+
+A one-time non-persisting check returned 1,556–1,700 daily bars per M61 symbol for 2019–2025 with no basic OHLC consistency failures or missing/non-numeric OHLC values. However, TradingView's current terms prohibit automated data collection and non-display/algorithmic use absent separate permission. No raw data was retained. Do not treat this as an accepted or repeatable source for M61.
