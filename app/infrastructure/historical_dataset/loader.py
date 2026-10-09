@@ -25,6 +25,57 @@ EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 class HistoricalDatasetIntegrityError(ValueError):
     pass
 
+def _read_canonical_csv_rows(
+    path: Path,
+    expected_columns: tuple[str, ...],
+    artifact_name: str,
+) -> list[dict[str, str]]:
+    """Read a canonical artifact without DictReader's duplicate-header/row truncation."""
+    try:
+        with path.open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.reader(handle, strict=True)
+            header = next(reader, None)
+            if header is None:
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} artifact is empty"
+                )
+            if len(header) != len(set(header)):
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} artifact has duplicate CSV headers"
+                )
+            if tuple(header) != expected_columns:
+                raise HistoricalDatasetIntegrityError(
+                    f"{artifact_name} artifact schema is invalid"
+                )
+
+            rows: list[dict[str, str]] = []
+            for line_number, values in enumerate(reader, start=2):
+                if len(values) != len(header):
+                    raise HistoricalDatasetIntegrityError(
+                        f"{artifact_name} CSV row {line_number} has "
+                        "missing or extra fields"
+                    )
+                rows.append(dict(zip(header, values, strict=True)))
+            return rows
+    except csv.Error as exc:
+        raise HistoricalDatasetIntegrityError(
+            f"{artifact_name} artifact contains malformed CSV"
+        ) from exc
+    except OSError as exc:
+        raise HistoricalDatasetIntegrityError(
+            f"Unable to read {artifact_name.lower()} artifact"
+        ) from exc
+
+
+MARKET_COLUMNS = (
+    "stock_id", "timeframe", "timestamp", "open", "high", "low",
+    "close", "volume", "source",
+)
+FINANCIAL_COLUMNS = (
+    "stock_id", "period_end", "available_at", "revenue", "net_income",
+    "current_assets", "current_liabilities", "source", "revision",
+)
+
 
 class HistoricalDatasetLoader:
     def __init__(self, root: Path) -> None:
@@ -75,19 +126,13 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError("Market artifact provenance is required")
         expected_source = provenance.provider
         path = self._root / manifest.market_observations.path
-        rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
+        rows = _read_canonical_csv_rows(path, MARKET_COLUMNS, "Market")
         if len(rows) != manifest.market_observations.row_count:
             raise HistoricalDatasetIntegrityError("Market artifact row count mismatch")
-        required = {
-            "stock_id", "timeframe", "timestamp", "open", "high", "low",
-            "close", "volume", "source",
-        }
         observations: list[HistoricalMarketObservation] = []
         seen: set[tuple[UUID, str, datetime]] = set()
         seen_daily_sessions: set[tuple[UUID, str, date]] = set()
         for row in rows:
-            if set(row) != required:
-                raise HistoricalDatasetIntegrityError("Market artifact schema is invalid")
             try:
                 item = HistoricalMarketObservation(
                     stock_id=UUID(row["stock_id"]),
@@ -162,17 +207,11 @@ class HistoricalDatasetLoader:
             raise HistoricalDatasetIntegrityError("Financial artifact provenance is required")
         expected_source = provenance.provider
         path = self._root / manifest.financial_snapshots.path
-        rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
+        rows = _read_canonical_csv_rows(path, FINANCIAL_COLUMNS, "Financial")
         if len(rows) != manifest.financial_snapshots.row_count:
             raise HistoricalDatasetIntegrityError("Financial artifact row count mismatch")
-        required = {
-            "stock_id", "period_end", "available_at", "revenue", "net_income",
-            "current_assets", "current_liabilities", "source", "revision",
-        }
         snapshots: list[HistoricalFinancialSnapshotRecord] = []
         for row in rows:
-            if set(row) != required:
-                raise HistoricalDatasetIntegrityError("Financial artifact schema is invalid")
             try:
                 item = HistoricalFinancialSnapshotRecord(
                     stock_id=UUID(row["stock_id"]),
