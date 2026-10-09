@@ -112,3 +112,63 @@ def test_summary_rejects_missing_paths():
         assert "missing paths" in str(exc)
     else:
         raise AssertionError("missing OpenAPI paths should be rejected")
+
+
+def test_summary_includes_response_and_nested_dto_schemas_without_examples():
+    document = {
+        "openapi": "3.0.1",
+        "paths": {
+            "/api/Feed/GetSymbolHistory": {
+                "post": {
+                    "responses": {
+                        "200": {
+                            "description": "History",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/HistoryResponse"},
+                                    "example": {"data": [{"close": 123.4}]},
+                                }
+                            },
+                        }
+                    }
+                }
+            }
+        },
+        "components": {
+            "schemas": {
+                "HistoryResponse": {
+                    "type": "object",
+                    "properties": {
+                        "data": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/HistoryBar"},
+                        },
+                        "count": {"type": "integer"},
+                    },
+                },
+                "HistoryBar": {
+                    "type": "object",
+                    "properties": {
+                        "date": {"type": "string", "format": "date-time"},
+                        "open": {"type": "number"},
+                        "high": {"type": "number"},
+                        "low": {"type": "number"},
+                        "close": {"type": "number"},
+                        "volume": {"type": "integer"},
+                    },
+                },
+            }
+        },
+    }
+
+    report = summarize_openapi(document)
+    operation = report["relevant_operations"][0]
+
+    assert operation["response_schemas"]["200"]["application/json"]["$ref"] == (
+        "#/components/schemas/HistoryResponse"
+    )
+    assert report["relevant_schemas"]["HistoryResponse"]["properties"]["data"]["items"]["$ref"] == (
+        "#/components/schemas/HistoryBar"
+    )
+    assert report["relevant_schemas"]["HistoryBar"]["properties"]["close"]["type"] == "number"
+    assert "123.4" not in str(report)
