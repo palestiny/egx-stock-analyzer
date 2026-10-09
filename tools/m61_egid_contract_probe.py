@@ -130,6 +130,24 @@ def summarize_openapi(document: dict[str, Any]) -> dict[str, object]:
 
             responses = operation.get("responses")
             response_codes = sorted(str(code) for code in responses) if isinstance(responses, dict) else []
+            response_schemas: dict[str, object] = {}
+            if isinstance(responses, dict):
+                for response_code, response in responses.items():
+                    if not isinstance(response, dict):
+                        continue
+                    media_schemas: dict[str, object] = {}
+                    response_content = response.get("content")
+                    if isinstance(response_content, dict):
+                        for media_type, media in response_content.items():
+                            if isinstance(media, dict):
+                                summary_schema = _schema_summary(media.get("schema"))
+                                if summary_schema is not None:
+                                    media_schemas[str(media_type)] = summary_schema
+                    legacy_schema = _schema_summary(response.get("schema"))
+                    if legacy_schema is not None:
+                        media_schemas["default"] = legacy_schema
+                    if media_schemas:
+                        response_schemas[str(response_code)] = media_schemas
             selected.append({
                 "path": path,
                 "method": method.upper(),
@@ -139,11 +157,31 @@ def summarize_openapi(document: dict[str, Any]) -> dict[str, object]:
                 "parameters": parameters,
                 "request_body": request_body,
                 "response_codes": response_codes,
+                "response_schemas": response_schemas,
             })
 
+    referenced_schema_names: set[str] = set()
+
+    def collect_schema_refs(value: object) -> None:
+        if isinstance(value, dict):
+            ref = value.get("$ref")
+            if isinstance(ref, str):
+                prefix = "#/components/schemas/" if "#/components/schemas/" in ref else "#/definitions/"
+                if prefix in ref:
+                    referenced_schema_names.add(ref.rsplit("/", 1)[-1])
+            for child in value.values():
+                collect_schema_refs(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect_schema_refs(child)
+
+    collect_schema_refs(selected)
     schema_summaries: dict[str, object] = {}
     for name, schema in sorted(schemas.items()):
-        if re.search(r"history|symbolchart|token|authentication", str(name), re.IGNORECASE):
+        if (
+            re.search(r"history|symbolchart|token|authentication", str(name), re.IGNORECASE)
+            or str(name) in referenced_schema_names
+        ):
             schema_summaries[str(name)] = _schema_summary(schema)
 
     servers = document.get("servers")
