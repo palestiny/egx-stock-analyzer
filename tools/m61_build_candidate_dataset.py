@@ -330,6 +330,13 @@ def build_candidate_package(
         financial_artifact_hash = _sha256((temporary_dir / "financial_snapshots.csv").read_bytes())
         mapping = f"{normalized_symbol}->{resolved_stock_id}"
 
+        canonical_mapping = f"{normalized_symbol}->{resolved_stock_id}"
+        market_symbol_mappings = list(dict.fromkeys((
+            canonical_mapping,
+            f"{source_symbol_value}->{resolved_stock_id}",
+        )))
+        financial_symbol_mappings = [canonical_mapping]
+
         def provenance(
             provider: str,
             source_reference: str,
@@ -340,12 +347,13 @@ def build_candidate_package(
             convention: str,
             findings: list[str],
             source_hash: str,
+            symbol_mappings: list[str],
         ) -> dict:
             return {
                 "provider": provider,
                 "source_url": source_reference,
                 "acquired_at": acquired_at.isoformat(),
-                "symbol_mappings": [mapping],
+                "symbol_mappings": symbol_mappings,
                 "corporate_action_convention": convention,
                 "missing_data_findings": findings,
                 "exclusions": list(exclusions),
@@ -385,6 +393,7 @@ def build_candidate_package(
                     corporate_action_convention,
                     market_missing,
                     market_hash,
+                    market_symbol_mappings,
                 ),
             },
             "financial_snapshots_artifact": {
@@ -406,6 +415,7 @@ def build_candidate_package(
                     "not-applicable",
                     [],
                     financial_hash,
+                    financial_symbol_mappings,
                 ),
             },
         }
