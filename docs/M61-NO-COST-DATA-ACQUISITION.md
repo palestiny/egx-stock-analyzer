@@ -76,8 +76,33 @@ The no-cost path is allowed to produce candidate artifacts and validation findin
 If free sources cannot satisfy a gate, record the exact gap and exclude that claim or strategy input. Do not fabricate missing observations or silently upgrade a candidate to accepted.
 
 
-## Live Yahoo probe result — 2026-10-09
+## Live no-cost source probe results — 2026-10-09
 
-A metadata-only probe completed at [GitHub Actions run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142) without preserving price rows. The endpoint returned HTTP 200 for all ten candidate tickers and broad date coverage through 2025-12-31 (FWRY began on 2019-08-14). However, this is **not a usable M61 dataset**: all ten responses reported `instrumentType=MUTUALFUND` and the OHLCV validator found hundreds of inconsistent/null rows per ticker. Terms and long-term storage rights also remain unverified.
+### EGID public API
 
-**Decision:** reject this Yahoo response as an M61 acceptance source for now. The run proves only that the endpoint responds and returns a long series; row count/coverage must not override identity and data-quality failures. Continue with the public EGID/EGX feed contract investigation rather than accepting this candidate.
+The public OpenAPI document was reachable and declared POST /api/DelayedFeed/getSymbolHistory. Its HistoryReqDto includes SymbolCode, FromDate, ToDate, Skip, and Take. The API declares a Bearer authorization header; POST /api/Settings/GetToken takes Username and Password.
+
+A single bounded COMI history request for 2025-01-01 through 2025-01-05, requesting at most 10 rows and sending **no credentials**, returned HTTP **401**. The probe did not persist or print price values.
+
+**Conclusion:** the public documentation is reachable, but unauthenticated historical access is not. A free account/credential path and its terms are not established; do not attempt to bypass authentication.
+
+### Yahoo chart endpoint
+
+A live, non-persisting probe returned HTTP 200 for all ten candidate tickers. It wrote only a temporary metadata report on the CI runner; raw responses and candidate CSVs were not saved.
+
+| Symbol | Rows | First observed date | Last observed date | OHLC consistency findings |
+|---|---:|---|---|---:|
+| COMI | 1,716 | 2019-01-01 | 2025-12-31 | 389 |
+| EGAL | 1,716 | 2019-01-01 | 2025-12-31 | 436 |
+| SWDY | 1,716 | 2019-01-01 | 2025-12-31 | 371 |
+| ETEL | 1,716 | 2019-01-01 | 2025-12-31 | 319 |
+| EAST | 1,716 | 2019-01-01 | 2025-12-31 | 334 |
+| TMGH | 1,716 | 2019-01-01 | 2025-12-31 | 340 |
+| PHDC | 1,716 | 2019-01-01 | 2025-12-31 | 374 |
+| FWRY | 1,555 | 2019-08-14 | 2025-12-31 | 319 |
+| EFID | 1,716 | 2019-01-01 | 2025-12-31 | 375 |
+| HRHO | 1,716 | 2019-01-01 | 2025-12-31 | 376 |
+
+The OHLC finding count combines low_above_ohlc and high_below_ohlc validation findings; each symbol also had missing-value findings. A field-pair diagnostic then showed that most findings are caused by the reported open falling outside the reported daily high/low range: for example, COMI had 249 low-above-open and 140 high-below-open findings, while low/high versus close remained consistent in COMI. Several other tickers also had some low/high versus close inconsistencies. This is not explained merely by adjusted-close differences, and it needs an independent reference to determine whether the source field semantics or the source data are wrong. The probe deliberately did not auto-drop, repair, or accept any row.
+
+**Conclusion:** Yahoo is reachable and offers apparent date-range coverage, but this live candidate fails the current data-quality gate. Source terms/long-term storage rights also remain unverified, and point-in-time financial snapshots are still absent. Strategy v0 eligibility remains false.
