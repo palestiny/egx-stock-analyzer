@@ -10,6 +10,7 @@ from tools.m61_comi_evidence_intake import (
     _financial_availability_years,
     _evaluation_year_coverage,
     _license_attestation_is_explicit,
+    _only_stock_identity,
     _resolve_symbol_mapping,
     build_report,
 )
@@ -185,3 +186,14 @@ def test_comi_intake_rejects_intraday_only_or_mixed_market_observations() -> Non
     )
     assert len(daily) == 1
     assert not only_daily
+
+
+def test_comi_vertical_slice_rejects_extra_stock_identities() -> None:
+    first = SimpleNamespace(stock_id=STOCK_ID)
+    other = SimpleNamespace(
+        stock_id=UUID("00000000-0000-0000-0000-000000000002")
+    )
+
+    assert _only_stock_identity([first, SimpleNamespace(stock_id=STOCK_ID)], STOCK_ID)
+    assert not _only_stock_identity([first, other], STOCK_ID)
+    assert not _only_stock_identity([], STOCK_ID)
