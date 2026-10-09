@@ -55,7 +55,9 @@ jobs:
                   "row_count": item["observed"]["row_count"],
                   "first_date": item["observed"]["first_date"],
                   "last_date": item["observed"]["last_date"],
-                  "findings": item["observed"]["validation_findings"],
+                  "finding_count": len(item["observed"]["validation_findings"]),
+                  "finding_examples": item["observed"]["validation_findings"][:5],
+                  "ohlc_integrity_summary": item["observed"]["ohlc_integrity_summary"],
                   "source_terms_verified": item["acceptance"]["source_terms_verified"],
               } for item in report["symbols"]],
           }, indent=2, sort_keys=True))
