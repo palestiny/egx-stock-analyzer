@@ -300,3 +300,13 @@ The first live no-cost probe returned HTTP 200 for all ten Yahoo `.CA` candidate
 Reference: [M61 live probe run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
 
 **Decision:** do not use these Yahoo results for Strategy v0 or mark the dataset accepted. The next no-cost target is to verify the public EGID/EGX history contract and then test one symbol. Point-in-time financial evidence remains independently open.
+
+## No-cost source decision — live verification, 2026-10-09
+
+- Yahoo .CA endpoints responded, but all ten reported MUTUALFUND metadata and each produced hundreds of OHLCV integrity/null findings. Rejected for M61; see [run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
+- EGID's public Swagger declares Bearer security for history endpoints. A single unauthenticated COMI history request returned HTTP 401. No authentication bypass was attempted; no free account or archival entitlement is verified.
+- StockAnalysis explicitly prohibits automated scraping/bulk collection and says its display licenses do not grant programmatic redistribution or competing-database rights: https://stockanalysis.com/terms-of-use/
+- EGXAPI advertises a free service, but its public legal page identifies the terms as a design draft with placeholder text: https://egxapi.com/legal/. It is not accepted until binding terms and data rights are verifiable.
+- Paid sources remain excluded because no payment is possible.
+
+Operational next step: intake a real market CSV from a source already accessible to the owner only if its terms permit local historical research/storage. Use tools/m61_vendor_csv_evidence_inspector.py and tools/m61_build_candidate_dataset.py for immutable evidence packaging. If no eligible CSV is available, record the dataset blocker rather than generating synthetic rows. Point-in-time financial coverage remains independently unresolved.
