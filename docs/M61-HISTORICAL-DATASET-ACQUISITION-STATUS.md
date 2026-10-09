@@ -291,3 +291,12 @@ The paid-source candidates above are retained as historical research notes only;
 A contract-only diagnostic, `tools/m61_egid_contract_probe.py`, now inspects the public Swagger/OpenAPI document and reports history/chart/token operations, declared request parameters, DTO schemas, and security schemes. It does not call data endpoints, authenticate, or download price data. It supports OpenAPI 3 and Swagger 2 metadata.
 
 This is a preparation step, not a verified EGID acquisition. The tool must be run in an environment with network access; the actual history request, response semantics, free-access boundary, historical depth, and retention rights remain unverified. No EGID market data has been accepted.
+
+
+## No-cost probe outcome — 2026-10-09
+
+The first live no-cost probe returned HTTP 200 for all ten Yahoo `.CA` candidates and showed historical date ranges spanning 2019–2025. It did **not** produce acceptable evidence: every symbol response reported `instrumentType=MUTUALFUND` rather than `EQUITY`, and OHLCV validation found hundreds of row-level integrity/null findings per ticker. FWRY's returned history began on 2019-08-14; the others reported 2019-01-01. The run was metadata-only and did not preserve raw price data.
+
+Reference: [M61 live probe run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142).
+
+**Decision:** do not use these Yahoo results for Strategy v0 or mark the dataset accepted. The next no-cost target is to verify the public EGID/EGX history contract and then test one symbol. Point-in-time financial evidence remains independently open.
