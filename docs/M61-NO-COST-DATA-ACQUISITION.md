@@ -47,6 +47,18 @@ The public EGID Swagger UI lists date-range and symbol-history operations. That 
 
 Reference: https://ticker.egidegypt.com/index.html
 
+### EGID public API contract discovery
+
+A bounded contract-inspection tool is available:
+
+```powershell
+python -m tools.m61_egid_contract_probe --output .\artifacts\egid-openapi-contract.json
+```
+
+It downloads only the public OpenAPI/Swagger document (maximum 5 MB) and extracts history/chart/token operation metadata, declared parameters, request schemas, security schemes, and relevant DTO fields. It does **not** authenticate, request market prices, save source data, or mark EGID as accepted. The report is intended to determine the exact request contract before attempting a single-symbol historical probe.
+
+A successful contract report proves only that the public API description was reachable. It does not prove the history endpoint is accessible without payment, that the endpoint has 2019–2025 depth, that all M61 symbols are supported, or that long-term research storage is permitted. Those checks remain explicit gates.
+
 ## Financial evidence without a paid vendor
 
 Use dated issuer/EGX disclosure documents and issuer investor-relations archives as candidate evidence. For each value, retain the document URL/reference, period end, public availability date, statement type, currency/unit, revision status, and source checksum when retention is permitted. A period-end date is not a substitute for `available_at`. This is a bounded manual-evidence path, not a claim that all ten stocks already have complete point-in-time coverage.

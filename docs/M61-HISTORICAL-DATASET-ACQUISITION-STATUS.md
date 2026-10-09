@@ -284,3 +284,10 @@ The paid-source candidates above are retained as historical research notes only;
 4. If the free market probe returns incomplete coverage or is blocked, record that result and continue testing a different free candidate. Do not silently substitute fixtures or synthesize bars.
 
 **Current status remains NOT ACCEPTED.** This update changes the acquisition strategy to respect the no-payment constraint; it does not claim that the free probe has already run successfully, that Yahoo terms permit long-term storage, or that the ten-symbol market-plus-financial dataset is complete.
+
+
+## EGID contract probe implementation — 2026-10-09
+
+A contract-only diagnostic, `tools/m61_egid_contract_probe.py`, now inspects the public Swagger/OpenAPI document and reports history/chart/token operations, declared request parameters, DTO schemas, and security schemes. It does not call data endpoints, authenticate, or download price data. It supports OpenAPI 3 and Swagger 2 metadata.
+
+This is a preparation step, not a verified EGID acquisition. The tool must be run in an environment with network access; the actual history request, response semantics, free-access boundary, historical depth, and retention rights remain unverified. No EGID market data has been accepted.
