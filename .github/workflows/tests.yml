@@ -90,10 +90,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EGX_OPERATOR_TOKEN: ci-only-placeholder-token
+      EGX_DOMAIN: example.com
+      ACME_EMAIL: ops@example.com
     steps:
       - uses: actions/checkout@v4
       - name: Validate Compose configuration
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          docker compose --file compose.yaml --file compose.production.yaml config --quiet
+      - name: Validate production Caddyfile
+        run: docker run --rm -e EGX_DOMAIN=example.com -e ACME_EMAIL=ops@example.com -v "${{ github.workspace }}/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Build API image
         run: docker build --file Dockerfile --tag egx-stock-analyzer-api:ci .
       - name: Build frontend image
