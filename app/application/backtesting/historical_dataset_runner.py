@@ -1,6 +1,8 @@
+from dataclasses import replace
 from datetime import date
 
 from app.application.analysis.input_assembler import AnalysisInputAssemblyPolicy, AnalysisInputAssembler
+from app.application.clock import EGX_TIMEZONE
 from app.application.backtesting.historical_opportunity_strategy import (
     HistoricalOpportunityClassificationBacktestStrategy,
 )
@@ -33,7 +35,17 @@ class HistoricalDatasetBacktestRunner:
         from_date: date,
         to_date: date,
         configuration: BacktestConfiguration,
+        *,
+        evaluation_start_date: date | None = None,
     ) -> BacktestResult:
+        if from_date > to_date:
+            raise ValueError("from_date cannot be after to_date")
+        evaluation_start = evaluation_start_date or from_date
+        if not from_date <= evaluation_start <= to_date:
+            raise ValueError(
+                "evaluation_start_date must be between from_date and to_date"
+            )
+
         observations = self._market_data_provider.get_daily_observations(
             self._stock,
             from_date,
@@ -53,4 +65,27 @@ class HistoricalDatasetBacktestRunner:
             policy=self._policy,
         ).to_backtest_strategy()
 
-        return BacktestSimulator.run(price_bars, strategy, configuration)
+        evaluation_start_index = next(
+            (
+                index
+                for index, bar in enumerate(price_bars)
+                if bar.timestamp.astimezone(EGX_TIMEZONE).date() >= evaluation_start
+            ),
+            None,
+        )
+        if evaluation_start_index is None:
+            raise ValueError(
+                "No valid market bars on or after evaluation_start_date"
+            )
+
+        # Historical bars before the evaluation start seed indicators and
+        # point-in-time analysis, but they must not generate evaluation trades.
+        effective_configuration = replace(
+            configuration,
+            warmup_bars=max(configuration.warmup_bars, evaluation_start_index),
+        )
+        return BacktestSimulator.run(
+            price_bars,
+            strategy,
+            effective_configuration,
+        )
