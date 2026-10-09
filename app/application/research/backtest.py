@@ -247,13 +247,13 @@ def run_backtest(
 
         # Only the prefix ending at this closed bar is exposed to the strategy.
         if position is None and pending is None:
-            intent = strategy(bars[: index + 1])
-            if intent is not None:
+            decision_intent = strategy(bars[: index + 1])
+            if decision_intent is not None:
                 if index + 1 >= len(bars):
-                    unfilled.append(UnfilledDecision(intent.signal_id, bar.source_timestamp, "signal on final bar has no next bar"))
+                    unfilled.append(UnfilledDecision(decision_intent.signal_id, bar.source_timestamp, "signal on final bar has no next bar"))
                 else:
                     # Keep the decision index; the next loop iteration fills at the next bar open.
-                    pending = (index, intent)
+                    pending = (index, decision_intent)
 
         if position is None:
             equity = realized_equity
