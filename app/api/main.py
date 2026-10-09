@@ -19,8 +19,6 @@ from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
-from app.api.management_audit_response import ManagementAuditResponse
-from app.api.user_audit_history_response import UserAuditHistoryResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.scheduled_workflow_execution_history_response import ScheduledWorkflowExecutionHistoryResponse
 from app.api.scheduled_workflow_history_response import ScheduledWorkflowHistoryResponse
@@ -62,14 +60,11 @@ from app.application.security.authentication import (
 )
 from app.application.security.authorization import AuthorizationError, OperatorAuthorizer
 from app.application.security.identity import AuthenticatedIdentity, Permission
-from app.application.identity.get_management_audit import GetManagementAudit, InvalidManagementAuditPageSizeError
+from app.application.identity.get_management_audit import GetManagementAudit
 from app.application.identity.get_user_audit_history import (
     GetUserAuditHistory,
-    InvalidUserAuditActionError,
-    InvalidUserAuditPageSizeError,
 )
-from app.application.identity.user_management import UserManagementError, UserManagementService
-from app.domain.identity.user import UserStatus
+from app.application.identity.user_management import UserManagementService
 from app.domain.execution import ExecutionState
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_history import (
@@ -254,6 +249,16 @@ def create_app(
         auth_rate_limiter.record_success(client_key)
         return identity
 
+    app.include_router(
+        create_user_management_router(
+            user_management=user_management,
+            get_management_audit=get_management_audit,
+            get_user_audit_history=get_user_audit_history,
+            require_authenticated=require_authenticated,
+            require_operator=require_operator,
+        )
+    )
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
@@ -267,142 +272,6 @@ def create_app(
             "user_id": str(identity.user_id) if identity.user_id is not None else None,
             "status": identity.user_status.value if identity.user_status is not None else None,
         }
-
-    @app.get("/api/v1/management/audit")
-    def get_management_audit_report(
-        actor_user_id: UUID | None = None,
-        target_user_id: UUID | None = None,
-        action: str | None = None,
-        outcome: str | None = None,
-        from_time: datetime | None = None,
-        to_time: datetime | None = None,
-        page_size: int = 50,
-        offset: int = 0,
-        identity: AuthenticatedIdentity = Depends(require_operator),
-    ) -> dict[str, object]:
-        if get_management_audit is None:
-            raise HTTPException(status_code=503, detail="Management audit reporting is not configured")
-        try:
-            page = get_management_audit.execute(
-                identity,
-                actor_user_id=actor_user_id,
-                target_user_id=target_user_id,
-                action=action,
-                outcome=outcome,
-                from_time=from_time,
-                to_time=to_time,
-                page_size=page_size,
-                offset=offset,
-            )
-        except InvalidManagementAuditPageSizeError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return asdict(ManagementAuditResponse.from_page(page))
-
-    @app.get("/api/v1/users/me/audit")
-    def get_user_audit_history_report(
-        action: str | None = None,
-        outcome: str | None = None,
-        from_time: datetime | None = None,
-        to_time: datetime | None = None,
-        page_size: int = 50,
-        offset: int = 0,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if get_user_audit_history is None:
-            raise HTTPException(status_code=503, detail="User audit history is not configured")
-        try:
-            page = get_user_audit_history.execute(
-                identity,
-                action=action,
-                outcome=outcome,
-                from_time=from_time,
-                to_time=to_time,
-                page_size=page_size,
-                offset=offset,
-            )
-        except InvalidUserAuditPageSizeError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except InvalidUserAuditActionError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-        return asdict(UserAuditHistoryResponse.from_page(page))
-
-
-    @app.get("/api/v1/users")
-    def list_users(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        if user_management is None:
-            raise HTTPException(status_code=503, detail="User management is not configured")
-        users = user_management.list_users(_identity)
-        return {
-            "items": [
-                {"user_id": str(user.id), "status": user.status.value}
-                for user in users
-            ]
-        }
-
-    @app.post("/api/v1/users")
-    def create_user(_identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        if user_management is None:
-            raise HTTPException(status_code=503, detail="User management is not configured")
-        try:
-            user, credential = user_management.create_user(_identity)
-        except AuthorizationError as error:
-            raise HTTPException(status_code=403, detail="Forbidden") from error
-        return {
-            "user_id": str(user.id),
-            "status": user.status.value,
-            "credential": credential.secret,
-        }
-
-    @app.patch("/api/v1/users/{user_id}/status")
-    def change_user_status(
-        user_id: UUID,
-        status: str,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
-    ) -> dict[str, object]:
-        if user_management is None:
-            raise HTTPException(status_code=503, detail="User management is not configured")
-        try:
-            requested = UserStatus(status)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail="Invalid user status") from error
-        try:
-            user = user_management.set_status(_identity, user_id, requested)
-        except UserManagementError as error:
-            if str(error) == "User not found":
-                raise HTTPException(status_code=404, detail=str(error)) from error
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        return {"user_id": str(user.id), "status": user.status.value}
-
-    @app.post("/api/v1/users/{user_id}/credentials/rotate")
-    def rotate_user_credential(
-        user_id: UUID,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
-    ) -> dict[str, object]:
-        if user_management is None:
-            raise HTTPException(status_code=503, detail="User management is not configured")
-        try:
-            credential = user_management.rotate_user_credential(_identity, user_id)
-        except UserManagementError as error:
-            if str(error) == "User not found":
-                raise HTTPException(status_code=404, detail=str(error)) from error
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        return {"user_id": str(credential.user_id), "credential": credential.secret}
-
-    @app.post("/api/v1/users/me/credentials/rotate")
-    def rotate_own_credential(
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if user_management is None:
-            raise HTTPException(status_code=503, detail="User management is not configured")
-        try:
-            credential = user_management.rotate_own_credential(identity)
-        except UserManagementError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
-        return {"user_id": str(credential.user_id), "credential": credential.secret}
 
     @app.get("/api/v1/analysis/{symbol}")
     def get_analysis(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
