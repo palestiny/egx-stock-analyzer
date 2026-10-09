@@ -6,6 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from app.infrastructure.historical_dataset.models import (
     DatasetArtifact,
@@ -16,6 +17,9 @@ from app.infrastructure.historical_dataset.models import (
     HistoricalMarketObservation,
     RawSourceEvidence,
 )
+
+
+EGX_TIMEZONE = ZoneInfo("Africa/Cairo")
 
 
 class HistoricalDatasetIntegrityError(ValueError):
@@ -76,6 +80,7 @@ class HistoricalDatasetLoader:
         }
         observations: list[HistoricalMarketObservation] = []
         seen: set[tuple[UUID, str, datetime]] = set()
+        seen_daily_sessions: set[tuple[UUID, str, date]] = set()
         for row in rows:
             if set(row) != required:
                 raise HistoricalDatasetIntegrityError("Market artifact schema is invalid")
@@ -118,6 +123,17 @@ class HistoricalDatasetLoader:
             if key in seen:
                 raise HistoricalDatasetIntegrityError("Duplicate market observation")
             seen.add(key)
+            if item.timeframe == "1d":
+                session_key = (
+                    item.stock_id,
+                    item.timeframe,
+                    item.timestamp.astimezone(EGX_TIMEZONE).date(),
+                )
+                if session_key in seen_daily_sessions:
+                    raise HistoricalDatasetIntegrityError(
+                        "Duplicate daily market session in Cairo timezone"
+                    )
+                seen_daily_sessions.add(session_key)
             observations.append(item)
 
         if observations != sorted(
