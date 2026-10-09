@@ -315,3 +315,10 @@ Operational next step: intake a real market CSV from a source already accessible
 ## TradingView-backed cross-check — 2026-10-09
 
 A one-time non-persisting check returned 1,556–1,700 daily bars per M61 symbol for 2019–2025 with no basic OHLC consistency failures or missing/non-numeric OHLC values. However, TradingView's current terms prohibit automated data collection and non-display/algorithmic use absent separate permission. No raw data was retained. Do not treat this as an accepted or repeatable source for M61.
+
+
+## Test-only unblocker — 2026-10-09
+
+A deterministic synthetic dataset generator is available at `tools/m61_generate_test_dataset.py`, documented in [M61 Test Dataset Bootstrap](M61-TEST-DATASET-BOOTSTRAP.md). It generates schema-v3 artifacts for the ten-symbol cohort and lets engineering exercise dataset loading, analysis, and backtesting plumbing without waiting for source acquisition.
+
+This does **not** change the status above: the generated prices and financial values are synthetic placeholders, not accepted EGX market data, and must not be used for strategy evaluation or investment decisions.
