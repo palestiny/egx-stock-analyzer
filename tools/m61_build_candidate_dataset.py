@@ -331,10 +331,11 @@ def build_candidate_package(
         mapping = f"{normalized_symbol}->{resolved_stock_id}"
 
         canonical_mapping = f"{normalized_symbol}->{resolved_stock_id}"
-        market_symbol_mappings = list(dict.fromkeys((
-            canonical_mapping,
-            f"{source_symbol_value}->{resolved_stock_id}",
-        )))
+        market_symbol_mappings = [canonical_mapping]
+        if source_symbol_value.casefold() != normalized_symbol.casefold():
+            market_symbol_mappings.append(
+                f"{source_symbol_value}->{resolved_stock_id}"
+            )
         financial_symbol_mappings = [canonical_mapping]
 
         def provenance(
