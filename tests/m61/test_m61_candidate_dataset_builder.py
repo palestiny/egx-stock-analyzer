@@ -166,3 +166,50 @@ def test_builder_rejects_duplicate_financial_headers(tmp_path: Path) -> None:
         _build(market, financial, output)
 
     assert not output.exists()
+
+
+def test_builder_rejects_market_rows_for_a_different_source_symbol(tmp_path: Path) -> None:
+    market, financial = _inputs(
+        tmp_path,
+        "Ticker,Date,Open,High,Low,Close,Volume\\n"
+        "EGAL,2021-01-04,10,12,9,11,1200\\n",
+    )
+    output = tmp_path / "wrong-symbol-package"
+
+    with pytest.raises(ValueError, match="source symbol mismatch"):
+        _build(market, financial, output)
+
+    assert not output.exists()
+
+
+def test_builder_accepts_explicit_provider_symbol_alias(tmp_path: Path) -> None:
+    market, financial = _inputs(
+        tmp_path,
+        "Ticker,Date,Open,High,Low,Close,Volume\\n"
+        "COMI.CA,2021-01-04,10,12,9,11,1200\\n",
+    )
+    output = tmp_path / "provider-symbol-package"
+    kwargs = {
+        "market_csv": market,
+        "financial_csv": financial,
+        "output_dir": output,
+        "symbol": "COMI",
+        "stock_id": STOCK_ID,
+        "source_symbol": "COMI.CA",
+        "dataset_version": "candidate-2026-10-09-002",
+        "market_provider": "Test Vendor",
+        "market_source_reference": "https://example.invalid/market-delivery",
+        "market_acquired_at": "2026-10-09T00:00:00+03:00",
+        "market_licensing_notes": "status=unverified; evidence_reference=unknown; permitted_uses=; redistribution=prohibited",
+        "corporate_action_convention": "raw-as-published",
+        "financial_provider": "Test Financial Source",
+        "financial_source_reference": "https://example.invalid/financial-delivery",
+        "financial_acquired_at": "2026-10-09T00:00:00+03:00",
+        "financial_licensing_notes": "status=unverified; evidence_reference=unknown; permitted_uses=; redistribution=prohibited",
+    }
+
+    report = build_candidate_package(**kwargs)
+
+    assert report["status"] == "CANDIDATE_ONLY"
+    assert report["symbol"] == "COMI"
+    assert (output / "market_observations.csv").is_file()
