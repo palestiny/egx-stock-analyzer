@@ -62,3 +62,67 @@ jobs:
               } for item in report["symbols"]],
           }, indent=2, sort_keys=True))
           PY
+
+      - name: Install free TradeGlob diagnostic client
+        run: python -m pip install --upgrade pip && pip install git+https://github.com/ibrasonic/TradeGlob.git
+      - name: Cross-check COMI OHLC consistency without saving data
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import json
+          import pandas as pd
+          from datetime import date
+          from tradeglob import TradeGlobFetcher
+
+          fetcher = TradeGlobFetcher()
+          frame = fetcher.get_ohlcv(
+              symbol="COMI",
+              exchange="EGX",
+              interval="Daily",
+              n_bars=5000,
+              use_cache=False,
+              validate=True,
+          )
+          if frame is None or frame.empty:
+              print(json.dumps({"provider": "TradeGlob/TradingView", "status": "EMPTY"}))
+              raise SystemExit(0)
+
+          dates = pd.to_datetime(frame.index, errors="coerce")
+          if getattr(dates, "tz", None) is not None:
+              dates = dates.tz_convert("Africa/Cairo").tz_localize(None)
+          mask = (dates.date >= date(2019, 1, 1)) & (dates.date <= date(2025, 12, 31))
+          frame = frame.loc[mask].copy()
+          dates = dates[mask]
+          columns = {str(column).lower().replace(" ", "_"): column for column in frame.columns}
+          required = ["open", "high", "low", "close"]
+          if not all(name in columns for name in required):
+              print(json.dumps({
+                  "provider": "TradeGlob/TradingView",
+                  "status": "SCHEMA_MISMATCH",
+                  "columns": [str(column) for column in frame.columns],
+                  "rows": int(len(frame)),
+              }))
+              raise SystemExit(0)
+
+          values = {name: pd.to_numeric(frame[columns[name]], errors="coerce") for name in required}
+          valid = pd.concat(values, axis=1).dropna()
+          summary = {
+              "provider": "TradeGlob/TradingView",
+              "status": "CANDIDATE_ONLY",
+              "symbol": "COMI",
+              "rows_in_2019_2025": int(len(frame)),
+              "first_date": str(dates.min().date()) if len(dates) else None,
+              "last_date": str(dates.max().date()) if len(dates) else None,
+              "rows_with_missing_or_non_numeric_ohlc": int(len(frame) - len(valid)),
+              "low_above_open": int((valid["low"] > valid["open"]).sum()),
+              "low_above_close": int((valid["low"] > valid["close"]).sum()),
+              "high_below_open": int((valid["high"] < valid["open"]).sum()),
+              "high_below_close": int((valid["high"] < valid["close"]).sum()),
+              "low_above_high": int((valid["low"] > valid["high"]).sum()),
+              "raw_values_persisted": False,
+              "source_terms_verified": False,
+              "dataset_accepted": False,
+          }
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
