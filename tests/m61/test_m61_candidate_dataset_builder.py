@@ -213,6 +213,9 @@ def test_builder_accepts_explicit_provider_symbol_alias(tmp_path: Path) -> None:
     assert report["status"] == "CANDIDATE_ONLY"
     assert report["symbol"] == "COMI"
     assert (output / "market_observations.csv").is_file()
+    manifest = HistoricalDatasetLoader(output).load_manifest()
+    assert "COMI.CA->" + STOCK_ID in manifest.market_observations.provenance.symbol_mappings
+    assert manifest.financial_snapshots.provenance.symbol_mappings == ("COMI->" + STOCK_ID,)
 
 
 def test_builder_rejects_duplicate_source_symbol_headers(tmp_path: Path) -> None:
