@@ -1,0 +1,27 @@
+name: M61 EGID live contract probe
+
+on:
+  push:
+    branches:
+      - m61/egid-live-contract-probe
+    paths:
+      - ".github/workflows/m61-egid-live-contract-probe.yml"
+      - "tools/m61_egid_contract_probe.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-public-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Inspect public EGID OpenAPI contract only
+        env:
+          PYTHONPATH: .
+        run: python -m tools.m61_egid_contract_probe
