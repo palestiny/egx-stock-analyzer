@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/m61-egid-live-contract-probe.yml"
       - "tools/m61_egid_contract_probe.py"
+      - "tools/m61_egid_access_probe.py"
   workflow_dispatch:
 
 permissions:
@@ -25,3 +26,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: python -m tools.m61_egid_contract_probe
+      - name: Check one bounded history request without credentials
+        env:
+          PYTHONPATH: .
+        run: python -m tools.m61_egid_access_probe
