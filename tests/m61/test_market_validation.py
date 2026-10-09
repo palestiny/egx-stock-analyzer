@@ -117,8 +117,19 @@ def _m61_row(day: date) -> dict[str, object]:
     }
 
 
+def _recent_warmup_rows() -> list[dict[str, object]]:
+    # EGX trades Sunday through Thursday; exclude Friday and Saturday.
+    days: list[date] = []
+    current = date(2020, 12, 31)
+    while len(days) < 252:
+        if current.weekday() not in {4, 5}:
+            days.append(current)
+        current -= timedelta(days=1)
+    return [_m61_row(date(2019, 12, 31)), *[_m61_row(day) for day in reversed(days)]]
+
+
 def test_evaluation_window_accepts_complete_year_coverage_when_last_session_is_december_30():
-    warmup = [_m61_row(date(2019, 1, 1) + timedelta(days=index)) for index in range(252)]
+    warmup = _recent_warmup_rows()
     evaluation = [
         _m61_row(date(2021, 1, 4)),
         _m61_row(date(2022, 1, 3)),
@@ -142,3 +153,40 @@ def test_evaluation_window_reports_missing_calendar_years():
 
     assert "m61:missing_evaluation_years=2022,2024" in findings
     assert not any("coverage_ends_before_evaluation_end" in item for item in findings)
+
+
+def test_evaluation_window_rejects_warmup_that_is_stale_before_2021():
+    warmup = [
+        _m61_row(date(2019, 1, 1) + timedelta(days=index))
+        for index in range(252)
+    ]
+    evaluation = [
+        _m61_row(date(2021, 1, 4)),
+        _m61_row(date(2022, 1, 3)),
+        _m61_row(date(2023, 1, 2)),
+        _m61_row(date(2024, 1, 2)),
+        _m61_row(date(2025, 12, 30)),
+    ]
+
+    findings = validate_m61_evaluation_window(warmup + evaluation)
+
+    assert any(item.startswith("m61:stale_last_warmup_session=") for item in findings)
+
+
+def test_evaluation_window_rejects_large_gap_inside_recent_warmup():
+    warmup = [
+        _m61_row(date(2019, 1, 1) + timedelta(days=index))
+        for index in range(251)
+    ]
+    warmup.append(_m61_row(date(2020, 12, 30)))
+    evaluation = [
+        _m61_row(date(2021, 1, 4)),
+        _m61_row(date(2022, 1, 3)),
+        _m61_row(date(2023, 1, 2)),
+        _m61_row(date(2024, 1, 2)),
+        _m61_row(date(2025, 12, 30)),
+    ]
+
+    findings = validate_m61_evaluation_window(warmup + evaluation)
+
+    assert any(item.startswith("m61:large_warmup_gap=") for item in findings)

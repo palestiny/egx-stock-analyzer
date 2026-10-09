@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-10-09 — strict canonical CSV parsing and annual evaluation-window coverage checks merged and verified in CI
+**Updated:** 2026-10-09 — strict canonical CSV parsing, annual evaluation-window coverage, and recent 252-session warm-up validation are being hardened; CI verification pending
 
 ## Purpose
 

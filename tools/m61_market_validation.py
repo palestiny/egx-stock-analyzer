@@ -96,11 +96,43 @@ def validate_m61_evaluation_window(points: Sequence[Mapping[str, object]]) -> li
     # Count distinct sessions, not rows: duplicate observations must never inflate
     # warm-up or evaluation coverage even though they are also reported separately.
     unique_dates = sorted(set(parsed_dates))
-    warmup_count = sum(item < evaluation_start for item in unique_dates)
+    warmup_dates = [item for item in unique_dates if item < evaluation_start]
+    warmup_count = len(warmup_dates)
     evaluation_count = sum(evaluation_start <= item <= evaluation_end for item in unique_dates)
 
     if warmup_count < 252:
         findings.append(f"m61:insufficient_warmup={warmup_count};required=252")
+    else:
+        # Count the 252 most recent pre-evaluation observations, not any 252
+        # dates from arbitrarily far in the past. M61 requested history from
+        # 2019-01-01 and requires the last warm-up observation to be recent.
+        recent_warmup = warmup_dates[-252:]
+        earliest_allowed_warmup = date(2019, 1, 1)
+        if recent_warmup[0] < earliest_allowed_warmup:
+            findings.append(
+                "m61:252_session_warmup_starts_before="
+                f"{earliest_allowed_warmup.isoformat()};actual={recent_warmup[0].isoformat()}"
+            )
+
+        latest_warmup = warmup_dates[-1]
+        latest_allowed_gap = date(2020, 12, 1)
+        if latest_warmup < latest_allowed_gap:
+            findings.append(
+                "m61:stale_last_warmup_session="
+                f"{latest_warmup.isoformat()};latest_acceptable={latest_allowed_gap.isoformat()}"
+            )
+
+        long_gaps = [
+            (left, right, (right - left).days)
+            for left, right in zip(recent_warmup, recent_warmup[1:])
+            if (right - left).days > 31
+        ]
+        if long_gaps:
+            left, right, gap_days = max(long_gaps, key=lambda gap: gap[2])
+            findings.append(
+                "m61:large_warmup_gap="
+                f"{left.isoformat()}..{right.isoformat()};days={gap_days};maximum=31"
+            )
     if evaluation_count == 0:
         findings.append("m61:no_evaluation_window_rows")
     evaluation_years = sorted(
