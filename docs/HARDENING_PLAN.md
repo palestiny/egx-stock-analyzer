@@ -11,6 +11,8 @@
 - PR #246 — race-safe first-time WAL initialization; concurrency regression tests and CI passed before merge.
 - PR #243 — Python 3.12 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
+- PR #269 — optional Caddy HTTPS production overlay with domain/ACME configuration; Caddy validation, Compose validation, and container builds passed.
+- PR #270 — expanded mypy to the full `app/api` package; fixed optional-authenticator narrowing and aligned market-analysis API test doubles with the typed application result contract. Ruff, mypy, unit tests, integration tests, frontend checks, dependency audit, and bounded container/Nginx validation passed.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
 - PR #258 — Nginx security headers, hidden-file denial, request-size/read/send bounds, and upstream timeouts; container CI passed.
 - PR #259 — extracted scheduled-workflow history queries from the SQLite persistence store; all CI checks passed.
@@ -105,11 +107,11 @@ Same-origin frontend/API routing is the default. For a separately hosted fronten
 
 - **M61 historical evidence and source acceptance:** intentionally not changed in this hardening pass, per request. The accepted real dataset, official/licensed bulk source or permitted fallback, provenance, point-in-time financial coverage, and reproducible Strategy v0 evaluation remain the main blocker. No profitability or production analytical-value claim is justified.
 - **Credential migration:** before deployment, reissue/rotate existing credentials that still use legacy PBKDF2 verification. Keep legacy compatibility disabled unless a controlled migration is protected by upstream throttling.
-- **Production perimeter:** the included Compose stack is HTTP-only and loopback-bound. A real deployment still needs a trusted TLS terminator, host/firewall restrictions, secret management, request-size/time limits, and edge rate-limit configuration. The Nginx limit in this repository is per instance and needs tuning for expected traffic.
+- **Production perimeter:** default local Compose remains HTTP-only and loopback-bound; `compose.production.yaml` adds an optional Caddy HTTPS edge. Public deployment still requires a real domain, correct DNS, reachable ports 80/443, host/firewall restrictions, secret management, and operational monitoring. The Nginx limit is per instance and needs tuning for expected traffic.
 - **Operational recovery:** SQLite WAL, timeout, concurrency behavior, and a backup/restore smoke test are covered. A production operator still needs scheduled backups and a tested restore drill on the actual deployment volume.
 - **License:** no license was added because choosing the legal reuse terms requires the repository owner's explicit decision.
 - **Maintainability:** scheduled-workflow API routes have been split into focused market-intelligence, user-management/audit, and scheduled-workflow router modules; workflow history queries are separated from the main SQLite store. `app/infrastructure/persistence/sqlite_scheduled_workflow_execution_store.py` remains a larger persistence module; defer further decomposition until the M61 evidence gate is closed to avoid diverting effort from dataset acceptance. Sequential decision records are retained for traceability; overlapping hardening guidance was consolidated.
-- **Type-check scope:** CI runs mypy on hardened authentication primitives and the extracted API route modules, not the entire application. Expanding the checked surface remains follow-up work after the current M61 priority.
+- **Type-check scope:** CI now runs mypy across the complete `app/api` package and hardened authentication primitives, but does not yet type-check the entire application. Expanding type checking beyond the API should be a separate, incremental follow-up after the M61 evidence gate.
 
 ## License decision remains open
 
