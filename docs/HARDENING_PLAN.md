@@ -9,12 +9,12 @@
 - PR #242 — shared SQLite connection configuration with WAL and a 5-second busy timeout; CI passed before merge.
 - PR #245 — UTC timestamps for market-data conflict events; CI passed before merge.
 - PR #246 — race-safe first-time WAL initialization; concurrency regression tests and CI passed before merge.
-- PR #243 — Python 3.12 and 3.13 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
+- PR #243 — Python 3.12 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
 - PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
-- PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12 and 3.13, with frontend, integration, container-build, and dependency-audit jobs successful.
-- PR #255 — add frontend ESLint and `npm audit --audit-level=high`; upgrade the vulnerable transitive `source-map-js` lock entry from 1.2.1 to patched 1.2.2; remove frontend lint errors around effect-driven loading and unused globals/imports. CI passed on Python 3.12 and 3.13, frontend lint/tests/build, integration tests, container builds, and Python dependency audit; unit suite reported 966 passed, 7 deselected, with 91.06% coverage.
+- PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12, with frontend, integration, container-build, and dependency-audit jobs successful.
+- PR #255 — add frontend ESLint and `npm audit --audit-level=high`; upgrade the vulnerable transitive `source-map-js` lock entry from 1.2.1 to patched 1.2.2; remove frontend lint errors around effect-driven loading and unused globals/imports. CI passed on Python 3.12, frontend lint/tests/build, integration tests, container builds, and Python dependency audit; unit suite reported 966 passed, 7 deselected, with 91.06% coverage.
 
 ## Security and credential migration
 
@@ -98,3 +98,8 @@ No software license has been selected. A public GitHub repository without an exp
 ## M61 evidence gate remains open
 
 No production Strategy v0 performance claim is permitted until the required historical market and point-in-time financial artifacts pass source, coverage, provenance, adjustment, missing-data, survivorship, and reproducibility acceptance. Fixture tests and deterministic engine tests do not replace this evidence.
+
+
+## Python runtime baseline
+
+The project targets Python 3.12 only for now (`requires-python >=3.12,<3.13`), matching the production container and the validated CI baseline. Python 3.13 support can be restored later as an explicit compatibility decision with its own CI matrix; it is not claimed today.
