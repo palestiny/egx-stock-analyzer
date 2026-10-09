@@ -125,6 +125,13 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     if not isinstance(exchange_timezone, str) or not exchange_timezone.strip():
         findings.append("response:missing_exchange_timezone")
         return [], {"ticker": actual_ticker, "exchange_timezone": exchange_timezone}, findings
+    if exchange_timezone != "Africa/Cairo":
+        findings.append(f"response:unexpected_exchange_timezone={exchange_timezone!r}")
+        return [], {"ticker": actual_ticker, "exchange_timezone": exchange_timezone}, findings
+    currency = meta.get("currency")
+    if currency != "EGP":
+        findings.append(f"response:unexpected_currency={currency!r}")
+        return [], {"ticker": actual_ticker, "exchange_timezone": exchange_timezone, "currency": currency}, findings
     try:
         session_timezone = ZoneInfo(exchange_timezone)
     except (ZoneInfoNotFoundError, ValueError):
