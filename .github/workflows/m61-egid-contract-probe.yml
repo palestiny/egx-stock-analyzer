@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/m61-egid-contract-probe.yml"
       - "tools/m61_egid_contract_probe.py"
+      - "tests/m61/test_egid_contract_probe.py"
 
 permissions:
   contents: read
