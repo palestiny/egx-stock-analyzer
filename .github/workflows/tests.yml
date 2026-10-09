@@ -28,7 +28,7 @@ jobs:
       - name: Run lint
         run: ruff check app tests
       - name: Type-check API package
-        run: mypy app/api --ignore-missing-imports --follow-imports=silent
+        run: mypy app --ignore-missing-imports --follow-imports=silent
       - name: Run unit tests with coverage report
         run: pytest --cov=app --cov-report=term-missing --cov-fail-under=85 -m "not integration"
 
