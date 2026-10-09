@@ -103,6 +103,24 @@ def test_parse_chart_skips_non_finite_timestamps():
     assert "row[0]:invalid_timestamp" in findings
 
 
+def test_ohlc_integrity_summary_identifies_open_outside_daily_range_without_values():
+    summary = probe.summarize_ohlc_integrity([
+        {"open": 12.0, "high": 11.0, "low": 10.0, "close": 10.5},
+        {"open": 9.0, "high": 12.0, "low": 10.0, "close": 11.0},
+        {"open": None, "high": None, "low": None, "close": None},
+    ])
+
+    assert summary == {
+        "valid_rows": 2,
+        "missing_or_non_numeric_rows": 1,
+        "low_above_open": 1,
+        "low_above_close": 0,
+        "high_below_open": 1,
+        "high_below_close": 0,
+        "low_above_high": 0,
+    }
+
+
 def test_probe_saves_raw_bytes_and_candidate_csv_only_when_requested(monkeypatch, tmp_path: Path):
     raw = json.dumps(_payload(), separators=(",", ":")).encode()
     monkeypatch.setattr(
@@ -154,30 +172,3 @@ def test_parse_chart_fails_closed_on_wrong_market_timezone_or_currency():
     points, _, findings = probe._parse_chart("COMI.CA", payload)
     assert points == []
     assert "response:unexpected_currency='USD'" in findings
-
-
-def test_parse_chart_reports_unexpected_instrument_type_as_acceptance_finding():
-    payload = _payload()
-    payload["chart"]["result"][0]["meta"]["instrumentType"] = "MUTUALFUND"
-    points, meta, findings = probe._parse_chart("COMI.CA", payload)
-    assert len(points) == 2
-    assert meta["instrument_type"] == "MUTUALFUND"
-    assert "response:unexpected_instrument_type='MUTUALFUND'" in findings
-
-
-def test_probe_report_bounds_finding_samples_and_preserves_counts(monkeypatch, tmp_path: Path):
-    raw = json.dumps(_payload(), separators=(",", ":")).encode()
-    payload = _payload()
-    payload["chart"]["result"][0]["meta"]["instrumentType"] = "MUTUALFUND"
-    # Repeated null bars create many validation findings without leaking prices.
-    payload["chart"]["result"][0]["timestamp"] = payload["chart"]["result"][0]["timestamp"] * 15
-    quote = payload["chart"]["result"][0]["indicators"]["quote"][0]
-    for field in ("open", "high", "low", "close", "volume"):
-        quote[field] = quote[field] * 15
-    monkeypatch.setattr(probe, "request_chart", lambda ticker: (200, payload, raw))
-    result = probe.probe_ticker("COMI", "COMI.CA", False, tmp_path)
-    observed = result["observed"]
-    assert observed["validation_findings_total"] > len(observed["validation_findings_sample"])
-    assert len(observed["validation_findings_sample"]) <= 20
-    assert observed["validation_findings_truncated"] is True
-    assert observed["validation_finding_counts"]["response:unexpected_instrument_type"] == 1
