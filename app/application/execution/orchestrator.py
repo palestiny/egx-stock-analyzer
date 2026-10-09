@@ -18,11 +18,10 @@ class ExecutionOrchestrator:
         execution.start()
 
         for stock_id in stock_ids:
-            self._runner.run_stock(
-                execution,
-                stock_id,
-                lambda stock_id=stock_id: operation(stock_id),
-            )
+            def invoke(current_stock_id: str = stock_id) -> None:
+                operation(current_stock_id)
+
+            self._runner.run_stock(execution, stock_id, invoke)
 
         execution.finish()
         return execution
