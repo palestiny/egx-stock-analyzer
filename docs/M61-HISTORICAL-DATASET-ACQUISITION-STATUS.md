@@ -322,3 +322,12 @@ A one-time non-persisting check returned 1,556–1,700 daily bars per M61 symbol
 A deterministic synthetic dataset generator is available at `tools/m61_generate_test_dataset.py`, documented in [M61 Test Dataset Bootstrap](M61-TEST-DATASET-BOOTSTRAP.md). It generates schema-v3 artifacts for the ten-symbol cohort and lets engineering exercise dataset loading, analysis, and backtesting plumbing without waiting for source acquisition.
 
 This does **not** change the status above: the generated prices and financial values are synthetic placeholders, not accepted EGX market data, and must not be used for strategy evaluation or investment decisions.
+
+
+## Live no-cost source probe and synthetic execution — 2026-10-09
+
+A metadata-only repeat probe ([GitHub Actions run #37926352690](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37926352690)) reached all ten Yahoo .CA chart endpoints (HTTP 200), with Africa/Cairo timezone metadata and history through 2025-12-31. Nine symbols returned 1,716 daily rows each; FWRY returned 1,555 rows beginning 2019-08-14. It reported 340–457 validation findings per symbol, including repeated OHLC high/low relationship violations and null/invalid values. No source price rows were retained. The earlier instrument-identity probe classified all ten responses as MUTUALFUND ([run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142)).
+
+This source is **not accepted for Strategy v0 evaluation**: identity and OHLC quality failures remain unresolved, source terms and long-term storage rights are unverified, and the endpoint does not provide point-in-time financial snapshots. Do not silently repair observations or infer data quality from HTTP success.
+
+Separately, the synthetic end-to-end test in [PR #312](https://github.com/palestiny/egx-stock-analyzer/pull/312) passed: schema-v3 manifest/checksums and both artifacts loaded, and the production HistoricalDatasetBacktestRunner completed two deterministic COMI runs with 2019–2020 warm-up and 2021 evaluation isolation. This validates software plumbing only, not real-EGX strategy performance.

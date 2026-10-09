@@ -116,3 +116,5 @@ References:
 - https://www.tradingview.com/support/solutions/43000674726-why-is-my-account-banned-due-to-suspicious-activity/
 
 **Decision:** technically consistent data does not equal legally usable data. This route is rejected for automated dataset acquisition; do not repeat automated collection or persist the diagnostic results.
+
+

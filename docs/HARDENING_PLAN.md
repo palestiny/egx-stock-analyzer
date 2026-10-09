@@ -168,3 +168,12 @@ Point-in-time financial evidence must include snapshots with `available_at` in e
 ## Python runtime baseline
 
 The project targets Python 3.12 only for now (`requires-python >=3.12,<3.13`), matching the production container and the validated CI baseline. Python 3.13 support can be restored later as an explicit compatibility decision with its own CI matrix; it is not claimed today.
+
+
+## M61 data execution checkpoint — 2026-10-09
+
+- PR #312 added and passed a deterministic end-to-end test that generates a temporary synthetic ten-symbol schema-v3 dataset, validates it through the production loader, and runs the production COMI Strategy v0 backtest boundary twice with identical results. Unit tests: 1,058 passed, 7 deselected; 91.17% coverage. Integration tests, frontend checks, dependency audit, and container validation passed.
+- A metadata-only live Yahoo probe returned HTTP 200 for all ten .CA symbols, but found 340–457 validation issues per symbol. No source price rows were retained. This is not an accepted dataset.
+- Real M61 acceptance remains blocked by unresolved market OHLC quality findings, unverified source storage/use rights, and missing point-in-time financial artifacts.
+
+The next work is source-quality root-cause analysis and lawful artifact acquisition, not more infrastructure features or performance claims.
