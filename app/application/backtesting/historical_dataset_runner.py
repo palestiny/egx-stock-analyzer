@@ -1,9 +1,8 @@
 from dataclasses import replace
 from datetime import date
 
-from app.application.clock import EGX_TIMEZONE
-
 from app.application.analysis.input_assembler import AnalysisInputAssemblyPolicy, AnalysisInputAssembler
+from app.application.clock import EGX_TIMEZONE
 from app.application.backtesting.historical_opportunity_strategy import (
     HistoricalOpportunityClassificationBacktestStrategy,
 )
