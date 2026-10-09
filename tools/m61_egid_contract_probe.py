@@ -82,9 +82,9 @@ def summarize_openapi(document: dict[str, Any]) -> dict[str, object]:
         raise ValueError("OpenAPI document is missing paths")
     components = document.get("components")
     components = components if isinstance(components, dict) else {}
-    schemas = components.get("schemas")
+    schemas = components.get("schemas", document.get("definitions"))
     schemas = schemas if isinstance(schemas, dict) else {}
-    security_schemes = components.get("securitySchemes")
+    security_schemes = components.get("securitySchemes", document.get("securityDefinitions"))
     security_schemes = security_schemes if isinstance(security_schemes, dict) else {}
 
     selected: list[dict[str, object]] = []
@@ -151,6 +151,11 @@ def summarize_openapi(document: dict[str, Any]) -> dict[str, object]:
         item.get("url") for item in servers
         if isinstance(item, dict) and isinstance(item.get("url"), str)
     ] if isinstance(servers, list) else []
+    if not server_urls and isinstance(document.get("host"), str):
+        schemes = document.get("schemes")
+        schemes = schemes if isinstance(schemes, list) and schemes else ["https"]
+        base_path = document.get("basePath", "")
+        server_urls = [f"{scheme}://{document['host']}{base_path}" for scheme in schemes]
 
     return {
         "provider": "EGID public OpenAPI contract",
