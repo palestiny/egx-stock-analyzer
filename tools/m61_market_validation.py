@@ -91,16 +91,19 @@ def validate_m61_evaluation_window(points: Sequence[Mapping[str, object]]) -> li
 
     evaluation_start = date(2021, 1, 1)
     evaluation_end = date(2025, 12, 31)
-    warmup_count = sum(item < evaluation_start for item in parsed_dates)
-    evaluation_count = sum(evaluation_start <= item <= evaluation_end for item in parsed_dates)
+    # Count distinct sessions, not rows: duplicate observations must never inflate
+    # warm-up or evaluation coverage even though they are also reported separately.
+    unique_dates = sorted(set(parsed_dates))
+    warmup_count = sum(item < evaluation_start for item in unique_dates)
+    evaluation_count = sum(evaluation_start <= item <= evaluation_end for item in unique_dates)
 
     if warmup_count < 252:
         findings.append(f"m61:insufficient_warmup={warmup_count};required=252")
     if evaluation_count == 0:
         findings.append("m61:no_evaluation_window_rows")
-    if min(parsed_dates) > date(2020, 1, 1):
-        findings.append(f"m61:coverage_starts_after_requested={min(parsed_dates).isoformat()}")
-    if max(parsed_dates) < evaluation_end:
-        findings.append(f"m61:coverage_ends_before_evaluation_end={max(parsed_dates).isoformat()}")
+    if min(unique_dates) > date(2020, 1, 1):
+        findings.append(f"m61:coverage_starts_after_requested={min(unique_dates).isoformat()}")
+    if max(unique_dates) < evaluation_end:
+        findings.append(f"m61:coverage_ends_before_evaluation_end={max(unique_dates).isoformat()}")
 
     return findings
