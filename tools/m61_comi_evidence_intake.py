@@ -45,6 +45,13 @@ def _resolve_symbol_mapping(mappings: tuple[str, ...], symbol: str) -> UUID | No
         return None
 
 
+
+def _daily_market_rows(market) -> tuple[list, bool]:
+    """Return daily observations and whether the artifact contains only daily bars."""
+    daily = [item for item in market if item.timeframe == "1d"]
+    return daily, bool(market) and len(daily) == len(market)
+
+
 def _coverage_counts(timestamps) -> tuple[list[date], int, int]:
     """Count unique Cairo-local sessions in warm-up and evaluation windows."""
     dates = sorted({timestamp.astimezone(EGX_TIMEZONE).date() for timestamp in timestamps})
@@ -170,10 +177,12 @@ def build_report(root: Path) -> dict:
 
     comi_market = [item for item in market if item.stock_id == comi_stock_id]
     comi_financial = [item for item in financial if item.stock_id == comi_stock_id]
+    daily_market, only_daily_timeframe = _daily_market_rows(comi_market)
 
     report["checks"]["market_observation_identity"] = (
         "PASS" if comi_market else "FAIL"
     )
+    report["checks"]["daily_timeframe"] = "PASS" if only_daily_timeframe else "FAIL"
     report["checks"]["financial_identity_mapping"] = (
         "PASS" if comi_financial else "FAIL"
     )
@@ -181,6 +190,15 @@ def build_report(root: Path) -> dict:
     if not comi_market:
         report["errors"].append("No market observations match the mapped COMI stock identity.")
         return report
+    if not daily_market:
+        report["errors"].append(
+            "COMI market artifact must contain daily (1d) observations for M61 evaluation."
+        )
+        return report
+    if not only_daily_timeframe:
+        report["errors"].append(
+            "COMI market artifact mixes daily and non-daily timeframes."
+        )
     if not comi_financial:
         report["errors"].append(
             "No financial snapshots match the mapped COMI stock identity."
@@ -190,7 +208,7 @@ def build_report(root: Path) -> dict:
     # history, not only calendar year 2020. Use distinct Cairo-local sessions so
     # duplicate rows and timezone offsets cannot inflate coverage.
     dates, warmup, evaluation = _coverage_counts(
-        [item.timestamp for item in comi_market]
+        [item.timestamp for item in daily_market]
     )
 
     evaluation_years, missing_evaluation_years = _evaluation_year_coverage(dates)
