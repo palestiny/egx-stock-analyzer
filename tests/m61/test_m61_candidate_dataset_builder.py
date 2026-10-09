@@ -171,8 +171,8 @@ def test_builder_rejects_duplicate_financial_headers(tmp_path: Path) -> None:
 def test_builder_rejects_market_rows_for_a_different_source_symbol(tmp_path: Path) -> None:
     market, financial = _inputs(
         tmp_path,
-        "Ticker,Date,Open,High,Low,Close,Volume\\n"
-        "EGAL,2021-01-04,10,12,9,11,1200\\n",
+        "Ticker,Date,Open,High,Low,Close,Volume\n"
+        "EGAL,2021-01-04,10,12,9,11,1200\n",
     )
     output = tmp_path / "wrong-symbol-package"
 
@@ -185,8 +185,8 @@ def test_builder_rejects_market_rows_for_a_different_source_symbol(tmp_path: Pat
 def test_builder_accepts_explicit_provider_symbol_alias(tmp_path: Path) -> None:
     market, financial = _inputs(
         tmp_path,
-        "Ticker,Date,Open,High,Low,Close,Volume\\n"
-        "COMI.CA,2021-01-04,10,12,9,11,1200\\n",
+        "Ticker,Date,Open,High,Low,Close,Volume\n"
+        "COMI.CA,2021-01-04,10,12,9,11,1200\n",
     )
     output = tmp_path / "provider-symbol-package"
     kwargs = {
@@ -218,8 +218,8 @@ def test_builder_accepts_explicit_provider_symbol_alias(tmp_path: Path) -> None:
 def test_builder_rejects_duplicate_source_symbol_headers(tmp_path: Path) -> None:
     market, financial = _inputs(
         tmp_path,
-        "Ticker,Ticker,Date,Open,High,Low,Close,Volume\\n"
-        "COMI,COMI,2021-01-04,10,12,9,11,1200\\n",
+        "Ticker,Ticker,Date,Open,High,Low,Close,Volume\n"
+        "COMI,COMI,2021-01-04,10,12,9,11,1200\n",
     )
     output = tmp_path / "ambiguous-symbol-package"
 
