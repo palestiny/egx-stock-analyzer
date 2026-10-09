@@ -103,6 +103,24 @@ def test_parse_chart_skips_non_finite_timestamps():
     assert "row[0]:invalid_timestamp" in findings
 
 
+def test_ohlc_integrity_summary_identifies_open_outside_daily_range_without_values():
+    summary = probe.summarize_ohlc_integrity([
+        {"open": 12.0, "high": 11.0, "low": 10.0, "close": 10.5},
+        {"open": 9.0, "high": 12.0, "low": 10.0, "close": 11.0},
+        {"open": None, "high": None, "low": None, "close": None},
+    ])
+
+    assert summary == {
+        "valid_rows": 2,
+        "missing_or_non_numeric_rows": 1,
+        "low_above_open": 1,
+        "low_above_close": 0,
+        "high_below_open": 1,
+        "high_below_close": 0,
+        "low_above_high": 0,
+    }
+
+
 def test_probe_saves_raw_bytes_and_candidate_csv_only_when_requested(monkeypatch, tmp_path: Path):
     raw = json.dumps(_payload(), separators=(",", ":")).encode()
     monkeypatch.setattr(
