@@ -15,11 +15,11 @@ from app.domain.opportunity.classification import OpportunityClassificationResul
 from app.domain.stocks.stock import Stock
 
 
-def make_bar(stock_id, day: int) -> PriceBar:
+def make_bar(stock_id, day: int, hour: int = 0) -> PriceBar:
     return PriceBar.create(
         stock_id=stock_id,
         timeframe=Timeframe.DAILY,
-        timestamp=datetime(2026, 9, day, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 9, day, hour, tzinfo=timezone.utc),
         open=Price(Decimal("100")),
         high=Price(Decimal("101")),
         low=Price(Decimal("99")),
@@ -83,7 +83,7 @@ def test_historical_strategy_uses_completed_bar_date_for_point_in_time_fundament
         analyze=analyze,
     ).to_backtest_strategy()
 
-    bars = [make_bar(stock.id, day) for day in range(15, 20)]
+    bars = [make_bar(stock.id, day) for day in range(14, 18)] + [make_bar(stock.id, 18, hour=22)]
     assert strategy.signal(bars) is True
 
     assert fundamentals.calls == [(stock, date(2026, 9, 19))]
