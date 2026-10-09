@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date
+from typing import cast
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -156,7 +157,7 @@ class InMemoryAnalysisResultStore:
 
         dated_records = sorted(
             (record for record in records if record.analysis_date is not None),
-            key=lambda record: record.analysis_date.toordinal(),
+            key=lambda record: cast(date, record.analysis_date).toordinal(),
             reverse=True,
         )
         undated_records = [

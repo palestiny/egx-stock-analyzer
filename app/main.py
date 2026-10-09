@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from typing import TypedDict
 
 from fastapi import FastAPI
 
 from app.api.main import create_app
+from app.application.security.authentication import Authenticator
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
@@ -16,6 +18,11 @@ from app.infrastructure.runtime import (
 from app.infrastructure.stocks.development_catalog import create_development_stock_catalog
 
 
+class _CreateAppKwargs(TypedDict, total=False):
+    operator_token: str | None
+    authenticator: Authenticator
+
+
 def create_application(runtime: InfrastructureRuntime, operator_token: str | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -26,7 +33,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         finally:
             runtime.close()
 
-    create_app_kwargs = {}
+    create_app_kwargs: _CreateAppKwargs = {}
     if operator_token is not None:
         create_app_kwargs["operator_token"] = operator_token
 

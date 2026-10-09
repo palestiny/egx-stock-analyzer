@@ -24,12 +24,14 @@ class GenerateSignal:
             raise ValueError("symbol is required")
 
         record = self.result_store.get_record(normalized)
-        if record is None or record.result.entry_context.current_price is None:
+        if record is None:
             return None
-
         result = record.result
         entry = result.entry_context
-        current = entry.current_price.value
+        current_price = entry.current_price
+        if current_price is None:
+            return None
+        current = current_price.value
         technical = result.technical_analysis
         now = datetime.combine(
             record.analysis_date or datetime.now(timezone.utc).date(),

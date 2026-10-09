@@ -21,6 +21,6 @@ class ScheduledConfiguredMarketAnalysis:
 
     def schedule(self, run_at: datetime) -> None:
         def operation() -> Execution:
-            return self._run_configured_market_analysis.execute(egx_today())
+            return self._run_configured_market_analysis.execute(egx_today()).execution
 
         self._scheduler.schedule(operation, run_at)

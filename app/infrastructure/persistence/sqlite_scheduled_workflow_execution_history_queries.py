@@ -1,8 +1,13 @@
+import sqlite3
 from datetime import datetime, timezone
 from uuid import UUID
 
 
 class ScheduledWorkflowExecutionHistoryQueries:
+    def _connect(self) -> sqlite3.Connection:
+        """Implemented by the concrete persistence store using the shared DB config."""
+        raise NotImplementedError
+
     """SQLite query operations for scheduled-workflow transition history.
 
     The concrete store supplies the _connect() context-manager boundary.

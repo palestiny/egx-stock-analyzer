@@ -201,6 +201,8 @@ class HistoricalDatasetLoader:
         self._verify_raw_source_evidence(manifest.financial_snapshots)
 
     def _verify_raw_source_evidence(self, artifact: DatasetArtifact) -> None:
+        if artifact.provenance is None:
+            raise HistoricalDatasetIntegrityError("Dataset artifact provenance is required")
         evidence = artifact.provenance.raw_source_evidence
         reference = Path(evidence.reference)
         if reference.is_absolute() or any(part == ".." for part in reference.parts):

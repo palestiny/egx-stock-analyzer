@@ -6,8 +6,8 @@ from typing import Protocol
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
-from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
-    RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+from app.application.execution.run_durable_scheduled_workflow import (
+    RunDurableScheduledWorkflow,
 )
 from app.application.execution.scheduler import Scheduler
 
@@ -32,7 +32,7 @@ class RecurringConfiguredMarketAnalysis:
 
     def __init__(
         self,
-        scheduled_operation: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+        scheduled_operation: RunDurableScheduledWorkflow,
         scheduler: Scheduler,
         clock: Clock,
         schedule_time: time,

@@ -49,6 +49,8 @@ class OwnershipAuthorizer:
         self.require_authenticated(identity)
         if Permission.OPERATOR in identity.permissions:
             raise AuthorizationError("Operator scope is not owner-scoped")
+        if identity.user_id is None:
+            raise AuthorizationError("Authenticated user identity is required")
         return identity.user_id
 
     def require_owner_or_global(

@@ -548,6 +548,7 @@ class SQLiteScheduledWorkflowExecutionStore(
             str | None,
             str | None,
             str | None,
+            str | None,
             int,
         ],
     ) -> ScheduledWorkflowExecution:

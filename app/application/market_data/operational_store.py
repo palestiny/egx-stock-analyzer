@@ -72,7 +72,11 @@ class OperationalMarketDataService:
         existing = self._store.get_daily_observations(
             stock.id, from_date, to_date
         )
-        existing_dates = {item.timestamp.date() for item in existing}
+        existing_dates = {
+            item.timestamp.date()
+            for item in existing
+            if item.timestamp is not None
+        }
         expected = self._session_calendar.expected_sessions(from_date, to_date)
         missing = [day for day in expected if day not in existing_dates]
 
