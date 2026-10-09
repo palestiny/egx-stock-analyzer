@@ -125,7 +125,7 @@ def test_same_occurrence_cannot_execute_twice():
 def test_failed_occurrence_does_not_disable_future_recurrence():
     clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
-    workflow = Mock(spec=RunConfiguredMarketAnalysisWithAutomaticAlertDelivery)
+    workflow = Mock(spec=RunDurableScheduledWorkflow)
     workflow.execute.side_effect = RuntimeError("workflow failed")
     recurring, _ = make_recurring(clock, scheduler, workflow)
 
@@ -141,7 +141,7 @@ def test_failed_occurrence_does_not_disable_future_recurrence():
 def test_overlapping_occurrence_is_not_started_concurrently():
     clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler = FakeScheduler()
-    workflow = Mock(spec=RunConfiguredMarketAnalysisWithAutomaticAlertDelivery)
+    workflow = Mock(spec=RunDurableScheduledWorkflow)
     recurring, _ = make_recurring(clock, scheduler, workflow)
 
     recurring.start()
