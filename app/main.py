@@ -26,7 +26,7 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         finally:
             runtime.close()
 
-    create_app_kwargs = {}
+    create_app_kwargs: dict[str, object] = {}
     if operator_token is not None:
         create_app_kwargs["operator_token"] = operator_token
 
