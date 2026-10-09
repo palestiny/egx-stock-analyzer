@@ -64,6 +64,21 @@ _ALLOWED_CORPORATE_ACTION_CONVENTIONS = {
 }
 
 
+
+def _evaluation_year_coverage(dates: list[date]) -> tuple[list[int], list[int]]:
+    """Require at least one observed session in every evaluation calendar year."""
+    observed_years = sorted(
+        {
+            value.year
+            for value in dates
+            if EVALUATION_START <= value <= EVALUATION_END
+        }
+    )
+    required_years = list(range(EVALUATION_START.year, EVALUATION_END.year + 1))
+    missing_years = [year for year in required_years if year not in observed_years]
+    return observed_years, missing_years
+
+
 def _license_attestation_is_explicit(notes: str) -> bool:
     """Require a structured owner attestation instead of treating any note as proof."""
     fields: dict[str, str] = {}
@@ -178,19 +193,23 @@ def build_report(root: Path) -> dict:
         [item.timestamp for item in comi_market]
     )
 
+    evaluation_years, missing_evaluation_years = _evaluation_year_coverage(dates)
     report["coverage"] = {
         "first_date": min(dates).isoformat(),
         "last_date": max(dates).isoformat(),
         "warmup_observations": warmup,
         "evaluation_observations": evaluation,
+        "evaluation_years": evaluation_years,
+        "missing_evaluation_years": missing_evaluation_years,
     }
 
     report["checks"]["252_warmup"] = "PASS" if warmup >= REQUIRED_WARMUP else "FAIL"
     report["checks"]["evaluation_window"] = (
         "PASS"
         if min(dates) <= WARMUP_START
-        and max(dates) >= EVALUATION_END
+        and max(dates).year >= EVALUATION_END.year
         and evaluation
+        and not missing_evaluation_years
         else "FAIL"
     )
     report["checks"]["corporate_action_convention"] = (
