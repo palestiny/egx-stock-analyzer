@@ -22,11 +22,10 @@ These tests are part of the normal unit-test suite and CI.
 
 The real-send test is marked `integration` and `external`, so normal CI explicitly excludes it. It sends one clearly labeled `connection_test` message to the configured chat. Run it only when you intend to send that message.
 
-In the same PowerShell session, set the three environment variables without putting the token in a command literal or source file. For example, obtain the token through a secure prompt or your secret manager, and set the chat ID locally. Then run:
+From the repository root, run the helper. It prompts for the bot token with hidden input, prompts for the destination chat ID, sets the environment variables only for the test process, and removes them in a `finally` block. The token is not placed in shell command history or printed by the script:
 
 ```powershell
-$env:EGX_TELEGRAM_LIVE_TEST = "1"
-python -m pytest -m external tests/integration/test_telegram_live_delivery.py -q
+.\\scripts\\test_telegram_live.ps1
 ```
 
 If the opt-in flag is absent, the live test skips. If the flag is present but credentials are missing, it fails with a generic configuration message without printing their values. After the test, clear the session variables:
