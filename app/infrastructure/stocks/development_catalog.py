@@ -6,7 +6,7 @@ from app.domain.stocks.stock import Stock
 
 _DEVELOPMENT_STOCKS = (
     ("COMI", "Commercial International Bank"),
-    ("EGAL", "Egypt Aluminium"),
+    ("EGAL", "Egypt Aluminum"),
     ("SWDY", "Elsewedy Electric"),
     ("ETEL", "Telecom Egypt"),
     ("EAST", "Eastern Company"),
