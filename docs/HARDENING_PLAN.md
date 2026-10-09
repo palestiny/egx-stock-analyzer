@@ -12,6 +12,11 @@
 - PR #243 — Python 3.12 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
+- PR #258 — Nginx security headers, hidden-file denial, request-size/read/send bounds, and upstream timeouts; container CI passed.
+- PR #259 — extracted scheduled-workflow history queries from the SQLite persistence store; all CI checks passed.
+- PR #261 — extracted user management, credential rotation, and audit endpoints into a dedicated router; all CI checks passed.
+- PR #262 — extracted market-intelligence and signal endpoints into a dedicated router; all CI checks passed.
+- PR #264 — extracted scheduled-workflow listing, history, and recovery endpoints; all CI checks passed. The API composition module was reduced from roughly 950–980 lines to about 583 lines.
 - PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
 - PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12, with frontend, integration, container-build, and dependency-audit jobs successful.
 - PR #255 — add frontend ESLint and `npm audit --audit-level=high`; upgrade the vulnerable transitive `source-map-js` lock entry from 1.2.1 to patched 1.2.2; remove frontend lint errors around effect-driven loading and unused globals/imports. CI passed on Python 3.12, frontend lint/tests/build, integration tests, container builds, and Python dependency audit; unit suite reported 966 passed, 7 deselected, with 91.06% coverage.
