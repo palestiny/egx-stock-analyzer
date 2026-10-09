@@ -31,7 +31,7 @@ def build_url(path: str, params: dict[str, str]) -> str:
     return f"{BASE_URL}{path}?{urllib.parse.urlencode(params)}"
 
 
-def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, dict, bytes]:
+def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, object, bytes]:
     request = urllib.request.Request(
         build_url(path, params),
         headers={
@@ -44,14 +44,23 @@ def request_json(path: str, params: dict[str, str], api_key: str) -> tuple[int, 
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             body = response.read()
-            return response.status, json.loads(body), body
+            try:
+                payload = json.loads(body)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                payload = {"error": "invalid_json_response"}
+            return response.status, payload, body
     except urllib.error.HTTPError as exc:
         body = exc.read()
         try:
             payload = json.loads(body)
-        except json.JSONDecodeError:
-            payload = {"raw_error": body.decode("utf-8", errors="replace")}
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            payload = {"error": "http_error_response_not_json"}
         return exc.code, payload, body
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        # Keep acquisition failures in the machine-readable run report rather than
+        # terminating midway with an unstructured traceback.
+        message = "request_timeout" if isinstance(exc, TimeoutError) else "request_failed"
+        return 0, {"error": message, "error_type": type(exc).__name__}, b""
 
 
 def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path) -> dict:
@@ -67,10 +76,26 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
     }
 
     data = payload.get("data") if isinstance(payload, dict) else None
-    points = data.get("points", []) if isinstance(data, dict) else []
     meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
+    findings: list[str] = []
 
-    if isinstance(data, dict):
+    if not isinstance(payload, dict):
+        findings.append("response:not_object")
+    if not isinstance(data, dict):
+        findings.append("response:data_not_object")
+        points = None
+    else:
+        points = data.get("points")
+        if not isinstance(points, list):
+            findings.append("response:points_not_list")
+        else:
+            findings.extend(validate_history_points(points))
+            findings.extend(validate_m61_evaluation_window(points))
+            if isinstance(meta, dict) and isinstance(meta.get("count"), int):
+                if meta["count"] != len(points):
+                    findings.append(
+                        f"response:meta_count_mismatch={meta['count']};actual={len(points)}"
+                    )
         result["observed"].update(
             {
                 "exchange": data.get("exchange"),
@@ -78,17 +103,13 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                 "currency": data.get("currency"),
                 "price_unit": data.get("price_unit"),
                 "point_count": len(points) if isinstance(points, list) else None,
-                "first_date": meta.get("first_date"),
-                "last_date": meta.get("last_date"),
-                "meta_count": meta.get("count"),
-                "data_freshness": meta.get("data_freshness"),
-                "validation_findings": (
-                    validate_history_points(points) + validate_m61_evaluation_window(points)
-                    if isinstance(points, list)
-                    else ["points:not_list"]
-                ),
+                "first_date": meta.get("first_date") if isinstance(meta, dict) else None,
+                "last_date": meta.get("last_date") if isinstance(meta, dict) else None,
+                "meta_count": meta.get("count") if isinstance(meta, dict) else None,
+                "data_freshness": meta.get("data_freshness") if isinstance(meta, dict) else None,
             }
         )
+    result["observed"]["validation_findings"] = findings
     result["raw_sha256"] = hashlib.sha256(raw_body).hexdigest()
     if status != 200:
         result["error"] = payload
@@ -135,7 +156,11 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    return 0 if all(r["status_code"] == 200 for r in run["results"]) else 1
+    return 0 if all(
+        result["status_code"] == 200
+        and not result.get("observed", {}).get("validation_findings", [])
+        for result in run["results"]
+    ) else 1
 
 
 if __name__ == "__main__":
