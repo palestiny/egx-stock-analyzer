@@ -216,3 +216,72 @@ def test_probe_rejects_provider_response_for_different_symbol(monkeypatch, tmp_p
         in result["observed"]["validation_findings"]
     )
     assert probe_result_passes(result) is False
+
+
+def test_probe_rejects_missing_success_and_coverage_metadata(monkeypatch, tmp_path: Path):
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10,
+            "volume": 100,
+        }
+    ]
+    payload = {
+        "data": {
+            "exchange": "EGX",
+            "ticker": "COMI",
+            "currency": "EGP",
+            "price_unit": "major",
+            "points": points,
+        },
+        "meta": {"count": 1},
+    }
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (200, payload, b"raw"),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    findings = result["observed"]["validation_findings"]
+    assert "response:success_flag_not_true" in findings
+    assert "response:meta_first_date_missing" in findings
+    assert "response:meta_last_date_missing" in findings
+    assert probe_result_passes(result) is False
+
+
+def test_probe_rejects_provider_metadata_date_mismatch(monkeypatch, tmp_path: Path):
+    points = [
+        {
+            "date": "2025-01-02",
+            "open": 10,
+            "high": 11,
+            "low": 9,
+            "close": 10,
+            "volume": 100,
+        }
+    ]
+    payload = {
+        "success": True,
+        "data": {
+            "exchange": "EGX",
+            "ticker": "COMI",
+            "currency": "EGP",
+            "price_unit": "major",
+            "points": points,
+        },
+        "meta": {"count": 1, "first_date": "2025-01-03", "last_date": "2025-01-02"},
+    }
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (200, payload, b"raw"),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    findings = result["observed"]["validation_findings"]
+    assert "response:meta_first_date_mismatch=2025-01-03;actual=2025-01-02" in findings
+    assert probe_result_passes(result) is False
