@@ -222,6 +222,8 @@ def create_app(
             if authenticator is not None:
                 identity = authenticator.authenticate(authorization)
             else:
+                if operator_authenticator is None:
+                    raise HTTPException(status_code=503, detail="Authentication is not configured")
                 identity = operator_authenticator.authenticate(authorization)
         except AuthenticationError as error:
             auth_rate_limiter.record_failure(client_key)
