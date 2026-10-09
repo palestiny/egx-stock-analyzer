@@ -95,8 +95,25 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError("Invalid market observation") from exc
             if item.timestamp.tzinfo is None or item.timestamp.utcoffset() is None:
                 raise HistoricalDatasetIntegrityError("Market timestamp must be timezone-aware")
+            if not item.timeframe.strip():
+                raise HistoricalDatasetIntegrityError("Market observation timeframe cannot be empty")
             if not item.source.strip():
                 raise HistoricalDatasetIntegrityError("Market observation source cannot be empty")
+            market_values = (item.open, item.high, item.low, item.close, item.volume)
+            if any(not value.is_finite() for value in market_values):
+                raise HistoricalDatasetIntegrityError("Market OHLCV values must be finite")
+            if any(value <= 0 for value in (item.open, item.high, item.low, item.close)):
+                raise HistoricalDatasetIntegrityError("Market prices must be positive")
+            if item.volume < 0:
+                raise HistoricalDatasetIntegrityError("Market volume cannot be negative")
+            if (
+                item.low > item.high
+                or item.low > item.open
+                or item.low > item.close
+                or item.high < item.open
+                or item.high < item.close
+            ):
+                raise HistoricalDatasetIntegrityError("Market OHLC values are inconsistent")
             key = (item.stock_id, item.timeframe, item.timestamp)
             if key in seen:
                 raise HistoricalDatasetIntegrityError("Duplicate market observation")
@@ -142,6 +159,14 @@ class HistoricalDatasetLoader:
                 )
             except (ValueError, InvalidOperation) as exc:
                 raise HistoricalDatasetIntegrityError("Invalid financial snapshot") from exc
+            financial_values = (
+                item.revenue,
+                item.net_income,
+                item.current_assets,
+                item.current_liabilities,
+            )
+            if any(value is not None and not value.is_finite() for value in financial_values):
+                raise HistoricalDatasetIntegrityError("Financial snapshot values must be finite")
             if item.available_at < item.period_end:
                 raise HistoricalDatasetIntegrityError(
                     "Financial snapshot available_at cannot precede period_end"
