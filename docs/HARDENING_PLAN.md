@@ -12,6 +12,11 @@
 - PR #243 — Python 3.12 test coverage, Ruff critical/datetime lint, scoped mypy, 85% unit-test coverage floor, dependency audit, and Cairo market-date helper; CI passed before merge.
 - PR #247 — container baseline, explicit CORS configuration, trusted-proxy handling, and financial disclaimer; API/frontend container builds and CI passed before merge.
 - PR #248 — removal of 47 unused imports and enforcement of Ruff F401; CI passed before merge.
+- PR #258 — Nginx security headers, hidden-file denial, bounded request size/timeouts, and explicit upstream timeouts; container-build CI passed.
+- PR #259 — isolate scheduled-workflow history query methods from the SQLite store implementation; all CI checks passed.
+- PR #261 — extract user-management and audit API routes from the API composition module; all CI checks passed.
+- PR #262 — extract market-intelligence and signal routes; all CI checks passed.
+- PR #264 — extract scheduled-workflow listing, history, and recovery routes; all CI checks passed. `app/api/main.py` is now about 583 lines instead of roughly 950–980.
 - PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
 - PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12, with frontend, integration, container-build, and dependency-audit jobs successful.
 - PR #255 — add frontend ESLint and `npm audit --audit-level=high`; upgrade the vulnerable transitive `source-map-js` lock entry from 1.2.1 to patched 1.2.2; remove frontend lint errors around effect-driven loading and unused globals/imports. CI passed on Python 3.12, frontend lint/tests/build, integration tests, container builds, and Python dependency audit; unit suite reported 966 passed, 7 deselected, with 91.06% coverage.
@@ -88,8 +93,8 @@ Same-origin frontend/API routing is the default. For a separately hosted fronten
 - **Production perimeter:** the included Compose stack is HTTP-only and loopback-bound. A real deployment still needs a trusted TLS terminator, host/firewall restrictions, secret management, request-size/time limits, and edge rate-limit configuration. The Nginx limit in this repository is per instance and needs tuning for expected traffic.
 - **Operational recovery:** SQLite WAL, timeout, concurrency behavior, and a backup/restore smoke test are covered. A production operator still needs scheduled backups and a tested restore drill on the actual deployment volume.
 - **License:** no license was added because choosing the legal reuse terms requires the repository owner's explicit decision.
-- **Maintainability:** the large API composition module and workflow store were not split during this pass. The repository's sequential decision records are retained for traceability; overlapping hardening guidance was consolidated. Defer broad structural refactors until the M61 evidence gate is closed.
-- **Type-check scope:** CI now runs mypy on hardened authentication primitives, not the entire application. Expanding the checked surface remains follow-up work after the current M61 priority.
+- **Maintainability:** API routes are now split into focused market-intelligence, user-management/audit, and scheduled-workflow router modules; workflow history queries are separated from the main SQLite store. Sequential decision records are retained for traceability; overlapping hardening guidance was consolidated. Further broad structural refactors remain paused until the M61 evidence gate is closed.
+- **Type-check scope:** CI runs mypy on hardened authentication primitives and the extracted API route modules, not the entire application. Expanding the checked surface remains follow-up work after the current M61 priority.
 
 ## License decision remains open
 
