@@ -16,7 +16,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from tools.m61_market_validation import validate_history_points, validate_m61_evaluation_window
@@ -119,15 +119,13 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
             if "count" not in meta or meta.get("count") is None:
                 findings.append("response:meta_count_missing")
             else:
-                try:
-                    reported_count = int(meta["count"])
-                except (TypeError, ValueError):
+                reported_count = meta["count"]
+                if isinstance(reported_count, bool) or not isinstance(reported_count, int):
                     findings.append("response:meta_count_invalid")
-                else:
-                    if reported_count != len(points):
-                        findings.append(
-                            f"response:meta_count_mismatch={reported_count};actual={len(points)}"
-                        )
+                elif reported_count != len(points):
+                    findings.append(
+                        f"response:meta_count_mismatch={reported_count};actual={len(points)}"
+                    )
             if points:
                 actual_first = str(points[0].get("date", "")).strip()
                 actual_last = str(points[-1].get("date", "")).strip()
@@ -137,16 +135,8 @@ def probe_symbol(symbol: str, api_key: str, preserve_raw: bool, output_dir: Path
                         findings.append(f"response:meta_{field}_missing")
                     else:
                         try:
-                            reported_date = datetime.fromisoformat(
-                                reported.strip().replace("Z", "+00:00")
-                            ).date() if "T" in reported else datetime.strptime(
-                                reported.strip(), "%Y-%m-%d"
-                            ).date()
-                            actual_date = datetime.fromisoformat(
-                                actual.replace("Z", "+00:00")
-                            ).date() if "T" in actual else datetime.strptime(
-                                actual, "%Y-%m-%d"
-                            ).date()
+                            reported_date = date.fromisoformat(reported.strip())
+                            actual_date = date.fromisoformat(actual)
                         except ValueError:
                             findings.append(f"response:meta_{field}_invalid")
                         else:
