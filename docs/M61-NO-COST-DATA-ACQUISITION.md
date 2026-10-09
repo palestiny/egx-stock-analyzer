@@ -62,3 +62,10 @@ The no-cost path is allowed to produce candidate artifacts and validation findin
 6. immutable artifacts, checksums, transformation manifest, and reproducible Strategy v0 evaluation.
 
 If free sources cannot satisfy a gate, record the exact gap and exclude that claim or strategy input. Do not fabricate missing observations or silently upgrade a candidate to accepted.
+
+
+## Live Yahoo probe result — 2026-10-09
+
+A metadata-only GitHub Actions probe completed at [run #37920812142](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37920812142) without preserving price rows. The endpoint returned HTTP 200 for all ten candidate tickers and showed broad date coverage through 2025-12-31 (FWRY began later, on 2019-08-14). However, this is **not a usable M61 dataset**: the response metadata classified all ten tickers as `MUTUALFUND`, and the OHLCV validator reported hundreds of inconsistent rows per ticker, including null bars. Source terms and long-term storage rights also remain unverified.
+
+**Decision:** reject this Yahoo response as an M61 acceptance source for now. The probe proves only that the endpoint responds and returns a long series; row count/coverage alone must not override identity and data-quality failures. Continue with the public EGID/EGX feed contract investigation rather than laundering this candidate into the dataset.
