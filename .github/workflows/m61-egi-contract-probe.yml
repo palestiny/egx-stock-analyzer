@@ -21,5 +21,5 @@ jobs:
       - name: Inspect public Swagger contract only
         shell: bash
         run: |
-          python -m tools.m61_egi_contract_probe --output "$RUNNER_TEMP/egi-contract.json"
-          cat "$RUNNER_TEMP/egi-contract.json"
+          python -m tools.m61_egid_contract_probe --output "$RUNNER_TEMP/egid-contract.json"
+          cat "$RUNNER_TEMP/egid-contract.json"
