@@ -189,3 +189,30 @@ def test_probe_rejects_provider_meta_count_mismatch(monkeypatch, tmp_path: Path)
 
     assert "response:meta_count_mismatch=2;actual=1" in result["observed"]["validation_findings"]
     assert probe_result_passes(result) is False
+
+
+
+def test_probe_rejects_provider_response_for_different_symbol(monkeypatch, tmp_path: Path):
+    payload = {
+        "success": True,
+        "data": {
+            "exchange": "EGX",
+            "ticker": "EGAL",
+            "currency": "EGP",
+            "price_unit": "major",
+            "points": [],
+        },
+        "meta": {"count": 0},
+    }
+    monkeypatch.setattr(
+        "tools.egx_stock_analyzer_m61_probe.request_json",
+        lambda path, params, api_key: (200, payload, b"raw"),
+    )
+
+    result = probe_symbol("COMI", "secret-test-key", False, tmp_path)
+
+    assert (
+        "response:identity_mismatch=ticker;expected=COMI;actual=EGAL"
+        in result["observed"]["validation_findings"]
+    )
+    assert probe_result_passes(result) is False
