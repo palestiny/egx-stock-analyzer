@@ -250,13 +250,13 @@ def build_candidate_package(
         "symbol", "ticker", "ticker symbol", "stock symbol", "security code",
         "instrument symbol",
     }
-    normalized_headers = {
-        header.strip().casefold(): header for header in (reader.fieldnames or [])
-    }
+    normalized_headers: dict[str, list[str]] = {}
+    for header in reader.fieldnames or []:
+        normalized_headers.setdefault(header.strip().casefold(), []).append(header)
     matched_symbol_headers = [
-        normalized_headers[name]
+        header
         for name in symbol_headers
-        if name in normalized_headers
+        for header in normalized_headers.get(name, [])
     ]
     if len(matched_symbol_headers) > 1:
         raise ValueError(
