@@ -70,6 +70,10 @@ class HistoricalDatasetLoader:
 
     def load_market_observations(self) -> list[HistoricalMarketObservation]:
         manifest = self.load_manifest()
+        provenance = manifest.market_observations.provenance
+        if provenance is None:
+            raise HistoricalDatasetIntegrityError("Market artifact provenance is required")
+        expected_source = provenance.provider
         path = self._root / manifest.market_observations.path
         rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
         if len(rows) != manifest.market_observations.row_count:
@@ -104,6 +108,10 @@ class HistoricalDatasetLoader:
                 raise HistoricalDatasetIntegrityError("Market observation timeframe cannot be empty")
             if not item.source.strip():
                 raise HistoricalDatasetIntegrityError("Market observation source cannot be empty")
+            if item.source != expected_source:
+                raise HistoricalDatasetIntegrityError(
+                    "Market observation source does not match manifest provider"
+                )
             market_values = (item.open, item.high, item.low, item.close, item.volume)
             if any(not value.is_finite() for value in market_values):
                 raise HistoricalDatasetIntegrityError("Market OHLCV values must be finite")
@@ -149,6 +157,10 @@ class HistoricalDatasetLoader:
 
     def load_financial_snapshots(self) -> list[HistoricalFinancialSnapshotRecord]:
         manifest = self.load_manifest()
+        provenance = manifest.financial_snapshots.provenance
+        if provenance is None:
+            raise HistoricalDatasetIntegrityError("Financial artifact provenance is required")
+        expected_source = provenance.provider
         path = self._root / manifest.financial_snapshots.path
         rows = list(csv.DictReader(path.open(encoding="utf-8", newline="")))
         if len(rows) != manifest.financial_snapshots.row_count:
@@ -189,6 +201,10 @@ class HistoricalDatasetLoader:
                 )
             if not item.source.strip():
                 raise HistoricalDatasetIntegrityError("Financial snapshot source cannot be empty")
+            if item.source != expected_source:
+                raise HistoricalDatasetIntegrityError(
+                    "Financial snapshot source does not match manifest provider"
+                )
             if not item.revision.strip():
                 raise HistoricalDatasetIntegrityError("Financial snapshot revision cannot be empty")
             snapshots.append(item)
