@@ -11,7 +11,7 @@ import argparse
 import csv
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
