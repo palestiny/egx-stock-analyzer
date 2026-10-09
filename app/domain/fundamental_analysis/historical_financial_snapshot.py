@@ -18,7 +18,13 @@ class HistoricalFinancialSnapshot:
             )
 
     def is_available_at(self, decision_date: date) -> bool:
-        return self.available_at <= decision_date
+        """Apply date-only availability conservatively.
+
+        A calendar date does not prove that a disclosure was available before
+        that day's market decision. Treat it as available from the following
+        calendar date unless a future contract records an exact publication time.
+        """
+        return self.available_at < decision_date
 
     def to_financial_period(self) -> FinancialPeriod:
         return self.period

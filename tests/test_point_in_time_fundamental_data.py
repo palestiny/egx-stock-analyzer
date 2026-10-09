@@ -112,3 +112,19 @@ class _Source:
 
     def get_snapshots(self, stock):
         return list(self._snapshots)
+
+
+
+def test_same_day_availability_is_excluded_without_publication_time_evidence():
+    stock = Stock(uuid4(), "COMI", "Commercial International Bank")
+    same_day = snapshot(2024, date(2025, 3, 1), "999")
+    previous_day = snapshot(2023, date(2025, 2, 28), "888")
+    source = _Source([same_day, previous_day, snapshot(2022, date(2024, 2, 1), "777")])
+
+    current, previous = PointInTimeFundamentalDataProvider(source).get_periods(
+        stock,
+        date(2025, 3, 1),
+    )
+
+    assert current.period_end == date(2023, 12, 31)
+    assert previous.period_end == date(2022, 12, 31)
