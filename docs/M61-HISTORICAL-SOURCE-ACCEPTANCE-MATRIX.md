@@ -89,3 +89,12 @@ The repository now contains `tools/m61_egid_contract_probe.py` plus deterministi
 | Existing brokerage/platform CSV export | Not yet supplied or verified | Potential no-cost intake route, conditional on source terms |
 
 The owner cannot pay for paid feeds. The remaining no-cost path is a real, permitted CSV export already available to the owner, followed by the existing immutable candidate builder and acceptance gate. No source is currently accepted, and point-in-time financial snapshots remain a separate blocker.
+
+
+## Bounded no-cost probe outcomes — 2026-10-09
+
+- **EGID/EGX documented history routes:** unauthenticated COMI requests to both `POST /api/DelayedFeed/getSymbolHistory` and `POST /api/Feed/GetSymbolHistory` returned HTTP 401. This establishes an authentication/access boundary, not that authorized access is impossible. No credentials were sent and no price values were retained. [Probe run](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37922382383).
+- **Yahoo ticker variants:** `COMI.CA` returned 1,716 rows from 2019-01-01 through 2025-12-31, but metadata said `MUTUALFUND` and the validator reported 410 findings, including OHLC contradictions. `COMI.EG`, `COMI.EGX`, `COMI.EY`, and bare `COMI` returned HTTP 404. This rejects the simple ticker-suffix fix; no raw price rows were saved. [Probe run](https://github.com/palestiny/egx-stock-analyzer/actions/runs/37922610741).
+- **Other public code projects reviewed:** `egx-data` uses Yahoo Finance and a browser CORS proxy; `egxpy` advertises a free downloader but does not establish an independent, licensed source in the reviewed README; `borsa` is a useful MIT-licensed quote aggregator but its documented endpoints do not provide historical bars, and its Yahoo integration is explicitly unofficial and disabled by default.
+
+**Current decision:** no verified no-cost source has yet supplied the required immutable 2019–2025 daily OHLCV artifact plus 252-session warm-up for the ten-symbol cohort, and no complete point-in-time financial artifact is present in the repository. Do not accept the synthetic test fixture as market evidence or create missing observations. The next valid transition requires either (a) an owner-accessible CSV/API export whose actual terms permit local historical research/backtesting, or (b) a legitimately authorized free provider account/API key with its storage/use terms verified. The existing inspector and candidate builder are ready to validate such artifacts; they cannot manufacture the missing source evidence.
