@@ -232,6 +232,46 @@ def _parse_chart(ticker: str, payload: object) -> tuple[list[dict[str, object]],
     return points, meta_out, findings
 
 
+def summarize_ohlc_integrity(points: list[dict[str, object]]) -> dict[str, int]:
+    """Count OHLC consistency failures by field pair without exposing price values."""
+    counts = {
+        "valid_rows": 0,
+        "missing_or_non_numeric_rows": 0,
+        "low_above_open": 0,
+        "low_above_close": 0,
+        "high_below_open": 0,
+        "high_below_close": 0,
+        "low_above_high": 0,
+        "adjusted_close_differs_from_close": 0,
+    }
+    for point in points:
+        numeric: dict[str, float] = {}
+        for field in ("open", "high", "low", "close"):
+            value = point.get(field)
+            if not _finite_number(value):
+                break
+            numeric[field] = float(value)
+        if len(numeric) != 4:
+            counts["missing_or_non_numeric_rows"] += 1
+            continue
+        counts["valid_rows"] += 1
+        if numeric["low"] > numeric["open"]:
+            counts["low_above_open"] += 1
+        if numeric["low"] > numeric["close"]:
+            counts["low_above_close"] += 1
+        if numeric["high"] < numeric["open"]:
+            counts["high_below_open"] += 1
+        if numeric["high"] < numeric["close"]:
+            counts["high_below_close"] += 1
+        if numeric["low"] > numeric["high"]:
+            counts["low_above_high"] += 1
+        close = point.get("close")
+        adj_close = point.get("adj_close")
+        if _finite_number(close) and _finite_number(adj_close) and float(close) != float(adj_close):
+            counts["adjusted_close_differs_from_close"] += 1
+    return counts
+
+
 def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path) -> dict[str, Any]:
     status_code, payload, raw = request_chart(ticker)
     points, meta, parse_findings = _parse_chart(ticker, payload)
@@ -259,6 +299,7 @@ def probe_ticker(symbol: str, ticker: str, preserve_raw: bool, output_dir: Path)
             "sha256_of_response": hashlib.sha256(raw).hexdigest() if raw else None,
             "response_bytes": len(raw),
             "validation_findings": findings,
+            "ohlc_integrity_summary": summarize_ohlc_integrity(points),
             "corporate_action_event_rows": sum(
                 1 for point in points if point.get("dividend") is not None or point.get("split_numerator") is not None
             ),
