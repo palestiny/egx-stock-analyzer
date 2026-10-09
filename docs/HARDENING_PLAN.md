@@ -71,6 +71,21 @@ The frontend is available at `http://localhost:8080` by default, bound to loopba
 
 ### TLS and reverse proxy
 
+The default Compose stack is loopback-bound HTTP for local use. An optional `compose.production.yaml` overlay now provides a Caddy TLS edge with automatic certificate management. Set `EGX_DOMAIN` to a public DNS name pointing to the server and `ACME_EMAIL` to an operator email, then open inbound TCP 80/443 (and UDP 443 for HTTP/3) in the host firewall:
+
+```powershell
+$env:EGX_OPERATOR_TOKEN = "<long-random-secret>"
+$env:EGX_DOMAIN = "stocks.example.com"
+$env:ACME_EMAIL = "ops@example.com"
+docker compose --file compose.yaml --file compose.production.yaml up --build -d
+```
+
+Caddy terminates HTTPS and redirects HTTP to HTTPS. The API remains internal to Compose. The frontend Nginx trusts `X-Real-IP` only from the Caddy container's fixed address on the production Compose network, so per-client API throttling keeps the originating client IP. The production overlay reserves `172.30.0.0/24`; verify that this subnet does not conflict with the host's existing networks before deployment. CI validates both Compose configurations and the Caddyfile, but cannot verify your DNS, firewall, or certificate issuance.
+
+Do not expose the API container directly to the internet. If using another external TLS proxy instead of the supplied Caddy overlay, follow that proxy's trusted-client-IP configuration and do not enable `EGX_TRUST_PROXY_HEADERS` unless the API can only be reached through a proxy that overwrites `X-Real-IP`.
+
+
+
 This Compose stack serves HTTP only. It is intended for local validation or operation behind a trusted TLS-terminating reverse proxy/load balancer. Do not expose it directly to the public internet without HTTPS, host-level firewall rules, request-size/time limits, access logs, and trusted proxy configuration. The API is not published to the host by default.
 
 ### CORS
