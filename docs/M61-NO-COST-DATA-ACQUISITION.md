@@ -118,8 +118,3 @@ References:
 **Decision:** technically consistent data does not equal legally usable data. This route is rejected for automated dataset acquisition; do not repeat automated collection or persist the diagnostic results.
 
 
-## Bounded Yahoo chart probe — 2026-10-09
-
-The metadata-only live probe reached the Yahoo chart endpoint for all ten configured .CA symbols (HTTP 200), with Cairo timezone metadata and history through 2025-12-31. Nine symbols returned 1,716 daily observations; FWRY returned 1,555 from 2019-08-14. The probe surfaced 340–457 validation findings per symbol, including repeated high/low versus OHLC inconsistencies and null/invalid values. Raw responses and price rows were not retained.
-
-**Result:** Yahoo is not accepted for Strategy v0 evaluation. Quality findings need root-cause investigation, source terms/long-term storage rights are unverified, and the endpoint supplies no point-in-time financial snapshots. The workflow is diagnostic only and must not be treated as approval to archive or redistribute provider data.
