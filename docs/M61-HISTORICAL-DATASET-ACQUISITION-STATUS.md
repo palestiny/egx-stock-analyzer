@@ -2,7 +2,7 @@
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
 **Decision:** DEC-130  
-**Updated:** 2026-10-09 — candidate package builder, CSV row-integrity checks, stable development stock identities, and acceptance workflow verified in CI
+**Updated:** 2026-10-09 — strict canonical CSV parsing and annual evaluation-window coverage checks merged and verified in CI
 
 ## Purpose
 
@@ -161,6 +161,8 @@ The current `main` branch includes the following dataset-readiness improvements,
 - Vendor CSV intake rejects malformed rows rather than silently skipping them into a package.
 - Stable development stock identities exist for the bounded cohort; these are identity fixtures and do not imply that real market data has been acquired.
 - The acceptance path checks internal COMI identity mapping, market/financial identity consistency, warm-up and evaluation coverage, corporate-action declaration, and explicit licensing attestation.
+- PR #290 — merged strict CSV parsing at both the external evidence inspector and canonical dataset loader: duplicate headers, malformed quoting, non-canonical headers, and rows with missing/extra fields are rejected/reported rather than collapsed or allowed to crash the intake path. CI passed.
+- PR #291 — merged a minimum annual evaluation-coverage gate: the COMI acceptance report now names missing years in 2021–2025 and does not require a market observation on the exact calendar date 2025-12-31. CI passed. This remains a minimum gate, not a substitute for an EGX session-calendar gap audit.
 - The candidate packaging workflow and commands are documented in `docs/M61-EXTERNAL-CSV-EVIDENCE-INTAKE.md`.
 
 These are software and workflow checks. They do **not** constitute a real dataset or demonstrate strategy profitability.
