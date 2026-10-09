@@ -23,6 +23,8 @@
 - PR #252 — shared Nginx per-client API throttling, bounded in-process authentication limiter state, SQLite WAL reader/writer regression coverage, and backup/restore smoke test; CI passed before merge.
 - PR #253 — enable the full Ruff F-rule family alongside critical E and timezone rules; moved two accidentally misplaced simulator tests out of production code, restored their test discovery, corrected their warmup expectations, and fixed the missing `user_management` runtime exposure; CI passed on Python 3.12, with frontend, integration, container-build, and dependency-audit jobs successful.
 - PR #255 — add frontend ESLint and `npm audit --audit-level=high`; upgrade the vulnerable transitive `source-map-js` lock entry from 1.2.1 to patched 1.2.2; remove frontend lint errors around effect-driven loading and unused globals/imports. CI passed on Python 3.12, frontend lint/tests/build, integration tests, container builds, and Python dependency audit; unit suite reported 966 passed, 7 deselected, with 91.06% coverage.
+- PR #276 — M61 data validation hardening: corrected the 252-session warm-up range, distinct-session counts, Cairo-local CSV timestamps, fail-closed provider response validation, and canonical OHLCV/financial numeric checks. CI passed: 988 unit tests, 91.07% coverage, integration tests, frontend checks, dependency audit, and container builds.
+- PR #277 — M61 acceptance hardening: explicit license attestations for both market and financial sources, supported corporate-action conventions, point-in-time financial availability coverage for each 2021–2025 evaluation year, and duplicate daily-session rejection across timestamp offsets. CI passed.
 
 ## Security and credential migration
 
