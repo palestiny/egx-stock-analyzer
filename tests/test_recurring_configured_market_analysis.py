@@ -7,8 +7,8 @@ import pytest
 from app.application.execution.recurring_configured_market_analysis import (
     RecurringConfiguredMarketAnalysis,
 )
-from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import (
-    RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+from app.application.execution.run_durable_scheduled_workflow import (
+    RunDurableScheduledWorkflow,
 )
 
 
@@ -32,7 +32,7 @@ class FakeScheduler:
 
 
 def make_recurring(clock: FakeClock, scheduler: FakeScheduler, workflow=None):
-    workflow = workflow or Mock(spec=RunConfiguredMarketAnalysisWithAutomaticAlertDelivery)
+    workflow = workflow or Mock(spec=RunDurableScheduledWorkflow)
     return RecurringConfiguredMarketAnalysis(
         workflow,
         scheduler,
