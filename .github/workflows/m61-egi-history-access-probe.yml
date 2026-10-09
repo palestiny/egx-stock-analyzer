@@ -1,0 +1,25 @@
+name: M61 EGID no-cost history access probe
+
+on:
+  push:
+    branches:
+      - m61/egi-history-access-probe
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Make one unauthenticated history request without logging prices
+        shell: bash
+        run: |
+          python -m tools.m61_egid_history_access_probe --output "$RUNNER_TEMP/egid-history-access.json"
+          cat "$RUNNER_TEMP/egid-history-access.json"
