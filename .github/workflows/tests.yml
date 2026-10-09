@@ -106,6 +106,9 @@ jobs:
         run: docker build --file frontend/Dockerfile --tag egx-stock-analyzer-frontend:ci .
       - name: Validate Nginx configuration on the Compose network
         run: |
-          docker compose up -d --wait api
-          docker compose run --rm frontend nginx -t
+          timeout 90s docker compose up -d --wait api || { docker compose logs api; exit 1; }
+          timeout 30s docker compose run --rm --no-deps frontend nginx -t
           docker compose down -v
+      - name: Clean up Compose services
+        if: always()
+        run: docker compose down -v
