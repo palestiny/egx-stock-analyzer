@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import json
 import urllib.request
+from datetime import date
 from collections import defaultdict
 from decimal import Decimal
 from statistics import median
@@ -49,11 +50,12 @@ def _fetch_rows(symbol: str, page_url: str, csv_url: str) -> list[dict[str, Any]
         try:
             if len(session) != 10 or session[4] != "-" or session[7] != "-":
                 raise ValueError("invalid ISO date")
+            date.fromisoformat(session)
             opening, high, low, close = (Decimal(v.strip()) for v in line[1:5])
             volume = Decimal(line[5].strip())
             if min(opening, high, low, close) <= 0 or volume < 0:
                 raise ValueError("non-positive OHLC or negative volume")
-            if high < max(opening, close, low) or low > min(opening, close):
+            if high < max(opening, close) or low > min(opening, close) or high < low:
                 raise ValueError("invalid OHLC relationships")
             if session in seen:
                 rejected += 1
