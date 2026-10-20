@@ -128,3 +128,46 @@ def test_pre_breakout_proxy_requires_momentum_volume_and_prior_resistance() -> N
 
     assert group["1"]["samples"] >= 1
     assert group["3"]["samples"] >= 1
+
+
+
+def test_price_discontinuity_audit_flags_close_move_and_overnight_gap_without_rewriting_bars() -> None:
+    rows = _rows(5)
+    rows[2]["open"] = rows[1]["close"] * Decimal("1.25")
+    rows[2]["high"] = rows[2]["open"] + Decimal("0.1")
+    rows[2]["low"] = rows[2]["open"] - Decimal("0.1")
+    rows[2]["close"] = rows[2]["open"]
+    original_open = rows[2]["open"]
+
+    flagged = diagnostic._find_price_discontinuities(rows)
+
+    assert len(flagged) == 1
+    assert flagged[0]["date"] == rows[2]["date"]
+    assert flagged[0]["previous_date"] == rows[1]["date"]
+    assert flagged[0]["previous_close"] == str(rows[1]["close"])
+    assert flagged[0]["open"] == str(original_open)
+    assert flagged[0]["overnight_gap"] == "0.25"
+    assert rows[2]["open"] == original_open
+
+
+def test_price_discontinuity_audit_flags_large_close_to_close_move() -> None:
+    rows = _rows(4)
+    rows[2]["close"] = rows[1]["close"] * Decimal("0.70")
+    rows[2]["open"] = rows[2]["close"]
+    rows[2]["high"] = rows[2]["close"] + Decimal("0.1")
+    rows[2]["low"] = rows[2]["close"] - Decimal("0.1")
+
+    flagged = diagnostic._find_price_discontinuities(rows)
+
+    assert len(flagged) == 1
+    assert flagged[0]["date"] == rows[2]["date"]
+    assert flagged[0]["close_to_close_change"] == "-0.3"
+
+
+def test_price_discontinuity_audit_rejects_non_positive_threshold() -> None:
+    try:
+        diagnostic._find_price_discontinuities(_rows(3), Decimal("0"))
+    except ValueError as exc:
+        assert "threshold must be positive" in str(exc)
+    else:
+        raise AssertionError("Non-positive threshold must be rejected")
