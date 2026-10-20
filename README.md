@@ -14,6 +14,7 @@ The system currently supports:
 
 - market and annual fundamental data acquisition through replaceable infrastructure providers;
 - technical and fundamental analysis;
+- market breadth and a transparent heuristic stress pulse computed from existing saved analysis snapshots;
 - technical/fundamental scoring;
 - stock quality and entry quality;
 - opportunity classification;

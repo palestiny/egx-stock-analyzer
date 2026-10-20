@@ -87,6 +87,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
+from app.application.market_intelligence.calculate_market_breadth import CalculateMarketBreadth
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.application.market_intelligence.rank_sectors import RankSectors
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
@@ -146,6 +147,7 @@ def create_app(
         )
     get_analysis_result = GetAnalysisResult(result_store)
     rank_momentum_leaders = RankMomentumLeaders(result_store)
+    calculate_market_breadth = CalculateMarketBreadth(result_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
@@ -258,6 +260,7 @@ def create_app(
             scan_fibonacci=scan_fibonacci,
             scan_breakouts=scan_breakouts,
             generate_signal=generate_signal,
+            calculate_market_breadth=calculate_market_breadth,
             require_authenticated=require_authenticated,
         )
     )

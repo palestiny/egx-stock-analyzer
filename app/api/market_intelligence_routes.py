@@ -10,6 +10,7 @@ from app.api.sector_intelligence_response import SectorRankingResponse
 from app.api.signal_response import signal_to_dict
 from app.api.technical_scanner_response import TechnicalScannerResponse
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
+from app.application.market_intelligence.calculate_market_breadth import CalculateMarketBreadth
 from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
@@ -27,10 +28,26 @@ def create_market_intelligence_router(
     scan_fibonacci: ScanFibonacciOpportunities,
     scan_breakouts: ScanBreakouts,
     generate_signal: GenerateSignal,
+    calculate_market_breadth: CalculateMarketBreadth,
     require_authenticated: Callable[..., AuthenticatedIdentity],
 ) -> APIRouter:
     """Register deterministic market-intelligence routes behind the app's auth boundary."""
     router = APIRouter()
+
+    @router.get("/api/v1/market-intelligence/breadth-stress")
+    def get_market_breadth_stress(
+        symbols: str = "",
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        requested_symbols = [
+            symbol.strip().upper()
+            for symbol in symbols.split(",")
+            if symbol.strip()
+        ]
+        try:
+            return calculate_market_breadth.execute(requested_symbols).to_dict()
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
 
     # The dependency object must be attached directly to each route parameter; this
     # local alias only keeps the route declarations readable.
