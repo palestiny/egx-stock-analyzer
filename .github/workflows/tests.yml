@@ -25,6 +25,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+      - name: Run diagnostic backtest on public COMI history
+        run: python -m tools.m61_public_comi_sample_backtest
       - name: Run lint
         run: ruff check app tests
       - name: Type-check application package
