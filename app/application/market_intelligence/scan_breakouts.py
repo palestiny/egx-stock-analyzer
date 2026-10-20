@@ -16,6 +16,17 @@ from app.domain.technical_analysis.volume import VolumeStatus
 class ScanBreakouts:
     result_store: AnalysisResultStore
 
+    @staticmethod
+    def _quality_score(*, confirmed: bool, trend_aligned: bool, volume_confirmed: bool, stock_quality: int) -> int:
+        """Score evidence completeness, not the probability of a profitable trade."""
+        score = 30 if confirmed else 20
+        if trend_aligned:
+            score += 25
+        if volume_confirmed:
+            score += 25
+        score += round(max(0, min(stock_quality, 100)) * 0.20)
+        return min(score, 100)
+
     def execute(
         self,
         symbols: list[str],
@@ -46,24 +57,24 @@ class ScanBreakouts:
             current = entry.current_price.value
             resistance = entry.nearest_resistance
             support = entry.nearest_support
+            stock_quality = int(result.stock_quality.total_score)
+            volume_confirmed = technical.volume.status is VolumeStatus.ABOVE_AVERAGE
 
             if resistance is not None and resistance.price.value > 0:
                 trigger = resistance.price.value
                 distance = (current - trigger) / trigger * Decimal("100")
                 near_threshold = distance >= -tolerance_percent
                 confirmed = distance >= 0
+                trend_aligned = technical.trend.status is TrendStatus.UPTREND
                 evidence: list[str] = [
                     "nearest_resistance_reference",
+                    "trigger_confirmed" if confirmed else "near_trigger",
                 ]
-                score = int(result.stock_quality.total_score)
-
-                if technical.trend.status is TrendStatus.UPTREND:
-                    score += 10
-                    evidence.append("uptrend")
-                if technical.volume.status is VolumeStatus.ABOVE_AVERAGE:
-                    score += 10
+                if trend_aligned:
+                    evidence.append("trend_aligned")
+                if volume_confirmed:
                     evidence.append("above_average_volume")
-                if near_threshold and (confirmed or technical.trend.status is TrendStatus.UPTREND):
+                if near_threshold and (confirmed or trend_aligned):
                     matches.append(
                         BreakoutMatch(
                             symbol=symbol,
@@ -72,7 +83,12 @@ class ScanBreakouts:
                             trigger_price=trigger,
                             current_price=current,
                             distance_percent=distance,
-                            score=min(score, 100),
+                            score=self._quality_score(
+                                confirmed=confirmed,
+                                trend_aligned=trend_aligned,
+                                volume_confirmed=volume_confirmed,
+                                stock_quality=stock_quality,
+                            ),
                             evidence=tuple(evidence),
                         )
                     )
@@ -82,16 +98,16 @@ class ScanBreakouts:
                 distance = (current - trigger) / trigger * Decimal("100")
                 near_threshold = distance <= tolerance_percent
                 confirmed = distance <= 0
-                evidence = ["nearest_support_reference"]
-                score = int(result.stock_quality.total_score)
-
-                if technical.trend.status is TrendStatus.DOWNTREND:
-                    score += 10
-                    evidence.append("downtrend")
-                if technical.volume.status is VolumeStatus.ABOVE_AVERAGE:
-                    score += 10
+                trend_aligned = technical.trend.status is TrendStatus.DOWNTREND
+                evidence = [
+                    "nearest_support_reference",
+                    "trigger_confirmed" if confirmed else "near_trigger",
+                ]
+                if trend_aligned:
+                    evidence.append("trend_aligned")
+                if volume_confirmed:
                     evidence.append("above_average_volume")
-                if near_threshold and (confirmed or technical.trend.status is TrendStatus.DOWNTREND):
+                if near_threshold and (confirmed or trend_aligned):
                     matches.append(
                         BreakoutMatch(
                             symbol=symbol,
@@ -100,7 +116,12 @@ class ScanBreakouts:
                             trigger_price=trigger,
                             current_price=current,
                             distance_percent=distance,
-                            score=min(score, 100),
+                            score=self._quality_score(
+                                confirmed=confirmed,
+                                trend_aligned=trend_aligned,
+                                volume_confirmed=volume_confirmed,
+                                stock_quality=stock_quality,
+                            ),
                             evidence=tuple(evidence),
                         )
                     )
