@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
+from app.application.clock import egx_today
 from app.application.market_data.provider import MarketDataProvider
 from app.application.stocks.catalog import StockCatalog
 from app.domain.analysis.stock_regime import StockRegimeAnalyzer, StockRiskProfile
@@ -38,7 +39,7 @@ class AnalyzeStockRegime:
         if stock is None:
             raise ValueError(f"Unknown stock symbol: {normalized}")
 
-        end_date = as_of or date.today()
+        end_date = as_of or egx_today()
         start_date = end_date - timedelta(days=self.LOOKBACK_CALENDAR_DAYS)
         observations = self.market_data_provider.get_daily_observations(
             stock, start_date, end_date
@@ -49,7 +50,7 @@ class AnalyzeStockRegime:
             for observation, assessment in zip(observations, assessments)
             if assessment.status is DataQualityStatus.VALID
         ]
-        valid.sort(key=lambda pair: pair[0].timestamp)
+        valid.sort(\n            key=lambda pair: pair[0].timestamp\n            or datetime.min.replace(tzinfo=timezone.utc)\n        )
         bars: list[PriceBar] = [
             PriceBarFactory.create(observation, assessment)
             for observation, assessment in valid
