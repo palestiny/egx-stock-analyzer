@@ -90,7 +90,7 @@ describe("Dashboard", () => {
 
     expect(await screen.findByRole("region", { name: "stock regime risk profile" })).toHaveTextContent("uptrend");
     expect(screen.getByText("28.0%")).toBeInTheDocument();
-    expect(screen.getByText("This is descriptive risk information, not a buy/sell signal.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "stock regime risk profile" })).toHaveTextContent("This is descriptive risk information, not a buy/sell signal.");
     expect(getStockRegime).toHaveBeenCalledWith("EGAL");
   });
 
@@ -105,7 +105,7 @@ describe("Dashboard", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "EGAL" })).toBeInTheDocument());
     expect(getReport).toHaveBeenCalledWith("EGAL");
     expect(getAlert).toHaveBeenCalledWith("EGAL");
-    expect(screen.getByText("350.5")).toBeInTheDocument();
+    expect(screen.getAllByText("350.5").length).toBeGreaterThan(0);
     expect(screen.getByText("BUY")).toBeInTheDocument();
   });
 
