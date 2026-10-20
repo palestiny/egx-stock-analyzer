@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
@@ -13,6 +13,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getAnalysisComparison: vi.fn(),
   getSnapshotPerformance: vi.fn(),
   getMarketOpportunities: vi.fn(),
+  getStockRegime: vi.fn(),
   getReport: vi.fn(),
   getTechnicalScanner: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
@@ -213,6 +214,45 @@ describe("Dashboard", () => {
     expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
+
+  it("loads trend and risk diagnostics for an opportunity without changing its ranking", async () => {
+    getMarketOpportunities.mockResolvedValue({
+      opportunities: [{
+        symbol: "EGAL",
+        classification: "buy",
+        stock_quality: 6,
+        entry_quality: 2,
+        technical_score: 4,
+        fundamental_score: 2,
+      }],
+      missing_symbols: [],
+    });
+    getStockRegime.mockResolvedValue({
+      symbol: "EGAL",
+      trend: "uptrend",
+      volatility: "medium",
+      latest_close: 375,
+      sma_20: 370,
+      sma_50: 355,
+      annualized_realized_volatility: 0.28,
+      drawdown_from_observed_peak: -0.06,
+      valid_observation_count: 90,
+      latest_observation_date: "2026-10-19",
+      is_trading_signal: false,
+    });
+
+    await renderAuthenticatedApp();
+    fireEvent.click(screen.getByRole("button", { name: "Load Opportunities" }));
+    const row = (await screen.findByText("EGAL")).closest(".detail-row");
+    fireEvent.click(within(row).getByRole("button", { name: "Load trend & risk" }));
+
+    await waitFor(() => expect(getStockRegime).toHaveBeenCalledWith("EGAL"));
+    expect(await within(row).findByText(/Trend: uptrend · Risk: medium/)).toBeInTheDocument();
+    expect(row).toHaveTextContent("Realized volatility: 28.00%");
+    expect(row).toHaveTextContent("Data through 2026-10-19");
+    expect(row).toHaveTextContent("Diagnostic only, not a trading signal.");
+    expect(row).toHaveTextContent("Stock 6");
+  });
 
   it("loads and renders the pre-breakout momentum-volume watchlist", async () => {
     getTechnicalScanner.mockResolvedValue({

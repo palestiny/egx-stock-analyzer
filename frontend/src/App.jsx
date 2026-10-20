@@ -53,6 +53,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [marketView, setMarketView] = useState(null);
   const [marketError, setMarketError] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [opportunityRegimes, setOpportunityRegimes] = useState({});
+  const [opportunityRegimeErrors, setOpportunityRegimeErrors] = useState({});
+  const [opportunityRegimeLoading, setOpportunityRegimeLoading] = useState({});
   const [scannerSymbols, setScannerSymbols] = useState("EGAL,IEEC,COMI");
   const [preBreakoutView, setPreBreakoutView] = useState(null);
   const [preBreakoutError, setPreBreakoutError] = useState(null);
@@ -188,6 +191,25 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     }
   }
 
+
+  async function handleOpportunityRegime(rawSymbol) {
+    const normalizedSymbol = rawSymbol.trim().toUpperCase();
+    if (!normalizedSymbol) return;
+
+    setOpportunityRegimeLoading((current) => ({ ...current, [normalizedSymbol]: true }));
+    setOpportunityRegimeErrors((current) => ({ ...current, [normalizedSymbol]: null }));
+    try {
+      const profile = await getStockRegime(normalizedSymbol);
+      setOpportunityRegimes((current) => ({ ...current, [normalizedSymbol]: profile }));
+    } catch (requestError) {
+      setOpportunityRegimeErrors((current) => ({
+        ...current,
+        [normalizedSymbol]: requestError,
+      }));
+    } finally {
+      setOpportunityRegimeLoading((current) => ({ ...current, [normalizedSymbol]: false }));
+    }
+  }
 
   async function handlePreBreakoutScan(event) {
     event.preventDefault();
@@ -464,6 +486,39 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
                   {item.classification} · Stock {item.stock_quality} · Entry {item.entry_quality}
                   {" "}· Technical {item.technical_score} · Fundamental {item.fundamental_score}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => handleOpportunityRegime(item.symbol)}
+                  disabled={Boolean(opportunityRegimeLoading[item.symbol])}
+                >
+                  {opportunityRegimeLoading[item.symbol] ? "Loading risk..." : "Load trend & risk"}
+                </button>
+                {opportunityRegimeErrors[item.symbol] && (
+                  <span className="state-card error" role="alert">
+                    {opportunityRegimeErrors[item.symbol].message}
+                  </span>
+                )}
+                {opportunityRegimes[item.symbol] && (
+                  <div className="opportunity-regime-summary">
+                    <span>
+                      Trend: {opportunityRegimes[item.symbol].trend} · Risk: {opportunityRegimes[item.symbol].volatility}
+                    </span>
+                    <span>
+                      Close {opportunityRegimes[item.symbol].latest_close ?? "—"} · SMA20 {opportunityRegimes[item.symbol].sma_20 ?? "—"} · SMA50 {opportunityRegimes[item.symbol].sma_50 ?? "—"}
+                    </span>
+                    <span>
+                      Realized volatility: {opportunityRegimes[item.symbol].annualized_realized_volatility == null
+                        ? "—"
+                        : (opportunityRegimes[item.symbol].annualized_realized_volatility * 100).toFixed(2) + "%"}
+                      {" "}· Drawdown: {opportunityRegimes[item.symbol].drawdown_from_observed_peak == null
+                        ? "—"
+                        : (opportunityRegimes[item.symbol].drawdown_from_observed_peak * 100).toFixed(2) + "%"}
+                    </span>
+                    <span className="muted">
+                      Data through {opportunityRegimes[item.symbol].latest_observation_date ?? "unknown date"} · {opportunityRegimes[item.symbol].valid_observation_count} valid observations · Diagnostic only, not a trading signal.
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
