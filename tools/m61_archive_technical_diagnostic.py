@@ -78,11 +78,8 @@ def read_bars(path: Path) -> tuple[list[Bar], dict[str, object]]:
                 if len(invalid_samples) < 10:
                     invalid_samples.append({"row": row_number, "reason": str(exc)})
                 continue
-            key = (symbol, session_date)
-            if key in seen:
-                duplicate_keys += 1
-                continue
-            seen.add(key)
+            # Validate the row before reserving its symbol/date identity. A
+            # malformed first occurrence must not suppress a later valid row.
             if high < max(open_price, low, close) or low > min(open_price, high, close):
                 invalid_ohlc += 1
                 if len(invalid_samples) < 10:
@@ -92,6 +89,12 @@ def read_bars(path: Path) -> tuple[list[Bar], dict[str, object]]:
                         "reason": "OHLC bounds inconsistent",
                     })
                 continue
+
+            key = (symbol, session_date)
+            if key in seen:
+                duplicate_keys += 1
+                continue
+            seen.add(key)
             bars.append(Bar(symbol, session_date, open_price, high, low, close, volume))
     bars.sort(key=lambda bar: (bar.symbol, bar.session_date))
     summary: dict[str, object] = {
