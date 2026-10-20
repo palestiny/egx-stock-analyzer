@@ -69,7 +69,21 @@ def test_forward_diagnostic_aggregates_symbols_on_shared_window(monkeypatch) -> 
 
     report = diagnostic.run()
 
+    assert report["status"] == "completed"
     assert report["common_window"] == {"start": "2024-01-01", "end": "2024-03-20"}
     assert set(report["symbols"]) == {"COMI", "EGAL", "ABUK", "TMGH", "EAST"}
     assert report["pooled_by_signal_group"]["all_eligible_sessions"]["5"]["samples"] > 100
     assert not report["failures"]
+
+
+
+def test_source_failures_return_a_report_instead_of_crashing(monkeypatch) -> None:
+    def fail(_symbol, _page, _url):
+        raise TimeoutError("source timed out")
+
+    monkeypatch.setattr(diagnostic, "_fetch_rows", fail)
+    report = diagnostic.run()
+
+    assert report["status"] == "insufficient_source_data"
+    assert len(report["failures"]) == len(diagnostic.SOURCES)
+    assert report["symbols_retrieved"] == []
