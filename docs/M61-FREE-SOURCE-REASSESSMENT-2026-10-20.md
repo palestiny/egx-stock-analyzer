@@ -1,47 +1,43 @@
-# M61 Free Historical Data Source Reassessment — 2026-10-20
+# M61 — API-independent execution checkpoint — 2026-10-20
 
-## Purpose
+## Owner decision
 
-Reassess no-cost paths for obtaining a real EGX daily-history artifact for the M61 Strategy v0 evaluation, without weakening the existing data acceptance gate.
+Defer all API/provider-access investigation. Continue engineering with the deterministic test dataset already implemented in the repository, and run the production data-loading/analysis/backtest path for functional verification. Do not block code validation on historical-data credentials.
 
-## Current verified baseline
+## What is available now
 
-- Yahoo Finance candidates were rejected: the previous bounded probe identified mutual-fund instrument metadata and repeated OHLC/invalid-value findings. HTTP success and long coverage do not establish valid EGX equity data.
-- The anonymous EGID history request returned HTTP 401. The public Swagger describes history endpoints, but public documentation is not proof of anonymous access or permission to retain and use the data.
-- A deterministic synthetic dataset-to-backtest test passed. It validates software wiring only and must not be represented as historical strategy performance.
-- EGX.news currently advertises full daily historical bars at USD 1 per stock; this is not a no-cost option.
-- The EGXLytics/egxpy route is described by secondary documentation as using TradingView-backed tvDatafeed. Do not adopt it for automated backtesting without explicit authorization covering automated collection, local retention, and algorithmic research use.
+- `tools/m61_generate_test_dataset.py` creates a deterministic schema-v3 dataset for the fixed ten-symbol cohort, with market-shaped OHLCV rows, point-in-time-shaped financial records, checksums, and explicit synthetic provenance.
+- `docs/M61-TEST-DATASET-BOOTSTRAP.md` documents the Windows/PowerShell generation command.
+- PR #311 added the synthetic dataset generator and loader checks.
+- PR #312 added an end-to-end test that loads the generated package through the production loader and runs `HistoricalDatasetBacktestRunner` twice for COMI, with warm-up/evaluation separation and deterministic-result assertions.
+- The last documented main CI run passed the repository's Python tests, frontend checks, dependency audit, and container build (run #37927196545; recorded in `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md`).
 
-## Newly identified candidate: EGXAPI
+References:
+- https://github.com/palestiny/egx-stock-analyzer/pull/311
+- https://github.com/palestiny/egx-stock-analyzer/pull/312
+- https://github.com/palestiny/egx-stock-analyzer/actions/runs/37927196545
 
-The public EGXAPI pricing page currently claims a free account includes full historical bars and a REST/WebSocket API:
-https://www.egxapi.com/pricing/
+## Execution commands (Windows PowerShell)
 
-This is a candidate to investigate, not an accepted source. The pricing page alone does not prove:
-- that historical COMI bars can actually be retrieved for the required 2019-01-01 through 2025-12-31 window;
-- that OHLCV is complete, correctly mapped to EGX instruments, and stable across corporate actions;
-- that raw historical data may be retained locally and used for automated research/backtesting;
-- that the service is operationally and legally suitable for this project.
+From the repository root:
 
-The repository's earlier research flagged uncertainty in the legal center. Recheck the actual current Terms, Privacy, and any data-provider disclosures before collecting or persisting any price rows. Do not infer permission from a free price tier.
+```powershell
+python -m tools.m61_generate_test_dataset --output-dir .\artifacts\m61-test-dataset
+python -m pytest
+```
 
-## Next bounded verification sequence
+The generator requires the output directory to be absent or empty. Use a separate empty output path for each fresh run.
 
-1. Inspect current legal terms and identify the legal entity/provider, data source, retention rights, algorithmic/non-display use, redistribution restrictions, and any exchange licensing requirements.
-2. If the terms are sufficiently explicit, create an isolated metadata/contract probe first. Do not write market prices to disk during this stage.
-3. Request or retrieve a small COMI history sample only after access and intended-use permissions are established.
-4. Record HTTP status, schema, symbol identity, returned date range, row count, timezone, adjustment/corporate-action fields, and response checksum. Keep secrets out of logs.
-5. If the contract and access checks pass, acquire the required COMI range and run the existing evidence intake. Do not expand to the ten-symbol cohort until COMI passes.
-6. Market bars alone do not satisfy M61: point-in-time financial snapshots with publication/availability dates remain a separate acceptance requirement.
+## Interpretation rules
 
-## Hard constraints
+This route is for verifying that dataset generation, manifest/checksum validation, loading, analysis, and backtest execution work end to end. Synthetic prices and financial values are formula-generated and are not EGX observations. Weekday dates do not model EGX holidays, suspensions, corporate actions, or actual disclosures.
 
-- No synthetic data in strategy-performance reporting.
-- No unlicensed TradingView-backed extraction.
-- No automatic acceptance based only on row count, HTTP 200, or superficially valid OHLC.
-- No fabricated missing sessions, prices, corporate actions, or financial publication dates.
-- If access or rights cannot be established, report M61 as blocked by source access rather than weakening validation.
+Therefore:
+- Functional pass/fail results may be reported for the software path.
+- Synthetic strategy returns, trade counts, win rate, drawdown, or other performance statistics must not be presented as evidence of real-market strategy quality.
+- Do not loosen the real-data acceptance gate or relabel synthetic rows as historical data.
+- A real-market performance evaluation remains unavailable until actual market history and point-in-time financial evidence are supplied and accepted.
 
-## Decision
+## Current decision
 
-**EGXAPI is the next no-cost candidate to verify, not an approved provider.** No real-market performance result is authorized until both market and point-in-time fundamental evidence pass the existing acceptance gate.
+**Proceed with API-independent software verification now.** Historical data acquisition is deferred, not a code-execution prerequisite. Real-market strategy evaluation remains explicitly blocked; this checkpoint does not claim that tests were run by this documentation change.
