@@ -50,7 +50,10 @@ class AnalyzeStockRegime:
             for observation, assessment in zip(observations, assessments)
             if assessment.status is DataQualityStatus.VALID
         ]
-        valid.sort(\n            key=lambda pair: pair[0].timestamp\n            or datetime.min.replace(tzinfo=timezone.utc)\n        )
+        valid.sort(
+            key=lambda pair: pair[0].timestamp
+            or datetime.min.replace(tzinfo=timezone.utc)
+        )
         bars: list[PriceBar] = [
             PriceBarFactory.create(observation, assessment)
             for observation, assessment in valid
