@@ -49,7 +49,7 @@ def test_analysis_uses_valid_bars_and_reports_provenance() -> None:
     service = AnalyzeStockRegime(InMemoryStockCatalog([stock]), provider)
     result = service.execute(" comi ", as_of=date(2025, 4, 1))
     assert result.symbol == "COMI"
-    assert result.source == "Yahoo Finance"
+    assert result.source == "FakeMarketDataProvider"
     assert result.valid_observation_count == 60
     assert result.excluded_observation_count == 0
     assert result.latest_observation_date == date(2025, 3, 1)
@@ -76,6 +76,18 @@ def test_analysis_excludes_invalid_ohlc_observation() -> None:
     ).execute("COMI", as_of=date(2025, 4, 1))
     assert result.valid_observation_count == 59
     assert result.excluded_observation_count == 1
+
+
+
+def test_analysis_prefers_explicit_provider_source_name() -> None:
+    stock = Stock.create("COMI", "Commercial International Bank")
+    provider = FakeMarketDataProvider(make_observations(stock, 60))
+    provider.source_name = "Validated Archive"
+    service = AnalyzeStockRegime(InMemoryStockCatalog([stock]), provider)
+
+    result = service.execute("COMI", as_of=date(2025, 4, 1))
+
+    assert result.source == "Validated Archive"
 
 
 def test_analysis_rejects_unknown_symbol() -> None:

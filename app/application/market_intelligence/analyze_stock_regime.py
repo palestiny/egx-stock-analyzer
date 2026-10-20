@@ -60,9 +60,15 @@ class AnalyzeStockRegime:
         ]
         profile = StockRegimeAnalyzer.analyze(bars)
         latest_date = bars[-1].timestamp.date() if bars else None
+        # Prefer an explicit adapter provenance label. If an adapter does not
+        # expose one, identify the concrete provider class instead of claiming
+        # that every configured provider is Yahoo Finance.
+        source = getattr(self.market_data_provider, "source_name", None)
+        if not isinstance(source, str) or not source.strip():
+            source = type(self.market_data_provider).__name__
         return StockRegimeAnalysis(
             symbol=normalized,
-            source="Yahoo Finance",
+            source=source.strip(),
             requested_from=start_date,
             requested_to=end_date,
             latest_observation_date=latest_date,
