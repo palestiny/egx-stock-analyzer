@@ -10,7 +10,7 @@ part of the production recommendation path.
 
 The script uses five historical CSV URLs listed in
 `AhmedYasserShalaby/egx-research-toolkit/data/stock_rotation/universe.csv`
-(COMI, EGAL, ABUK, TMGH, EAST). The CSV URLs point to Mubasher's public static
+(COMI, EGAL, ABUK, TMGH, EAST, FWRY, ETEL, EFIH, HRHO, ADIB). The CSV URLs point to Mubasher's public static
 historical-chart files. The script requests the URLs directly, parses the
 six-column no-header OHLCV format, validates dates/prices/volume, drops
 malformed and duplicate rows, and reports per-symbol retrieval failures.
@@ -56,7 +56,9 @@ inspect the report's `status` before interpreting any returns.
   portfolio sizing, and risk adjustment.
 - A shared date window is not proof that each source series is corporate-action
   adjusted consistently.
-- Five symbols do not satisfy M61's ten-symbol 2021–2025 acceptance gate.
+- Ten symbols alone do not satisfy M61's 2021–2025 acceptance gate: the required
+  point-in-time financial snapshots, reproducible data provenance, and acceptance
+  checks are still separate requirements.
 - This is not a live feed, news model, or investment recommendation. Promising
   results must be replicated on additional symbols and disjoint holdout periods
   before considering strategy changes.
