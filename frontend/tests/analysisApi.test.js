@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getStockRegime, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 describe("analysis API client", () => {
@@ -220,6 +220,22 @@ describe("scheduled workflow history API client", () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/v1/workflows/executions/workflow-1/history?page_size=50&cursor=MQ",
+    );
+  });
+});
+
+
+describe("stock regime API client", () => {
+  it("normalizes the symbol and requests the authenticated regime endpoint", async () => {
+    const profile = { symbol: "EGAL", trend: "uptrend", is_trading_signal: false };
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(profile),
+    });
+
+    await expect(getStockRegime(" egal ")).resolves.toEqual(profile);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/v1/market-intelligence/regime/EGAL",
     );
   });
 });
