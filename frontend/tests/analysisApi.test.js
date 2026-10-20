@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketOpportunities, getStockRegime, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
+import { getAnalysis, getAnalysisHistory, getMarketBreadthStress, getMarketOpportunities, getStockRegime, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 describe("analysis API client", () => {
@@ -236,6 +236,22 @@ describe("stock regime API client", () => {
     await expect(getStockRegime(" egal ")).resolves.toEqual(profile);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/v1/market-intelligence/regime/EGAL",
+    );
+  });
+});
+
+
+describe("market breadth and stress API client", () => {
+  it("encodes the requested symbol universe", async () => {
+    const snapshot = { stress_score: 45, stress_level: "mixed" };
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(snapshot),
+    });
+
+    await expect(getMarketBreadthStress(["EGAL", "IEEC", "COMI"])).resolves.toEqual(snapshot);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/v1/market-intelligence/breadth-stress?symbols=EGAL%2CIEEC%2CCOMI",
     );
   });
 });
