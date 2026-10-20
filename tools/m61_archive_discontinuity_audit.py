@@ -114,7 +114,7 @@ def main() -> int:
     args = parser.parse_args()
     report = audit(args.input, args.threshold)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\\n", encoding="utf-8")
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({key: report[key] for key in ("status", "usable_unique_rows", "symbols", "flag_count", "flags_by_symbol")}, indent=2))
     return 0
 
