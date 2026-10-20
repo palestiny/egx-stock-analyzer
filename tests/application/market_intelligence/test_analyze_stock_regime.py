@@ -78,6 +78,18 @@ def test_analysis_excludes_invalid_ohlc_observation() -> None:
     assert result.excluded_observation_count == 1
 
 
+
+def test_analysis_prefers_explicit_provider_source_name() -> None:
+    stock = Stock.create("COMI", "Commercial International Bank")
+    provider = FakeMarketDataProvider(make_observations(stock, 60))
+    provider.source_name = "Validated Archive"
+    service = AnalyzeStockRegime(InMemoryStockCatalog([stock]), provider)
+
+    result = service.execute("COMI", as_of=date(2025, 4, 1))
+
+    assert result.source == "Validated Archive"
+
+
 def test_analysis_rejects_unknown_symbol() -> None:
     service = AnalyzeStockRegime(InMemoryStockCatalog([]), FakeMarketDataProvider([]))
     with pytest.raises(ValueError, match="Unknown stock symbol: UNKNOWN"):
