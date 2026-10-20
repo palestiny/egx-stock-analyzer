@@ -203,7 +203,7 @@ def _risk_profile(observations: list[RawPriceBarObservation]) -> dict[str, Any]:
 
     for index, bar in enumerate(ordered):
         session = bar.timestamp.astimezone(EGX_TIMEZONE).date()
-        close = bar.close.value
+        close = bar.close
         if close > peak:
             peak = close
         drawdown = (close - peak) / peak if peak > 0 else Decimal("0")
@@ -213,15 +213,15 @@ def _risk_profile(observations: list[RawPriceBarObservation]) -> dict[str, Any]:
 
         if index > 0:
             previous = ordered[index - 1]
-            previous_close = previous.close.value
+            previous_close = previous.close
             if previous_close > 0:
                 returns.append((session, float((close - previous_close) / previous_close)))
-                gaps.append((session, (bar.open.value - previous_close) / previous_close))
+                gaps.append((session, (bar.open - previous_close) / previous_close))
 
         if index >= 20:
-            prior_volumes = [item.volume for item in ordered[index - 20:index]]
+            prior_volumes = [Decimal(item.volume or 0) for item in ordered[index - 20:index]]
             average_volume = sum(prior_volumes, Decimal("0")) / Decimal(20)
-            if average_volume > 0 and bar.volume >= average_volume * Decimal("1.5"):
+            if average_volume > 0 and Decimal(bar.volume or 0) >= average_volume * Decimal("1.5"):
                 volume_spikes += 1
 
     return_values = [value for _, value in returns]
