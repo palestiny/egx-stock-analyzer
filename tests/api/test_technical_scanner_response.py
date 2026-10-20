@@ -35,7 +35,7 @@ def test_response_exposes_pre_breakout_evidence():
     assert response["matches"][0] == {
         "symbol": "COMI",
         "score": 82,
-        "criteria": ["positive_momentum", "volume_expansion", "near_resistance"],
+        "criteria": ("positive_momentum", "volume_expansion", "near_resistance"),
         "momentum_percent": Decimal("4.2"),
         "volume_ratio": Decimal("1.8"),
         "resistance_price": Decimal("100"),
