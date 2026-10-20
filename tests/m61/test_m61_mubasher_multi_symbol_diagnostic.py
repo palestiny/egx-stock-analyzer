@@ -33,6 +33,8 @@ def test_fetch_rows_parses_six_column_mubasher_csv(monkeypatch) -> None:
             f"{session.isoformat()}/00:00:00,{close - Decimal('0.05')},"
             f"{close + Decimal('0.1')},{close - Decimal('0.1')},{close},1000"
         )
+    lines.append("2024-02-05/00:00:00,20,19,18,21,1000")
+    lines.append("2024-99-99/00:00:00,20,21,19,20.5,1000")
     lines.append("malformed,row")
     payload = ("\n".join(lines) + "\n").encode()
 
