@@ -161,7 +161,7 @@ def test_price_discontinuity_audit_flags_large_close_to_close_move() -> None:
 
     assert len(flagged) == 1
     assert flagged[0]["date"] == rows[2]["date"]
-    assert flagged[0]["close_to_close_change"] == "-0.3"
+    assert Decimal(flagged[0]["close_to_close_change"]) == Decimal("-0.3")
 
 
 def test_price_discontinuity_audit_rejects_non_positive_threshold() -> None:
