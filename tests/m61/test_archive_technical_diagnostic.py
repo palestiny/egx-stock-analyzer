@@ -68,3 +68,25 @@ def test_reader_skips_invalid_ohlc_and_duplicate_symbol_date(tmp_path: Path) -> 
     assert summary["usable_rows"] == 1
     assert summary["duplicate_symbol_date_rows_skipped"] == 1
     assert summary["invalid_ohlc_rows"] == 1
+
+
+def test_invalid_first_duplicate_does_not_suppress_later_valid_bar(tmp_path: Path) -> None:
+    path = tmp_path / "prices.csv"
+    headers = [
+        "symbol", "session_date", "open", "high", "low", "close", "volume",
+    ]
+    invalid = ["COMI", "2022-01-02", "10", "9", "8", "10.5", "100"]
+    valid = ["COMI", "2022-01-02", "10", "11", "9", "10.5", "100"]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(headers)
+        writer.writerow(invalid)
+        writer.writerow(valid)
+
+    bars, summary = read_bars(path)
+
+    assert len(bars) == 1
+    assert bars[0].close == 10.5
+    assert summary["invalid_ohlc_rows"] == 1
+    assert summary["duplicate_symbol_date_rows_skipped"] == 0
+    assert summary["usable_rows"] == 1
