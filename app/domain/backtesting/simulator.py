@@ -59,6 +59,8 @@ class BacktestMetrics:
     max_drawdown: Decimal
     average_winning_return: Decimal | None
     average_losing_return: Decimal | None
+    max_consecutive_winning_trades: int
+    max_consecutive_losing_trades: int
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,22 @@ class BacktestResult:
             if losing_returns
             else None
         )
+        current_winning_streak = 0
+        current_losing_streak = 0
+        max_winning_streak = 0
+        max_losing_streak = 0
+        for trade in self.trades:
+            if trade.net_return > 0:
+                current_winning_streak += 1
+                current_losing_streak = 0
+            elif trade.net_return < 0:
+                current_losing_streak += 1
+                current_winning_streak = 0
+            else:
+                current_winning_streak = 0
+                current_losing_streak = 0
+            max_winning_streak = max(max_winning_streak, current_winning_streak)
+            max_losing_streak = max(max_losing_streak, current_losing_streak)
 
         for trade in self.trades:
             growth_factor = Decimal("1") + trade.net_return
@@ -133,6 +151,8 @@ class BacktestResult:
             max_drawdown=max_drawdown,
             average_winning_return=average_winning,
             average_losing_return=average_losing,
+            max_consecutive_winning_trades=max_winning_streak,
+            max_consecutive_losing_trades=max_losing_streak,
         )
 
 class BacktestSimulator:
