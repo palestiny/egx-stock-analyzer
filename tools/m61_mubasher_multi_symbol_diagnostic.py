@@ -1,5 +1,7 @@
 """Cross-symbol momentum/volume forward-return diagnostic using public Mubasher CSVs.
 
+Workflow trigger revision: 2026-10-20.
+
 This is a research-only, network-dependent tool. It does not feed production
 recommendations and does not replace the accepted M61 dataset gate.
 """
