@@ -151,7 +151,7 @@ def test_price_discontinuity_audit_flags_close_move_and_overnight_gap_without_re
 
 
 def test_price_discontinuity_audit_flags_large_close_to_close_move() -> None:
-    rows = _rows(4)
+    rows = _rows(3)
     rows[2]["close"] = rows[1]["close"] * Decimal("0.70")
     rows[2]["open"] = rows[2]["close"]
     rows[2]["high"] = rows[2]["close"] + Decimal("0.1")
