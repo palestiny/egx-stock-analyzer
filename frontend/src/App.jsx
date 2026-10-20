@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -46,6 +46,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [performanceError, setPerformanceError] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [regime, setRegime] = useState(null);
+  const [regimeError, setRegimeError] = useState(null);
+  const [regimeLoading, setRegimeLoading] = useState(false);
   const [marketSymbols, setMarketSymbols] = useState("EGAL,IEEC,COMI");
   const [marketView, setMarketView] = useState(null);
   const [marketError, setMarketError] = useState(null);
@@ -114,6 +117,27 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     }
   }
 
+
+  async function handleStockRegime(event) {
+    event.preventDefault();
+    const normalizedSymbol = symbol.trim().toUpperCase();
+    if (!normalizedSymbol) {
+      setRegimeError(new Error("Enter a stock symbol first."));
+      setRegime(null);
+      return;
+    }
+
+    setRegimeLoading(true);
+    setRegimeError(null);
+    setRegime(null);
+    try {
+      setRegime(await getStockRegime(normalizedSymbol));
+    } catch (requestError) {
+      setRegimeError(requestError);
+    } finally {
+      setRegimeLoading(false);
+    }
+  }
 
   async function handleCompare(event) {
     event.preventDefault();
@@ -357,6 +381,33 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
           Loading latest analysis...
         </section>
       )}
+
+      <section className="panel stock-regime-panel" aria-label="stock regime and risk profile">
+        <div>
+          <p className="eyebrow">TREND & RISK</p>
+          <h3>Stock regime and risk profile</h3>
+          <p className="muted">Loads a fresh diagnostic request from the configured market-data provider. It is not a buy/sell signal.</p>
+        </div>
+        <form className="symbol-form" onSubmit={handleStockRegime}>
+          <button type="submit" disabled={regimeLoading || !symbol.trim()}>
+            {regimeLoading ? "Loading profile..." : "Load regime & risk"}
+          </button>
+        </form>
+        {regimeError && <p className="state-card error" role="alert">{regimeError.message}</p>}
+        {regime && (
+          <div className="opportunity-list">
+            <div className="detail-row"><strong>{regime.symbol}</strong><span>Trend: {regime.trend} · Volatility: {regime.volatility}</span></div>
+            <div className="detail-row"><span>Latest close</span><strong>{regime.latest_close ?? "—"}</strong></div>
+            <div className="detail-row"><span>SMA20 / SMA50</span><strong>{regime.sma_20 ?? "—"} / {regime.sma_50 ?? "—"}</strong></div>
+            <div className="detail-row"><span>Annualized realized volatility</span><strong>{regime.annualized_realized_volatility == null ? "—" : (regime.annualized_realized_volatility * 100).toFixed(2) + "%"}</strong></div>
+            <div className="detail-row"><span>Drawdown from observed peak</span><strong>{regime.drawdown_from_observed_peak == null ? "—" : (regime.drawdown_from_observed_peak * 100).toFixed(2) + "%"}</strong></div>
+            <div className="detail-row"><span>Valid / excluded observations</span><strong>{regime.valid_observation_count} / {regime.excluded_observation_count}</strong></div>
+            <div className="detail-row"><span>Latest observation</span><strong>{regime.latest_observation_date ?? "—"}</strong></div>
+            {regime.reasons?.map((reason) => <p className="muted" key={reason}>{reason}</p>)}
+            <p className="muted">Source: {regime.source}. Requested through {regime.requested_to}. Diagnostic only.</p>
+          </div>
+        )}
+      </section>
 
       {error?.status === 404 && (
         <section className="state-card error" role="alert">
