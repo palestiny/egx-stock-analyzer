@@ -53,8 +53,12 @@ class RunTechnicalScanner:
             near_resistance = False
             if pre_breakout_mode:
                 entry = result.entry_context
-                current_price = entry.current_price.value if entry.current_price is not None else None
-                resistance = entry.nearest_resistance
+                current_price = (
+                    entry.current_price.value
+                    if entry is not None and entry.current_price is not None
+                    else None
+                )
+                resistance = entry.nearest_resistance if entry is not None else None
                 if current_price is not None and resistance is not None and resistance.price.value > 0:
                     resistance_price = resistance.price.value
                     distance_to_resistance_percent = (
