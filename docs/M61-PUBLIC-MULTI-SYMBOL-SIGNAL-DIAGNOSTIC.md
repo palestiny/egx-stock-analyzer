@@ -92,3 +92,21 @@ This run does **not** establish a predictive edge for the pre-breakout proxy. It
 There is also a material data-quality warning: some pooled groups contain extreme one-session losses (the all-session baseline's worst return is about -53.4%). These may reflect unadjusted corporate actions or source discontinuities, but that cause has not been established. Until each symbol's large gaps and corporate actions are reconciled, even these gross-return comparisons are exploratory and should not be used to tune or endorse a strategy.
 
 This is useful negative evidence: do not promote the 1.5x/5% conditions as an edge. The next research step is per-symbol and per-period breakdown, anomaly reconciliation, cost-aware returns, and a disjoint holdout before any threshold change. This proxy is not the exact production nearest-resistance algorithm in PR #325.
+
+
+### Per-symbol 10-session pre-breakout proxy breakdown
+
+| Symbol | Samples | Mean gross return | Win rate | Worst observed return |
+|---|---:|---:|---:|---:|
+| ABUK | 53 | 3.28% | 56.6% | -15.09% |
+| ADIB | 44 | 0.11% | 54.5% | -49.39% |
+| COMI | 63 | 1.20% | 52.4% | -16.89% |
+| EAST | 61 | 1.02% | 54.1% | -27.89% |
+| EFIH | 45 | 0.82% | 53.3% | -37.58% |
+| EGAL | 34 | 4.68% | 67.6% | -16.96% |
+| ETEL | 64 | 1.50% | 50.0% | -20.86% |
+| FWRY | 62 | 2.02% | 48.4% | -19.04% |
+| HRHO | 55 | 0.48% | 54.5% | -21.52% |
+| TMGH | 55 | 2.10% | 47.3% | -16.10% |
+
+The per-symbol outcomes are highly heterogeneous. EGAL and ABUK look stronger in this one pooled time window, but sample counts are modest and the most extreme observed losses (especially ADIB and EFIH) are a warning that source discontinuities or corporate actions may distort the forward returns. This is not enough evidence to select those stocks or tune the rule around them; validate the underlying bars first and reserve a later, untouched holdout period.
