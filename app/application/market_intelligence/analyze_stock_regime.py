@@ -49,6 +49,8 @@ class AnalyzeStockRegime:
             (observation, assessment)
             for observation, assessment in zip(observations, assessments)
             if assessment.status is DataQualityStatus.VALID
+            and observation.close is not None
+            and observation.close > 0
         ]
         valid.sort(
             key=lambda pair: pair[0].timestamp
