@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
@@ -12,6 +12,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getAnalysisRun: vi.fn(),
   getAnalysisComparison: vi.fn(),
   getSnapshotPerformance: vi.fn(),
+  getMarketBreadthStress: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getStockRegime: vi.fn(),
   getReport: vi.fn(),
@@ -252,6 +253,38 @@ describe("Dashboard", () => {
     expect(row).toHaveTextContent("Data through 2026-10-19");
     expect(row).toHaveTextContent("Diagnostic only, not a trading signal.");
     expect(row).toHaveTextContent("Stock 6");
+  });
+
+  it("renders market breadth stress with coverage and missing data context", async () => {
+    getMarketBreadthStress.mockResolvedValue({
+      requested_symbols: 3,
+      analyzed_symbols: 2,
+      missing_symbols: ["COMI"],
+      coverage_percent: "66.67",
+      uptrend_count: 1,
+      downtrend_count: 1,
+      positive_momentum_count: 1,
+      negative_momentum_count: 1,
+      above_average_volume_count: 1,
+      bullish_breadth_percent: "50.00",
+      bearish_pressure_percent: "50.00",
+      stress_score: 54,
+      stress_level: "elevated",
+      data_status: "LATEST_SAVED_ANALYSIS_SNAPSHOT",
+      methodology: "Heuristic based on saved trends and momentum.",
+      is_trading_signal: false,
+    });
+
+    await renderAuthenticatedApp();
+    fireEvent.change(screen.getByLabelText("Market breadth symbols"), { target: { value: "egal,ieec,comi" } });
+    fireEvent.click(screen.getByRole("button", { name: "Calculate Market Pulse" }));
+
+    const panel = await screen.findByLabelText("market breadth and stress pulse");
+    expect(panel).toHaveTextContent("54 / elevated");
+    expect(panel).toHaveTextContent("66.67%");
+    expect(panel).toHaveTextContent("Missing saved analyses: COMI");
+    expect(panel).toHaveTextContent("LATEST_SAVED_ANALYSIS_SNAPSHOT");
+    expect(getMarketBreadthStress).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
   it("loads and renders the pre-breakout momentum-volume watchlist", async () => {
