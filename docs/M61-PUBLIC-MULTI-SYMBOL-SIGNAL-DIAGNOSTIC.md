@@ -110,3 +110,22 @@ This is useful negative evidence: do not promote the 1.5x/5% conditions as an ed
 | TMGH | 55 | 2.10% | 47.3% | -16.10% |
 
 The per-symbol outcomes are highly heterogeneous. EGAL and ABUK look stronger in this one pooled time window, but sample counts are modest and the most extreme observed losses (especially ADIB and EFIH) are a warning that source discontinuities or corporate actions may distort the forward returns. This is not enough evidence to select those stocks or tune the rule around them; validate the underlying bars first and reserve a later, untouched holdout period.
+
+
+
+## Price discontinuity audit
+
+The diagnostic flags an observation for manual review when either its absolute
+close-to-close change or its overnight open-versus-previous-close gap is at least
+20%. Each finding includes current and previous session dates, previous close,
+current OHLCV values, and both calculated changes. The JSON report includes a
+per-symbol `price_discontinuities` list and a top-level count.
+
+This is a screening threshold, not a claim that an observation is wrong.
+Large moves can be genuine, can reflect corporate actions, or can come from
+source gaps or inconsistent adjustment conventions. The audit preserves source
+prices and does not auto-correct, drop, or adjust flagged bars. Before using
+returns for strategy evaluation, manually reconcile flagged dates against
+reliable exchange/company corporate-action information and source history.
+The 20% threshold may miss smaller but material discontinuities and will flag
+some legitimate high-volatility moves.
