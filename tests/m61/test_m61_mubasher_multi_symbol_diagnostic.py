@@ -25,11 +25,16 @@ def _rows(count: int = 80) -> list[dict[str, object]]:
 
 
 def test_fetch_rows_parses_six_column_mubasher_csv(monkeypatch) -> None:
-    payload = (
-        "2024-01-01/00:00:00,10,10.2,9.9,10.1,1000\n"
-        "2024-01-02/00:00:00,10.1,10.3,10,10.2,1100\n"
-        "malformed,row\n"
-    ).encode()
+    lines = []
+    for index in range(35):
+        session = date(2024, 1, 1) + timedelta(days=index)
+        close = Decimal("10") + Decimal(index) / Decimal("10")
+        lines.append(
+            f"{session.isoformat()}/00:00:00,{close - Decimal('0.05')},"
+            f"{close + Decimal('0.1')},{close - Decimal('0.1')},{close},1000"
+        )
+    lines.append("malformed,row")
+    payload = ("\\n".join(lines) + "\\n").encode()
 
     class FakeResponse:
         def __enter__(self):
@@ -44,8 +49,9 @@ def test_fetch_rows_parses_six_column_mubasher_csv(monkeypatch) -> None:
     monkeypatch.setattr(diagnostic.urllib.request, "urlopen", lambda *_a, **_k: FakeResponse())
     rows = diagnostic._fetch_rows("COMI", "https://example.test/COMI", "https://example.test/data.csv")
 
-    assert len(rows) == 0 or rows[0]["date"] == "2024-01-01"
-    # The parser deliberately rejects short samples, so supply a full realistic window below.
+    assert len(rows) == 35
+    assert rows[0]["date"] == "2024-01-01"
+    assert rows[-1]["date"] == "2024-02-04"
 
 
 def test_forward_diagnostic_aggregates_symbols_on_shared_window(monkeypatch) -> None:
