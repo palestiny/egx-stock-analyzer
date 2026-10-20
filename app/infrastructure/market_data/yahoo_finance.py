@@ -158,6 +158,8 @@ class YahooFinanceFundamentalDataSource:
 
 
 class YahooFinanceAdapter:
+    source_name = "Yahoo Finance"
+
     def __init__(self, history_client) -> None:
         self._history_client = history_client
 
