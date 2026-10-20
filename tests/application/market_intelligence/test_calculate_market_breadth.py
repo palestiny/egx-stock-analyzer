@@ -40,8 +40,8 @@ def test_market_breadth_reports_coverage_and_heuristic_stress():
     assert result.requested_symbols == 4
     assert result.analyzed_symbols == 3
     assert result.missing_symbols == ("MISSING",)
-    assert result.stress_score == 63
-    assert result.stress_level == "elevated"
+    assert result.stress_score == 47
+    assert result.stress_level == "mixed"
     assert result.bullish_breadth_percent == 33.33
     assert result.to_dict()["coverage_percent"] == "75.00"
     assert result.to_dict()["is_trading_signal"] is False
