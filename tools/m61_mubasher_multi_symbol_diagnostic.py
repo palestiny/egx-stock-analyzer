@@ -32,6 +32,8 @@ SOURCES = {
 HORIZONS = (1, 3, 5, 10)
 LOOKBACK = 5
 VOLUME_MULTIPLE = Decimal("1.5")
+RESISTANCE_LOOKBACK = 20
+MAX_DISTANCE_BELOW_RESISTANCE_PERCENT = Decimal("5")
 
 
 def _fetch_rows(symbol: str, page_url: str, csv_url: str) -> list[dict[str, Any]]:
@@ -93,6 +95,7 @@ def _evaluate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "all_eligible_sessions": [],
         "positive_momentum": [],
         "positive_momentum_and_volume_at_least_1_5x": [],
+        "pre_breakout_proxy_momentum_volume_near_20_session_resistance": [],
     }
     for i in range(LOOKBACK, len(rows) - 1):
         prior_close = rows[i - LOOKBACK]["close"]
@@ -103,8 +106,14 @@ def _evaluate(rows: list[dict[str, Any]]) -> dict[str, Any]:
             groups["positive_momentum"].append(i)
             previous_volumes = [r["volume"] for r in rows[i - LOOKBACK:i]]
             average_volume = sum(previous_volumes, Decimal(0)) / LOOKBACK
-            if average_volume > 0 and rows[i]["volume"] / average_volume >= VOLUME_MULTIPLE:
+            high_volume = average_volume > 0 and rows[i]["volume"] / average_volume >= VOLUME_MULTIPLE
+            if high_volume:
                 groups["positive_momentum_and_volume_at_least_1_5x"].append(i)
+            if i >= RESISTANCE_LOOKBACK and high_volume:
+                resistance = max(r["high"] for r in rows[i - RESISTANCE_LOOKBACK:i])
+                distance_below = (resistance - rows[i]["close"]) / resistance * Decimal("100")
+                if Decimal("0") < distance_below <= MAX_DISTANCE_BELOW_RESISTANCE_PERCENT:
+                    groups["pre_breakout_proxy_momentum_volume_near_20_session_resistance"].append(i)
 
     result: dict[str, Any] = {}
     for name, indexes in groups.items():
@@ -192,14 +201,21 @@ def run() -> dict[str, Any]:
             "all_eligible_sessions": [],
             "positive_momentum": [],
             "positive_momentum_and_volume_at_least_1_5x": [],
+            "pre_breakout_proxy_momentum_volume_near_20_session_resistance": [],
         }
         for i in range(LOOKBACK, len(rows) - 1):
             groups["all_eligible_sessions"].append(i)
             if rows[i]["close"] > rows[i - LOOKBACK]["close"]:
                 groups["positive_momentum"].append(i)
                 avg = sum((r["volume"] for r in rows[i - LOOKBACK:i]), Decimal(0)) / LOOKBACK
-                if avg > 0 and rows[i]["volume"] / avg >= VOLUME_MULTIPLE:
+                high_volume = avg > 0 and rows[i]["volume"] / avg >= VOLUME_MULTIPLE
+                if high_volume:
                     groups["positive_momentum_and_volume_at_least_1_5x"].append(i)
+                if i >= RESISTANCE_LOOKBACK and high_volume:
+                    resistance = max(r["high"] for r in rows[i - RESISTANCE_LOOKBACK:i])
+                    distance_below = (resistance - rows[i]["close"]) / resistance * Decimal("100")
+                    if Decimal("0") < distance_below <= MAX_DISTANCE_BELOW_RESISTANCE_PERCENT:
+                        groups["pre_breakout_proxy_momentum_volume_near_20_session_resistance"].append(i)
         for group, indexes in groups.items():
             for horizon in HORIZONS:
                 for i in indexes:
@@ -219,6 +235,8 @@ def run() -> dict[str, Any]:
         "signal_definitions": {
             "positive_momentum": "close today > close five sessions earlier",
             "volume_confirmation": "positive momentum and current volume >= 1.5x mean volume of the five preceding sessions",
+            "pre_breakout_proxy": "positive five-session momentum, current volume >= 1.5x mean of the preceding five sessions, and close strictly below the highest high of the preceding 20 sessions by no more than 5%; current session excluded from resistance calculation",
+            "pre_breakout_proxy_note": "Research proxy only; it does not reproduce the production nearest-swing-resistance algorithm and must not be interpreted as exact production-signal validation.",
         },
         "common_window": {"start": common_start, "end": common_end},
         "symbols": per_symbol,
