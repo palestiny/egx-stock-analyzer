@@ -55,6 +55,12 @@ class BacktestMetrics:
     average_gross_return: Decimal
     average_net_return: Decimal
     cumulative_net_return: Decimal
+    profit_factor: Decimal | None
+    max_drawdown: Decimal
+    average_winning_return: Decimal | None
+    average_losing_return: Decimal | None
+    max_consecutive_winning_trades: int
+    max_consecutive_losing_trades: int
 
 
 @dataclass(frozen=True)
@@ -86,8 +92,50 @@ class BacktestResult:
             else Decimal("0")
         )
         cumulative_net = Decimal("1")
+        equity = Decimal("1")
+        equity_peak = Decimal("1")
+        max_drawdown = Decimal("0")
+        winning_returns = [trade.net_return for trade in self.trades if trade.net_return > 0]
+        losing_returns = [trade.net_return for trade in self.trades if trade.net_return < 0]
+        gross_profit = sum(winning_returns, Decimal("0"))
+        gross_loss = abs(sum(losing_returns, Decimal("0")))
+        profit_factor = gross_profit / gross_loss if gross_loss > 0 else None
+        average_winning = (
+            sum(winning_returns, Decimal("0")) / Decimal(len(winning_returns))
+            if winning_returns
+            else None
+        )
+        average_losing = (
+            sum(losing_returns, Decimal("0")) / Decimal(len(losing_returns))
+            if losing_returns
+            else None
+        )
+        current_winning_streak = 0
+        current_losing_streak = 0
+        max_winning_streak = 0
+        max_losing_streak = 0
         for trade in self.trades:
-            cumulative_net *= Decimal("1") + trade.net_return
+            if trade.net_return > 0:
+                current_winning_streak += 1
+                current_losing_streak = 0
+            elif trade.net_return < 0:
+                current_losing_streak += 1
+                current_winning_streak = 0
+            else:
+                current_winning_streak = 0
+                current_losing_streak = 0
+            max_winning_streak = max(max_winning_streak, current_winning_streak)
+            max_losing_streak = max(max_losing_streak, current_losing_streak)
+
+        for trade in self.trades:
+            growth_factor = Decimal("1") + trade.net_return
+            cumulative_net *= growth_factor
+            equity *= growth_factor
+            if equity > equity_peak:
+                equity_peak = equity
+            drawdown = equity / equity_peak - Decimal("1") if equity_peak > 0 else Decimal("0")
+            if drawdown < max_drawdown:
+                max_drawdown = drawdown
         cumulative_net -= Decimal("1")
 
         return BacktestMetrics(
@@ -99,6 +147,12 @@ class BacktestResult:
             average_gross_return=average_gross,
             average_net_return=average_net,
             cumulative_net_return=cumulative_net,
+            profit_factor=profit_factor,
+            max_drawdown=max_drawdown,
+            average_winning_return=average_winning,
+            average_losing_return=average_losing,
+            max_consecutive_winning_trades=max_winning_streak,
+            max_consecutive_losing_trades=max_losing_streak,
         )
 
 class BacktestSimulator:
