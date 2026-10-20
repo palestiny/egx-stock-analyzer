@@ -188,3 +188,16 @@ Old milestone names, old branches, and conversation history must not be treated 
 The active M61 execution step is **real historical dataset acquisition and validation**.
 
 Use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
+
+## Verified market-intelligence increments — 2026-10-20
+
+The following product capabilities were merged into `main` after the M61 acquisition checkpoint was written. They do not change the active M61 acceptance boundary or establish strategy profitability:
+
+- PR #324: breakout-evidence quality scoring; see https://github.com/palestiny/egx-stock-analyzer/pull/324.
+- PR #326: market breadth and heuristic stress pulse derived from latest saved analysis snapshots; see https://github.com/palestiny/egx-stock-analyzer/pull/326.
+- PR #327: per-symbol trend regime and historical risk profile (requires sufficient daily observations); see https://github.com/palestiny/egx-stock-analyzer/pull/327.
+- PR #328: dashboard presentation for the regime/risk diagnostics; see https://github.com/palestiny/egx-stock-analyzer/pull/328.
+- PR #329: per-opportunity regime/risk context, without silently changing existing opportunity ranking; see https://github.com/palestiny/egx-stock-analyzer/pull/329.
+- PR #330: dashboard Market Breadth & Stress Pulse panel; all five CI jobs passed before merge. It shows coverage and missing symbols and explicitly labels its snapshot-based heuristic as neither live intraday data nor a crash prediction; see https://github.com/palestiny/egx-stock-analyzer/pull/330.
+
+**Next execution priority remains M61 real historical dataset acquisition and validation.** The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.

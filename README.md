@@ -19,6 +19,9 @@ The system currently supports:
 - stock quality and entry quality;
 - opportunity classification;
 - explainable technical scanners, including a pre-breakout momentum/volume watchlist based on saved analysis snapshots;
+- per-symbol trend regime and historical risk diagnostics, including volatility and observed drawdown;
+- market breadth and heuristic stress pulse with explicit snapshot coverage and missing-symbol reporting;
+- breakout-evidence quality scoring and per-opportunity regime/risk context without silently changing existing opportunity ranking;
 - backtest risk metrics including profit factor, trade-sequence drawdown, average win/loss, and consecutive win/loss streaks;
 - automated analysis execution;
 - analysis reports and alert-candidate projections;
