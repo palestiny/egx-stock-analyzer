@@ -22,6 +22,11 @@ SOURCES = {
     "ABUK": ("https://english.mubasher.info/markets/EGX/stocks/ABUK", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/112969a5b5995110b36a9a347898d97a610e.csv"),
     "TMGH": ("https://english.mubasher.info/markets/EGX/stocks/TMGH", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/4484803ef56843860e4a48fc4cdb3065e8ce.csv"),
     "EAST": ("https://english.mubasher.info/markets/EGX/stocks/EAST", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/296460ad83801910ec976590f69f638e0d6d.csv"),
+    "FWRY": ("https://english.mubasher.info/markets/EGX/stocks/FWRY", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/13975494d8dbca2d30897065e5de7e2dbb0fd56.csv"),
+    "ETEL": ("https://english.mubasher.info/markets/EGX/stocks/ETEL", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/4470a3ab4ff8fa4deed2e3bae3a5077675f0.csv"),
+    "EFIH": ("https://english.mubasher.info/markets/EGX/stocks/EFIH", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/13979726390f435ae7002c4a63ee00f45eca439.csv"),
+    "HRHO": ("https://english.mubasher.info/markets/EGX/stocks/HRHO", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/446888c040adb393832c87914347cc2afc3f.csv"),
+    "ADIB": ("https://english.mubasher.info/markets/EGX/stocks/ADIB", "https://static.mubasher.info/File.MubasherCharts/File.Historical_Stock_Charts_Dir/1386439a399a8a7dacebc9a8f3fd1de08e57391.csv"),
 }
 HORIZONS = (1, 3, 5, 10)
 LOOKBACK = 5
