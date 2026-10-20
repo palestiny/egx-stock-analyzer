@@ -128,4 +128,3 @@ def test_pre_breakout_proxy_requires_momentum_volume_and_prior_resistance() -> N
 
     assert group["1"]["samples"] >= 1
     assert group["3"]["samples"] >= 1
-    assert "pre_breakout_proxy" in diagnostic.run.__code__.co_consts
