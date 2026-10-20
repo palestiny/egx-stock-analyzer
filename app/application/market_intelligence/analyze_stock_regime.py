@@ -3,14 +3,12 @@ from datetime import date, timedelta
 
 from app.application.market_data.provider import MarketDataProvider
 from app.application.stocks.catalog import StockCatalog
-from app.domain.market_data.data_quality import DataQualityStatus
+from app.domain.analysis.stock_regime import StockRegimeAnalyzer, StockRiskProfile
+from app.domain.market_data.data_quality import DataQualityAssessment, DataQualityStatus
 from app.domain.market_data.data_quality_assessor import DataQualityAssessor
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.price_bar_factory import PriceBarFactory
-from app.domain.market_data.timeframe import Timeframe
 from app.domain.market_data.raw_observation import RawPriceBarObservation
-from app.domain.market_data.price_bar import PriceBar
-from app.domain.analysis.stock_regime import StockRegimeAnalyzer, StockRiskProfile
 
 
 @dataclass(frozen=True)
@@ -46,7 +44,7 @@ class AnalyzeStockRegime:
             stock, start_date, end_date
         )
         assessments = DataQualityAssessor.assess(observations)
-        valid: list[tuple[RawPriceBarObservation, object]] = [
+        valid: list[tuple[RawPriceBarObservation, DataQualityAssessment]] = [
             (observation, assessment)
             for observation, assessment in zip(observations, assessments)
             if assessment.status is DataQualityStatus.VALID
