@@ -7,6 +7,7 @@ def sample_audit() -> dict[str, object]:
     return {
         "audited_at_utc": "2026-10-20T14:36:05+00:00",
         "dataset_path": "data/normalized/yahoo/daily_prices.csv",
+        "validated_dataset_path": "data/normalized/yahoo/daily_prices_ohlc_validated.csv.gz",
         "source_audit_path": "reports/data-quality-audit-2026-10-20.json",
         "per_symbol": {
             "COMI": {
@@ -34,7 +35,8 @@ def test_build_report_sorts_symbols_and_summarizes_counts_and_global_dates() -> 
     assert report["schema_version"] == 2
     assert report["status"] == "completed"
     assert report["source_audit_path"] == audit["source_audit_path"]
-    assert report["source_audit_date"] == audit["audited_at_utc"]
+    assert report["source_audited_at_utc"] == audit["audited_at_utc"]
+    assert report["source_dataset_path"] == audit["validated_dataset_path"]
     assert report["symbol_count"] == 2
     assert report["total_rows"] == 150
     assert report["valid_ohlc_rows"] == 125
