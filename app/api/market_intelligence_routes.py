@@ -28,6 +28,7 @@ def create_market_intelligence_router(
     scan_fibonacci: ScanFibonacciOpportunities,
     scan_breakouts: ScanBreakouts,
     generate_signal: GenerateSignal,
+    analyze_stock_regime: AnalyzeStockRegime | None = None,
     require_authenticated: Callable[..., AuthenticatedIdentity],
 ) -> APIRouter:
     """Register deterministic market-intelligence routes behind the app's auth boundary."""
