@@ -103,3 +103,29 @@ def test_analyze_stock_regime_rejects_unknown_symbol() -> None:
 
     with pytest.raises(ValueError, match="Unknown stock symbol: UNKNOWN"):
         service.execute("UNKNOWN", as_of=date(2025, 4, 1))
+
+
+def test_analyze_stock_regime_excludes_zero_close_even_if_quality_assessor_marks_valid() -> None:
+    stock = Stock.create("COMI", "Commercial International Bank")
+    observations = make_observations(stock, 60)
+    zero_close = observations[10]
+    observations[10] = RawPriceBarObservation(
+        stock_id=stock.id,
+        timeframe=Timeframe.DAILY,
+        timestamp=zero_close.timestamp,
+        open=Decimal("0"),
+        high=Decimal("1"),
+        low=Decimal("0"),
+        close=Decimal("0"),
+        volume=100,
+    )
+    service = AnalyzeStockRegime(
+        InMemoryStockCatalog([stock]),
+        FakeMarketDataProvider(observations),
+    )
+
+    result = service.execute("COMI", as_of=date(2025, 4, 1))
+
+    assert result.valid_observation_count == 59
+    assert result.excluded_observation_count == 1
+    assert result.profile.observation_count == 59
