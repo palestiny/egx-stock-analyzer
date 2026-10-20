@@ -21,6 +21,12 @@ Design gates:
 
 The dataset contract covers daily market observations, point-in-time financial snapshots, immutable dataset/version identity, schema/provenance metadata, and integrity verification. Large historical artifacts remain outside Git. The physical artifact format is intentionally deferred to the implementation design.
 
+### Verified implementation increments — 2026-10-20
+
+- PR #322 merged at `24a8193199f821e0fe4906dfdfcaa603ceb1ae73`: Strategy v0 backtest results now expose profit factor, maximum drawdown on the sequential trade-equity curve, average winning/losing returns, and maximum consecutive win/loss streaks. The drawdown is **trade-sequence drawdown**, not daily or intraday portfolio drawdown.
+- PR #325 merged at `1c908b0456f02dccbdc75ab9eeb5206bad30c15d`: added the authenticated `pre-breakout-momentum-volume` watchlist for positive momentum, volume ratio at least 1.5x, and a price 0–5% below resistance. It preserves the existing scanner and uses the latest saved analysis, which may be stale.
+- PR #322 CI run #4068 and PR #325 CI run #4113 passed all five reported jobs before merge. This verifies software behavior, **not** market-data validity or strategy profitability. Separate post-merge CI is not claimed here.
+
 Remaining M61 work: acquire and preserve the bounded real historical cohort, validate source provenance and coverage, integrate the accepted dataset version with the production analysis assembler, verify the existing data-quality boundary, execute Strategy v0 against real historical coverage, review aggregate/trade-level results, and complete final leakage/reproducibility validation.
 
 ---
