@@ -4,6 +4,7 @@ from typing import TypedDict
 from fastapi import FastAPI
 
 from app.api.main import create_app
+from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
 from app.application.security.authentication import Authenticator
 from app.application.analysis.result_store import (
     AnalysisResultStore,
@@ -23,7 +24,11 @@ class _CreateAppKwargs(TypedDict, total=False):
     authenticator: Authenticator
 
 
-def create_application(runtime: InfrastructureRuntime, operator_token: str | None = None) -> FastAPI:
+def create_application(
+    runtime: InfrastructureRuntime,
+    operator_token: str | None = None,
+    stock_catalog: StockCatalog | None = None,
+) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         try:
@@ -40,6 +45,8 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
     runtime_authenticator = getattr(runtime, "authenticator", None)
     if runtime_authenticator is not None:
         create_app_kwargs["authenticator"] = runtime_authenticator
+
+    market_data_provider = getattr(runtime, "market_data_provider", None)
 
     app = create_app(
         runtime.application_runtime.result_store,
@@ -63,6 +70,11 @@ def create_application(runtime: InfrastructureRuntime, operator_token: str | Non
         list_analysis_runs=getattr(runtime.application_runtime, "list_analysis_runs", None),
         delete_analysis_run=getattr(runtime.application_runtime, "delete_analysis_run", None),
         delete_analysis_snapshot=getattr(runtime.application_runtime, "delete_analysis_snapshot", None),
+        analyze_stock_regime=(
+            AnalyzeStockRegime(stock_catalog, market_data_provider)
+            if stock_catalog is not None and market_data_provider is not None
+            else None
+        ),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
@@ -85,7 +97,11 @@ def create_application_from_environment(
         result_store=result_store,
         retry_policy=retry_policy,
     )
-    return create_application(runtime, operator_token=config.operator_token)
+    return create_application(
+        runtime,
+        operator_token=config.operator_token,
+        stock_catalog=stock_catalog,
+    )
 
 
 def create_development_application_from_environment(

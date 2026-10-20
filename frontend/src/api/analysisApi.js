@@ -45,6 +45,13 @@ export function getReport(symbol) {
   return getJson("/api/v1/reports/" + encodeURIComponent(symbol), "Report request");
 }
 
+export function getStockRegime(symbol) {
+  return getJson(
+    "/api/v1/market-intelligence/regime/" + encodeURIComponent(symbol),
+    "Stock regime request",
+  );
+}
+
 export function getAlert(symbol) {
   return getJson("/api/v1/alerts/" + encodeURIComponent(symbol), "Alert request");
 }

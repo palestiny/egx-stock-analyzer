@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -33,6 +33,9 @@ function DetailPanel({ title, items }) {
 function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
+  const [stockRegime, setStockRegime] = useState(null);
+  const [stockRegimeError, setStockRegimeError] = useState(null);
+  const [stockRegimeLoading, setStockRegimeLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
@@ -77,6 +80,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     setSymbol(normalizedSymbol);
     setLoading(true);
     setReport(null);
+    setStockRegime(null);
+    setStockRegimeError(null);
+    setStockRegimeLoading(true);
     setAlert(null);
     setHistory(null);
     setHistoryError(null);
@@ -102,9 +108,18 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
       } finally {
         setHistoryLoading(false);
       }
+
+      try {
+        setStockRegime(await getStockRegime(normalizedSymbol));
+      } catch (regimeRequestError) {
+        setStockRegimeError(regimeRequestError);
+      } finally {
+        setStockRegimeLoading(false);
+      }
     } catch (requestError) {
       setError(requestError);
       setHistoryLoading(false);
+      setStockRegimeLoading(false);
     } finally {
       setLoading(false);
     }
@@ -614,6 +629,46 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
             <Metric label="Fundamental Score" value={report.fundamental_score} />
             <Metric label="Stock Quality" value={report.stock_quality} />
             <Metric label="Entry Quality" value={report.entry_quality} />
+          </section>
+
+          <section className="panel" aria-label="stock regime risk profile">
+            <p className="eyebrow">MARKET INTELLIGENCE</p>
+            <h3>Trend & Risk Profile</h3>
+            {stockRegimeLoading && <p className="muted" role="status">Loading price regime...</p>}
+            {stockRegimeError && (
+              <p className="state-card error" role="alert">
+                Risk profile unavailable: {stockRegimeError.message}
+              </p>
+            )}
+            {stockRegime && (
+              <>
+                <div className="metrics-grid">
+                  <Metric label="Trend" value={stockRegime.trend} />
+                  <Metric label="Volatility" value={stockRegime.volatility} />
+                  <Metric label="Latest close" value={stockRegime.latest_close} />
+                  <Metric
+                    label="Annualized volatility"
+                    value={stockRegime.annualized_realized_volatility == null
+                      ? "—"
+                      : (stockRegime.annualized_realized_volatility * 100).toFixed(1) + "%"}
+                  />
+                  <Metric
+                    label="Drawdown from observed peak"
+                    value={stockRegime.drawdown_from_observed_peak == null
+                      ? "—"
+                      : (stockRegime.drawdown_from_observed_peak * 100).toFixed(1) + "%"}
+                  />
+                  <Metric label="Valid / excluded bars" value={stockRegime.valid_observation_count + " / " + stockRegime.excluded_observation_count} />
+                </div>
+                <p className="muted">
+                  Latest price observation: {stockRegime.latest_observation_date ?? "not available"}.
+                  {" "}This is descriptive risk information, not a buy/sell signal.
+                </p>
+                {stockRegime.reasons?.map((reason) => (
+                  <p className="muted" key={reason}>{reason}</p>
+                ))}
+              </>
+            )}
           </section>
 
           <section className="panel-grid">

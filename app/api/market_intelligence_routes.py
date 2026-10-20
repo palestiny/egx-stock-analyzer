@@ -9,6 +9,7 @@ from app.api.market_intelligence_response import MarketMoverRankingResponse
 from app.api.sector_intelligence_response import SectorRankingResponse
 from app.api.signal_response import signal_to_dict
 from app.api.technical_scanner_response import TechnicalScannerResponse
+from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
@@ -27,6 +28,7 @@ def create_market_intelligence_router(
     scan_fibonacci: ScanFibonacciOpportunities,
     scan_breakouts: ScanBreakouts,
     generate_signal: GenerateSignal,
+    analyze_stock_regime: AnalyzeStockRegime | None = None,
     require_authenticated: Callable[..., AuthenticatedIdentity],
 ) -> APIRouter:
     """Register deterministic market-intelligence routes behind the app's auth boundary."""
@@ -129,6 +131,47 @@ def create_market_intelligence_router(
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return BreakoutResponse.from_result(result).to_dict()
+
+    @router.get("/api/v1/market-intelligence/regime/{symbol}")
+    def get_stock_regime(
+        symbol: str,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if analyze_stock_regime is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Stock regime analysis is not configured",
+            )
+        try:
+            result = analyze_stock_regime.execute(symbol)
+        except ValueError as error:
+            message = str(error)
+            status_code = 404 if message.startswith("Unknown stock symbol:") else 400
+            raise HTTPException(status_code=status_code, detail=message) from error
+        profile = result.profile
+        return {
+            "symbol": result.symbol,
+            "source": result.source,
+            "requested_from": result.requested_from.isoformat(),
+            "requested_to": result.requested_to.isoformat(),
+            "latest_observation_date": (
+                result.latest_observation_date.isoformat()
+                if result.latest_observation_date is not None
+                else None
+            ),
+            "valid_observation_count": result.valid_observation_count,
+            "excluded_observation_count": result.excluded_observation_count,
+            "trend": profile.trend.value,
+            "volatility": profile.volatility.value,
+            "observation_count": profile.observation_count,
+            "latest_close": profile.latest_close,
+            "sma_20": profile.sma_20,
+            "sma_50": profile.sma_50,
+            "annualized_realized_volatility": profile.annualized_realized_volatility,
+            "drawdown_from_observed_peak": profile.drawdown_from_observed_peak,
+            "reasons": list(profile.reasons),
+            "is_trading_signal": False,
+        }
 
     @router.get("/api/v1/signals/{symbol}")
     def get_signal(

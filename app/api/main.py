@@ -86,6 +86,7 @@ from app.application.notifications.deliver_alert_by_symbol import (
 )
 from app.application.reporting.get_analysis_report import GetAnalysisReport
 from app.application.research.get_stock_research import GetStockResearch, StockResearchNotFoundError
+from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
 from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.application.market_intelligence.rank_sectors import RankSectors
@@ -127,6 +128,7 @@ def create_app(
     list_analysis_runs: ListAnalysisRuns | None = None,
     delete_analysis_run: DeleteAnalysisRun | None = None,
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
+    analyze_stock_regime: AnalyzeStockRegime | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -258,6 +260,7 @@ def create_app(
             scan_fibonacci=scan_fibonacci,
             scan_breakouts=scan_breakouts,
             generate_signal=generate_signal,
+            analyze_stock_regime=analyze_stock_regime,
             require_authenticated=require_authenticated,
         )
     )
