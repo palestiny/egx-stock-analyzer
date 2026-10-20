@@ -46,6 +46,8 @@ def create_application(
     if runtime_authenticator is not None:
         create_app_kwargs["authenticator"] = runtime_authenticator
 
+    market_data_provider = getattr(runtime, "market_data_provider", None)
+
     app = create_app(
         runtime.application_runtime.result_store,
         runtime.application_runtime.run_by_symbol,
@@ -69,8 +71,8 @@ def create_application(
         delete_analysis_run=getattr(runtime.application_runtime, "delete_analysis_run", None),
         delete_analysis_snapshot=getattr(runtime.application_runtime, "delete_analysis_snapshot", None),
         analyze_stock_regime=(
-            AnalyzeStockRegime(stock_catalog, runtime.market_data_provider)
-            if stock_catalog is not None
+            AnalyzeStockRegime(stock_catalog, market_data_provider)
+            if stock_catalog is not None and market_data_provider is not None
             else None
         ),
         **create_app_kwargs,
