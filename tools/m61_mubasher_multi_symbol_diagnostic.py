@@ -237,7 +237,10 @@ def run() -> dict[str, Any]:
 
 
 def main() -> None:
-    print(json.dumps(run(), indent=2, sort_keys=True))
+    report = run()
+    print(json.dumps(report, indent=2, sort_keys=True))
+    if report.get("status") != "completed":
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":
