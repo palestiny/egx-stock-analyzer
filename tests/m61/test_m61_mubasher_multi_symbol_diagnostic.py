@@ -34,7 +34,7 @@ def test_fetch_rows_parses_six_column_mubasher_csv(monkeypatch) -> None:
             f"{close + Decimal('0.1')},{close - Decimal('0.1')},{close},1000"
         )
     lines.append("malformed,row")
-    payload = ("\\n".join(lines) + "\\n").encode()
+    payload = ("\n".join(lines) + "\n").encode()
 
     class FakeResponse:
         def __enter__(self):
@@ -46,8 +46,14 @@ def test_fetch_rows_parses_six_column_mubasher_csv(monkeypatch) -> None:
         def read(self):
             return payload
 
-    monkeypatch.setattr(diagnostic.urllib.request, "urlopen", lambda *_a, **_k: FakeResponse())
-    rows = diagnostic._fetch_rows("COMI", "https://example.test/COMI", "https://example.test/data.csv")
+    monkeypatch.setattr(
+        diagnostic.urllib.request,
+        "urlopen",
+        lambda *_args, **_kwargs: FakeResponse(),
+    )
+    rows = diagnostic._fetch_rows(
+        "COMI", "https://example.test/COMI", "https://example.test/data.csv"
+    )
 
     assert len(rows) == 35
     assert rows[0]["date"] == "2024-01-01"
