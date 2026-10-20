@@ -111,3 +111,21 @@ def test_cli_exits_nonzero_when_sources_are_insufficient(monkeypatch, capsys) ->
         raise AssertionError("CLI must fail when source data is insufficient")
 
     assert '"status": "insufficient_source_data"' in capsys.readouterr().out
+
+
+def test_pre_breakout_proxy_requires_momentum_volume_and_prior_resistance() -> None:
+    rows = _rows(80)
+    # Make one controlled near-resistance setup at index 30. Resistance is
+    # computed from the prior 20 bars, so the current bar cannot set its own level.
+    rows[30]["open"] = Decimal("12.75")
+    rows[30]["high"] = Decimal("12.90")
+    rows[30]["low"] = Decimal("12.70")
+    rows[30]["close"] = Decimal("12.80")
+    rows[30]["volume"] = Decimal("3000")
+
+    result = diagnostic._evaluate(rows)
+    group = result["pre_breakout_proxy_momentum_volume_near_20_session_resistance"]
+
+    assert group["1"]["samples"] >= 1
+    assert group["3"]["samples"] >= 1
+    assert "pre_breakout_proxy" in diagnostic.run.__code__.co_consts
