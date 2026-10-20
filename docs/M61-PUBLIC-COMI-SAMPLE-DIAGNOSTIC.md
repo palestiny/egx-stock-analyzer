@@ -38,3 +38,16 @@ The runner uses daily COMI prices from 2020-01-01 through 2022-12-31, a warm-up 
 ## Interpretation boundary
 
 The run is intended to unblock functional verification with real, EGX-specific price observations. It does not satisfy the M61 ten-symbol/2021–2025 data acceptance gate, and the source's corporate-action adjustment semantics have not been independently reconciled. Any strategy metrics are exploratory only and must not be used to infer real-world profitability or make investment decisions.
+
+
+## Historical risk profile (exploratory feature slice)
+
+The diagnostic report now also includes `historical_risk_profile`, computed from the same valid COMI OHLCV observations:
+
+- maximum close-to-close drawdown and the session where that drawdown was observed;
+- current close drawdown from the highest observed close in the selected window;
+- annualized realized volatility from close-to-close returns using population standard deviation and `sqrt(252)`;
+- worst daily close return and worst open-versus-prior-close gap;
+- count of sessions with volume at least 1.5 times the preceding 20-session average.
+
+This is a single-symbol historical risk profile, not a market-wide Crash Radar. It does not model intraday drawdown, corporate-action adjustments, liquidity, portfolio exposure, or official-source reconciliation. It is intended to validate the feature pipeline against the available real COMI sample while broader market coverage remains unavailable.
