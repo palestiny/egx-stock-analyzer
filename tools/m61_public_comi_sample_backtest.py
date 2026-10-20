@@ -282,6 +282,7 @@ def run_sample_backtest() -> dict[str, Any]:
     )
     report.update(
         {
+            "historical_risk_profile": _risk_profile(observations),
             "strategy_id": result.strategy_id,
             "strategy_version": result.strategy_version,
             "warmup_bars": result.configuration.warmup_bars,
