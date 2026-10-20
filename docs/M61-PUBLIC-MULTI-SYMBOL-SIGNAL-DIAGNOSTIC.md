@@ -51,7 +51,8 @@ inspect the report's `status` before interpreting any returns.
 
 ## Limits and acceptance gates
 
-- The pre-breakout proxy is not the production scanner’s nearest-swing-resistance algorithm; it is a historical approximation, not exact validation of PR #325.\n- Pooled signals overlap and are not statistically independent.
+- The pre-breakout proxy is not the production scanner’s nearest-swing-resistance algorithm; it is a historical approximation, not exact validation of PR #325.
+- Pooled signals overlap and are not statistically independent.
 - Gross returns exclude transaction fees, slippage, liquidity/market impact,
   portfolio sizing, and risk adjustment.
 - A shared date window is not proof that each source series is corporate-action
@@ -129,3 +130,23 @@ returns for strategy evaluation, manually reconcile flagged dates against
 reliable exchange/company corporate-action information and source history.
 The 20% threshold may miss smaller but material discontinuities and will flag
 some legitimate high-volatility moves.
+
+
+### Findings from the 2026-10-20 audit run
+
+The report flagged **16 observations across 7 of 10 symbols** in the 2021-10-25 through 2026-10-19 window. Counts are screening results, not confirmed data errors.
+
+| Symbol | Flagged observations | Dates requiring review |
+|---|---:|---|
+| ABUK | 2 | 2023-10-17, 2024-02-26 |
+| ADIB | 2 | 2024-03-10, 2025-06-10 |
+| EFIH | 2 | 2024-03-11, 2025-06-02 |
+| EGAL | 3 | 2022-10-20, 2023-10-26, 2024-05-20 |
+| FWRY | 2 | 2022-08-04, 2024-03-11 |
+| HRHO | 1 | 2022-04-17 |
+| TMGH | 4 | 2023-10-29, 2024-02-06, 2024-02-25, 2024-03-05 |
+| COMI, EAST, ETEL | 0 | No observations crossed the current 20% screening threshold |
+
+Highest-priority review candidates based on absolute close-to-close movement include ADIB on 2025-06-10 (-47.20%), EFIH on 2025-06-02 (-34.64%), EGAL on 2023-10-26 (+55.11%), TMGH on 2023-10-29 (+40.71%), and ABUK on 2023-10-17 (+26.06%). These are prioritized for investigation by magnitude only; no cause has been verified.
+
+**Required next step:** reconcile these dates against exchange notices, company corporate-action records, and independent price history before excluding observations, adjusting prices, or claiming a strategy edge. Preserve the raw source values and record the evidence and adjustment decision for every reviewed event. A symbol with zero flags is not thereby proven clean; this rule only detects moves meeting the configured threshold.
