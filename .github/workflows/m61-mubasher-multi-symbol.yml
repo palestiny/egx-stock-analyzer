@@ -29,4 +29,3 @@ jobs:
           name: m61-multi-symbol-diagnostic
           path: m61-multi-symbol-report.json
           if-no-files-found: warn
-          if: always()
