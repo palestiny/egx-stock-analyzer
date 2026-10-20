@@ -43,7 +43,11 @@ uploads a JSON report as an artifact:
 - Command: `python -m tools.m61_mubasher_multi_symbol_diagnostic`
 
 The workflow intentionally remains separate from the main test suite because
-external data availability must not make deterministic CI flaky.
+external data availability must not make deterministic CI flaky. If fewer than
+three sources are usable, the tool emits a JSON report with a non-completed
+status and per-symbol errors instead of throwing away the report. A successful
+GitHub Actions job therefore means the diagnostic ran and produced a report;
+inspect the report's `status` before interpreting any returns.
 
 ## Limits and acceptance gates
 
