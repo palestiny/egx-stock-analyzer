@@ -7,7 +7,6 @@ same close that generated the signal.
 from __future__ import annotations
 
 import json
-from datetime import date
 from decimal import Decimal
 from statistics import median
 from typing import Any
