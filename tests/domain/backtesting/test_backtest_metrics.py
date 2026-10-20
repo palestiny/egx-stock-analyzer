@@ -50,6 +50,8 @@ def test_metrics_include_profit_factor_average_outcomes_and_equity_drawdown() ->
     assert metrics.average_winning_return == Decimal("0.06")
     assert metrics.average_losing_return == Decimal("-0.075")
     assert metrics.max_drawdown == Decimal("0.95931") / Decimal("1.1") - Decimal("1")
+    assert metrics.max_consecutive_winning_trades == 1
+    assert metrics.max_consecutive_losing_trades == 1
 
 
 def test_metrics_define_empty_and_no_loss_cases_without_infinity() -> None:
@@ -75,3 +77,18 @@ def test_metrics_define_empty_and_no_loss_cases_without_infinity() -> None:
     assert no_losses.profit_factor is None
     assert no_losses.average_losing_return is None
     assert no_losses.max_drawdown == Decimal("0")
+    assert no_losses.max_consecutive_winning_trades == 2
+    assert no_losses.max_consecutive_losing_trades == 0
+
+
+def test_metrics_track_longest_losing_streak() -> None:
+    result = BacktestResult(
+        strategy_id="test",
+        strategy_version="1",
+        configuration=CONFIGURATION,
+        trades=tuple(_trade(value) for value in ("0.1", "-0.01", "-0.02", "-0.03", "0.01")),
+        open_trade_count=0,
+    )
+
+    assert result.metrics.max_consecutive_winning_trades == 1
+    assert result.metrics.max_consecutive_losing_trades == 3
