@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
@@ -14,6 +14,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getSnapshotPerformance: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
+  getStockRegime: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
   getScheduledWorkflowExecutionHistory: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
@@ -50,6 +51,19 @@ describe("Dashboard", () => {
       user_id: "00000000-0000-0000-0000-000000000001",
       status: "active",
     });
+    getStockRegime.mockResolvedValue({
+      symbol: "EGAL",
+      trend: "uptrend",
+      volatility: "moderate",
+      latest_close: 350.5,
+      annualized_realized_volatility: 0.28,
+      drawdown_from_observed_peak: -0.08,
+      valid_observation_count: 120,
+      excluded_observation_count: 2,
+      latest_observation_date: "2026-10-19",
+      reasons: ["Trend conditions align."],
+      is_trading_signal: false,
+    });
   });
 
   async function renderAuthenticatedApp() {
@@ -63,6 +77,21 @@ describe("Dashboard", () => {
     await renderAuthenticatedApp();
     expect(screen.getByLabelText("Stock Symbol")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load Analysis" })).toBeInTheDocument();
+  });
+
+  it("loads and renders the descriptive stock regime risk profile", async () => {
+    getReport.mockResolvedValue(report);
+    getAlert.mockResolvedValue({ classification: "WATCH", stock_quality_score: 70, entry_quality_score: 65 });
+    getAnalysisHistory.mockResolvedValue({ symbol: "EGAL", items: [] });
+
+    await renderAuthenticatedApp();
+    fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "EGAL" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
+
+    expect(await screen.findByRole("region", { name: "stock regime risk profile" })).toHaveTextContent("uptrend");
+    expect(screen.getByText("28.0%")).toBeInTheDocument();
+    expect(screen.getByText("This is descriptive risk information, not a buy/sell signal.")).toBeInTheDocument();
+    expect(getStockRegime).toHaveBeenCalledWith("EGAL");
   });
 
   it("loads and renders the latest report and alert", async () => {
