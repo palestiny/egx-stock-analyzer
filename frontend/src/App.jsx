@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -53,6 +53,10 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [marketView, setMarketView] = useState(null);
   const [marketError, setMarketError] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [breadthSymbols, setBreadthSymbols] = useState("EGAL,IEEC,COMI");
+  const [breadthView, setBreadthView] = useState(null);
+  const [breadthError, setBreadthError] = useState(null);
+  const [breadthLoading, setBreadthLoading] = useState(false);
   const [opportunityRegimes, setOpportunityRegimes] = useState({});
   const [opportunityRegimeErrors, setOpportunityRegimeErrors] = useState({});
   const [opportunityRegimeLoading, setOpportunityRegimeLoading] = useState({});
@@ -191,6 +195,30 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     }
   }
 
+
+  async function handleMarketBreadthStress(event) {
+    event.preventDefault();
+    const symbols = breadthSymbols
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+    if (symbols.length === 0) {
+      setBreadthError(new Error("Enter at least one stock symbol."));
+      setBreadthView(null);
+      return;
+    }
+
+    setBreadthLoading(true);
+    setBreadthError(null);
+    try {
+      setBreadthView(await getMarketBreadthStress(symbols));
+    } catch (requestError) {
+      setBreadthError(requestError);
+      setBreadthView(null);
+    } finally {
+      setBreadthLoading(false);
+    }
+  }
 
   async function handleOpportunityRegime(rawSymbol) {
     const normalizedSymbol = rawSymbol.trim().toUpperCase();
@@ -531,6 +559,43 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
         )}
       </section>
 
+
+      <section className="panel market-stress-panel" aria-label="market breadth and stress pulse">
+        <div>
+          <p className="eyebrow">MARKET HEALTH</p>
+          <h3>Market Breadth & Stress Pulse</h3>
+          <p className="muted">Uses the latest saved analysis snapshots for the symbols below, not live intraday prices. This heuristic is context, not a crash prediction or trading signal.</p>
+        </div>
+        <form className="symbol-form" onSubmit={handleMarketBreadthStress}>
+          <label className="sr-only" htmlFor="breadth-symbols">Market breadth symbols</label>
+          <input
+            id="breadth-symbols"
+            name="breadth-symbols"
+            type="text"
+            value={breadthSymbols}
+            onChange={(event) => setBreadthSymbols(event.target.value)}
+            placeholder="EGAL,IEEC,COMI"
+            autoComplete="off"
+          />
+          <button type="submit" disabled={breadthLoading}>
+            {breadthLoading ? "Calculating..." : "Calculate Market Pulse"}
+          </button>
+        </form>
+        {breadthError && <p className="state-card error" role="alert">{breadthError.message}</p>}
+        {breadthView && (
+          <div className="opportunity-list">
+            <div className="detail-row"><span>Stress score / level</span><strong>{breadthView.stress_score ?? "—"} / {breadthView.stress_level}</strong></div>
+            <div className="detail-row"><span>Bullish breadth</span><strong>{breadthView.bullish_breadth_percent == null ? "—" : breadthView.bullish_breadth_percent + "%"}</strong></div>
+            <div className="detail-row"><span>Bearish pressure</span><strong>{breadthView.bearish_pressure_percent == null ? "—" : breadthView.bearish_pressure_percent + "%"}</strong></div>
+            <div className="detail-row"><span>Uptrend / downtrend</span><strong>{breadthView.uptrend_count} / {breadthView.downtrend_count}</strong></div>
+            <div className="detail-row"><span>Positive / negative momentum</span><strong>{breadthView.positive_momentum_count} / {breadthView.negative_momentum_count}</strong></div>
+            <div className="detail-row"><span>Above-average volume</span><strong>{breadthView.above_average_volume_count}</strong></div>
+            <div className="detail-row"><span>Coverage</span><strong>{breadthView.analyzed_symbols}/{breadthView.requested_symbols} ({breadthView.coverage_percent ?? "—"}%)</strong></div>
+            {breadthView.missing_symbols?.length > 0 && <p className="muted">Missing saved analyses: {breadthView.missing_symbols.join(", ")}</p>}
+            <p className="muted">Data: {breadthView.data_status}. {breadthView.methodology}</p>
+          </div>
+        )}
+      </section>
 
       <section className="panel" aria-label="pre-breakout momentum volume watchlist">
         <div>
