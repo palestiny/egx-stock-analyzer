@@ -13,6 +13,7 @@ import re
 from datetime import date, datetime, time
 from decimal import Decimal
 from pathlib import Path
+from statistics import pstdev
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -181,6 +182,78 @@ def _load_market_rows() -> tuple[list[RawPriceBarObservation], dict[str, Any]]:
         ),
     }
     return observations, report
+
+
+def _risk_profile(observations: list[RawPriceBarObservation]) -> dict[str, Any]:
+    """Calculate transparent price/volume risk diagnostics from observed bars."""
+    ordered = sorted(observations, key=lambda item: item.timestamp)
+    if len(ordered) < 2:
+        return {
+            "status": "insufficient_history",
+            "bars": len(ordered),
+            "daily_returns": 0,
+        }
+
+    returns: list[tuple[date, float]] = []
+    peak = ordered[0].close.value
+    max_drawdown = Decimal("0")
+    max_drawdown_date: date | None = None
+    volume_spikes = 0
+    gaps: list[tuple[date, Decimal]] = []
+
+    for index, bar in enumerate(ordered):
+        session = bar.timestamp.astimezone(EGX_TIMEZONE).date()
+        close = bar.close.value
+        if close > peak:
+            peak = close
+        drawdown = (close - peak) / peak if peak > 0 else Decimal("0")
+        if drawdown < max_drawdown:
+            max_drawdown = drawdown
+            max_drawdown_date = session
+
+        if index > 0:
+            previous = ordered[index - 1]
+            previous_close = previous.close.value
+            if previous_close > 0:
+                returns.append((session, float((close - previous_close) / previous_close)))
+                gaps.append((session, (bar.open.value - previous_close) / previous_close))
+
+        if index >= 20:
+            prior_volumes = [item.volume for item in ordered[index - 20:index]]
+            average_volume = sum(prior_volumes, Decimal("0")) / Decimal(20)
+            if average_volume > 0 and bar.volume >= average_volume * Decimal("1.5"):
+                volume_spikes += 1
+
+    return_values = [value for _, value in returns]
+    annualized_volatility = pstdev(return_values) * (252**0.5) if len(return_values) > 1 else 0.0
+    worst_day = min(returns, key=lambda item: item[1]) if returns else None
+    worst_gap = min(gaps, key=lambda item: item[1]) if gaps else None
+    last_close = ordered[-1].close.value
+    current_drawdown = (last_close - peak) / peak if peak > 0 else Decimal("0")
+
+    return {
+        "status": "completed",
+        "bars": len(ordered),
+        "daily_returns": len(returns),
+        "annualized_realized_volatility": round(annualized_volatility, 6),
+        "maximum_close_to_close_drawdown": str(max_drawdown),
+        "maximum_drawdown_date": max_drawdown_date.isoformat() if max_drawdown_date else None,
+        "current_drawdown_from_observed_peak": str(current_drawdown),
+        "worst_daily_return": {
+            "date": worst_day[0].isoformat(),
+            "return": str(worst_day[1]),
+        } if worst_day else None,
+        "worst_overnight_gap": {
+            "date": worst_gap[0].isoformat(),
+            "return": str(worst_gap[1]),
+        } if worst_gap else None,
+        "sessions_with_volume_at_least_1_5x_prior_20_session_average": volume_spikes,
+        "method_notes": [
+            "Risk profile uses only the selected historical price bars; it is not a market-wide crash score.",
+            "Annualized volatility is population standard deviation of close-to-close returns multiplied by sqrt(252).",
+            "No corporate-action adjustment or official-source reconciliation has been performed.",
+        ],
+    }
 
 
 def run_sample_backtest() -> dict[str, Any]:
