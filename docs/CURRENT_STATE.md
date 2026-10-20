@@ -1,12 +1,19 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-10-01  
+**Last verified:** 2026-10-20  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
 
-The repository is at **M61 — Backtesting & Strategy Validation**, with the first deterministic simulator slice merged and verified.
+The repository is at **M61 — Backtesting & Strategy Validation**. The deterministic simulator and dataset software boundaries are implemented, but real historical evidence remains unaccepted.
+
+### Latest verified progress — 2026-10-20
+
+- PR #322 merged at `24a8193199f821e0fe4906dfdfcaa603ceb1ae73`; Strategy v0 reports profit factor, trade-sequence maximum drawdown, average winning/losing returns, and longest consecutive win/loss streaks. This is not daily portfolio drawdown.
+- PR #325 merged at `1c908b0456f02dccbdc75ab9eeb5206bad30c15d`; the dashboard/API now provide a pre-breakout momentum-volume watchlist using saved analysis snapshots. It is a watchlist, not a buy signal, and snapshots may be stale.
+- PR #322 CI run #4068 and PR #325 CI run #4113 were reported successful across five jobs before merge. This is implementation validation only; no strategy-performance claim follows.
+- Current M61 blocker remains real, legally retainable market history and point-in-time financial evidence for the required ten-symbol cohort. No immutable accepted dataset or valid strategy-performance conclusion is claimed.
 
 M56 — Analysis Run & Snapshot Retention and Deletion is complete.
 
