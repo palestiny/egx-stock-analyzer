@@ -49,7 +49,7 @@ def test_analysis_uses_valid_bars_and_reports_provenance() -> None:
     service = AnalyzeStockRegime(InMemoryStockCatalog([stock]), provider)
     result = service.execute(" comi ", as_of=date(2025, 4, 1))
     assert result.symbol == "COMI"
-    assert result.source == "Yahoo Finance"
+    assert result.source == "FakeMarketDataProvider"
     assert result.valid_observation_count == 60
     assert result.excluded_observation_count == 0
     assert result.latest_observation_date == date(2025, 3, 1)
