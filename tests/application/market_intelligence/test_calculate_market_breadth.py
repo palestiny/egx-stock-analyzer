@@ -1,3 +1,4 @@
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -42,7 +43,7 @@ def test_market_breadth_reports_coverage_and_heuristic_stress():
     assert result.missing_symbols == ("MISSING",)
     assert result.stress_score == 47
     assert result.stress_level == "mixed"
-    assert result.bullish_breadth_percent == 33.33
+    assert result.bullish_breadth_percent == Decimal("33.33")
     assert result.to_dict()["coverage_percent"] == "75.00"
     assert result.to_dict()["is_trading_signal"] is False
 
