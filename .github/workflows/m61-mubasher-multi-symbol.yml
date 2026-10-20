@@ -1,0 +1,32 @@
+name: M61 Public Multi-Symbol Diagnostic
+
+on:
+  push:
+    branches:
+      - test/m61-public-comi-sample-backtest
+    paths:
+      - "tools/m61_mubasher_multi_symbol_diagnostic.py"
+      - ".github/workflows/m61-mubasher-multi-symbol.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Fetch public Mubasher historical CSVs and evaluate signals
+        run: python -m tools.m61_mubasher_multi_symbol_diagnostic | tee m61-multi-symbol-report.json
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m61-multi-symbol-diagnostic
+          path: m61-multi-symbol-report.json
+          if-no-files-found: warn
