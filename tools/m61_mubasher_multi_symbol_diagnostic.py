@@ -90,6 +90,41 @@ def _stats(values: list[Decimal]) -> dict[str, Any]:
     }
 
 
+
+def _find_price_discontinuities(
+    rows: list[dict[str, Any]],
+    threshold: Decimal = Decimal("0.20"),
+) -> list[dict[str, Any]]:
+    """Flag large close-to-close moves or overnight gaps without altering source bars."""
+    if threshold <= 0:
+        raise ValueError("threshold must be positive")
+    flagged: list[dict[str, Any]] = []
+    for index in range(1, len(rows)):
+        previous = rows[index - 1]
+        current = rows[index]
+        previous_close = previous["close"]
+        if previous_close <= 0:
+            continue
+        close_change = (current["close"] / previous_close) - Decimal("1")
+        overnight_gap = (current["open"] / previous_close) - Decimal("1")
+        if abs(close_change) >= threshold or abs(overnight_gap) >= threshold:
+            flagged.append({
+                "date": current["date"],
+                "previous_date": previous["date"],
+                "previous_close": str(previous_close),
+                "open": str(current["open"]),
+                "high": str(current["high"]),
+                "low": str(current["low"]),
+                "close": str(current["close"]),
+                "volume": str(current["volume"]),
+                "close_to_close_change": str(close_change),
+                "overnight_gap": str(overnight_gap),
+                "threshold": str(threshold),
+                "review_note": "Manual review only; raw source values are unchanged and cause is unverified.",
+            })
+    return flagged
+
+
 def _evaluate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     groups: dict[str, list[int]] = {
         "all_eligible_sessions": [],
@@ -180,6 +215,7 @@ def run() -> dict[str, Any]:
             "start": rows[0]["date"],
             "end": rows[-1]["date"],
             "signals": _evaluate(rows),
+            "price_discontinuities": _find_price_discontinuities(rows),
         }
     if len(per_symbol) < 3:
         return {
@@ -240,6 +276,12 @@ def run() -> dict[str, Any]:
         },
         "common_window": {"start": common_start, "end": common_end},
         "symbols": per_symbol,
+        "price_discontinuity_audit": {
+            "threshold_fraction": "0.20",
+            "flagged_observations": sum(len(data["price_discontinuities"]) for data in per_symbol.values()),
+            "method": "flag absolute close-to-close change or overnight open-vs-prior-close gap >= 20%; no automatic adjustment",
+            "interpretation": "Review candidates only, not proof of bad data, corporate action, or manipulation.",
+        },
         "pooled_by_signal_group": {
             group: {horizon: _stats(values) for horizon, values in horizons.items()}
             for group, horizons in pooled.items()
