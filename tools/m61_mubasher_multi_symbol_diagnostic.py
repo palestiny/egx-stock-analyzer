@@ -127,14 +127,31 @@ def run() -> dict[str, Any]:
             failures[symbol] = f"{type(exc).__name__}: {exc}"
 
     if len(symbols) < 3:
-        raise RuntimeError(f"Fewer than three symbols were retrieved. Successful={list(symbols)}; failures={failures}")
+        return {
+            "diagnostic": "Mubasher multi-symbol momentum and volume forward returns",
+            "status": "insufficient_source_data",
+            "symbols_retrieved": sorted(symbols),
+            "failures": failures,
+            "limitations": [
+                "Fewer than three symbols had at least 30 parseable rows.",
+                "No pooled returns were calculated.",
+                "Public aggregator data and licensing are not independently verified.",
+            ],
+        }
 
     common_start = max(data["rows"][0]["date"] for data in symbols.values())
     common_end = min(data["rows"][-1]["date"] for data in symbols.values())
     if common_start >= common_end:
-        raise RuntimeError(
-            f"No overlapping history across retrieved symbols: {common_start}..{common_end}"
-        )
+        return {
+            "diagnostic": "Mubasher multi-symbol momentum and volume forward returns",
+            "status": "no_common_window",
+            "symbols_retrieved": sorted(symbols),
+            "failures": failures,
+            "available_ranges": {
+                symbol: {"start": data["rows"][0]["date"], "end": data["rows"][-1]["date"]}
+                for symbol, data in symbols.items()
+            },
+        }
     per_symbol: dict[str, Any] = {}
     for symbol, data in symbols.items():
         rows = [row for row in data["rows"] if common_start <= row["date"] <= common_end]
@@ -148,11 +165,14 @@ def run() -> dict[str, Any]:
             "signals": _evaluate(rows),
         }
     if len(per_symbol) < 3:
-        raise RuntimeError(
-            "Fewer than three symbols have sufficient data in the common window. "
-            f"Usable={list(per_symbol)}; failures={failures}; "
-            f"window={common_start}..{common_end}"
-        )
+        return {
+            "diagnostic": "Mubasher multi-symbol momentum and volume forward returns",
+            "status": "insufficient_common_window_data",
+            "common_window": {"start": common_start, "end": common_end},
+            "symbols": per_symbol,
+            "failures": failures,
+            "limitations": ["Fewer than three symbols had 30 rows in the common window."],
+        }
 
     # Pool raw observations across symbols; each symbol contributes each eligible signal.
     pooled: dict[str, dict[str, list[Decimal]]] = defaultdict(lambda: defaultdict(list))
@@ -184,6 +204,7 @@ def run() -> dict[str, Any]:
 
     return {
         "diagnostic": "Mubasher multi-symbol momentum and volume forward returns",
+        "status": "completed",
         "source_registry": "AhmedYasserShalaby/egx-research-toolkit data/stock_rotation/universe.csv",
         "source_rights": "underlying market-data redistribution terms not independently verified; diagnostic use only",
         "execution_assumption": "signal after session close; enter next session open; exit at close after 1/3/5/10 sessions",
