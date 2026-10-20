@@ -9,7 +9,8 @@ from app.api.market_intelligence_response import MarketMoverRankingResponse
 from app.api.sector_intelligence_response import SectorRankingResponse
 from app.api.signal_response import signal_to_dict
 from app.api.technical_scanner_response import TechnicalScannerResponse
-from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime\nfrom app.application.market_intelligence.rank_momentum import RankMomentumLeaders
+from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
+from app.application.market_intelligence.rank_momentum import RankMomentumLeaders
 from app.application.market_intelligence.rank_sectors import RankSectors, SectorInput
 from app.application.market_intelligence.run_technical_scanner import RunTechnicalScanner
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
