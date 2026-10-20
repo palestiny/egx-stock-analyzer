@@ -14,7 +14,7 @@ Summarize one stock's trailing daily-price behavior. This is descriptive, not a 
 
 ## API and data limitations
 
-The authenticated endpoint `GET /api/v1/market-intelligence/regime/{symbol}` requests approximately 550 calendar days from the configured Yahoo Finance adapter when a stock catalog and market-data provider are configured. It assesses raw observations and excludes observations that are not marked valid.
+The authenticated endpoint `GET /api/v1/market-intelligence/regime/{symbol}` requests approximately 550 calendar days from the configured market-data provider when a stock catalog and market-data provider are configured. It assesses raw observations and excludes observations that are not marked valid.
 
 The response includes requested dates, source label, latest observation date, valid/excluded counts, trend, volatility, SMA20/SMA50, annualized realized volatility, drawdown, reasons, and `is_trading_signal: false`.
 
