@@ -54,6 +54,13 @@ export function getMarketOpportunities(symbols) {
   return getJson("/api/v1/opportunities?symbols=" + encodeURIComponent(query), "Market opportunities request");
 }
 
+export function getStockRegime(symbol) {
+  return getJson(
+    "/api/v1/market-intelligence/regime/" + encodeURIComponent(symbol.trim().toUpperCase()),
+    "Stock regime request",
+  );
+}
+
 export function getTechnicalScanner(symbols, scannerId = "trend-momentum-volume") {
   const params = new URLSearchParams({
     symbols: symbols.join(","),
