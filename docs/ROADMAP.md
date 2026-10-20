@@ -189,6 +189,12 @@ The active M61 execution step is **real historical dataset acquisition and valid
 
 Use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
 
+## M61 exploratory data is now usable for technical research — 2026-10-20
+
+The public multi-symbol diagnostic workflow ran successfully against ten EGX symbols over 2021-10-25 through 2026-10-19 with no source-fetch failures. The pre-breakout proxy did not outperform the all-session baseline on mean gross returns at 5 or 10 sessions. Preserve the run and detailed metrics in [M61 public multi-symbol results](M61-PUBLIC-MULTI-SYMBOL-RESULTS-2026-10-20.md). This is exploratory only; do not change production opportunity ranking from this sample.
+
+The private archive has a separate 181,203-row validated CSV across 195 symbols, but the attempted private-repository workflow failed before producing a report. No results are inferred for that dataset; see [archive technical diagnostic instructions](M61-ARCHIVE-TECHNICAL-DIAGNOSTIC.md).
+
 ## Verified market-intelligence increments — 2026-10-20
 
 The following product capabilities were merged into `main` after the M61 acquisition checkpoint was written. They do not change the active M61 acceptance boundary or establish strategy profitability:
