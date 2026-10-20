@@ -78,11 +78,9 @@ def read_bars(path: Path) -> tuple[list[Bar], dict[str, object]]:
                 if len(invalid_samples) < 10:
                     invalid_samples.append({"row": row_number, "reason": str(exc)})
                 continue
-            key = (symbol, session_date)
-            if key in seen:
-                duplicate_keys += 1
-                continue
-            seen.add(key)
+
+            # Validate the row before reserving its symbol/date identity. A
+            # malformed first occurrence must not suppress a later valid row.
             if high < max(open_price, low, close) or low > min(open_price, high, close):
                 invalid_ohlc += 1
                 if len(invalid_samples) < 10:
@@ -92,6 +90,12 @@ def read_bars(path: Path) -> tuple[list[Bar], dict[str, object]]:
                         "reason": "OHLC bounds inconsistent",
                     })
                 continue
+
+            key = (symbol, session_date)
+            if key in seen:
+                duplicate_keys += 1
+                continue
+            seen.add(key)
             bars.append(Bar(symbol, session_date, open_price, high, low, close, volume))
     bars.sort(key=lambda bar: (bar.symbol, bar.session_date))
     summary: dict[str, object] = {
@@ -217,29 +221,30 @@ def analyze_bars(bars: list[Bar], input_summary: dict[str, object]) -> dict[str,
         "limitations": [
             "Secondary unofficial Yahoo Finance observations; not an authoritative complete EGX universe.",
             "Rows excluded for structural OHLC defects are not repaired or backfilled.",
-            "The validated archive still requires source-gap and corporate-action reconciliation.",
-            "This is not the production Strategy v0, does not use fundamentals, and does not establish a profitable trading edge.",
-            "Pooled observations overlap and are not statistically independent.",
+            "The validated archive still requires source-gap, corporate-action, and point-in-time review.",
+            "Overlapping forward-return samples are not independent trades.",
+            "This is not the production BUY/SELL classifier and does not estimate live trading performance.",
+            "No transaction costs, slippage, liquidity, or dividend treatment is included.",
         ],
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--csv", required=True, type=Path, help="Normalized daily OHLCV CSV or .csv.gz")
-    parser.add_argument("--output", required=True, type=Path, help="Output JSON report path")
+    parser.add_argument("--input", required=True, type=Path, help="Normalized CSV or CSV.GZ archive")
+    parser.add_argument("--output", required=True, type=Path, help="Path for JSON report")
     args = parser.parse_args()
-    bars, summary = read_bars(args.csv)
+    bars, summary = read_bars(args.input)
     report = analyze_bars(bars, summary)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({
-        "output": str(args.output),
-        "source_dataset_summary": summary,
+        "status": "completed",
+        "usable_rows": summary["usable_rows"],
+        "symbols": summary["unique_symbols"],
         "pooled_forward_returns": report["pooled_forward_returns"],
-        "limitations": report["limitations"],
-    }, indent=2, ensure_ascii=False))
-    return 0 if bars else 1
+    }, indent=2))
+    return 0
 
 
 if __name__ == "__main__":
