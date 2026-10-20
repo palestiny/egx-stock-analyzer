@@ -150,6 +150,41 @@ def test_pre_breakout_watchlist_requires_momentum_volume_and_near_resistance():
     assert match.distance_to_resistance_percent == Decimal("-4")
 
 
+def test_pre_breakout_watchlist_skips_results_without_entry_context():
+    store = InMemoryAnalysisResultStore()
+    store.save(
+        "COMI",
+        _result(
+            92,
+            trend=TrendStatus.UPTREND,
+            momentum=MomentumStatus.POSITIVE,
+            volume=VolumeStatus.ABOVE_AVERAGE,
+            classification=OpportunityClassification.WATCH,
+            volume_ratio=Decimal("1.8"),
+            entry_context=None,
+        ),
+    )
+    store.save(
+        "EGAL",
+        _result(
+            80,
+            trend=TrendStatus.UPTREND,
+            momentum=MomentumStatus.POSITIVE,
+            volume=VolumeStatus.ABOVE_AVERAGE,
+            classification=OpportunityClassification.WATCH,
+            volume_ratio=Decimal("1.8"),
+            entry_context=_entry("96"),
+        ),
+    )
+
+    result = RunTechnicalScanner(store).execute(
+        ["COMI", "EGAL"],
+        scanner_id="pre-breakout-momentum-volume",
+    )
+
+    assert [item.symbol for item in result.matches] == ["EGAL"]
+
+
 def test_scanner_rejects_duplicate_symbols():
     store = InMemoryAnalysisResultStore()
     with pytest.raises(ValueError, match="Duplicate"):
