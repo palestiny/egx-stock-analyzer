@@ -195,7 +195,7 @@ def _risk_profile(observations: list[RawPriceBarObservation]) -> dict[str, Any]:
         }
 
     returns: list[tuple[date, float]] = []
-    peak = ordered[0].close.value
+    peak = ordered[0].close
     max_drawdown = Decimal("0")
     max_drawdown_date: date | None = None
     volume_spikes = 0
@@ -228,7 +228,7 @@ def _risk_profile(observations: list[RawPriceBarObservation]) -> dict[str, Any]:
     annualized_volatility = pstdev(return_values) * (252**0.5) if len(return_values) > 1 else 0.0
     worst_day = min(returns, key=lambda item: item[1]) if returns else None
     worst_gap = min(gaps, key=lambda item: item[1]) if gaps else None
-    last_close = ordered[-1].close.value
+    last_close = ordered[-1].close
     current_drawdown = (last_close - peak) / peak if peak > 0 else Decimal("0")
 
     return {
