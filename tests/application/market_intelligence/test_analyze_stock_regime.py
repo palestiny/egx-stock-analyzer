@@ -67,7 +67,7 @@ def test_analyze_stock_regime_uses_validated_price_bars_and_reports_provenance()
     assert result.profile.trend.value == "uptrend"
     assert result.profile.annualized_realized_volatility is not None
     assert result.profile.drawdown_from_observed_peak == 0
-    assert provider.request == (date(2023, 10, 29), date(2025, 4, 1))
+    assert provider.request == (date(2023, 9, 29), date(2025, 4, 1))
 
 
 def test_analyze_stock_regime_excludes_invalid_observations() -> None:
