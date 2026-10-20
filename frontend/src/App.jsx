@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -50,6 +50,10 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [marketView, setMarketView] = useState(null);
   const [marketError, setMarketError] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [scannerSymbols, setScannerSymbols] = useState("EGAL,IEEC,COMI");
+  const [preBreakoutView, setPreBreakoutView] = useState(null);
+  const [preBreakoutError, setPreBreakoutError] = useState(null);
+  const [preBreakoutLoading, setPreBreakoutLoading] = useState(false);
   const [workflowOccurrenceId, setWorkflowOccurrenceId] = useState("");
   const [workflowExecutions, setWorkflowExecutions] = useState(null);
   const [workflowError, setWorkflowError] = useState(null);
@@ -157,6 +161,31 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
       setMarketView(null);
     } finally {
       setMarketLoading(false);
+    }
+  }
+
+
+  async function handlePreBreakoutScan(event) {
+    event.preventDefault();
+    const symbols = scannerSymbols
+      .split(",")
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean);
+    if (symbols.length === 0) {
+      setPreBreakoutView(null);
+      setPreBreakoutError(new Error("Enter at least one stock symbol."));
+      return;
+    }
+
+    setPreBreakoutLoading(true);
+    setPreBreakoutError(null);
+    try {
+      setPreBreakoutView(await getTechnicalScanner(symbols, "pre-breakout-momentum-volume"));
+    } catch (requestError) {
+      setPreBreakoutView(null);
+      setPreBreakoutError(requestError);
+    } finally {
+      setPreBreakoutLoading(false);
     }
   }
 
@@ -396,6 +425,53 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
         )}
       </section>
 
+
+      <section className="panel" aria-label="pre-breakout momentum volume watchlist">
+        <div>
+          <p className="eyebrow">EARLY WATCH</p>
+          <h3>Pre-breakout Momentum + Volume</h3>
+          <p className="muted">Find saved analyses with positive momentum, at least 1.5× relative volume, and price still within 5% below resistance.</p>
+        </div>
+
+        <form className="symbol-form" onSubmit={handlePreBreakoutScan}>
+          <label className="sr-only" htmlFor="pre-breakout-symbols">Pre-breakout symbols</label>
+          <input
+            id="pre-breakout-symbols"
+            name="pre-breakout-symbols"
+            type="text"
+            value={scannerSymbols}
+            onChange={(event) => setScannerSymbols(event.target.value)}
+            placeholder="EGAL,IEEC,COMI"
+            autoComplete="off"
+          />
+          <button type="submit" disabled={preBreakoutLoading}>
+            {preBreakoutLoading ? "Scanning..." : "Scan Pre-breakout"}
+          </button>
+        </form>
+
+        {preBreakoutError && (
+          <p className="state-card error" role="alert">{preBreakoutError.message}</p>
+        )}
+        {preBreakoutView && preBreakoutView.matches.length === 0 && (
+          <p className="muted">No matches for the current saved analysis snapshots.</p>
+        )}
+        {preBreakoutView && preBreakoutView.matches.length > 0 && (
+          <div className="opportunity-list">
+            {preBreakoutView.matches.map((item) => (
+              <div className="detail-row" key={item.symbol}>
+                <strong>{item.symbol}</strong>
+                <span>
+                  Momentum {Number(item.momentum_percent).toFixed(2)}% · Volume {Number(item.volume_ratio).toFixed(2)}×
+                  {" "}· Resistance {item.resistance_price}
+                  {" "}· Distance {Number(item.distance_to_resistance_percent).toFixed(2)}%
+                </span>
+                <span className="muted">{item.criteria.join(" · ")}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="muted">Watchlist only, not a buy signal. Results use the latest saved analysis and may be stale.</p>
+      </section>
 
       <AnalysisRunPanel getAnalysisRun={getAnalysisRun} />
 

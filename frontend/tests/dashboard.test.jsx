@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketOpportunities, getReport, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
@@ -14,6 +14,7 @@ vi.mock("../src/api/analysisApi", () => ({
   getSnapshotPerformance: vi.fn(),
   getMarketOpportunities: vi.fn(),
   getReport: vi.fn(),
+  getTechnicalScanner: vi.fn(),
   getScheduledWorkflowExecutions: vi.fn(),
   getScheduledWorkflowExecutionHistory: vi.fn(),
   recoverScheduledWorkflowExecution: vi.fn(),
@@ -212,6 +213,36 @@ describe("Dashboard", () => {
     expect(getMarketOpportunities).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
+
+  it("loads and renders the pre-breakout momentum-volume watchlist", async () => {
+    getTechnicalScanner.mockResolvedValue({
+      scanner_id: "pre-breakout-momentum-volume",
+      evaluated_symbols: 2,
+      data_status: "HISTORICAL_ANALYSIS_RESULT",
+      matches: [{
+        symbol: "COMI",
+        score: 82,
+        criteria: ["uptrend", "positive_momentum", "above_average_volume", "volume_expansion", "near_resistance"],
+        momentum_percent: 4.2,
+        volume_ratio: 1.8,
+        resistance_price: 100,
+        distance_to_resistance_percent: -4,
+      }],
+    });
+
+    await renderAuthenticatedApp();
+    fireEvent.change(screen.getByLabelText("Pre-breakout symbols"), { target: { value: "comi, egal" } });
+    fireEvent.click(screen.getByRole("button", { name: "Scan Pre-breakout" }));
+
+    const panel = await screen.findByRole("region", { name: "pre-breakout momentum volume watchlist" });
+    expect(panel).toHaveTextContent("COMI");
+    expect(panel).toHaveTextContent("Momentum 4.20%");
+    expect(panel).toHaveTextContent("Volume 1.80×");
+    expect(panel).toHaveTextContent("Resistance 100");
+    expect(panel).toHaveTextContent("Distance -4.00%");
+    expect(getTechnicalScanner).toHaveBeenCalledWith(["COMI", "EGAL"], "pre-breakout-momentum-volume");
+    expect(panel).toHaveTextContent("Watchlist only, not a buy signal.");
+  });
 
   it("loads and renders scheduled workflow executions in API order", async () => {
     getScheduledWorkflowExecutions.mockResolvedValue({

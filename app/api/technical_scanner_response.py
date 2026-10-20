@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+from decimal import Decimal
 
 from app.domain.market_intelligence.scanner import TechnicalScannerResult
 
@@ -8,6 +9,10 @@ class TechnicalScannerMatchResponse:
     symbol: str
     score: int
     criteria: tuple[str, ...]
+    momentum_percent: Decimal | None
+    volume_ratio: Decimal | None
+    resistance_price: Decimal | None
+    distance_to_resistance_percent: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -28,6 +33,10 @@ class TechnicalScannerResponse:
                     symbol=item.symbol,
                     score=item.score,
                     criteria=tuple(criterion.value for criterion in item.criteria),
+                    momentum_percent=item.momentum_percent,
+                    volume_ratio=item.volume_ratio,
+                    resistance_price=item.resistance_price,
+                    distance_to_resistance_percent=item.distance_to_resistance_percent,
                 )
                 for item in result.matches
             ),
