@@ -73,7 +73,7 @@ def test_forward_diagnostic_aggregates_symbols_on_shared_window(monkeypatch) -> 
 
     assert report["status"] == "completed"
     assert report["common_window"] == {"start": "2024-01-01", "end": "2024-03-20"}
-    assert set(report["symbols"]) == {"COMI", "EGAL", "ABUK", "TMGH", "EAST"}
+    assert set(report["symbols"]) == set(diagnostic.SOURCES)
     assert report["pooled_by_signal_group"]["all_eligible_sessions"]["5"]["samples"] > 100
     assert not report["failures"]
 
