@@ -17,6 +17,8 @@ The system currently supports:
 - technical/fundamental scoring;
 - stock quality and entry quality;
 - opportunity classification;
+- explainable technical scanners, including a pre-breakout momentum/volume watchlist based on saved analysis snapshots;
+- backtest risk metrics including profit factor, trade-sequence drawdown, average win/loss, and consecutive win/loss streaks;
 - automated analysis execution;
 - analysis reports and alert-candidate projections;
 - FastAPI analysis/report/alert/market/opportunity/history/workflow endpoints;
