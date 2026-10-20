@@ -54,6 +54,14 @@ export function getMarketOpportunities(symbols) {
   return getJson("/api/v1/opportunities?symbols=" + encodeURIComponent(query), "Market opportunities request");
 }
 
+export function getMarketBreadthStress(symbols) {
+  const query = new URLSearchParams({ symbols: symbols.join(",") });
+  return getJson(
+    "/api/v1/market-intelligence/breadth-stress?" + query.toString(),
+    "Market breadth and stress request",
+  );
+}
+
 export function getStockRegime(symbol) {
   return getJson(
     "/api/v1/market-intelligence/regime/" + encodeURIComponent(symbol.trim().toUpperCase()),
