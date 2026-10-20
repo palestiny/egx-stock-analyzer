@@ -53,7 +53,7 @@ def _fetch_rows(symbol: str, page_url: str, csv_url: str) -> list[dict[str, Any]
             volume = Decimal(line[5].strip())
             if min(opening, high, low, close) <= 0 or volume < 0:
                 raise ValueError("non-positive OHLC or negative volume")
-            if high < max(opening, low, close) or low > min(opening, low, close):
+            if high < max(opening, close, low) or low > min(opening, close):
                 raise ValueError("invalid OHLC relationships")
             if session in seen:
                 rejected += 1
@@ -131,7 +131,10 @@ def run() -> dict[str, Any]:
 
     common_start = max(data["rows"][0]["date"] for data in symbols.values())
     common_end = min(data["rows"][-1]["date"] for data in symbols.values())
-    common: dict[str, Any] = {}
+    if common_start >= common_end:
+        raise RuntimeError(
+            f"No overlapping history across retrieved symbols: {common_start}..{common_end}"
+        )
     per_symbol: dict[str, Any] = {}
     for symbol, data in symbols.items():
         rows = [row for row in data["rows"] if common_start <= row["date"] <= common_end]
@@ -144,16 +147,12 @@ def run() -> dict[str, Any]:
             "end": rows[-1]["date"],
             "signals": _evaluate(rows),
         }
-        for group, horizons in per_symbol[symbol]["signals"].items():
-            for horizon, stats in horizons.items():
-                if stats["samples"] == 0:
-                    continue
-                key = (group, horizon)
-                common.setdefault(key, []).extend(
-                    # aggregate signal returns by replaying only the summary stats is not valid;
-                    # collect symbol-level means is not a pooled estimate. Aggregate explicitly below.
-                    []
-                )
+    if len(per_symbol) < 3:
+        raise RuntimeError(
+            "Fewer than three symbols have sufficient data in the common window. "
+            f"Usable={list(per_symbol)}; failures={failures}; "
+            f"window={common_start}..{common_end}"
+        )
 
     # Pool raw observations across symbols; each symbol contributes each eligible signal.
     pooled: dict[str, dict[str, list[Decimal]]] = defaultdict(lambda: defaultdict(list))
