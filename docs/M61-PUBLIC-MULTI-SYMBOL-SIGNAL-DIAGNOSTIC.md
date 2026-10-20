@@ -51,7 +51,7 @@ inspect the report's `status` before interpreting any returns.
 
 ## Limits and acceptance gates
 
-- Pooled signals overlap and are not statistically independent.
+- The pre-breakout proxy is not the production scanner’s nearest-swing-resistance algorithm; it is a historical approximation, not exact validation of PR #325.\n- Pooled signals overlap and are not statistically independent.
 - Gross returns exclude transaction fees, slippage, liquidity/market impact,
   portfolio sizing, and risk adjustment.
 - A shared date window is not proof that each source series is corporate-action
