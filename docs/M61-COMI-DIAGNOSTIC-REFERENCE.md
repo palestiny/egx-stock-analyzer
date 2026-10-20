@@ -31,3 +31,13 @@ These figures confirm that the existing backtest runner can execute against a pu
 The upstream project's public availability and project license do not independently establish the underlying market-data redistribution rights, completeness, or corporate-action adjustment methodology. The diagnostic uses only FY2020/FY2021 CIB financial snapshots, which remain stale during the 2022 evaluation period. This sample does not meet the M61 ten-symbol/2021–2025 acceptance gate.
 
 The primary artifact currently lives on the open draft PR branch; review PR #321 before relying on it as merged project functionality.
+
+
+## Follow-up: momentum and volume signal evaluation
+
+- COMI forward-signal report: https://github.com/palestiny/egx-stock-analyzer/blob/test/m61-public-comi-sample-backtest/docs/M61-COMI-MOMENTUM-VOLUME-FORWARD-DIAGNOSTIC.md
+- Cross-symbol diagnostic design and provenance: https://github.com/palestiny/egx-stock-analyzer/blob/test/m61-public-comi-sample-backtest/docs/M61-PUBLIC-MULTI-SYMBOL-SIGNAL-DIAGNOSTIC.md
+- Multi-symbol diagnostic tool: https://github.com/palestiny/egx-stock-analyzer/blob/test/m61-public-comi-sample-backtest/tools/m61_mubasher_multi_symbol_diagnostic.py
+- Dedicated external-data workflow: https://github.com/palestiny/egx-stock-analyzer/blob/test/m61-public-comi-sample-backtest/.github/workflows/m61-mubasher-multi-symbol.yml
+
+The COMI-only signal test found a promising but small-sample relationship between positive five-session momentum plus volume at least 1.5x the prior five-session average and subsequent 3/5/10-session gross returns. The multi-symbol follow-up is intended to test whether that pattern generalizes to COMI, EGAL, ABUK, TMGH, and EAST over their shared available history. Its external-data workflow must complete before any multi-symbol result is reported. Neither diagnostic is accepted M61 evidence.
