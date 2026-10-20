@@ -89,3 +89,25 @@ def test_source_failures_return_a_report_instead_of_crashing(monkeypatch) -> Non
     assert report["status"] == "insufficient_source_data"
     assert len(report["failures"]) == len(diagnostic.SOURCES)
     assert report["symbols_retrieved"] == []
+
+
+
+def test_cli_exits_nonzero_when_sources_are_insufficient(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        diagnostic,
+        "run",
+        lambda: {
+            "diagnostic": "test",
+            "status": "insufficient_source_data",
+            "failures": {"COMI": "TimeoutError"},
+        },
+    )
+
+    try:
+        diagnostic.main()
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("CLI must fail when source data is insufficient")
+
+    assert '"status": "insufficient_source_data"' in capsys.readouterr().out
