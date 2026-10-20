@@ -24,6 +24,7 @@ jobs:
       - name: Fetch public Mubasher historical CSVs and evaluate signals
         run: python -m tools.m61_mubasher_multi_symbol_diagnostic | tee m61-multi-symbol-report.json
       - name: Upload diagnostic report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: m61-multi-symbol-diagnostic
