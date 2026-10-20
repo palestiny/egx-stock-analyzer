@@ -34,8 +34,10 @@ def build_report(source: dict[str, Any]) -> dict[str, Any]:
 
         if rows < 0 or valid < 0 or invalid < 0 or valid + invalid != rows:
             raise ValueError(f"inconsistent row counts for {symbol}")
-        if not first_date or not last_date:
+        if not first_date or first_date == "None" or not last_date or last_date == "None":
             raise ValueError(f"missing date coverage for {symbol}")
+        if first_date > last_date:
+            raise ValueError(f"invalid date range for {symbol}")
         valid_pct = (valid / rows * 100.0) if rows else None
         symbols.append({
             "symbol": symbol,
@@ -51,20 +53,26 @@ def build_report(source: dict[str, Any]) -> dict[str, Any]:
     total_rows = sum(item["rows"] for item in symbols)
     total_valid = sum(item["valid_ohlc_rows"] for item in symbols)
     total_invalid = sum(item["invalid_ohlc_rows"] for item in symbols)
+    first_session_date = min(item["first_session_date"] for item in symbols)
+    last_session_date = max(item["last_session_date"] for item in symbols)
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "report": "per_symbol_archive_coverage",
         "status": "completed",
-        "source_audit_date": source.get("audited_at_utc"),
-        "source_dataset_path": source.get("dataset_path"),
+        "source_audit_path": source.get("source_audit_path"),
+        "source_audited_at_utc": source.get("audited_at_utc"),
+        "source_dataset_path": source.get("validated_dataset_path") or source.get("dataset_path"),
         "symbol_count": len(symbols),
         "total_rows": total_rows,
         "valid_ohlc_rows": total_valid,
         "invalid_ohlc_rows": total_invalid,
         "valid_ohlc_pct": round(total_valid / total_rows * 100.0, 2) if total_rows else None,
+        "first_session_date": first_session_date,
+        "last_session_date": last_session_date,
         "symbols_sorted_by_valid_rows_desc": symbols,
         "limitations": [
             "Counts summarize the supplied quality-audit JSON; the price archive itself is not re-read.",
+            "Global first/last dates describe the union of observed per-symbol ranges, not the freshness of every symbol.",
             "Structurally valid OHLC rows are not proof of source accuracy or official EGX listing coverage.",
             "No missing sessions are inferred and no prices are repaired or adjusted.",
             "This report does not decide trading eligibility or change strategy ranking.",
@@ -80,16 +88,20 @@ def main() -> int:
     source = json.loads(args.input.read_text(encoding="utf-8"))
     if not isinstance(source, dict):
         raise ValueError("input JSON root must be an object")
+    source["source_audit_path"] = str(args.input)
     report = build_report(source)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({
         "status": report["status"],
+        "schema_version": report["schema_version"],
         "symbol_count": report["symbol_count"],
         "total_rows": report["total_rows"],
         "valid_ohlc_rows": report["valid_ohlc_rows"],
         "invalid_ohlc_rows": report["invalid_ohlc_rows"],
         "valid_ohlc_pct": report["valid_ohlc_pct"],
+        "first_session_date": report["first_session_date"],
+        "last_session_date": report["last_session_date"],
     }, indent=2))
     return 0
 
