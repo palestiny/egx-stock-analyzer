@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from app.domain.market_data.data_quality import (
     DataQualityIssueCode,
     DataQualityStatus,
@@ -49,6 +51,26 @@ def test_missing_value_is_invalid():
 
 def test_negative_price_or_volume_is_invalid():
     result = DataQualityAssessor.assess([observation(low=Decimal("-1"), volume=-1)])
+
+    assert result[0].status is DataQualityStatus.INVALID
+    assert DataQualityIssueCode.INVALID_VALUE in {
+        issue.code for issue in result[0].issues
+    }
+
+
+@pytest.mark.parametrize("field", ["open", "high", "low", "close"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("0"),
+        Decimal("-1"),
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+    ],
+)
+def test_non_positive_or_non_finite_ohlc_is_invalid(field, value):
+    result = DataQualityAssessor.assess([observation(**{field: value})])
 
     assert result[0].status is DataQualityStatus.INVALID
     assert DataQualityIssueCode.INVALID_VALUE in {
