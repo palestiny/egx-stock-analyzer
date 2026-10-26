@@ -40,6 +40,15 @@ Invoke-RestMethod -Method Get -Uri "http://localhost:8000/api/v1/news/events?sym
 
 The GET endpoint supports symbol, timezone-aware `as_of`, minimum entity-match confidence, and bounded result count. It returns source/provenance timestamps and the original story URL, not the full article body.
 
+The same ingestion service can be run without the API server from the project root:
+
+```powershell
+python -m app.infrastructure.news.ingest_rss_feeds
+python -m app.infrastructure.news.ingest_rss_feeds --since 2026-10-25T00:00:00Z
+```
+
+The command requires `EGX_OPERATOR_TOKEN`, `EGX_NEWS_RSS_URL`, and the same verified feed/source settings used by the API. It prints fetched/inserted/duplicate counts as JSON, closes its runtime, and exits with an error when the feed is not configured. It is an explicit one-shot command, not a background poller or scheduled post-session report.
+
 ## Data and safety rules
 
 - RSS and Atom metadata are supported. The adapter uses bounded HTTPS retrieval, a timeout, a 2 MB response limit, and rejects DTD/entity declarations.
