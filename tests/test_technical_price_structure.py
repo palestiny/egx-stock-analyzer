@@ -19,12 +19,7 @@ def test_detect_swing_points_requires_left_and_right_confirmation_bars() -> None
 
     pivots = detect_swing_points(highs, lows, left_bars=1, right_bars=1)
 
-    assert pivots == (
-        # Both pivot types are allowed on different candles.
-        pivots[0],
-        pivots[1],
-        pivots[2],
-    )
+    assert len(pivots) == 2
     assert (pivots[0].index, pivots[0].kind, pivots[0].price) == (
         2,
         SwingKind.HIGH,
