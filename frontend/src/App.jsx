@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getOwnerDashboardOverview, publishOpportunity, dispatchTelegramOpportunities } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
 import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
 import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
 import { TechnicalIndicatorPanel } from "./components/TechnicalIndicatorPanel";
+import { OwnerDashboardPage } from "./components/OwnerDashboardPage";
 
 function Metric({ label, value }) {
   return (
@@ -31,7 +32,7 @@ function DetailPanel({ title, items }) {
   );
 }
 
-function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
+function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashboard, canManageOwnerDashboard }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
   const [indicatorHistory, setIndicatorHistory] = useState(null);
@@ -420,6 +421,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
             Read the latest stored analysis for an EGX stock.
           </p>
           <button type="button" onClick={onOpenAnalysisRuns}>Analysis Runs</button>
+          {canManageOwnerDashboard && <button type="button" onClick={onOpenOwnerDashboard}>Owner Dashboard</button>}
           <button type="button" onClick={onLogout}>Log out</button>
         </div>
 
@@ -1179,6 +1181,31 @@ function App() {
     return <LoginScreen onAuthenticated={setIdentity} />;
   }
 
+  const isOperator = Array.isArray(identity.permissions)
+    && identity.permissions.some((permission) => String(permission).toUpperCase() === "OPERATOR");
+
+  if (pathname === "/owner-dashboard") {
+    if (!isOperator) {
+      return (
+        <main className="app-shell">
+          <section className="panel" aria-label="owner dashboard access">
+            <h1>Owner Dashboard</h1>
+            <p className="state-card error" role="alert">Operator access is required.</p>
+            <button type="button" onClick={() => navigate("/")}>Back to Analysis</button>
+          </section>
+        </main>
+      );
+    }
+    return (
+      <OwnerDashboardPage
+        getOverview={getOwnerDashboardOverview}
+        publishOpportunity={publishOpportunity}
+        dispatchOpportunities={dispatchTelegramOpportunities}
+        onBack={() => navigate("/")}
+      />
+    );
+  }
+
   if (pathname === "/analysis-runs") {
     return (
       <AnalysisRunsPage
@@ -1206,6 +1233,8 @@ function App() {
       onLogout={logout}
       identity={identity}
       onOpenAnalysisRuns={() => navigate("/analysis-runs")}
+      onOpenOwnerDashboard={() => navigate("/owner-dashboard")}
+      canManageOwnerDashboard={isOperator}
     />
   );
 }
