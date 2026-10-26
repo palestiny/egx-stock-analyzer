@@ -213,7 +213,7 @@ The following product capabilities were merged into `main` after the M61 acquisi
 
 # Proposed Product Expansion — Comprehensive Technical & News Intelligence
 
-**Status:** Design proposal only; M61 remains the active execution priority.
+**Status:** Design proposal with initial implementation PRs open; M61 remains the active execution priority. PR #350 and PR #355 passed all five reported CI jobs for their reviewed heads; PR #357 (dashboard chart) is under verification. PR #353 adds the news-event contract and PR #354 the explicit Elliott impulse validator; both have passed their reported CI jobs. These PRs remain open and unmerged.
 
 Design gate: [Comprehensive Technical & News Intelligence](COMPREHENSIVE-TECHNICAL-NEWS-INTELLIGENCE-DESIGN-GATE.md).
 
