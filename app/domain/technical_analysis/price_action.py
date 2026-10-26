@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
@@ -15,7 +16,7 @@ class CandlestickPattern(StrEnum):
 @dataclass(frozen=True)
 class CandlestickEvidence:
     pattern: CandlestickPattern
-    timestamp: object
+    timestamp: datetime
     bullish: bool | None
     body_to_range: Decimal
 
