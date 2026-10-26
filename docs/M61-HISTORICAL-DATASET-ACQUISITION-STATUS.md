@@ -347,3 +347,25 @@ Separately, the synthetic end-to-end test in [PR #312](https://github.com/palest
 **Real-market Strategy v0 evaluation: BLOCKED — no accepted real dataset.**
 
 Do not report real returns, trade counts, win rate, drawdown, or strategy profitability until a real dataset passes the acceptance gate. The next required input is a preserved provider-delivered COMI daily-history artifact covering the 252-session warm-up plus 2021–2025, together with point-in-time financial snapshots and explicit storage/research-use evidence. Run `python -m tools.m61_comi_evidence_intake <dataset-directory>` first; only a report with `status: ACCEPTED` may be used for the real evaluation.
+
+
+## Fresh no-cost market-data probe — 2026-10-26
+
+A metadata-only run of the existing bounded Yahoo chart probe completed successfully in [workflow run #40389799810](https://github.com/palestiny/egx-stock-analyzer/actions/runs/40389799810). The run did not preserve raw price responses. Its short-lived metadata artifact is available for seven days only; this checkpoint preserves the relevant summary below.
+
+| Symbol | HTTP | First observation | Last observation | Rows | Validation findings |
+|---|---:|---|---|---:|---:|
+| COMI | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 410 |
+| EGAL | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 457 |
+| SWDY | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 392 |
+| ETEL | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 340 |
+| EAST | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 355 |
+| TMGH | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 361 |
+| PHDC | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 395 |
+| FWRY | 200 | 2019-08-14 | 2025-12-31 | 1,555 | 340 |
+| EFID | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 396 |
+| HRHO | 200 | 2019-01-01 | 2025-12-31 | 1,716 | 397 |
+
+All ten requests returned HTTP 200 and reported `Africa/Cairo`; however, every symbol had substantial OHLC validation findings, including hundreds of `high_below_ohlc` / `low_above_ohlc` findings, null observations, invalid OHLCV values, and an unexpected provider instrument-type classification. The counts above are validation findings, not counts of independently verified bad trading sessions.
+
+**Result: source is reachable, but the candidate data fails the current quality gate.** No candidate is eligible for Strategy v0. Long-term storage rights remain unverified, point-in-time financials are absent, and the exact raw response was not retained. Do not normalize, repair, forward-fill, or silently drop these observations to make the candidate pass. The next step is to investigate the OHLC field anomalies against a small independently checked sample and verify the source's instrument metadata and terms before any preservation or adapter work.
