@@ -81,3 +81,25 @@ def test_session_vwap_rejects_misaligned_data_and_negative_volume() -> None:
         session_vwap(d("12"), d("10"), d("11"), [10, 20], ["s1"])
     with pytest.raises(ValueError, match="non-negative integers"):
         session_vwap(d("12"), d("10"), d("11"), [-1], ["s1"])
+
+
+def test_session_vwap_rejects_close_outside_high_low_range() -> None:
+    with pytest.raises(ValueError, match="close must be within"):
+        session_vwap(
+            highs=d("12"),
+            lows=d("10"),
+            closes=d("13"),
+            volumes=[10],
+            session_ids=["s1"],
+        )
+
+
+def test_session_vwap_rejects_non_contiguous_session_order() -> None:
+    with pytest.raises(ValueError, match="contiguous"):
+        session_vwap(
+            highs=d("12", "15", "14"),
+            lows=d("10", "13", "12"),
+            closes=d("11", "14", "13"),
+            volumes=[10, 20, 30],
+            session_ids=["s1", "s2", "s1"],
+        )
