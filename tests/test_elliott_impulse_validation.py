@@ -31,3 +31,20 @@ def test_candidate_rejects_non_positive_prices() -> None:
         assert "positive prices" in str(error)
     else:
         raise AssertionError("Expected invalid price to be rejected")
+
+
+def test_wave_two_may_retrace_exactly_to_origin_without_exceeding_it() -> None:
+    candidate = ElliottImpulseCandidate(
+        ElliottDirection.UP,
+        d("100", "110", "100", "125", "118", "132"),
+    )
+    assert "wave_2_exceeds_origin" not in candidate.rule_violations
+
+
+def test_truncated_fifth_is_reported_as_warning_not_hard_rule_violation() -> None:
+    candidate = ElliottImpulseCandidate(
+        ElliottDirection.UP,
+        d("100", "110", "105", "125", "118", "125"),
+    )
+    assert candidate.is_rule_consistent
+    assert candidate.warnings == ("possible_truncated_wave_5",)
