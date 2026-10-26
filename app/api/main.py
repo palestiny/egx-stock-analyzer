@@ -524,6 +524,54 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(error)) from error
         return StockResearchResponse.from_view(view).to_dict()
 
+    @app.get("/api/v1/news/events")
+    def get_news_events_route(
+        symbol: str | None = None,
+        as_of: datetime | None = None,
+        minimum_entity_confidence: Decimal = Decimal("0.8"),
+        limit: int = 100,
+        _identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if news_event_store is None:
+            raise HTTPException(status_code=503, detail="News event reporting is not configured")
+        normalized_symbol = symbol.strip().upper() if symbol is not None else None
+        if symbol is not None and not normalized_symbol:
+            raise HTTPException(status_code=400, detail="symbol cannot be empty")
+        cutoff = as_of or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            events = news_event_store.query_as_of(
+                cutoff,
+                symbol=normalized_symbol,
+                minimum_entity_confidence=minimum_entity_confidence,
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return {
+            "as_of": cutoff.isoformat(),
+            "symbol": normalized_symbol,
+            "count": len(events),
+            "events": [
+                {
+                    "event_id": str(event.event_id),
+                    "source_name": event.source_name,
+                    "source_type": event.source_type.value,
+                    "source_url": event.source_url,
+                    "title": event.title,
+                    "category": event.category.value,
+                    "published_at": event.published_at.isoformat() if event.published_at else None,
+                    "retrieved_at": event.retrieved_at.isoformat(),
+                    "first_seen_at": event.first_seen_at.isoformat(),
+                    "matched_symbols": list(event.matched_symbols),
+                    "entity_match_confidence": str(event.entity_match_confidence),
+                    "content_fingerprint": event.content_fingerprint,
+                }
+                for event in events
+            ],
+        }
+
     @app.post("/api/v1/market-analysis")
     def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if run_configured_market_analysis is None:
