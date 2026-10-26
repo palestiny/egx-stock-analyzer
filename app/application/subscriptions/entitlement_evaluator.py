@@ -51,7 +51,7 @@ class EntitlementEvaluator:
         if not normalized_code:
             raise ValueError("entitlement code is required")
 
-        subscription = self._store.latest_for_user(user_id)
+        subscription = self._store.current_for_user(user_id, now=now)
         plan: SubscriptionPlan | None = None
         if subscription is not None and subscription.grants_access_at(now):
             plan = self._store.get_plan(
