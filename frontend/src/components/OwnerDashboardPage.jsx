@@ -123,6 +123,7 @@ export function OwnerDashboardPage({
           <section className="metrics-grid" aria-label="operational metrics">
             <Metric label="Linked Telegram accounts" value={counts.linked_telegram_accounts ?? "Unavailable"} />
             <Metric label="News events stored" value={counts.news_events ?? "Unavailable"} />
+            <Metric label="Saved session reports" value={counts.saved_session_reports ?? "Unavailable"} />
             <Metric label="Active subscriptions" value={counts.subscriptions_by_status?.ACTIVE ?? 0} />
             <Metric label="Unexpired link challenges" value={counts.unconsumed_unexpired_link_challenges ?? "Unavailable"} />
           </section>
