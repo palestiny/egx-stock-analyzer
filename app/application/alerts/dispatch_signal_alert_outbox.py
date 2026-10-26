@@ -16,7 +16,6 @@ from app.application.notifications.telegram_account_linking import (
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.signals.store import SignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementDecision
-from app.domain.alerts.model import AlertEventType
 from app.domain.signals.model import Signal
 
 
