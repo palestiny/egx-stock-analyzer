@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import sqlite3
 from uuid import uuid4
 
 import pytest
@@ -178,5 +179,5 @@ def test_payment_reference_is_unique_per_provider(tmp_path) -> None:
         payment_reference="provider-ref-1",
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         store.create(second, actor="billing", reason="Duplicate payment reference")
