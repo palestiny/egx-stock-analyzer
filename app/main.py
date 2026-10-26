@@ -77,7 +77,7 @@ def create_application(
         ),
         build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
         session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
-        owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
+        get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
         publish_signal_opportunity=getattr(runtime, "publish_signal_opportunity", None),
         dispatch_signal_alert_outbox=getattr(runtime, "dispatch_signal_alert_outbox", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
