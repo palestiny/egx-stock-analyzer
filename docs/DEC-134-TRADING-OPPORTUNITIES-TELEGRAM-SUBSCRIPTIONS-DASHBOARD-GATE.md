@@ -68,6 +68,13 @@ Do not create a parallel TradingOpportunity aggregate without evidence that the 
 
 The first missing foundation is durable history/outcome persistence and reliable event delivery, not a second signal entity. PR #345 was closed before merge after discovering the overlap. PR #346 now proposes SQLite implementations for the existing signal-history and outcome contracts, a durable alert-event outbox, and runtime composition of these stores with the existing lifecycle orchestrator. It also adds evidence-change invalidation for changes represented in the current Signal fields. It remains a draft and is not yet accepted or merged. Raw-data revision fingerprints and atomic transactions spanning lifecycle history plus outbox are still gaps; do not claim end-to-end delivery reliability until those are addressed.
 
+Implementation follow-up status (open, unmerged PRs):
+- PR #346: durable signal history/outcomes and outbox; all five reported CI jobs passed on the latest reviewed head.
+- PR #348: explicit recipient-targeted Telegram provider transport; all five reported CI jobs passed.
+- PR #349: short-lived single-use Telegram account linking with hashed challenges, durable chat binding and audit events; all five reported CI jobs passed on its latest reviewed head.
+- PR #356: point-in-time session opportunity ledger over the existing signal history and outcomes; all five reported CI jobs passed on the latest reviewed head.
+These are staged foundations, not proof of end-to-end subscriber publishing. Subscription entitlements, complete report persistence/finalization, payments, and owner dashboard remain outstanding.
+
 Extend the existing model only where gaps are verified. Likely additions include:
 - explicit published-version identity and immutable publication snapshots;
 - an explicit entry-condition state distinct from terminal outcome;
