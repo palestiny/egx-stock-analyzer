@@ -105,3 +105,34 @@ def test_adapter_rejects_naive_clock() -> None:
     )
     with pytest.raises(ValueError, match="timezone-aware"):
         bad_clock.fetch_recent()
+
+
+
+def test_adapter_rejects_dtd_even_after_xml_preamble_padding() -> None:
+    unsafe = b"<rss>" + (b" " * 5000) + b"<!DOCTYPE rss [<!ENTITY x 'boom'>]><channel/></rss>"
+    with pytest.raises(ValueError, match="DTD and entity"):
+        adapter(unsafe).fetch_recent()
+
+
+@pytest.mark.parametrize("timeout", [0, 0.01, 60.1])
+def test_adapter_rejects_unbounded_timeout(timeout: float) -> None:
+    with pytest.raises(ValueError, match="between 0.1 and 60"):
+        RssNewsSourceAdapter(
+            source_name="Configured EGX Feed",
+            source_type=NewsSourceType.EXCHANGE_DISCLOSURE,
+            feed_url="https://news.example.test/feed.xml",
+            symbol_names={},
+            timeout_seconds=timeout,
+        )
+
+
+def test_adapter_caps_processed_entries_at_five_hundred() -> None:
+    items = b"".join(
+        f"<item><guid>{index}</guid><title>Market headline {index}</title><pubDate>Mon, 26 Oct 2026 16:00:00 +0000</pubDate></item>".encode()
+        for index in range(510)
+    )
+    payload = b"<rss><channel>" + items + b"</channel></rss>"
+
+    events = adapter(payload).fetch_recent()
+
+    assert len(events) == 500
