@@ -82,7 +82,7 @@ def test_candlestick_output_stays_aligned_to_input_bars() -> None:
 
 
 def test_hammer_requires_long_lower_wick_and_small_upper_wick() -> None:
-    result = detect_candlestick_patterns([bar("10", "10.5", "7", "10.2", 3)])
+    result = detect_candlestick_patterns([bar("10", "10.3", "7", "10.2", 3)])
     assert any(item.pattern is CandlestickPattern.HAMMER for item in result[0])
 
 
