@@ -1,0 +1,273 @@
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from uuid import uuid4
+
+from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.signal_snapshot import snapshot_signal
+from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
+from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStatus
+from app.application.notifications.telegram_account_linking import LinkedTelegramAccount
+from app.application.signals.store import InMemorySignalHistoryStore
+from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+from app.domain.alerts.model import AlertEvent, AlertEventType
+from app.domain.identity.user import User, UserStatus
+from app.domain.signals.model import (
+    PriceZone,
+    Signal,
+    SignalDirection,
+    SignalEvidence,
+    SignalStatus,
+    Target,
+)
+from app.domain.subscriptions.model import (
+    EntitlementGrant,
+    Subscription,
+    SubscriptionPlan,
+    SubscriptionStatus,
+)
+from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import (
+    SQLiteSignalAlertDeliveryStore,
+)
+from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
+
+
+NOW = datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)
+
+
+class FakeRecipients:
+    def __init__(self, accounts):
+        self._accounts = tuple(accounts)
+
+    def list_linked_accounts(self):
+        return self._accounts
+
+
+class FakeTransport:
+    def __init__(self, failures: int = 0):
+        self.failures = failures
+        self.sent = []
+
+    def send_message(self, chat_id: str, message: str) -> None:
+        if self.failures:
+            self.failures -= 1
+            raise TimeoutError("sensitive request details must not be persisted")
+        self.sent.append((chat_id, message))
+
+
+def make_signal() -> Signal:
+    return Signal(
+        symbol="COMI",
+        direction=SignalDirection.BUY,
+        status=SignalStatus.ACTIVE,
+        generated_at=NOW,
+        timeframe="1d",
+        entry_zone=PriceZone(Decimal("80"), Decimal("81")),
+        invalidation=Decimal("78"),
+        targets=(Target(Decimal("85"), "T1"), Target(Decimal("88"), "T2")),
+        confidence=Decimal("80"),
+        risk_score=Decimal("20"),
+        evidence=(SignalEvidence("support_rejection", "Rejected support"),),
+        strategy_id="price-action",
+        strategy_version="1",
+        data_timestamp=NOW,
+    )
+
+
+def make_event(signal_id, signal: Signal | None = None) -> AlertEvent:
+    return AlertEvent(
+        event_id=uuid4(),
+        signal_id=signal_id,
+        symbol="COMI",
+        event_type=AlertEventType.SIGNAL_INVALIDATED,
+        occurred_at=NOW,
+        message="Supporting evidence changed",
+        signal_snapshot=(
+            snapshot_signal(replace(signal, status=SignalStatus.INVALIDATED))
+            if signal is not None
+            else None
+        ),
+    )
+
+
+def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), inactive_users=()):
+    database = tmp_path / "dispatch.db"
+    history = InMemorySignalHistoryStore()
+    signal = make_signal()
+    signal_record = history.record(signal, "CREATED", NOW)
+    event = make_event(signal_record.signal_id, signal)
+    outbox = SQLiteAlertOutbox(database)
+    outbox.publish(event)
+    deliveries = SQLiteSignalAlertDeliveryStore(database)
+    subscriptions = SQLiteSubscriptionStore(database)
+    user_store = SQLiteUserStore(database)
+    for account in accounts:
+        status = UserStatus.DISABLED if account.user_id in inactive_users else UserStatus.ACTIVE
+        user_store.save(User(id=account.user_id, status=status))
+    subscriptions.save_plan(
+        SubscriptionPlan(
+            plan_id="plus",
+            version=1,
+            display_name="Plus",
+            entitlements=(EntitlementGrant("telegram_opportunities", True, 100),),
+            active=True,
+            created_at=NOW,
+        )
+    )
+    for user_id in entitled_users:
+        subscriptions.create(
+            Subscription(
+                subscription_id=uuid4(),
+                user_id=user_id,
+                plan_id="plus",
+                plan_version=1,
+                status=SubscriptionStatus.ACTIVE,
+                created_at=NOW,
+                starts_at=NOW,
+                expires_at=NOW + timedelta(days=30),
+                updated_at=NOW,
+            ),
+            actor="test-billing",
+            reason="Verified test subscription",
+        )
+    transport = FakeTransport(failures=failures)
+    dispatcher = DispatchSignalAlertOutbox(
+        outbox=outbox,
+        recipients=FakeRecipients(accounts),
+        deliveries=deliveries,
+        users=user_store,
+        history=history,
+        entitlements=EntitlementEvaluator(subscriptions),
+        transport=transport,
+    )
+    return dispatcher, outbox, deliveries, transport, event, history
+
+
+def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
+    entitled_user = uuid4()
+    free_user = uuid4()
+    dispatcher, outbox, deliveries, transport, event, history = setup_dispatch(
+        tmp_path,
+        [
+            LinkedTelegramAccount(entitled_user, "chat-paid"),
+            LinkedTelegramAccount(free_user, "chat-free"),
+        ],
+        entitled_users=(entitled_user,),
+    )
+    # A later lifecycle state must not rewrite the snapshot attached to this event.
+    history.record(
+        replace(make_signal(), status=SignalStatus.CLOSED),
+        "STATUS_CLOSED",
+        NOW + timedelta(minutes=1),
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.events_processed == 1
+    assert result.recipients_delivered == 1
+    assert result.recipients_suppressed == 1
+    assert result.recipients_failed == 0
+    assert len(transport.sent) == 1
+    chat_id, message = transport.sent[0]
+    assert chat_id == "chat-paid"
+    assert "Entry zone: 80 – 81" in message
+    assert "Status: INVALIDATED" in message
+    assert "Invalidation: 78" in message
+    assert "T1: 85" in message
+    assert "Targets:\n- T1: 85\n- T2: 88\nEvidence:\n- support_rejection: Rejected support" in message
+    assert str(event.event_id) in message
+    assert outbox.get(event.event_id).status.value == "DELIVERED"
+    assert deliveries.get(event.event_id, entitled_user, "telegram").status is SignalAlertDeliveryStatus.DELIVERED
+    assert deliveries.get(event.event_id, free_user, "telegram").status is SignalAlertDeliveryStatus.SUPPRESSED
+
+    replay = dispatcher.execute(now=NOW + timedelta(minutes=1))
+    assert replay.events_processed == 0
+    assert len(transport.sent) == 1
+
+
+def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path) -> None:
+    first_user = uuid4()
+    second_user = uuid4()
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [
+            LinkedTelegramAccount(first_user, "chat-1"),
+            LinkedTelegramAccount(second_user, "chat-2"),
+        ],
+        failures=1,
+        entitled_users=(first_user, second_user),
+    )
+
+    first = dispatcher.execute(now=NOW)
+    assert first.recipients_delivered == 1
+    assert first.recipients_failed == 1
+    assert outbox.get(event.event_id).status.value == "FAILED"
+
+    second = dispatcher.execute(now=NOW + timedelta(minutes=1))
+    assert second.recipients_delivered == 1
+    assert second.recipients_failed == 0
+    assert len(transport.sent) == 2
+    records = [
+        deliveries.get(event.event_id, first_user, "telegram"),
+        deliveries.get(event.event_id, second_user, "telegram"),
+    ]
+    assert all(record.status is SignalAlertDeliveryStatus.DELIVERED for record in records)
+    assert sorted(record.attempts for record in records) == [1, 2]
+    assert outbox.get(event.event_id).status.value == "DELIVERED"
+
+
+def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-unentitled")],
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.recipients_suppressed == 1
+    assert transport.sent == []
+    assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.SUPPRESSED
+
+
+def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
+    signal = replace(
+        make_signal(),
+        evidence=tuple(
+            SignalEvidence(f"evidence-{index}", "supporting observation " * 100)
+            for index in range(20)
+        ),
+    )
+    event = make_event(uuid4())
+    record = AlertOutboxRecord(
+        event=event,
+        status=AlertOutboxStatus.PENDING,
+        attempts=0,
+        created_at=NOW,
+    )
+
+    message = DispatchSignalAlertOutbox._format_message(record, snapshot_signal(signal))
+
+    assert len(message) <= 3900
+    assert str(event.event_id) in message
+    assert "not proof of an executed trade" in message
+
+
+def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-disabled")],
+        entitled_users=(user_id,),
+        inactive_users=(user_id,),
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.recipients_suppressed == 1
+    assert transport.sent == []
+    record = deliveries.get(event.event_id, user_id, "telegram")
+    assert record.status is SignalAlertDeliveryStatus.SUPPRESSED
+    assert record.last_error == "user_inactive_or_missing"
