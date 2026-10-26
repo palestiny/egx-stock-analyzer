@@ -222,6 +222,25 @@ class SQLiteTelegramAccountLinkStore(TelegramAccountLinkStore):
             )
         return cursor.rowcount == 1
 
+    def release_webhook_update_claim(self, update_id: str) -> None:
+        if not update_id.strip():
+            raise ValueError("Telegram update ID is required")
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM telegram_webhook_updates WHERE update_id = ?",
+                (update_id.strip(),),
+            )
+
+    def get_user_id_for_chat(self, chat_id: str) -> UUID | None:
+        if not chat_id.strip():
+            raise ValueError("Telegram chat ID cannot be empty")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT user_id FROM telegram_account_links WHERE chat_id = ?",
+                (chat_id.strip(),),
+            ).fetchone()
+        return UUID(str(row[0])) if row else None
+
     def list_linked_accounts(self) -> tuple[LinkedTelegramAccount, ...]:
         with self._connect() as connection:
             rows = connection.execute(
