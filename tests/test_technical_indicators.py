@@ -114,3 +114,40 @@ def test_macd_rejects_fast_period_not_less_than_slow_period() -> None:
 
 def test_rsi_returns_missing_values_when_history_is_too_short() -> None:
     assert relative_strength_index(d("1", "2", "3"), 3) == (None, None, None)
+
+
+from app.domain.technical_analysis.indicators import (
+    average_true_range,
+    bollinger_bands,
+)
+
+
+def test_bollinger_bands_align_warmup_and_center_on_sma() -> None:
+    bands = bollinger_bands(d("1", "2", "3", "4"), period=3)
+    assert bands.middle == (None, None, Decimal("2"), Decimal("3"))
+    assert bands.upper[:2] == (None, None)
+    assert bands.lower[:2] == (None, None)
+    assert bands.upper[2] > bands.middle[2] > bands.lower[2]
+
+
+def test_bollinger_bands_reject_negative_standard_deviation() -> None:
+    with pytest.raises(ValueError, match="standard_deviations"):
+        bollinger_bands(d("1", "2"), period=2, standard_deviations=Decimal("-1"))
+
+
+def test_atr_uses_true_range_and_wilder_smoothing() -> None:
+    result = average_true_range(
+        highs=d("10", "12", "13", "14"),
+        lows=d("8", "9", "11", "12"),
+        closes=d("9", "11", "12", "13"),
+        period=2,
+    )
+    assert result[:1] == (None,)
+    assert result[1] == Decimal("2.5")
+    assert result[2] == Decimal("2.75")
+    assert result[3] == Decimal("2.875")
+
+
+def test_atr_rejects_misaligned_inputs() -> None:
+    with pytest.raises(ValueError, match="equal lengths"):
+        average_true_range(d("10", "11"), d("8"), d("9", "10"), period=2)
