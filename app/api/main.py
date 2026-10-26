@@ -31,7 +31,10 @@ from app.api.market_opportunity_view_response import MarketOpportunityViewRespon
 from app.api.stock_research_response import StockResearchResponse
 from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
-from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger, SessionOpportunityReportStore
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
     CalculateSnapshotPerformance,
@@ -148,6 +151,11 @@ def create_app(
     telegram_account_linking: TelegramAccountLinkingService | None = None,
     telegram_notification_provider: TelegramMessageSender | None = None,
     telegram_webhook_secret: str | None = None,
+    generate_signal: GenerateSignal | None = None,
+    publish_signal_opportunity: PublishSignalOpportunity | None = None,
+    dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
+    get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
+    session_opportunity_report_store: SessionOpportunityReportStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -172,7 +180,7 @@ def create_app(
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
     scan_breakouts = ScanBreakouts(result_store)
-    generate_signal = GenerateSignal(result_store)
+    generate_signal = generate_signal or GenerateSignal(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
