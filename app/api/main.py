@@ -103,6 +103,8 @@ from app.application.notifications.telegram_message_sender import TelegramMessag
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger, SessionOpportunityReportStore
+from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.signals.generate_signal import GenerateSignal
 
 logger = logging.getLogger(__name__)
@@ -147,6 +149,8 @@ def create_app(
     publish_signal_opportunity: PublishSignalOpportunity | None = None,
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
     get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None,
+    session_opportunity_report_store: SessionOpportunityReportStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
