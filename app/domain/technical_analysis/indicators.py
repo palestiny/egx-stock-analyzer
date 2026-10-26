@@ -480,3 +480,51 @@ def average_directional_index(
                 adx[index] = previous_adx
 
     return DirectionalMovementSeries(tuple(plus_di), tuple(minus_di), tuple(adx))
+
+
+@dataclass(frozen=True)
+class IchimokuSeries:
+    conversion_line: IndicatorSeries
+    base_line: IndicatorSeries
+    leading_span_a_unshifted: IndicatorSeries
+    leading_span_b_unshifted: IndicatorSeries
+
+
+def ichimoku_cloud(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    *,
+    conversion_period: int = 9,
+    base_period: int = 26,
+    span_b_period: int = 52,
+) -> IchimokuSeries:
+    """Calculate unshifted Ichimoku components; chart displacement is a presentation concern."""
+    periods = (conversion_period, base_period, span_b_period)
+    if any(period < 1 for period in periods):
+        raise ValueError("period must be a positive integer")
+    high_values, low_values = tuple(highs), tuple(lows)
+    if len(high_values) != len(low_values):
+        raise ValueError("highs and lows must have equal lengths")
+    if any(not value.is_finite() for value in (*high_values, *low_values)):
+        raise ValueError("indicator inputs must be finite Decimal values")
+    if any(high < low for high, low in zip(high_values, low_values)):
+        raise ValueError("each high must be greater than or equal to its low")
+
+    def midpoint(period: int) -> IndicatorSeries:
+        values: list[Decimal | None] = [None] * len(high_values)
+        for index in range(period - 1, len(high_values)):
+            start = index - period + 1
+            highest = max(high_values[start:index + 1])
+            lowest = min(low_values[start:index + 1])
+            values[index] = (highest + lowest) / Decimal("2")
+        return tuple(values)
+
+    conversion = midpoint(conversion_period)
+    base = midpoint(base_period)
+    span_b = midpoint(span_b_period)
+    span_a: list[Decimal | None] = [None] * len(high_values)
+    for index, (conversion_value, base_value) in enumerate(zip(conversion, base)):
+        if conversion_value is not None and base_value is not None:
+            span_a[index] = (conversion_value + base_value) / Decimal("2")
+
+    return IchimokuSeries(conversion, base, tuple(span_a), span_b)
