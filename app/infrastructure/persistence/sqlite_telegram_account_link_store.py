@@ -112,13 +112,21 @@ class SQLiteTelegramAccountLinkStore(TelegramAccountLinkStore):
                 """,
                 (token_hash,),
             ).fetchone()
-            if row is None or row[2] is not None:
+            if row is None:
+                return None
+            user_id = UUID(str(row[0]))
+            if row[2] is not None:
+                linked = connection.execute(
+                    "SELECT chat_id FROM telegram_account_links WHERE user_id = ?",
+                    (str(user_id),),
+                ).fetchone()
+                if linked is not None and str(linked[0]) == chat_id.strip():
+                    return user_id
                 return None
             expires_at = datetime.fromisoformat(str(row[1]))
             if expires_at <= now:
                 return None
 
-            user_id = UUID(str(row[0]))
             existing_chat_owner = connection.execute(
                 "SELECT user_id FROM telegram_account_links WHERE chat_id = ?",
                 (chat_id.strip(),),
