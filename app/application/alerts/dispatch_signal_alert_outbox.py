@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
+from uuid import UUID
 
 from app.application.alerts.outbox import AlertOutbox, AlertOutboxRecord
 from app.application.alerts.telegram_delivery_store import (
@@ -22,7 +23,7 @@ from app.domain.signals.model import Signal
 class EntitlementAccessEvaluator(Protocol):
     def evaluate(
         self,
-        user_id: object,
+        user_id: UUID,
         entitlement_code: str,
         *,
         now: datetime,
