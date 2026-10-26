@@ -57,6 +57,8 @@ def test_market_breadth_without_any_saved_analysis_is_explicitly_insufficient():
     assert result.stress_level == "insufficient_data"
     assert result.analyzed_symbols == 0
     assert result.missing_symbols == ("AAA", "BBB")
+    assert result.to_dict()["analysis_date_status"] == "PARTIAL"
+    assert result.to_dict()["latest_analysis_date"] is None
 
 
 @pytest.mark.parametrize("symbols, message", [
