@@ -40,7 +40,7 @@ describe("OwnerDashboardPage", () => {
     expect(await screen.findByText("Owner Dashboard")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("Not implemented/configured")).toBeInTheDocument();
+    expect(screen.getAllByText("Not implemented/configured")).toHaveLength(2);
     expect(screen.getByText("News source configured")).toBeInTheDocument();
   });
 
