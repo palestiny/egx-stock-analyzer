@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.application.signals.store import SignalHistoryStore, SignalRecord
@@ -36,7 +37,7 @@ class BuildSessionOpportunityLedger:
         if generated_at.tzinfo is None or generated_at.utcoffset() is None:
             raise ValueError("generated_at must be timezone-aware")
 
-        records_by_signal: dict[object, list[SignalRecord]] = {}
+        records_by_signal: dict[UUID, list[SignalRecord]] = {}
         for record in self._history.all_records():
             if record.recorded_at.tzinfo is None or record.recorded_at.utcoffset() is None:
                 raise ValueError("signal history timestamps must be timezone-aware")
