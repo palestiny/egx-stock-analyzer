@@ -1,0 +1,68 @@
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from fastapi.testclient import TestClient
+
+from app.api.main import create_app
+from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.reporting.get_analysis_report import GetAnalysisReport
+from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.market_data.timeframe import Timeframe
+from app.domain.stocks.stock import Stock
+from app.domain.technical_analysis.indicator_evidence import (
+    TechnicalIndicatorEvidence,
+    TechnicalIndicatorPoint,
+)
+from tests.test_api_report_contract import make_report_result
+
+
+def indicator_point(day: int) -> TechnicalIndicatorPoint:
+    return TechnicalIndicatorPoint(
+        timestamp=datetime(2026, 10, day, tzinfo=timezone.utc),
+        close=Decimal("10.25"),
+        sma_20=None, sma_50=None, sma_200=None,
+        ema_9=None, ema_20=None, ema_50=None, ema_200=None,
+        rsi_14=None, macd_line=None, macd_signal=None, macd_histogram=None,
+        bollinger_upper=None, bollinger_middle=None, bollinger_lower=None,
+        atr_14=None, stochastic_k_14=None, stochastic_d_3=None,
+        cci_20=None, obv=0, mfi_14=None, plus_di_14=None, minus_di_14=None,
+        adx_14=None, ichimoku_conversion_9=None, ichimoku_base_26=None,
+        ichimoku_span_a_unshifted=None, ichimoku_span_b_unshifted=None,
+        candlestick_patterns=(),
+    )
+
+
+def test_technical_indicator_route_returns_bounded_history() -> None:
+    result = make_report_result()
+    result.technical_analysis.timeframe = Timeframe.DAILY
+    result.technical_analysis.indicators = TechnicalIndicatorEvidence(
+        (indicator_point(1), indicator_point(2), indicator_point(3))
+    )
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    store = InMemoryAnalysisResultStore()
+    store.save("EGAL", result, analysis_date=__import__("datetime").date(2026, 10, 3))
+    app = create_app(
+        store,
+        get_analysis_report=GetAnalysisReport(InMemoryStockCatalog([stock]), store),
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/technical-indicators/EGAL?limit=2")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["symbol"] == "EGAL"
+    assert payload["timeframe"] == Timeframe.DAILY.value
+    assert payload["returned_points"] == 2
+    assert payload["total_points"] == 3
+    assert payload["points"][0]["close"] == "10.25"
+
+
+def test_technical_indicator_route_rejects_invalid_limit() -> None:
+    app = create_app(InMemoryAnalysisResultStore(), get_analysis_report=GetAnalysisReport(
+        InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        InMemoryAnalysisResultStore(),
+    ))
+    with TestClient(app) as client:
+        response = client.get("/api/v1/technical-indicators/EGAL?limit=1001")
+    assert response.status_code == 400
