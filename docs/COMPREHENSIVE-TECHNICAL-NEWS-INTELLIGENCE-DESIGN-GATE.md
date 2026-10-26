@@ -26,6 +26,22 @@ The current repository already has technical/fundamental analysis, scoring, expl
 
 This design must reuse the current domain-first modular monolith and existing application/domain/infrastructure boundaries. It must not bypass authenticated API access, existing stock-data quality checks, persistence contracts, or source-provider abstraction. The current M61 historical-data acceptance blocker remains active; this feature must not be used to imply that a strategy has been validated.
 
+
+## 2.1 Verified code inventory (reviewed on 2026-10-26)
+
+The current `main` source tree was inspected before proposing implementation:
+
+- `app/domain/technical_analysis/trend.py`: detects higher/lower swing highs and lows; it is a structural swing-trend classifier, not a moving-average indicator engine.
+- `app/domain/technical_analysis/support_resistance.py`: returns pivot-low support and pivot-high resistance evidence from adjacent bars; it does not yet cluster zones, score touches, or calculate Fibonacci levels.
+- `app/domain/technical_analysis/momentum.py`: computes rate of change over a supplied lookback.
+- `app/domain/technical_analysis/volume.py`: current volume evidence is a separate component.
+- `app/domain/technical_analysis/orchestrator.py` composes trend, support/resistance, momentum, and volume into `TechnicalAnalysisResult`.
+- `app/domain/market_data/price_bar.py` supplies timezone-aware OHLCV bars, and `app/domain/market_data/data_quality_assessor.py` is an existing quality boundary to preserve.
+- The separate stock-regime diagnostic already exposes SMA20/SMA50 and risk statistics, but it is not a general indicator registry and does not establish that SMA200 is available in the core technical-analysis result.
+- The inspected `app/domain/technical_analysis` tree contains no dedicated news/event, candlestick-pattern, Fibonacci, or Elliott Wave module at this baseline.
+
+**Implication:** the first increment is not “turn on all indicators”; it is to define a small, testable indicator evidence contract and calculate SMA/EMA values from validated, chronologically ordered bars, including explicit warm-up/insufficient-history states. Reuse existing data-quality and domain boundaries rather than duplicating or silently changing the stock-regime endpoint.
+
 ## 3. Proposed capability catalogue
 
 ### 3.1 Trend, averages, and momentum
