@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -10,7 +11,7 @@ class EntitlementStore(Protocol):
         self,
         grant_id: UUID,
         *,
-        revoked_at,
+        revoked_at: datetime,
         revoked_by: UUID,
         reason: str,
     ) -> EntitlementGrant | None: ...
@@ -24,7 +25,7 @@ class EntitlementService:
     def __init__(self, store: EntitlementStore) -> None:
         self._store = store
 
-    def allows(self, user_id: UUID, capability: str, *, at) -> bool:
+    def allows(self, user_id: UUID, capability: str, *, at: datetime) -> bool:
         normalized = capability.strip()
         if not normalized:
             raise ValueError("capability is required")
@@ -33,6 +34,6 @@ class EntitlementService:
             for grant in self._store.for_user(user_id)
         )
 
-    def require(self, user_id: UUID, capability: str, *, at) -> None:
+    def require(self, user_id: UUID, capability: str, *, at: datetime) -> None:
         if not self.allows(user_id, capability, at=at):
             raise PermissionError(f"entitlement required: {capability}")
