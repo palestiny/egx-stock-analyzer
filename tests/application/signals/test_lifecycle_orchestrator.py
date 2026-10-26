@@ -107,3 +107,88 @@ def test_sell_outcome_uses_direction_aware_return_and_r():
     assert outcome is not None
     assert outcome.realized_return == Decimal("0.10")
     assert outcome.realized_r == Decimal("2")
+
+
+def test_changed_supporting_evidence_invalidates_prior_signal_without_trade_outcome():
+    from dataclasses import replace
+
+    from app.domain.signals.model import SignalEvidence, SignalStatus
+
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    track_record = InMemoryTrackRecordStore()
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
+    original = make_signal()
+    created = history.record(original, "CREATED", original.generated_at)
+    revised_candidate = replace(
+        original,
+        evidence=(SignalEvidence("trend", "trend no longer confirms"),),
+        data_timestamp=datetime(2026, 10, 4, tzinfo=timezone.utc),
+    )
+
+    result = orchestrator.invalidate_for_evidence_change(
+        revised_candidate,
+        observed_at=datetime(2026, 10, 4, 1, tzinfo=timezone.utc),
+    )
+
+    assert result is not None
+    assert result.signal_id == created.signal_id
+    assert result.changed is True
+    assert result.signal.status is SignalStatus.INVALIDATED
+    assert result.outcome_recorded is False
+    assert result.alert_published is True
+    assert len(alerts.events) == 1
+    assert len(track_record.all()) == 0
+    assert history.history(created.signal_id)[-1].event == "EVIDENCE_CHANGED_INVALIDATED"
+
+
+def test_unchanged_or_missing_candidate_does_not_invalidate_signal():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    track_record = InMemoryTrackRecordStore()
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
+    original = make_signal()
+    created = history.record(original, "CREATED", original.generated_at)
+
+    unchanged = orchestrator.invalidate_for_evidence_change(
+        original,
+        observed_at=datetime(2026, 10, 4, 1, tzinfo=timezone.utc),
+    )
+    missing = orchestrator.invalidate_for_evidence_change(
+        None,
+        observed_at=datetime(2026, 10, 4, 1, tzinfo=timezone.utc),
+    )
+
+    assert unchanged is not None
+    assert unchanged.changed is False
+    assert missing is None
+    assert history.history(created.signal_id) == (created,)
+    assert alerts.events == []
+
+
+def test_evidence_change_does_not_reopen_or_reinvalidate_terminal_signal():
+    from dataclasses import replace
+
+    from app.domain.signals.model import SignalEvidence, SignalStatus
+
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    track_record = InMemoryTrackRecordStore()
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
+    original = make_signal()
+    terminal = replace(original, status=SignalStatus.INVALIDATED)
+    created = history.record(terminal, "STATUS_INVALIDATED", terminal.generated_at)
+    revised_candidate = replace(
+        original,
+        evidence=(SignalEvidence("trend", "different evidence"),),
+        data_timestamp=datetime(2026, 10, 4, tzinfo=timezone.utc),
+    )
+
+    result = orchestrator.invalidate_for_evidence_change(
+        revised_candidate,
+        observed_at=datetime(2026, 10, 4, 1, tzinfo=timezone.utc),
+    )
+
+    assert result is None
+    assert history.history(created.signal_id) == (created,)
+    assert alerts.events == []
