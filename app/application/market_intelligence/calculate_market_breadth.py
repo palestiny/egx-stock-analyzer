@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
@@ -94,6 +94,8 @@ class CalculateMarketBreadth:
                 continue
             analyzed += 1
             raw_analysis_date = getattr(record, "analysis_date", None)
+            if isinstance(raw_analysis_date, datetime):
+                raw_analysis_date = raw_analysis_date.date()
             analysis_dates[symbol] = (
                 raw_analysis_date if isinstance(raw_analysis_date, date) else None
             )
