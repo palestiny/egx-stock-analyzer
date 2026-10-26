@@ -10,6 +10,7 @@ from app.application.notifications.telegram_account_linking import LinkedTelegra
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
 from app.domain.alerts.model import AlertEvent, AlertEventType
+from app.domain.identity.user import User, UserStatus
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -29,6 +30,7 @@ from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import 
     SQLiteSignalAlertDeliveryStore,
 )
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 
 
 NOW = datetime(2026, 10, 26, 12, 0, tzinfo=timezone.utc)
@@ -94,6 +96,9 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=()):
     outbox.publish(event)
     deliveries = SQLiteSignalAlertDeliveryStore(database)
     subscriptions = SQLiteSubscriptionStore(database)
+    user_store = SQLiteUserStore(database)
+    for account in accounts:
+        user_store.save(User(id=account.user_id, status=UserStatus.ACTIVE))
     subscriptions.save_plan(
         SubscriptionPlan(
             plan_id="plus",
@@ -125,6 +130,7 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=()):
         outbox=outbox,
         recipients=FakeRecipients(accounts),
         deliveries=deliveries,
+        users=user_store,
         history=history,
         entitlements=EntitlementEvaluator(subscriptions),
         transport=transport,
