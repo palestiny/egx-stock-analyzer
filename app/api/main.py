@@ -529,10 +529,8 @@ def create_app(
     @app.post("/api/v1/news/ingest")
     def ingest_news_events_route(
         since: datetime | None = None,
-        identity: AuthenticatedIdentity = Depends(require_authenticated),
+        _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        if Permission.OPERATOR not in identity.permissions:
-            raise HTTPException(status_code=403, detail="Operator permission is required")
         if news_ingestion_service is None:
             raise HTTPException(
                 status_code=503,
