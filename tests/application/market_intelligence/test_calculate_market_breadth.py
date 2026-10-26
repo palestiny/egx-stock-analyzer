@@ -144,3 +144,21 @@ def test_market_breadth_normalizes_datetime_analysis_dates_to_calendar_dates():
         "AAA": "2026-10-25",
         "BBB": "2026-10-25",
     }
+
+
+def test_market_breadth_marks_date_evidence_partial_when_requested_symbols_are_missing():
+    store = StubStore({
+        "AAA": record(
+            TrendStatus.DOWNTREND,
+            MomentumStatus.NEGATIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            date(2026, 10, 25),
+        ),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"]).to_dict()
+
+    assert payload["analysis_date_status"] == "PARTIAL"
+    assert payload["missing_symbols"] == ["BBB"]
+    assert payload["analysis_dates_by_symbol"] == {"AAA": "2026-10-25"}
+    assert payload["undated_symbols"] == []
