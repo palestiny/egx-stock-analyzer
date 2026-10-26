@@ -76,6 +76,8 @@ def create_application(
             else None
         ),
         news_event_store=getattr(runtime, "news_event_store", None),
+        news_ingestion_service=getattr(runtime, "news_ingestion_service", None),
+        news_event_store=getattr(runtime, "news_event_store", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
