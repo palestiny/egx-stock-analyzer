@@ -98,8 +98,19 @@ def _decode(value: Any, expected_type: Any) -> Any:
         return [_decode(item, item_type) for item in value["items"]]
 
     if origin is tuple:
-        item_type = args[0] if args else Any
-        return tuple(_decode(item, item_type) for item in value["items"])
+        items = value["items"]
+        if not args:
+            return tuple(_decode(item, Any) for item in items)
+        if len(args) == 2 and args[1] is Ellipsis:
+            return tuple(_decode(item, args[0]) for item in items)
+        if len(items) != len(args):
+            raise AnalysisResultSerializationError(
+                f"Tuple length mismatch: expected {len(args)}, got {len(items)}"
+            )
+        return tuple(
+            _decode(item, item_type)
+            for item, item_type in zip(items, args)
+        )
 
     if origin is dict:
         key_type, value_type = args if len(args) == 2 else (Any, Any)
