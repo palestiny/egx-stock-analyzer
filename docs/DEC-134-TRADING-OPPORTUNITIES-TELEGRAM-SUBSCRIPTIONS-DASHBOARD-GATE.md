@@ -328,3 +328,19 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 
 **Status:** Draft. No decision in Section 13 is accepted yet.  
 **Next step:** resolve priority, universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
+
+
+## 17. Implementation Status — 2026-10-26
+
+The following implementation slices have passing CI on their reviewed heads, but remain open/unmerged:
+- PR #346: durable SQLite signal history/outcome storage and alert outbox foundation.
+- PR #348: recipient-targeted Telegram signal messages.
+- PR #349: secure Telegram account linking.
+- PR #351: subscription and capability-entitlement persistence/evaluation foundation.
+- PR #352: entitlement-aware opportunity publication and Telegram dispatch.
+- PR #356: point-in-time session opportunity ledger generation.
+- PR #358: audited server-side capability grants/revocations.
+
+These are stacked branches and must be validated together against their current parent heads; isolated green runs are not sufficient proof that the whole chain is compatible. The Telegram stack still needs end-to-end replay/restart/rate-limit/blocked-recipient/expiry verification in the final combined tree, plus a live send only with explicit opt-in.
+
+Not yet implemented as a complete production feature: a verified payment gateway and reconciliation/webhook flow, final-session-calendar/data-finalization scheduling, persisted/versioned market-wide session reports and delivery status, complete owner dashboard, actual personal portfolio accounting, provider/license acceptance, and M61 historical-data acceptance. No subscription should be sold and no profitability claim should be made until the applicable acceptance criteria above pass and the owner decisions in Section 13 are resolved.
