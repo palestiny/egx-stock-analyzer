@@ -6,6 +6,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.application.alerts.outbox import AlertOutbox, AlertOutboxRecord
+from app.application.identity.user_store import UserStore
 from app.application.alerts.telegram_delivery_store import (
     SignalAlertDeliveryStatus,
     SignalAlertDeliveryStore,
@@ -53,6 +54,7 @@ class DispatchSignalAlertOutbox:
         outbox: AlertOutbox,
         recipients: TelegramRecipientDirectory,
         deliveries: SignalAlertDeliveryStore,
+        users: UserStore,
         history: SignalHistoryStore,
         entitlements: EntitlementAccessEvaluator,
         transport: TelegramMessageSender,
@@ -60,6 +62,7 @@ class DispatchSignalAlertOutbox:
         self._outbox = outbox
         self._recipients = recipients
         self._deliveries = deliveries
+        self._users = users
         self._history = history
         self._entitlements = entitlements
         self._transport = transport
@@ -103,6 +106,18 @@ class DispatchSignalAlertOutbox:
                         self.CHANNEL,
                         now=now,
                     )
+                user = self._users.get(recipient.user_id)
+                if user is None or not user.can_access_protected_resources():
+                    self._deliveries.mark_suppressed(
+                        record.event.event_id,
+                        recipient.user_id,
+                        self.CHANNEL,
+                        "user_inactive_or_missing",
+                        now=now,
+                    )
+                    suppressed += 1
+                    continue
+
                 decision = self._entitlements.evaluate(
                     recipient.user_id,
                     self.ENTITLEMENT,
