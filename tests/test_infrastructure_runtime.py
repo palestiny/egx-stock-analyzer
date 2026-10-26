@@ -322,3 +322,22 @@ def test_infrastructure_runtime_composes_durable_signal_lifecycle(tmp_path) -> N
     assert isinstance(second_runtime.signal_track_record_store, SQLiteTrackRecordStore)
     assert isinstance(second_runtime.signal_alert_outbox, SQLiteAlertOutbox)
     second_runtime.close()
+
+
+def test_infrastructure_runtime_rejects_empty_telegram_webhook_secret() -> None:
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(
+                operator_token="test-token",
+                telegram_bot_token="token",
+                telegram_webhook_secret="   ",
+            ),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "Telegram webhook secret cannot be empty"
+    else:
+        raise AssertionError("Expected ValueError")
