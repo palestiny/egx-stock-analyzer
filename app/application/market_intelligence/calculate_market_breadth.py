@@ -144,10 +144,10 @@ class CalculateMarketBreadth:
         undated_symbols = tuple(
             symbol for symbol, value in analysis_dates.items() if value is None
         )
-        if not known_dates:
-            analysis_date_status = "UNKNOWN"
-        elif undated_symbols or missing:
+        if missing or (undated_symbols and known_dates):
             analysis_date_status = "PARTIAL"
+        elif not known_dates:
+            analysis_date_status = "UNKNOWN"
         elif len(known_dates) > 1:
             analysis_date_status = "MIXED"
         else:
