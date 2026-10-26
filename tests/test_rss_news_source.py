@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.domain.news.event import NewsEventCategory, NewsSourceType
+from app.infrastructure.news.ingest_rss_feeds import parse_feed_configs, parse_symbol_aliases
 from app.infrastructure.news.rss_source import RSSFeedConfig, RSSNewsSource
 
 
@@ -89,3 +90,29 @@ def test_rss_feed_config_requires_https_and_bounded_timeout() -> None:
         RSSFeedConfig("Feed", "http://news.example/rss", NewsSourceType.FINANCIAL_MEDIA)
     with pytest.raises(ValueError, match="timeout_seconds"):
         RSSFeedConfig("Feed", "https://news.example/rss", NewsSourceType.FINANCIAL_MEDIA, 100)
+
+
+
+def test_feed_config_parser_requires_a_valid_json_array_and_unique_names() -> None:
+    feeds = parse_feed_configs(
+        '[{"source_name":"EGX","url":"https://example.com/rss","source_type":"exchange_disclosure"}]'
+    )
+    assert len(feeds) == 1
+    assert feeds[0].source_type is NewsSourceType.EXCHANGE_DISCLOSURE
+    with pytest.raises(ValueError, match="JSON array"):
+        parse_feed_configs('{"source_name":"EGX"}')
+    with pytest.raises(ValueError, match="duplicate source names"):
+        parse_feed_configs(
+            '[{"source_name":"EGX","url":"https://example.com/a","source_type":"exchange_disclosure"},'
+            '{"source_name":"EGX","url":"https://example.com/b","source_type":"exchange_disclosure"}]'
+        )
+
+
+def test_symbol_alias_parser_normalizes_symbols_and_rejects_invalid_shapes() -> None:
+    assert parse_symbol_aliases('{"egal":["Egypt Aluminum"]}') == {
+        "EGAL": ("Egypt Aluminum",)
+    }
+    with pytest.raises(ValueError, match="JSON object"):
+        parse_symbol_aliases('["EGAL"]')
+    with pytest.raises(ValueError, match="arrays"):
+        parse_symbol_aliases('{"EGAL":"Egypt Aluminum"}')
