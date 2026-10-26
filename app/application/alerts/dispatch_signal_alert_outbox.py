@@ -178,22 +178,31 @@ class DispatchSignalAlertOutbox:
         evidence = "\n".join(
             f"- {item.kind}: {item.description}" for item in signal.evidence
         )
-        return (
-            "EGX Stock Analyzer — Opportunity Update\n"
-            f"Symbol: {signal.symbol}\n"
-            f"Event: {record.event.event_type.value}\n"
-            f"Direction: {signal.direction.value}\n"
-            f"Status: {signal.status.value}\n"
-            f"Timeframe: {signal.timeframe}\n"
-            f"Entry zone: {signal.entry_zone.lower} – {signal.entry_zone.upper}\n"
-            f"Invalidation: {signal.invalidation}\n"
-            f"Targets:\n{targets}\n"
-            f"Evidence:\n{evidence}\n"
-            f"Strategy: {signal.strategy_id} v{signal.strategy_version}\n"
-            f"Generated: {signal.generated_at.isoformat()}\n"
-            f"Data timestamp: {signal.data_timestamp.isoformat()}\n"
-            f"Update: {record.event.message}\n"
-            f"Event reference: {record.event.event_id}\n"
+        message = (
+            "EGX Stock Analyzer — Opportunity Update\\n"
+            f"Symbol: {signal.symbol}\\n"
+            f"Event: {record.event.event_type.value}\\n"
+            f"Direction: {signal.direction.value}\\n"
+            f"Status: {signal.status.value}\\n"
+            f"Timeframe: {signal.timeframe}\\n"
+            f"Entry zone: {signal.entry_zone.lower} – {signal.entry_zone.upper}\\n"
+            f"Invalidation: {signal.invalidation}\\n"
+            f"Targets:\\n{targets}\\n"
+            f"Evidence:\\n{evidence}\\n"
+            f"Strategy: {signal.strategy_id} v{signal.strategy_version}\\n"
+            f"Generated: {signal.generated_at.isoformat()}\\n"
+            f"Data timestamp: {signal.data_timestamp.isoformat()}\\n"
+            f"Update: {record.event.message}\\n"
+            f"Event reference: {record.event.event_id}\\n"
             "Market-price observation is not proof of an executed trade. "
             "Analysis is uncertain and is not a guarantee of returns."
         )
+        if len(message) <= 3900:
+            return message
+        suffix = (
+            "\\n[Evidence details truncated to fit Telegram's message limit.]"
+            f"\\nEvent reference: {record.event.event_id}"
+            "\\nMarket-price observation is not proof of an executed trade. "
+            "Analysis is uncertain and is not a guarantee of returns."
+        )
+        return message[: 3900 - len(suffix)] + suffix
