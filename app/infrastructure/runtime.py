@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
@@ -53,6 +54,7 @@ from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
 from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
+from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
 from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
@@ -85,6 +87,8 @@ class InfrastructureRuntime:
     subscription_store: SQLiteSubscriptionStore | None = None
     entitlement_evaluator: EntitlementEvaluator | None = None
     owner_dashboard_overview: GetOwnerDashboardOverview | None = None
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
+    session_opportunity_report_store: SQLiteSessionOpportunityReportStore | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
@@ -272,6 +276,13 @@ def create_infrastructure_runtime(
             store=workflow_store,
         )
 
+    session_opportunity_report_store = SQLiteSessionOpportunityReportStore(
+        config.analysis_database_path
+    )
+    build_session_opportunity_ledger = BuildSessionOpportunityLedger(
+        signal_history_store,
+        signal_track_record_store,
+    )
     owner_dashboard_overview = GetOwnerDashboardOverview(
         SQLiteOwnerDashboardReadStore(config.analysis_database_path),
         telegram_configured=telegram_notification_provider is not None,
@@ -296,6 +307,8 @@ def create_infrastructure_runtime(
         subscription_store=subscription_store,
         entitlement_evaluator=entitlement_evaluator,
         owner_dashboard_overview=owner_dashboard_overview,
+        build_session_opportunity_ledger=build_session_opportunity_ledger,
+        session_opportunity_report_store=session_opportunity_report_store,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
