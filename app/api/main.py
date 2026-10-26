@@ -703,6 +703,10 @@ def create_app(
             raise HTTPException(status_code=400, detail="Invalid Telegram update") from None
         if not isinstance(update, dict):
             return {"ok": True}
+        raw_update_id = update.get("update_id")
+        if not isinstance(raw_update_id, (str, int)) or not str(raw_update_id).strip():
+            return {"ok": True}
+        webhook_now = datetime.now(timezone.utc)
         message = update.get("message")
         if not isinstance(message, dict):
             return {"ok": True}
@@ -719,6 +723,11 @@ def create_app(
             return {"ok": True}
 
         if len(parts) != 2 or not parts[1].strip():
+            if not telegram_account_linking.claim_webhook_update(
+                str(raw_update_id),
+                now=webhook_now,
+            ):
+                return {"ok": True, "duplicate": True}
             telegram_notification_provider.send_message(
                 chat_id,
                 "To link your account, generate a one-time link token in EGX Stock Analyzer and send /start <token>.",
@@ -729,14 +738,25 @@ def create_app(
             linked_user_id = telegram_account_linking.consume(
                 parts[1].strip(),
                 chat_id,
-                now=datetime.now(timezone.utc),
+                now=webhook_now,
             )
         except TelegramChatAlreadyLinked:
+            if not telegram_account_linking.claim_webhook_update(
+                str(raw_update_id),
+                now=webhook_now,
+            ):
+                return {"ok": True, "duplicate": True}
             telegram_notification_provider.send_message(
                 chat_id,
                 "This Telegram chat is already linked to another EGX account.",
             )
             return {"ok": True}
+
+        if not telegram_account_linking.claim_webhook_update(
+            str(raw_update_id),
+            now=webhook_now,
+        ):
+            return {"ok": True, "duplicate": True}
 
         if linked_user_id is None:
             telegram_notification_provider.send_message(
@@ -824,6 +844,7 @@ def create_app(
                 for event in events
             ],
         }
+
 
 
     return app

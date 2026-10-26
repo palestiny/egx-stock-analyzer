@@ -120,3 +120,27 @@ def test_telegram_link_challenge_does_not_store_plaintext_token(tmp_path) -> Non
     assert len(rows) == 1
     assert rows[0][0] != "do-not-store-this-token"
     assert len(rows[0][0]) == 64
+
+
+def test_telegram_webhook_update_claim_is_idempotent_and_persistent(tmp_path) -> None:
+    database = tmp_path / "accounts.db"
+    store = SQLiteTelegramAccountLinkStore(database)
+
+    assert store.claim_webhook_update("update-101", NOW) is True
+    assert store.claim_webhook_update("update-101", NOW) is False
+    assert SQLiteTelegramAccountLinkStore(database).claim_webhook_update("update-101", NOW) is False
+
+
+def test_telegram_recipient_directory_lists_linked_accounts(tmp_path) -> None:
+    from app.application.notifications.telegram_account_linking import LinkedTelegramAccount
+
+    database = tmp_path / "accounts.db"
+    user_id = uuid4()
+    service = service_for(database, "recipient-token")
+    service.issue(user_id, now=NOW)
+    assert service.consume("recipient-token", "chat-123", now=NOW) == user_id
+
+    store = SQLiteTelegramAccountLinkStore(database)
+    assert store.list_linked_accounts() == (
+        LinkedTelegramAccount(user_id=user_id, chat_id="chat-123"),
+    )

@@ -6,6 +6,7 @@ from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.application.alerts.ports import AlertPublisher
+from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.store import SignalHistoryStore
 from app.application.signals.track_record import TrackRecordStore
 from app.domain.alerts.model import AlertEvent, AlertEventType
@@ -150,6 +151,7 @@ class SignalLifecycleOrchestrator:
                     f"{current.symbol} signal invalidated because its supporting "
                     "analysis evidence changed"
                 ),
+                signal_snapshot=snapshot_signal(invalidated),
             )
         )
         self._history.record(
@@ -205,6 +207,7 @@ class SignalLifecycleOrchestrator:
             event_type=event_type,
             occurred_at=occurred_at,
             message=f"{signal.symbol} signal {event_type.value.lower().replace('_', ' ')}",
+            signal_snapshot=snapshot_signal(signal),
         )
 
     @staticmethod

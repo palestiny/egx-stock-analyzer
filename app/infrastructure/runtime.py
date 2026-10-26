@@ -1,19 +1,24 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.news.ingestion import NewsIngestionService
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+from app.application.subscriptions.entitlements import EntitlementService
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
@@ -77,10 +82,16 @@ class InfrastructureRuntime:
     run_configured_market_analysis_with_automatic_alert_delivery: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
     telegram_account_linking: TelegramAccountLinkingService | None = None
+    telegram_account_link_store: SQLiteTelegramAccountLinkStore | None = None
+    dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None
+    publish_signal_opportunity: PublishSignalOpportunity | None = None
+    signal_alert_delivery_store: SQLiteSignalAlertDeliveryStore | None = None
     telegram_webhook_secret: str | None = None
     news_event_store: SQLiteNewsEventStore | None = None
     news_ingestion_service: NewsIngestionService | None = None
     subscription_store: SQLiteSubscriptionStore | None = None
+    entitlement_store: SQLiteEntitlementStore | None = None
+    entitlement_service: EntitlementService | None = None
     entitlement_evaluator: EntitlementEvaluator | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
@@ -180,10 +191,13 @@ def create_infrastructure_runtime(
 
     signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
     subscription_store = SQLiteSubscriptionStore(config.analysis_database_path)
+    entitlement_store = SQLiteEntitlementStore(config.analysis_database_path)
+    entitlement_service = EntitlementService(entitlement_store)
     entitlement_evaluator = EntitlementEvaluator(
         subscription_store,
         default_plan_id=config.default_subscription_plan_id,
         default_plan_version=config.default_subscription_plan_version,
+        explicit_grants=entitlement_service,
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
@@ -195,6 +209,10 @@ def create_infrastructure_runtime(
     build_session_opportunity_ledger = BuildSessionOpportunityLedger(
         history=signal_history_store,
         track_record=signal_track_record_store,
+    )
+    publish_signal_opportunity = PublishSignalOpportunity(
+        history=signal_history_store,
+        outbox=signal_alert_outbox,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -221,9 +239,9 @@ def create_infrastructure_runtime(
     if config.telegram_webhook_secret is not None and not has_telegram_token:
         raise ValueError("Telegram webhook secret requires a bot token")
 
-    telegram_account_linking = TelegramAccountLinkingService(
-        SQLiteTelegramAccountLinkStore(config.analysis_database_path)
-    )
+    telegram_account_link_store = SQLiteTelegramAccountLinkStore(config.analysis_database_path)
+    telegram_account_linking = TelegramAccountLinkingService(telegram_account_link_store)
+    signal_alert_delivery_store = SQLiteSignalAlertDeliveryStore(config.analysis_database_path)
     telegram_notification_provider = (
         TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -243,6 +261,18 @@ def create_infrastructure_runtime(
     get_scheduled_workflow_executions = GetScheduledWorkflowExecutions(workflow_store)
     get_scheduled_workflow_execution_history = GetScheduledWorkflowExecutionHistory(workflow_store)
     get_scheduled_workflow_history = GetScheduledWorkflowHistory(workflow_store)
+    dispatch_signal_alert_outbox = None
+    if telegram_notification_provider is not None:
+        dispatch_signal_alert_outbox = DispatchSignalAlertOutbox(
+            outbox=signal_alert_outbox,
+            recipients=telegram_account_link_store,
+            deliveries=signal_alert_delivery_store,
+            users=user_store,
+            history=signal_history_store,
+            entitlements=entitlement_evaluator,
+            transport=telegram_notification_provider,
+        )
+
     if has_telegram_token and has_telegram_chat_id:
         assert telegram_notification_provider is not None
         delivery_store = SQLiteAlertDeliveryStore(config.analysis_database_path)
@@ -291,10 +321,16 @@ def create_infrastructure_runtime(
         ),
         telegram_notification_provider=telegram_notification_provider,
         telegram_account_linking=telegram_account_linking,
+        telegram_account_link_store=telegram_account_link_store,
+        dispatch_signal_alert_outbox=dispatch_signal_alert_outbox,
+        publish_signal_opportunity=publish_signal_opportunity,
+        signal_alert_delivery_store=signal_alert_delivery_store,
         telegram_webhook_secret=config.telegram_webhook_secret,
         news_event_store=news_event_store,
         news_ingestion_service=news_ingestion_service,
         subscription_store=subscription_store,
+        entitlement_store=entitlement_store,
+        entitlement_service=entitlement_service,
         entitlement_evaluator=entitlement_evaluator,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,

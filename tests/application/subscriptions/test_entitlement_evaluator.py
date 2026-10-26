@@ -4,6 +4,9 @@ from uuid import uuid4
 import pytest
 
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+from app.application.subscriptions.entitlements import EntitlementService
+from app.domain.subscriptions.entitlement import EntitlementGrant as ExplicitGrant
+from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.domain.subscriptions.model import (
     EntitlementGrant,
     Subscription,
@@ -158,3 +161,65 @@ def test_evaluator_requires_default_plan_identity_as_a_pair(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="supplied together"):
         EntitlementEvaluator(store, default_plan_id="free")
+
+
+def test_evaluator_allows_audited_explicit_grant_without_subscription(tmp_path) -> None:
+    database = tmp_path / "subscriptions.db"
+    subscriptions = SQLiteSubscriptionStore(database)
+    grants = SQLiteEntitlementStore(database)
+    user_id = uuid4()
+    actor_id = uuid4()
+    grant = ExplicitGrant(
+        grant_id=uuid4(),
+        user_id=user_id,
+        capability="telegram_opportunities",
+        starts_at=NOW,
+        expires_at=NOW + timedelta(days=7),
+        granted_by=actor_id,
+        reason="Owner-approved access exception",
+        created_at=NOW,
+    )
+    grants.grant(grant)
+    evaluator = EntitlementEvaluator(
+        subscriptions,
+        explicit_grants=EntitlementService(grants),
+    )
+
+    decision = evaluator.evaluate(user_id, "telegram_opportunities", now=NOW)
+
+    assert decision.allowed is True
+    assert decision.reason == "explicit_grant"
+
+
+def test_evaluator_denies_expired_or_revoked_explicit_grant_without_plan(tmp_path) -> None:
+    database = tmp_path / "subscriptions.db"
+    subscriptions = SQLiteSubscriptionStore(database)
+    grants = SQLiteEntitlementStore(database)
+    user_id = uuid4()
+    actor_id = uuid4()
+    grant = ExplicitGrant(
+        grant_id=uuid4(),
+        user_id=user_id,
+        capability="telegram_opportunities",
+        starts_at=NOW - timedelta(days=2),
+        expires_at=NOW + timedelta(days=7),
+        granted_by=actor_id,
+        reason="Temporary access",
+        created_at=NOW - timedelta(days=2),
+    )
+    grants.grant(grant)
+    grants.revoke(
+        grant.grant_id,
+        revoked_at=NOW - timedelta(days=1),
+        revoked_by=actor_id,
+        reason="Temporary access ended",
+    )
+    evaluator = EntitlementEvaluator(
+        subscriptions,
+        explicit_grants=EntitlementService(grants),
+    )
+
+    decision = evaluator.evaluate(user_id, "telegram_opportunities", now=NOW)
+
+    assert decision.allowed is False
+    assert decision.reason == "no_eligible_plan"
