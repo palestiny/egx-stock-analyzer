@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -44,7 +45,13 @@ class FakeStore:
 
     def upsert(self, event):
         if event.event_id in self.events:
-            if self.events[event.event_id] != event:
+            existing = self.events[event.event_id]
+            replay = replace(
+                event,
+                retrieved_at=existing.retrieved_at,
+                first_seen_at=existing.first_seen_at,
+            )
+            if replay != existing:
                 raise ValueError("conflicting news event replay")
             return False
         self.events[event.event_id] = event
@@ -66,6 +73,21 @@ def test_ingestion_counts_insertions_and_duplicate_replays() -> None:
 
     assert (result.fetched, result.inserted, result.duplicates) == (2, 1, 1)
     assert result.source_name == "Official Feed"
+
+
+def test_ingestion_accepts_same_event_retrieved_again_later() -> None:
+    original = make_event()
+    replay = make_event(
+        event_id=original.event_id,
+        retrieved_at=datetime(2026, 10, 26, 13, tzinfo=timezone.utc),
+        first_seen_at=datetime(2026, 10, 26, 13, tzinfo=timezone.utc),
+    )
+    store = FakeStore()
+
+    result = NewsIngestionService(FakeSource((original, replay)), store).ingest()
+
+    assert (result.fetched, result.inserted, result.duplicates) == (2, 1, 1)
+    assert store.events[original.event_id] == original
 
 
 def test_ingestion_passes_timezone_aware_since_to_adapter() -> None:
