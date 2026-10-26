@@ -74,6 +74,8 @@ def create_application(
         publish_signal_opportunity=getattr(runtime, "publish_signal_opportunity", None),
         dispatch_signal_alert_outbox=getattr(runtime, "dispatch_signal_alert_outbox", None),
         get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
+        build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
+        session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
         get_analysis_run=runtime.application_runtime.get_analysis_run,
         list_analysis_runs=getattr(runtime.application_runtime, "list_analysis_runs", None),
         delete_analysis_run=getattr(runtime.application_runtime, "delete_analysis_run", None),
