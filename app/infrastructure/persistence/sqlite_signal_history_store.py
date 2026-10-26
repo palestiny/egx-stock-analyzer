@@ -173,6 +173,17 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
             ).fetchone()
         return self._to_record(row) if row else None
 
+    def all_records(self) -> tuple[SignalRecord, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT signal_id, event, recorded_at, signal_json
+                FROM signal_history
+                ORDER BY id ASC
+                """
+            ).fetchall()
+        return tuple(self._to_record(row) for row in rows)
+
     @staticmethod
     def _require_aware(value: datetime, field_name: str) -> None:
         if value.tzinfo is None or value.utcoffset() is None:
