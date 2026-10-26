@@ -55,38 +55,48 @@ Potential evidence families:
 
 Each evaluation should retain symbol, timeframe, observation/session timestamp, source/data version, rule version, evidence references, freshness/completeness, trigger state, explanation, and uncertainty.
 
-### 4.2 TradingOpportunity
+### 4.2 Reuse the Existing Signal Model
 
-Introduce a domain-level TradingOpportunity (name subject to code review) rather than overloading the existing AlertCandidate.
+Do not create a parallel TradingOpportunity aggregate without evidence that the existing signal domain cannot support the requirement. Repository review confirmed these existing components:
 
-Minimum fields:
-- stable opportunity ID and immutable published version;
-- symbol, direction, timeframe, strategy/rule version;
-- created, triggered, published, evaluated, and expiry timestamps;
-- entry condition and entry zone/trigger price, with source and timestamp;
-- invalidation condition/price and target levels with rationale;
-- expected holding horizon as an estimate/range, not a promise;
-- estimated risk/reward based on stated assumptions;
-- evidence references, quality/freshness state, rationale;
-- lifecycle status, terminal reason, publication and delivery references;
-- outcome metrics only when the data and evaluation convention support them.
+- `app/domain/signals/model.py` defines `Signal` with symbol, direction, status, generation/data timestamps, timeframe, entry zone, invalidation, targets, confidence/risk scores, evidence, and strategy ID/version.
+- `app/application/signals/generate_signal.py` generates breakout/trend signals from saved analysis snapshots.
+- `app/application/signals/lifecycle_orchestrator.py` coordinates deterministic lifecycle transitions, alert events, history, and terminal outcome recording.
+- `app/application/signals/store.py` defines `SignalHistoryStore`, currently with an in-memory implementation.
+- `app/application/signals/track_record.py` defines `TrackRecordStore`, currently with an in-memory implementation.
+- `app/domain/signals/outcome.py` and `app/application/signals/performance.py` already represent terminal outcomes and descriptive track-record metrics.
 
-Keep separate: setup published; entry condition observed; market-price proxy met; actual user trade confirmed. A candle touching a price does not prove an order filled. If daily OHLCV cannot establish whether a stop or target happened first inside one candle, record ambiguity or use an explicitly approved conservative convention.
+The first missing foundation is durable history/outcome persistence and reliable event delivery, not a second signal entity. PR #345 was closed before merge after discovering the overlap. PR #346 proposes SQLite implementations for the existing signal-store contracts; it remains a draft and is not yet accepted or merged.
 
-### 4.3 Proposed lifecycle
+Extend the existing model only where gaps are verified. Likely additions include:
+- explicit published-version identity and immutable publication snapshots;
+- an explicit entry-condition state distinct from terminal outcome;
+- expected holding horizon as an estimate/range;
+- evidence/data-quality state and the exact evidence version used for each evaluation;
+- links to delivery/report events;
+- a separate, explicit actual-execution record if the owner or subscriber reports a real trade.
 
-Proposed states, subject to owner approval:
+**Compatibility warning:** current `SignalStatus.TRIGGERED` means the current lifecycle observed a target hit; it does not mean the entry condition triggered. Do not silently reinterpret this existing status. Introduce a clear entry-state/outcome distinction and preserve existing API behavior until a migration is designed and tested.
 
-DRAFT → WATCHING → ACTIVE → ENTRY_TRIGGERED → IN_PROGRESS → TARGET_PARTIAL / TARGET_REACHED.
+Keep separate: setup published; entry condition observed; market-price proxy met; actual user trade confirmed. A candle touching a price does not prove an order filled. If OHLCV cannot establish whether a stop or target happened first inside one candle, record ambiguity or use an explicitly approved conservative convention.
 
-Terminal alternatives:
-- INVALIDATED: market evidence contradicts the defined setup.
+### 4.3 Lifecycle and Versioning
+
+The extended product lifecycle must be mapped onto the existing `Signal` and `SignalLifecycleOrchestrator`, with explicit compatibility rules for the existing status enum.
+
+Proposed user-facing lifecycle concepts:
+- DRAFT / WATCHING: setup is being evaluated and is not yet a confirmed entry.
+- ACTIVE: the setup has been published and its trigger condition has not yet been observed.
+- ENTRY_TRIGGERED: the declared entry rule was met according to the stated timeframe and observation convention; this does not prove a user order filled.
+- IN_PROGRESS: the market-based tracking convention considers the setup entered and unresolved.
+- TARGET_PARTIAL / TARGET_REACHED: target progress under a defined evaluation rule.
+- INVALIDATED: supporting evidence or a declared invalidation condition contradicts the setup.
 - STOPPED_OUT: a defined risk boundary is crossed under the accepted convention.
-- EXPIRED: the horizon ends without the required trigger or resolution.
-- CANCELLED: an authorized operator withdraws the setup.
-- DATA_UNRELIABLE: current data cannot support a trustworthy evaluation; this is a data-quality suspension, not necessarily market invalidation.
+- EXPIRED: the time horizon ends without resolution.
+- CANCELLED: an authorized operator withdraws it.
+- DATA_UNRELIABLE: data quality prevents a trustworthy evaluation; this is a suspension, not automatically market invalidation.
 
-Every transition is append-only and records time, reason, evidence/data version, rule version, and actor/source. Material edits create a new linked version; no silent movement of stops or targets.
+These are proposed product concepts, not permission to rename or change the current `SignalStatus` values in-place. A published version and every lifecycle event must preserve timestamp, reason, source/data version, rule version, and actor/source. Material amendments create a linked new publication version; no silent movement of stops or targets.
 
 ### 4.4 Re-evaluation and invalidation
 
