@@ -266,3 +266,61 @@ def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> Non
     assert SQLiteCredentialStore(database_path)
 
     runtime.close()
+
+
+
+def test_runtime_composes_persistent_news_store_without_live_feed_by_default(tmp_path) -> None:
+    from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+
+    assert isinstance(runtime.news_event_store, SQLiteNewsEventStore)
+    assert runtime.news_ingestion_service is None
+    assert database_path.exists()
+    runtime.close()
+
+
+def test_runtime_composes_configured_news_feed_without_fetching_during_startup(tmp_path) -> None:
+    from app.application.news.ingestion import NewsIngestionService
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+            news_rss_feed_url="https://news.example.test/feed.xml",
+            news_rss_source_name="Configured EGX Feed",
+        ),
+    )
+
+    assert isinstance(runtime.news_ingestion_service, NewsIngestionService)
+    assert runtime.news_event_store is not None
+    runtime.close()
+
+
+def test_runtime_rejects_unsupported_configured_news_source_type(tmp_path) -> None:
+    import pytest
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    with pytest.raises(ValueError, match="EGX_NEWS_RSS_SOURCE_TYPE"):
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(
+                operator_token="test-token",
+                analysis_database_path=str(tmp_path / "analysis.db"),
+                news_rss_feed_url="https://news.example.test/feed.xml",
+                news_rss_source_type="unknown_source",
+            ),
+        )
