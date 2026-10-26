@@ -70,3 +70,87 @@ class ElliottImpulseCandidate:
     @property
     def is_rule_consistent(self) -> bool:
         return not self.rule_violations
+
+
+from collections.abc import Sequence
+
+from app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
+
+
+@dataclass(frozen=True)
+class ElliottWaveCount:
+    """One mechanically enumerated five-wave impulse candidate, not a forecast."""
+
+    start_index: int
+    end_index: int
+    candidate: ElliottImpulseCandidate
+
+    @property
+    def rule_violations(self) -> tuple[str, ...]:
+        return self.candidate.rule_violations
+
+    @property
+    def warnings(self) -> tuple[str, ...]:
+        return self.candidate.warnings
+
+    @property
+    def is_rule_consistent(self) -> bool:
+        return self.candidate.is_rule_consistent
+
+    @property
+    def wave_two_invalidation_price(self) -> Decimal:
+        """Wave-2 hard invalidation boundary at the wave origin."""
+        return self.candidate.points[0]
+
+
+def enumerate_impulse_counts(
+    swing_points: Sequence[SwingPoint],
+) -> tuple[ElliottWaveCount, ...]:
+    """Enumerate alternating six-pivot windows as candidate counts with explicit rule diagnostics.
+
+    This is a deterministic candidate generator, not an AI wave interpretation or a trade signal.
+    It intentionally returns rule-inconsistent alternatives with their violations for auditability.
+    """
+    points = tuple(swing_points)
+    if any(point.index < 0 for point in points):
+        raise ValueError("swing indexes must be non-negative")
+    if any(not point.price.is_finite() or point.price <= 0 for point in points):
+        raise ValueError("swing prices must be finite positive prices")
+    if any(current.index < previous.index for previous, current in zip(points, points[1:])):
+        raise ValueError("swing points must be ordered by index")
+
+    counts: list[ElliottWaveCount] = []
+    for start in range(max(0, len(points) - 5)):
+        window = points[start:start + 6]
+        if len(window) != 6:
+            continue
+        if any(
+            current.index <= previous.index
+            for previous, current in zip(window, window[1:])
+        ):
+            continue
+        kinds = tuple(point.kind for point in window)
+        if kinds == (
+            SwingKind.LOW, SwingKind.HIGH, SwingKind.LOW,
+            SwingKind.HIGH, SwingKind.LOW, SwingKind.HIGH,
+        ):
+            direction = ElliottDirection.UP
+        elif kinds == (
+            SwingKind.HIGH, SwingKind.LOW, SwingKind.HIGH,
+            SwingKind.LOW, SwingKind.HIGH, SwingKind.LOW,
+        ):
+            direction = ElliottDirection.DOWN
+        else:
+            continue
+
+        candidate = ElliottImpulseCandidate(
+            direction=direction,
+            points=tuple(point.price for point in window),  # type: ignore[arg-type]
+        )
+        counts.append(ElliottWaveCount(
+            start_index=window[0].index,
+            end_index=window[-1].index,
+            candidate=candidate,
+        ))
+
+    return tuple(counts)
