@@ -8,7 +8,7 @@ Set these environment variables for the API process:
 
 - `EGX_NEWS_RSS_URL`: absolute HTTPS URL for a feed whose access and reuse terms have been verified.
 - `EGX_NEWS_RSS_SOURCE_NAME`: human-readable source name (default: `Configured EGX News Feed`).
-- `EGX_NEWS_RSS_SOURCE_TYPE`: one of `exchange_disclosure`, `regulator`, `central_bank`, `company_announcement`, `macroeconomic`, `financial_media`, or `other`. Default: `exchange_disclosure`.
+- `EGX_NEWS_RSS_SOURCE_TYPE`: one of `exchange_disclosure`, `regulator`, `central_bank`, `company_announcement`, `macroeconomic`, `financial_media`, or `other`. Default: `other` (unverified feeds are not presumed official).
 - `EGX_ANALYSIS_DATABASE_PATH`: persistent SQLite database path (default: `storage/analysis.db`).
 
 PowerShell example (replace the URL only after verifying feed availability, source attribution, licensing, and redistribution rights):
@@ -16,7 +16,7 @@ PowerShell example (replace the URL only after verifying feed availability, sour
 ```powershell
 $env:EGX_NEWS_RSS_URL = "https://REPLACE-WITH-VERIFIED-FEED-URL"
 $env:EGX_NEWS_RSS_SOURCE_NAME = "Verified EGX disclosure feed"
-$env:EGX_NEWS_RSS_SOURCE_TYPE = "exchange_disclosure"
+$env:EGX_NEWS_RSS_SOURCE_TYPE = "exchange_disclosure" # use only after verifying the source is an official disclosure feed
 $env:EGX_ANALYSIS_DATABASE_PATH = "storage/analysis.db"
 ```
 
