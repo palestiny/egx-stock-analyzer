@@ -57,7 +57,7 @@ class ElliottImpulseCandidate:
                 violations.append("wave_5_does_not_extend_wave_3")
 
         wave_1, wave_2, wave_3, wave_4, wave_5 = self.wave_lengths
-        if wave_3 <= min(wave_1, wave_5):
+        if wave_3 < min(wave_1, wave_5):
             violations.append("wave_3_is_shortest")
         return tuple(violations)
 
