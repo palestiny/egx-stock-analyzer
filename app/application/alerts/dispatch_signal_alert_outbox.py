@@ -19,7 +19,6 @@ from app.application.notifications.telegram_message_sender import TelegramMessag
 from app.application.signals.store import SignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementDecision
 from app.domain.alerts.model import AlertSignalSnapshot
-from app.domain.signals.model import Signal
 
 
 class EntitlementAccessEvaluator(Protocol):
