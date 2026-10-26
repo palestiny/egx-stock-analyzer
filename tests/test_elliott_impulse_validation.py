@@ -1,6 +1,11 @@
 from decimal import Decimal
 
-from app.domain.technical_analysis.elliott import (\n    ElliottDirection,\n    ElliottImpulseCandidate,\n    enumerate_impulse_counts,\n)\nfrom app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
+from app.domain.technical_analysis.elliott import (
+    ElliottDirection,
+    ElliottImpulseCandidate,
+    enumerate_impulse_counts,
+)
+from app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
 
 
 def d(*values: str) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal, Decimal]:
