@@ -33,6 +33,8 @@ describe("OwnerDashboardPage", () => {
         getOverview={getOverview}
         publishOpportunity={vi.fn()}
         dispatchOpportunities={vi.fn()}
+        createSessionReport={vi.fn()}
+        getSessionReport={vi.fn()}
         onBack={vi.fn()}
       />,
     );
@@ -55,6 +57,8 @@ describe("OwnerDashboardPage", () => {
         getOverview={getOverview}
         publishOpportunity={publishOpportunity}
         dispatchOpportunities={vi.fn()}
+        createSessionReport={vi.fn()}
+        getSessionReport={vi.fn()}
         onBack={vi.fn()}
       />,
     );
@@ -81,6 +85,8 @@ describe("OwnerDashboardPage", () => {
         getOverview={vi.fn().mockResolvedValue(overview)}
         publishOpportunity={vi.fn()}
         dispatchOpportunities={dispatchOpportunities}
+        createSessionReport={vi.fn()}
+        getSessionReport={vi.fn()}
         onBack={vi.fn()}
       />,
     );
@@ -93,4 +99,46 @@ describe("OwnerDashboardPage", () => {
     expect(dispatchResult).toHaveTextContent("3");
     expect(dispatchResult).toHaveTextContent("0");
   });
+
+  it("builds and displays a persisted session report with market-proxy outcomes", async () => {
+    const createSessionReport = vi.fn().mockResolvedValue({
+      session_date: "2026-10-26",
+      generated_at: "2026-10-26T15:30:00+03:00",
+      methodology_version: "session-ledger-v1",
+      total_count: 1,
+      resolved_proxy_count: 0,
+      unresolved_count: 1,
+      opportunities: [{
+        signal_id: "signal-1",
+        symbol: "EGAL",
+        current_status: "ACTIVE",
+        original_entry_lower: "100",
+        original_entry_upper: "105",
+        original_invalidation: "95",
+        market_proxy_outcome: null,
+        market_proxy_return: null,
+      }],
+    });
+    render(
+      <OwnerDashboardPage
+        getOverview={vi.fn().mockResolvedValue(overview)}
+        publishOpportunity={vi.fn()}
+        dispatchOpportunities={vi.fn()}
+        createSessionReport={createSessionReport}
+        getSessionReport={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("EGX session date"), {
+      target: { value: "2026-10-26" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate and save report" }));
+
+    expect(await screen.findByText("Session 2026-10-26")).toBeInTheDocument();
+    expect(screen.getByText("EGAL")).toBeInTheDocument();
+    expect(screen.getByText("Unresolved")).toBeInTheDocument();
+    expect(createSessionReport).toHaveBeenCalledWith("2026-10-26");
+  });
+
 });
