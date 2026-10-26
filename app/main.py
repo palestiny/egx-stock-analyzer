@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.main import create_app
 from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
+from app.application.signals.generate_signal import GenerateSignal
 from app.application.security.authentication import Authenticator
 from app.application.analysis.result_store import (
     AnalysisResultStore,
@@ -76,6 +77,11 @@ def create_application(
             else None
         ),
         build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
+        generate_signal=GenerateSignal(runtime.application_runtime.result_store),
+        publish_signal_opportunity=getattr(runtime, "publish_signal_opportunity", None),
+        dispatch_signal_alert_outbox=getattr(runtime, "dispatch_signal_alert_outbox", None),
+        get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
+        session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
         telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
