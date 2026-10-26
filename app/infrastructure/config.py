@@ -15,6 +15,7 @@ class InfrastructureConfig:
     user_bearer_tokens: dict[str, UUID] = field(default_factory=dict)
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
+    telegram_webhook_secret: str | None = None
     telegram_timeout_seconds: float = 10.0
     automatic_alert_delivery_channel: str = "telegram"
     automatic_retention_enabled: bool = False
@@ -33,6 +34,7 @@ class InfrastructureConfig:
             user_bearer_tokens=user_bearer_tokens,
             telegram_bot_token=os.getenv("EGX_TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
+            telegram_webhook_secret=os.getenv("EGX_TELEGRAM_WEBHOOK_SECRET"),
             telegram_timeout_seconds=float(
                 os.getenv("EGX_TELEGRAM_TIMEOUT_SECONDS", "10")
             ),
