@@ -107,3 +107,22 @@ def test_default_configuration_has_no_implicit_subscription_plan() -> None:
 
     assert config.default_subscription_plan_id is None
     assert config.default_subscription_plan_version is None
+
+
+def test_from_environment_reads_optional_news_rss_configuration(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_NEWS_RSS_URL", "https://news.example.test/feed.xml")
+    monkeypatch.setenv("EGX_NEWS_RSS_SOURCE_NAME", "Official disclosures")
+    monkeypatch.setenv("EGX_NEWS_RSS_SOURCE_TYPE", "company_announcement")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.news_rss_feed_url == "https://news.example.test/feed.xml"
+    assert config.news_rss_source_name == "Official disclosures"
+    assert config.news_rss_source_type == "company_announcement"
+
+
+def test_news_rss_is_disabled_by_default() -> None:
+    config = InfrastructureConfig()
+
+    assert config.news_rss_feed_url is None
+    assert config.news_rss_source_type == "other"
