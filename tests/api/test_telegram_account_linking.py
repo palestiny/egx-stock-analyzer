@@ -16,12 +16,14 @@ BOT_TOKEN = "123456:TEST-TOKEN"
 WEBHOOK_SECRET = "telegram-webhook-secret"
 
 
-def make_client(tmp_path):
+def make_client(tmp_path, *, fail_first_send=False):
     sent_requests = []
 
     def telegram_handler(request: httpx.Request) -> httpx.Response:
         sent_requests.append(request)
-        return httpx.Response(200, json={"ok": True, "result": {"message_id": 1}})
+        if fail_first_send and len(sent_requests) == 1:
+            return httpx.Response(503, json={"ok": False, "description": "temporary outage"})
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": len(sent_requests)}})
 
     provider = TelegramNotificationProvider(
         BOT_TOKEN,
@@ -39,7 +41,7 @@ def make_client(tmp_path):
         telegram_notification_provider=provider,
         telegram_webhook_secret=WEBHOOK_SECRET,
     )
-    return TestClient(app), linking, sent_requests
+    return TestClient(app, raise_server_exceptions=not fail_first_send), linking, sent_requests
 
 
 def test_authenticated_user_can_issue_and_unlink_telegram_account(tmp_path):
@@ -116,3 +118,33 @@ def test_telegram_webhook_rejects_wrong_secret_without_sending(tmp_path):
     )
     assert response.status_code == 403
     assert sent_requests == []
+
+
+def test_telegram_webhook_retries_reply_after_transient_send_failure(tmp_path):
+    client, linking, sent_requests = make_client(tmp_path, fail_first_send=True)
+    challenge = client.post(
+        "/api/v1/telegram/link-challenges",
+        headers={"Authorization": "Bearer test-operator-token"},
+    ).json()
+    update = {
+        "update_id": 202,
+        "message": {
+            "text": f"/start {challenge['token']}",
+            "chat": {"id": 123456789},
+        },
+    }
+    headers = {"X-Telegram-Bot-Api-Secret-Token": WEBHOOK_SECRET}
+
+    first = client.post("/api/v1/telegram/webhook", headers=headers, json=update)
+    assert first.status_code == 500
+    assert linking.get_user_id_for_chat("123456789") is not None
+
+    retry = client.post("/api/v1/telegram/webhook", headers=headers, json=update)
+    assert retry.status_code == 200
+    assert retry.json() == {"ok": True}
+    assert len(sent_requests) == 2
+
+    replay = client.post("/api/v1/telegram/webhook", headers=headers, json=update)
+    assert replay.status_code == 200
+    assert replay.json() == {"ok": True, "duplicate": True}
+    assert len(sent_requests) == 2

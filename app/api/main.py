@@ -31,6 +31,10 @@ from app.api.market_opportunity_view_response import MarketOpportunityViewRespon
 from app.api.stock_research_response import StockResearchResponse
 from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.application.reporting.session_opportunity_report_store import SessionOpportunityReportStore
+from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
@@ -143,6 +147,11 @@ def create_app(
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None,
+    generate_signal: GenerateSignal | None = None,
+    publish_signal_opportunity: PublishSignalOpportunity | None = None,
+    dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
+    get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
+    session_opportunity_report_store: SessionOpportunityReportStore | None = None,
     news_event_store: NewsEventStore | None = None,
     news_ingestion_service: NewsIngestionService | None = None,
     telegram_account_linking: TelegramAccountLinkingService | None = None,
@@ -172,7 +181,7 @@ def create_app(
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
     scan_breakouts = ScanBreakouts(result_store)
-    generate_signal = GenerateSignal(result_store)
+    generate_signal = generate_signal or GenerateSignal(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
@@ -594,6 +603,109 @@ def create_app(
         response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
         return asdict(response)
 
+    @app.post("/api/v1/session-opportunity-reports")
+    def create_session_report(
+        session_date: date,
+        generated_at: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if build_session_opportunity_ledger is None or session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = generated_at or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="generated_at must include a timezone")
+        try:
+            report = build_session_opportunity_ledger.execute(session_date, generated_at=cutoff)
+            created = session_opportunity_report_store.save(report)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        response = SessionOpportunityLedgerResponse.from_report(report)
+        response["persisted"] = True
+        response["created"] = created
+        return response
+
+    @app.get("/api/v1/session-opportunity-reports")
+    def read_session_report(
+        session_date: date,
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = as_of or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            report = session_opportunity_report_store.get_latest(session_date, as_of=cutoff)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if report is None:
+            raise HTTPException(status_code=404, detail="No saved session opportunity report exists for that date and cutoff")
+        return report
+
+    @app.get("/api/v1/owner/overview")
+    def get_owner_dashboard_overview_route(
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if get_owner_dashboard_overview is None:
+            raise HTTPException(status_code=503, detail="Owner dashboard reporting is not configured")
+        if as_of is not None and (as_of.tzinfo is None or as_of.utcoffset() is None):
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            return get_owner_dashboard_overview.execute(as_of=as_of)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.post("/api/v1/opportunities/{symbol}/publish")
+    def publish_opportunity_route(
+        symbol: str,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if generate_signal is None or publish_signal_opportunity is None:
+            raise HTTPException(status_code=503, detail="Opportunity publication is not configured")
+        try:
+            signal = generate_signal.execute(symbol)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        if signal is None:
+            raise HTTPException(status_code=404, detail="No actionable signal exists in the latest dated analysis snapshot")
+        now = datetime.now(timezone.utc)
+        try:
+            publication = publish_signal_opportunity.execute(signal, recorded_at=now)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if publication is None:
+            raise HTTPException(status_code=409, detail="This signal is no longer active and cannot be published")
+        return {
+            "signal_id": str(publication.signal_id),
+            "event_id": str(publication.event_id),
+            "queued_new_event": publication.queued_new_event,
+            "recorded_at": now.isoformat(),
+            "delivery": "queued_not_yet_delivered",
+        }
+
+    @app.post("/api/v1/telegram/opportunities/dispatch")
+    def dispatch_telegram_opportunities_route(
+        limit: int = 100,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if dispatch_signal_alert_outbox is None:
+            raise HTTPException(status_code=503, detail="Subscriber-aware Telegram dispatch is not configured")
+        try:
+            result = dispatch_signal_alert_outbox.execute(
+                now=datetime.now(timezone.utc),
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return {
+            "events_processed": result.events_processed,
+            "recipients_delivered": result.recipients_delivered,
+            "recipients_suppressed": result.recipients_suppressed,
+            "recipients_failed": result.recipients_failed,
+        }
+
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
         if get_market_opportunity_ranking is None:
@@ -677,6 +789,23 @@ def create_app(
         )
         return {"unlinked": removed}
 
+    def send_telegram_webhook_reply(
+        update_id: str,
+        now: datetime,
+        chat_id: str,
+        message_text: str,
+    ) -> bool:
+        assert telegram_account_linking is not None
+        assert telegram_notification_provider is not None
+        if not telegram_account_linking.claim_webhook_update(update_id, now=now):
+            return False
+        try:
+            telegram_notification_provider.send_message(chat_id, message_text)
+        except Exception:
+            telegram_account_linking.release_webhook_update_claim(update_id)
+            raise
+        return True
+
     @app.post("/api/v1/telegram/webhook")
     async def telegram_webhook(
         request: Request,
@@ -723,16 +852,13 @@ def create_app(
             return {"ok": True}
 
         if len(parts) != 2 or not parts[1].strip():
-            if not telegram_account_linking.claim_webhook_update(
+            sent = send_telegram_webhook_reply(
                 str(raw_update_id),
-                now=webhook_now,
-            ):
-                return {"ok": True, "duplicate": True}
-            telegram_notification_provider.send_message(
+                webhook_now,
                 chat_id,
                 "To link your account, generate a one-time link token in EGX Stock Analyzer and send /start <token>.",
             )
-            return {"ok": True}
+            return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
         try:
             linked_user_id = telegram_account_linking.consume(
@@ -741,34 +867,27 @@ def create_app(
                 now=webhook_now,
             )
         except TelegramChatAlreadyLinked:
-            if not telegram_account_linking.claim_webhook_update(
+            sent = send_telegram_webhook_reply(
                 str(raw_update_id),
-                now=webhook_now,
-            ):
-                return {"ok": True, "duplicate": True}
-            telegram_notification_provider.send_message(
+                webhook_now,
                 chat_id,
                 "This Telegram chat is already linked to another EGX account.",
             )
-            return {"ok": True}
+            return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
-        if not telegram_account_linking.claim_webhook_update(
-            str(raw_update_id),
-            now=webhook_now,
-        ):
-            return {"ok": True, "duplicate": True}
-
-        if linked_user_id is None:
-            telegram_notification_provider.send_message(
-                chat_id,
-                "This link token is invalid or expired. Generate a new token in EGX Stock Analyzer.",
-            )
+        if linked_user_id is None and telegram_account_linking.get_user_id_for_chat(chat_id) is not None:
+            reply = "This Telegram chat is already linked to an EGX account."
+        elif linked_user_id is None:
+            reply = "This link token is invalid or expired. Generate a new token in EGX Stock Analyzer."
         else:
-            telegram_notification_provider.send_message(
-                chat_id,
-                "Your Telegram account is now linked to EGX Stock Analyzer.",
-            )
-        return {"ok": True}
+            reply = "Your Telegram account is now linked to EGX Stock Analyzer."
+        sent = send_telegram_webhook_reply(
+            str(raw_update_id),
+            webhook_now,
+            chat_id,
+            reply,
+        )
+        return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
     @app.post("/api/v1/news/ingest")
     def ingest_news_events_route(

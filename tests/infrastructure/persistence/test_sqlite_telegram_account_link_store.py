@@ -144,3 +144,11 @@ def test_telegram_recipient_directory_lists_linked_accounts(tmp_path) -> None:
     assert store.list_linked_accounts() == (
         LinkedTelegramAccount(user_id=user_id, chat_id="chat-123"),
     )
+
+
+def test_failed_webhook_claim_can_be_released_and_retried(tmp_path) -> None:
+    database = tmp_path / "accounts.db"
+    store = SQLiteTelegramAccountLinkStore(database)
+    assert store.claim_webhook_update("update-retry", NOW) is True
+    store.release_webhook_update_claim("update-retry")
+    assert SQLiteTelegramAccountLinkStore(database).claim_webhook_update("update-retry", NOW) is True
