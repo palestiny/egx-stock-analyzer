@@ -1,7 +1,8 @@
 import logging
 import os
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -12,6 +13,7 @@ from app.api.market_intelligence_routes import create_market_intelligence_router
 from app.api.user_management_routes import create_user_management_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
+from app.application.news.store import NewsEventStore
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
@@ -130,6 +132,7 @@ def create_app(
     delete_analysis_run: DeleteAnalysisRun | None = None,
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
+    news_event_store: NewsEventStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
