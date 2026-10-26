@@ -117,6 +117,7 @@ def test_telegram_webhook_rejects_wrong_secret_without_sending(tmp_path):
     assert response.status_code == 403
     assert sent_requests == []
 
+
 def test_malformed_webhook_update_does_not_consume_update_id(tmp_path):
     client, linking, sent_requests = make_client(tmp_path)
     challenge = client.post(
