@@ -855,4 +855,107 @@ def create_app(
 
 
 
+    @app.post("/api/v1/session-opportunity-reports")
+    def create_session_report(
+        session_date: date,
+        generated_at: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if build_session_opportunity_ledger is None or session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = generated_at or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="generated_at must include a timezone")
+        try:
+            report = build_session_opportunity_ledger.execute(session_date, generated_at=cutoff)
+            created = session_opportunity_report_store.save(report)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        response = SessionOpportunityLedgerResponse.from_report(report)
+        response["persisted"] = True
+        response["created"] = created
+        return response
+
+    @app.get("/api/v1/session-opportunity-reports")
+    def read_session_report(
+        session_date: date,
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = as_of or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            report = session_opportunity_report_store.get_latest(session_date, as_of=cutoff)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if report is None:
+            raise HTTPException(status_code=404, detail="No saved session opportunity report exists for that date and cutoff")
+        return report
+
+    @app.get("/api/v1/owner/overview")
+    def get_owner_dashboard_overview_route(
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if get_owner_dashboard_overview is None:
+            raise HTTPException(status_code=503, detail="Owner dashboard reporting is not configured")
+        if as_of is not None and (as_of.tzinfo is None or as_of.utcoffset() is None):
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            return get_owner_dashboard_overview.execute(as_of=as_of)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.post("/api/v1/opportunities/{symbol}/publish")
+    def publish_opportunity_route(
+        symbol: str,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if generate_signal is None or publish_signal_opportunity is None:
+            raise HTTPException(status_code=503, detail="Opportunity publication is not configured")
+        try:
+            signal = generate_signal.execute(symbol)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        if signal is None:
+            raise HTTPException(status_code=404, detail="No actionable signal exists in the latest dated analysis snapshot")
+        now = datetime.now(timezone.utc)
+        try:
+            publication = publish_signal_opportunity.execute(signal, recorded_at=now)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if publication is None:
+            raise HTTPException(status_code=409, detail="This signal is no longer active and cannot be published")
+        return {
+            "signal_id": str(publication.signal_id),
+            "event_id": str(publication.event_id),
+            "queued_new_event": publication.queued_new_event,
+            "recorded_at": now.isoformat(),
+            "delivery": "queued_not_yet_delivered",
+        }
+
+    @app.post("/api/v1/telegram/opportunities/dispatch")
+    def dispatch_telegram_opportunities_route(
+        limit: int = 100,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if dispatch_signal_alert_outbox is None:
+            raise HTTPException(status_code=503, detail="Subscriber-aware Telegram dispatch is not configured")
+        try:
+            result = dispatch_signal_alert_outbox.execute(
+                now=datetime.now(timezone.utc),
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return {
+            "events_processed": result.events_processed,
+            "recipients_delivered": result.recipients_delivered,
+            "recipients_suppressed": result.recipients_suppressed,
+            "recipients_failed": result.recipients_failed,
+        }
+
     return app
