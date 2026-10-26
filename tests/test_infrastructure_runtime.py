@@ -208,19 +208,39 @@ def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> 
     runtime.close()
 
 
-def test_infrastructure_runtime_rejects_partial_telegram_configuration() -> None:
+def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path) -> None:
+    from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            telegram_bot_token="token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+        ),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
+    assert runtime.deliver_alert is None
+    runtime.close()
+
+
+def test_infrastructure_runtime_rejects_chat_id_without_bot_token() -> None:
     stock = Stock.create("EGAL", "Egypt Aluminum")
 
     try:
         create_infrastructure_runtime(
             stock_catalog=InMemoryStockCatalog([stock]),
             yfinance_module=FakeYFinanceModule(),
-            config=InfrastructureConfig(operator_token="test-token", telegram_bot_token="token"),
+            config=InfrastructureConfig(operator_token="test-token", telegram_chat_id="chat"),
             result_store=InMemoryAnalysisResultStore(),
             retry_policy=RetryPolicy(1),
         )
     except ValueError as error:
-        assert str(error) == "Telegram bot token and chat ID must be configured together"
+        assert str(error) == "Telegram chat ID requires a bot token"
     else:
         raise AssertionError("Expected ValueError")
 
