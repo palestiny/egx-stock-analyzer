@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any, Protocol
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -8,6 +9,17 @@ from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
 )
+
+
+class SessionOpportunityReportStore(Protocol):
+    def save(self, report: SessionOpportunityLedgerReport) -> bool: ...
+
+    def get_latest(
+        self,
+        session_date: date,
+        *,
+        as_of: datetime | None = None,
+    ) -> dict[str, Any] | None: ...
 
 
 class BuildSessionOpportunityLedger:
