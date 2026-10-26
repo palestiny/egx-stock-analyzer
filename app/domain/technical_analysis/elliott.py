@@ -36,30 +36,36 @@ class ElliottImpulseCandidate:
         if self.direction is ElliottDirection.UP:
             if not p1 > p0:
                 violations.append("wave_1_direction")
-            if not p2 > p0:
+            if p2 < p0:
                 violations.append("wave_2_exceeds_origin")
             if not p3 > p1:
                 violations.append("wave_3_does_not_extend_wave_1")
             if not p4 > p1:
                 violations.append("wave_4_overlaps_wave_1_territory")
-            if not p5 > p3:
-                violations.append("wave_5_does_not_extend_wave_3")
         else:
             if not p1 < p0:
                 violations.append("wave_1_direction")
-            if not p2 < p0:
+            if p2 > p0:
                 violations.append("wave_2_exceeds_origin")
             if not p3 < p1:
                 violations.append("wave_3_does_not_extend_wave_1")
             if not p4 < p1:
                 violations.append("wave_4_overlaps_wave_1_territory")
-            if not p5 < p3:
-                violations.append("wave_5_does_not_extend_wave_3")
 
         wave_1, wave_2, wave_3, wave_4, wave_5 = self.wave_lengths
         if wave_3 < min(wave_1, wave_5):
             violations.append("wave_3_is_shortest")
         return tuple(violations)
+
+    @property
+    def warnings(self) -> tuple[str, ...]:
+        """Return non-fatal Elliott interpretations, including a possible truncated fifth."""
+        _, _, _, p3, _, p5 = self.points
+        if self.direction is ElliottDirection.UP and p5 <= p3:
+            return ("possible_truncated_wave_5",)
+        if self.direction is ElliottDirection.DOWN and p5 >= p3:
+            return ("possible_truncated_wave_5",)
+        return ()
 
     @property
     def is_rule_consistent(self) -> bool:
