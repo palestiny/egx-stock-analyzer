@@ -452,6 +452,9 @@ def test_serializer_round_trips_nested_swing_and_fibonacci_tuple_types() -> None
             (Decimal("0.382"), Decimal("101.18")),
             (Decimal("0.618"), Decimal("98.82")),
         ),
+        fibonacci_extension_direction="up",
+        fibonacci_extension_anchor_indices=(2, 3, 4),
+        fibonacci_extensions=((Decimal("1.0"), Decimal("120")),),
     )
     technical = replace(
         result.technical_analysis,
@@ -472,3 +475,5 @@ def test_serializer_round_trips_nested_swing_and_fibonacci_tuple_types() -> None
         Decimal("0.382"),
         Decimal("101.18"),
     )
+    assert restored_point.fibonacci_extension_anchor_indices == (2, 3, 4)
+    assert restored_point.fibonacci_extensions == ((Decimal("1.0"), Decimal("120")),)
