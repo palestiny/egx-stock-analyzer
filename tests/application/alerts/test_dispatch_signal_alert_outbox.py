@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
 from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStatus
 from app.application.notifications.telegram_account_linking import LinkedTelegramAccount
@@ -75,7 +76,7 @@ def make_signal() -> Signal:
     )
 
 
-def make_event(signal_id) -> AlertEvent:
+def make_event(signal_id, signal: Signal | None = None) -> AlertEvent:
     return AlertEvent(
         event_id=uuid4(),
         signal_id=signal_id,
@@ -83,6 +84,11 @@ def make_event(signal_id) -> AlertEvent:
         event_type=AlertEventType.SIGNAL_INVALIDATED,
         occurred_at=NOW,
         message="Supporting evidence changed",
+        signal_snapshot=(
+            snapshot_signal(replace(signal, status=SignalStatus.INVALIDATED))
+            if signal is not None
+            else None
+        ),
     )
 
 
@@ -91,7 +97,7 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), 
     history = InMemorySignalHistoryStore()
     signal = make_signal()
     signal_record = history.record(signal, "CREATED", NOW)
-    event = make_event(signal_record.signal_id)
+    event = make_event(signal_record.signal_id, signal)
     outbox = SQLiteAlertOutbox(database)
     outbox.publish(event)
     deliveries = SQLiteSignalAlertDeliveryStore(database)
@@ -136,13 +142,13 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), 
         entitlements=EntitlementEvaluator(subscriptions),
         transport=transport,
     )
-    return dispatcher, outbox, deliveries, transport, event
+    return dispatcher, outbox, deliveries, transport, event, history
 
 
 def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     entitled_user = uuid4()
     free_user = uuid4()
-    dispatcher, outbox, deliveries, transport, event = setup_dispatch(
+    dispatcher, outbox, deliveries, transport, event, history = setup_dispatch(
         tmp_path,
         [
             LinkedTelegramAccount(entitled_user, "chat-paid"),
@@ -161,6 +167,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     chat_id, message = transport.sent[0]
     assert chat_id == "chat-paid"
     assert "Entry zone: 80 – 81" in message
+    assert "Status: INVALIDATED" in message
     assert "Invalidation: 78" in message
     assert "T1: 85" in message
     assert str(event.event_id) in message
@@ -176,7 +183,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
 def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path) -> None:
     first_user = uuid4()
     second_user = uuid4()
-    dispatcher, outbox, deliveries, transport, event = setup_dispatch(
+    dispatcher, outbox, deliveries, transport, event, history = setup_dispatch(
         tmp_path,
         [
             LinkedTelegramAccount(first_user, "chat-1"),
@@ -206,7 +213,7 @@ def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path)
 
 def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event = setup_dispatch(
+    dispatcher, _, deliveries, transport, event, history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-unentitled")],
     )
@@ -234,7 +241,7 @@ def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
         created_at=NOW,
     )
 
-    message = DispatchSignalAlertOutbox._format_message(record, signal)
+    message = DispatchSignalAlertOutbox._format_message(record, snapshot_signal(signal))
 
     assert len(message) <= 3900
     assert str(event.event_id) in message
@@ -243,7 +250,7 @@ def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
 
 def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event = setup_dispatch(
+    dispatcher, _, deliveries, transport, event, history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-disabled")],
         entitled_users=(user_id,),
