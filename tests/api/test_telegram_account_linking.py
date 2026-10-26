@@ -116,3 +116,36 @@ def test_telegram_webhook_rejects_wrong_secret_without_sending(tmp_path):
     )
     assert response.status_code == 403
     assert sent_requests == []
+
+def test_malformed_webhook_update_does_not_consume_update_id(tmp_path):
+    client, linking, sent_requests = make_client(tmp_path)
+    challenge = client.post(
+        "/api/v1/telegram/link-challenges",
+        headers={"Authorization": "Bearer test-operator-token"},
+    ).json()
+    headers = {"X-Telegram-Bot-Api-Secret-Token": WEBHOOK_SECRET}
+    update_id = 202
+
+    malformed = client.post(
+        "/api/v1/telegram/webhook",
+        headers=headers,
+        json={"update_id": update_id, "message": {"text": "/start"}},
+    )
+    assert malformed.status_code == 200
+
+    valid = client.post(
+        "/api/v1/telegram/webhook",
+        headers=headers,
+        json={
+            "update_id": update_id,
+            "message": {
+                "text": f"/start {challenge['token']}",
+                "chat": {"id": 987654321},
+            },
+        },
+    )
+    assert valid.status_code == 200
+    assert valid.json() == {"ok": True}
+    assert linking.get_chat_id(LEGACY_OPERATOR_USER_ID) == "987654321"
+    assert len(sent_requests) == 1
+
