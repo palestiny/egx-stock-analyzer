@@ -43,6 +43,11 @@ def test_telegram_link_challenge_is_single_use_and_restart_safe(tmp_path) -> Non
         challenge.token,
         "chat-123",
         now=NOW + timedelta(minutes=2),
+    ) == user_id
+    assert reopened.consume(
+        challenge.token,
+        "different-chat",
+        now=NOW + timedelta(minutes=2),
     ) is None
 
 
