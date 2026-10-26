@@ -1,7 +1,7 @@
 from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -9,18 +9,24 @@ from app.application.news.ingestion import NewsIngestionService
 from app.domain.news.event import NewsEvent, NewsEventCategory, NewsSourceType
 
 
-def make_event(source_name: str = "Official Feed") -> NewsEvent:
-    now = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
+def make_event(
+    source_name: str = "Official Feed",
+    *,
+    event_id: UUID | None = None,
+    retrieved_at: datetime | None = None,
+    first_seen_at: datetime | None = None,
+) -> NewsEvent:
+    published_at = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
     return NewsEvent(
-        event_id=uuid4(),
+        event_id=event_id or uuid4(),
         source_name=source_name,
         source_type=NewsSourceType.EXCHANGE_DISCLOSURE,
         source_url="https://example.com/disclosure",
         title="Quarterly results",
         category=NewsEventCategory.EARNINGS,
-        published_at=now,
-        retrieved_at=now,
-        first_seen_at=now,
+        published_at=published_at,
+        retrieved_at=retrieved_at or published_at,
+        first_seen_at=first_seen_at or published_at,
         matched_symbols=("EGAL",),
         entity_match_confidence=Decimal("0.99"),
         content_fingerprint=None,
