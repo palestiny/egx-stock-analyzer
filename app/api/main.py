@@ -1,7 +1,8 @@
 import logging
+import hmac
 import os
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -94,6 +95,11 @@ from app.application.market_intelligence.rank_sectors import RankSectors
 from app.application.market_intelligence.scan_fibonacci import ScanFibonacciOpportunities
 from app.application.market_intelligence.scan_breakouts import ScanBreakouts
 from app.application.signals.generate_signal import GenerateSignal
+from app.application.notifications.telegram_account_linking import (
+    TelegramAccountLinkingService,
+    TelegramChatAlreadyLinked,
+)
+from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +136,9 @@ def create_app(
     delete_analysis_run: DeleteAnalysisRun | None = None,
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
+    telegram_account_linking: TelegramAccountLinkingService | None = None,
+    telegram_notification_provider: TelegramNotificationProvider | None = None,
+    telegram_webhook_secret: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -588,5 +597,110 @@ def create_app(
 
         response = AlertCandidateResponse.from_candidate(candidate)
         return asdict(response)
+
+    @app.post("/api/v1/telegram/link-challenges")
+    def issue_telegram_link_challenge(
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if telegram_account_linking is None or telegram_notification_provider is None:
+            raise HTTPException(status_code=503, detail="Telegram account linking is not configured")
+        if identity.user_id is None:
+            raise HTTPException(status_code=403, detail="A user account is required")
+        challenge = telegram_account_linking.issue(
+            identity.user_id,
+            now=datetime.now(timezone.utc),
+        )
+        return {
+            "token": challenge.token,
+            "expires_at": challenge.expires_at.isoformat(),
+            "instruction": "Send /start <token> to the configured Telegram bot before the token expires.",
+        }
+
+    @app.delete("/api/v1/telegram/link")
+    def unlink_telegram_account(
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if telegram_account_linking is None:
+            raise HTTPException(status_code=503, detail="Telegram account linking is not configured")
+        if identity.user_id is None:
+            raise HTTPException(status_code=403, detail="A user account is required")
+        removed = telegram_account_linking.unlink(
+            identity.user_id,
+            now=datetime.now(timezone.utc),
+        )
+        return {"unlinked": removed}
+
+    @app.post("/api/v1/telegram/webhook")
+    async def telegram_webhook(
+        request: Request,
+        x_telegram_bot_api_secret_token: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        if (
+            telegram_account_linking is None
+            or telegram_notification_provider is None
+            or not telegram_webhook_secret
+        ):
+            raise HTTPException(status_code=503, detail="Telegram webhook is not configured")
+        if (
+            x_telegram_bot_api_secret_token is None
+            or not hmac.compare_digest(
+                x_telegram_bot_api_secret_token,
+                telegram_webhook_secret,
+            )
+        ):
+            raise HTTPException(status_code=403, detail="Invalid Telegram webhook secret")
+
+        try:
+            update = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid Telegram update") from None
+        if not isinstance(update, dict):
+            return {"ok": True}
+        message = update.get("message")
+        if not isinstance(message, dict):
+            return {"ok": True}
+        chat = message.get("chat")
+        text_value = message.get("text")
+        if not isinstance(chat, dict) or not isinstance(text_value, str):
+            return {"ok": True}
+        raw_chat_id = chat.get("id")
+        if not isinstance(raw_chat_id, (str, int)):
+            return {"ok": True}
+        chat_id = str(raw_chat_id)
+        parts = text_value.strip().split(maxsplit=1)
+        if not parts or parts[0].split("@", maxsplit=1)[0].lower() != "/start":
+            return {"ok": True}
+
+        if len(parts) != 2 or not parts[1].strip():
+            telegram_notification_provider.send_message(
+                chat_id,
+                "To link your account, generate a one-time link token in EGX Stock Analyzer and send /start <token>.",
+            )
+            return {"ok": True}
+
+        try:
+            linked_user_id = telegram_account_linking.consume(
+                parts[1].strip(),
+                chat_id,
+                now=datetime.now(timezone.utc),
+            )
+        except TelegramChatAlreadyLinked:
+            telegram_notification_provider.send_message(
+                chat_id,
+                "This Telegram chat is already linked to another EGX account.",
+            )
+            return {"ok": True}
+
+        if linked_user_id is None:
+            telegram_notification_provider.send_message(
+                chat_id,
+                "This link token is invalid or expired. Generate a new token in EGX Stock Analyzer.",
+            )
+        else:
+            telegram_notification_provider.send_message(
+                chat_id,
+                "Your Telegram account is now linked to EGX Stock Analyzer.",
+            )
+        return {"ok": True}
 
     return app
