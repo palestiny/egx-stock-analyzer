@@ -183,3 +183,29 @@ def test_news_ingestion_route_rejects_naive_since_timestamp() -> None:
 
     assert response.status_code == 422
     assert "timezone" in response.json()["detail"]
+
+
+def test_news_ingestion_route_requires_operator_permission() -> None:
+    from uuid import uuid4
+
+    from app.application.security.identity import AuthenticatedIdentity
+    from app.domain.identity.user import UserStatus
+
+    class UserOnlyAuthenticator:
+        def authenticate(self, authorization):
+            return AuthenticatedIdentity.user(uuid4(), UserStatus.ACTIVE)
+
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        authenticator=UserOnlyAuthenticator(),
+        news_ingestion_service=FakeNewsIngestionService(),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/news/ingest",
+            headers={"Authorization": "Bearer user-token"},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Operator permission is required"
