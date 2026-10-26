@@ -43,6 +43,8 @@ class TelegramAccountLinkStore(Protocol):
     def get_chat_id(self, user_id: UUID) -> str | None: ...
     def list_linked_accounts(self) -> tuple[LinkedTelegramAccount, ...]: ...
     def claim_webhook_update(self, update_id: str, now: datetime) -> bool: ...
+    def release_webhook_update_claim(self, update_id: str) -> None: ...
+    def get_user_id_for_chat(self, chat_id: str) -> UUID | None: ...
 
     def unlink(self, user_id: UUID, occurred_at: datetime) -> bool: ...
 
@@ -105,6 +107,16 @@ class TelegramAccountLinkingService:
 
     def get_chat_id(self, user_id: UUID) -> str | None:
         return self._store.get_chat_id(user_id)
+
+    def get_user_id_for_chat(self, chat_id: str) -> UUID | None:
+        if not chat_id.strip():
+            raise ValueError("Telegram chat ID cannot be empty")
+        return self._store.get_user_id_for_chat(chat_id.strip())
+
+    def release_webhook_update_claim(self, update_id: str) -> None:
+        if not update_id.strip():
+            raise ValueError("Telegram update ID is required")
+        self._store.release_webhook_update_claim(update_id.strip())
 
     def unlink(self, user_id: UUID, *, now: datetime) -> bool:
         self._require_aware(now, "now")
