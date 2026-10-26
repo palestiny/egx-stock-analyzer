@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
-from uuid import UUID
 
 from app.application.alerts.outbox import AlertOutbox, AlertOutboxRecord
 from app.application.alerts.telegram_delivery_store import (
@@ -12,7 +11,6 @@ from app.application.alerts.telegram_delivery_store import (
 )
 from app.application.notifications.telegram_account_linking import (
     LinkedTelegramAccount,
-    TelegramAccountLinkStore,
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.signals.store import SignalHistoryStore
@@ -43,7 +41,7 @@ class DispatchSignalAlertOutbox:
         self,
         *,
         outbox: AlertOutbox,
-        recipients: TelegramRecipientDirectory | TelegramAccountLinkStore,
+        recipients: TelegramRecipientDirectory,
         deliveries: SignalAlertDeliveryStore,
         history: SignalHistoryStore,
         entitlements: EntitlementEvaluator,
@@ -88,12 +86,13 @@ class DispatchSignalAlertOutbox:
                 }:
                     continue
 
-                delivery = existing or self._deliveries.create_pending(
-                    record.event.event_id,
-                    recipient.user_id,
-                    self.CHANNEL,
-                    now=now,
-                )
+                if existing is None:
+                    self._deliveries.create_pending(
+                        record.event.event_id,
+                        recipient.user_id,
+                        self.CHANNEL,
+                        now=now,
+                    )
                 decision = self._entitlements.evaluate(
                     recipient.user_id,
                     self.ENTITLEMENT,
