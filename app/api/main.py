@@ -789,6 +789,23 @@ def create_app(
         )
         return {"unlinked": removed}
 
+    def send_telegram_webhook_reply(
+        update_id: str,
+        now: datetime,
+        chat_id: str,
+        message_text: str,
+    ) -> bool:
+        assert telegram_account_linking is not None
+        assert telegram_notification_provider is not None
+        if not telegram_account_linking.claim_webhook_update(update_id, now=now):
+            return False
+        try:
+            telegram_notification_provider.send_message(chat_id, message_text)
+        except Exception:
+            telegram_account_linking.release_webhook_update_claim(update_id)
+            raise
+        return True
+
     @app.post("/api/v1/telegram/webhook")
     async def telegram_webhook(
         request: Request,
@@ -835,16 +852,13 @@ def create_app(
             return {"ok": True}
 
         if len(parts) != 2 or not parts[1].strip():
-            if not telegram_account_linking.claim_webhook_update(
+            sent = send_telegram_webhook_reply(
                 str(raw_update_id),
-                now=webhook_now,
-            ):
-                return {"ok": True, "duplicate": True}
-            telegram_notification_provider.send_message(
+                webhook_now,
                 chat_id,
                 "To link your account, generate a one-time link token in EGX Stock Analyzer and send /start <token>.",
             )
-            return {"ok": True}
+            return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
         try:
             linked_user_id = telegram_account_linking.consume(
@@ -853,34 +867,27 @@ def create_app(
                 now=webhook_now,
             )
         except TelegramChatAlreadyLinked:
-            if not telegram_account_linking.claim_webhook_update(
+            sent = send_telegram_webhook_reply(
                 str(raw_update_id),
-                now=webhook_now,
-            ):
-                return {"ok": True, "duplicate": True}
-            telegram_notification_provider.send_message(
+                webhook_now,
                 chat_id,
                 "This Telegram chat is already linked to another EGX account.",
             )
-            return {"ok": True}
+            return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
-        if not telegram_account_linking.claim_webhook_update(
-            str(raw_update_id),
-            now=webhook_now,
-        ):
-            return {"ok": True, "duplicate": True}
-
-        if linked_user_id is None:
-            telegram_notification_provider.send_message(
-                chat_id,
-                "This link token is invalid or expired. Generate a new token in EGX Stock Analyzer.",
-            )
+        if linked_user_id is None and telegram_account_linking.get_user_id_for_chat(chat_id) is not None:
+            reply = "This Telegram chat is already linked to an EGX account."
+        elif linked_user_id is None:
+            reply = "This link token is invalid or expired. Generate a new token in EGX Stock Analyzer."
         else:
-            telegram_notification_provider.send_message(
-                chat_id,
-                "Your Telegram account is now linked to EGX Stock Analyzer.",
-            )
-        return {"ok": True}
+            reply = "Your Telegram account is now linked to EGX Stock Analyzer."
+        sent = send_telegram_webhook_reply(
+            str(raw_update_id),
+            webhook_now,
+            chat_id,
+            reply,
+        )
+        return {"ok": True} if sent else {"ok": True, "duplicate": True}
 
     @app.post("/api/v1/news/ingest")
     def ingest_news_events_route(
