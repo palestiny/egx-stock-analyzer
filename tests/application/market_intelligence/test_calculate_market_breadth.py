@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -118,3 +118,29 @@ def test_market_breadth_marks_partial_and_unknown_analysis_dates_explicitly():
     assert unknown["analysis_date_status"] == "UNKNOWN"
     assert unknown["latest_analysis_date"] is None
     assert unknown["undated_symbols"] == ["AAA"]
+
+
+
+def test_market_breadth_normalizes_datetime_analysis_dates_to_calendar_dates():
+    store = StubStore({
+        "AAA": record(
+            TrendStatus.DOWNTREND,
+            MomentumStatus.NEGATIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            datetime(2026, 10, 25, 15, 30),
+        ),
+        "BBB": record(
+            TrendStatus.UPTREND,
+            MomentumStatus.POSITIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            date(2026, 10, 25),
+        ),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"]).to_dict()
+
+    assert payload["analysis_date_status"] == "CONSISTENT"
+    assert payload["analysis_dates_by_symbol"] == {
+        "AAA": "2026-10-25",
+        "BBB": "2026-10-25",
+    }
