@@ -223,6 +223,7 @@ class SQLiteTradingOpportunityStore:
     @staticmethod
     def _serialize(opportunity: TradingOpportunity) -> str:
         payload = {
+            "strategy_version": opportunity.strategy_version,
             "created_at": opportunity.created_at.isoformat(),
             "expires_at": opportunity.expires_at.isoformat(),
             "entry_low": str(opportunity.entry_low),
