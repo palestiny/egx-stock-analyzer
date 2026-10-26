@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.news.ingestion import NewsIngestionService
+from app.domain.news.event import NewsSourceType
+from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
+from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
@@ -72,6 +76,8 @@ class InfrastructureRuntime:
     telegram_notification_provider: TelegramNotificationProvider | None = None
     telegram_account_linking: TelegramAccountLinkingService | None = None
     telegram_webhook_secret: str | None = None
+    news_event_store: SQLiteNewsEventStore | None = None
+    news_ingestion_service: NewsIngestionService | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
@@ -141,6 +147,28 @@ def create_infrastructure_runtime(
         credential_service=credential_service,
         audit_store=management_audit_store,
     )
+    news_event_store = SQLiteNewsEventStore(config.analysis_database_path)
+    news_ingestion_service = None
+    if config.news_rss_feed_url is not None:
+        try:
+            news_source_type = NewsSourceType(config.news_rss_source_type)
+        except ValueError as error:
+            raise ValueError(
+                "EGX_NEWS_RSS_SOURCE_TYPE must be a supported NewsSourceType"
+            ) from error
+        symbol_names = {
+            symbol: stock.name
+            for symbol in stock_catalog.symbols()
+            if (stock := stock_catalog.get(symbol)) is not None
+        }
+        news_source = RssNewsSourceAdapter(
+            source_name=config.news_rss_source_name,
+            source_type=news_source_type,
+            feed_url=config.news_rss_feed_url,
+            symbol_names=symbol_names,
+        )
+        news_ingestion_service = NewsIngestionService(news_source, news_event_store)
+
     authenticator = DurableBearerTokenAuthenticator(
         credential_store=credential_store,
         user_store=user_store,
@@ -255,6 +283,8 @@ def create_infrastructure_runtime(
         telegram_notification_provider=telegram_notification_provider,
         telegram_account_linking=telegram_account_linking,
         telegram_webhook_secret=config.telegram_webhook_secret,
+        news_event_store=news_event_store,
+        news_ingestion_service=news_ingestion_service,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
