@@ -2,10 +2,8 @@ from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.news.ingestion import NewsIngestionService
-from app.application.news.store import NewsEventStore
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
-from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
