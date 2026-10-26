@@ -136,8 +136,7 @@ class SignalLifecycleOrchestrator:
             NAMESPACE_URL,
             (
                 f"signal-evidence-change:{latest.signal_id}:"
-                f"{candidate.generated_at.isoformat()}:"
-                f"{candidate.data_timestamp.isoformat()}"
+                f"{candidate!r}"
             ),
         )
         self._alerts.publish(
@@ -172,7 +171,6 @@ class SignalLifecycleOrchestrator:
             (
                 previous.symbol.strip().upper() != candidate.symbol.strip().upper(),
                 previous.direction != candidate.direction,
-                previous.generated_at != candidate.generated_at,
                 previous.timeframe != candidate.timeframe,
                 previous.entry_zone != candidate.entry_zone,
                 previous.invalidation != candidate.invalidation,
@@ -182,7 +180,6 @@ class SignalLifecycleOrchestrator:
                 previous.evidence != candidate.evidence,
                 previous.strategy_id != candidate.strategy_id,
                 previous.strategy_version != candidate.strategy_version,
-                previous.data_timestamp != candidate.data_timestamp,
             )
         )
 
