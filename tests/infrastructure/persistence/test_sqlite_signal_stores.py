@@ -182,3 +182,15 @@ def test_sqlite_track_record_orders_outcomes_deterministically(tmp_path) -> None
     store.record(earlier)
 
     assert store.all() == (earlier, later)
+
+
+
+def test_sqlite_signal_history_all_records_returns_full_append_only_timeline(tmp_path) -> None:
+    store = SQLiteSignalHistoryStore(tmp_path / "signals.db")
+    created = store.record(make_signal(), "CREATED", NOW)
+    updated = store.record(
+        make_signal(status=SignalStatus.INVALIDATED),
+        "STATUS_INVALIDATED",
+        NOW + timedelta(minutes=2),
+    )
+    assert store.all_records() == (created, updated)

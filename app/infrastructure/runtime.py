@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
@@ -80,6 +81,7 @@ class InfrastructureRuntime:
     signal_track_record_store: SQLiteTrackRecordStore | None = None
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -147,6 +149,10 @@ def create_infrastructure_runtime(
     signal_lifecycle_orchestrator = SignalLifecycleOrchestrator(
         history=signal_history_store,
         alerts=signal_alert_outbox,
+        track_record=signal_track_record_store,
+    )
+    build_session_opportunity_ledger = BuildSessionOpportunityLedger(
+        history=signal_history_store,
         track_record=signal_track_record_store,
     )
 
@@ -249,4 +255,5 @@ def create_infrastructure_runtime(
         signal_track_record_store=signal_track_record_store,
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
+        build_session_opportunity_ledger=build_session_opportunity_ledger,
     )
