@@ -1,6 +1,6 @@
 # DEC-133 — EGX Crash Radar v2 Design Gate
 
-**Status:** Proposed — owner decision required  
+**Status:** Path C approved; remaining policy decisions pending  
 **Date:** 2026-10-26  
 **Milestone relationship:** Candidate capability; does not replace the active M61 historical-evidence milestone.
 
@@ -85,7 +85,7 @@ First harden the existing endpoint with explicit freshness, coverage, and explai
 
 ## 7. Owner decisions required
 
-1. **Path:** A, B, or C? Recommended: C.
+1. **Path — DECIDED:** Option C approved by the owner on 2026-10-26. Harden the existing snapshot heuristic first, while keeping the future data-backed model behind a separate evidence gate.
 2. **Universe:** fixed EGX30, a versioned broad EGX universe, or caller-supplied universe? Recommendation: support a versioned configured universe and label caller-supplied results as partial/custom.
 3. **Freshness policy:** what is the maximum acceptable age of a saved daily analysis? Recommendation: propose one full EGX trading session as the initial warning boundary, then validate against the actual scheduler and data cadence before enforcing it.
 4. **Minimum coverage:** what fraction of the configured universe must be present before a composite score is shown? Recommendation: make it configurable and return `insufficient_data` below the accepted threshold; do not choose a threshold without reviewing real coverage.
@@ -107,4 +107,4 @@ First harden the existing endpoint with explicit freshness, coverage, and explai
 
 ## 9. Current disposition
 
-This is a proposal, not an accepted design. No production code, scoring formula, endpoint contract, or active roadmap milestone is changed by this document. Implementation must wait for the owner decisions and an accepted design gate.
+Option C is approved. The remaining decisions (universe, freshness warning/enforcement, minimum coverage, persistence/retention, and alerts) are not yet approved. Therefore this document authorizes the staged direction but does not authorize silently choosing those policy values or changing the scoring formula. The first implementation increment may add transparent evidence metadata without inventing missing timestamps or treating unknown/stale inputs as healthy. Any behavior that suppresses or changes the score based on policy thresholds must wait until those thresholds and the universe contract are accepted. M61 remains the active milestone.
