@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from app.domain.reporting.report import AnalysisReport
+from app.domain.technical_analysis.elliott import ElliottWaveCount
 
 
 def _json_value(value: Any) -> Any:
