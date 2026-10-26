@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.technical_analysis.indicator_evidence import (
     TechnicalIndicatorEvidence,
