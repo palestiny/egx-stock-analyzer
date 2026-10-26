@@ -12,6 +12,16 @@ def _json_value(value: Any) -> Any:
         return str(value)
     if isinstance(value, datetime):
         return value.isoformat()
+    if isinstance(value, ElliottWaveCount):
+        return {
+            "start_index": value.start_index,
+            "end_index": value.end_index,
+            "candidate": _json_value(value.candidate),
+            "is_rule_consistent": value.is_rule_consistent,
+            "rule_violations": list(value.rule_violations),
+            "warnings": list(value.warnings),
+            "wave_two_invalidation_price": str(value.wave_two_invalidation_price),
+        }
     if is_dataclass(value) and not isinstance(value, type):
         return {
             field.name: _json_value(getattr(value, field.name))
