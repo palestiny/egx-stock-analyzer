@@ -162,3 +162,34 @@ def test_market_breadth_marks_date_evidence_partial_when_requested_symbols_are_m
     assert payload["missing_symbols"] == ["BBB"]
     assert payload["analysis_dates_by_symbol"] == {"AAA": "2026-10-25"}
     assert payload["undated_symbols"] == []
+
+
+def test_market_breadth_supports_legacy_records_without_analysis_date_attribute():
+    legacy_record = SimpleNamespace(
+        result=SimpleNamespace(
+            technical_analysis=SimpleNamespace(
+                trend=SimpleNamespace(status=TrendStatus.SIDEWAYS),
+                momentum=SimpleNamespace(status=MomentumStatus.NEGATIVE),
+                volume=SimpleNamespace(status=VolumeStatus.BELOW_AVERAGE),
+            )
+        )
+    )
+    store = StubStore({
+        "LEGACY": legacy_record,
+        "DATED": record(
+            TrendStatus.UPTREND,
+            MomentumStatus.POSITIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            date(2026, 10, 25),
+        ),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(["LEGACY", "DATED"]).to_dict()
+
+    assert payload["analysis_date_status"] == "PARTIAL"
+    assert payload["analysis_dates_by_symbol"] == {
+        "LEGACY": None,
+        "DATED": "2026-10-25",
+    }
+    assert payload["undated_symbols"] == ["LEGACY"]
+
