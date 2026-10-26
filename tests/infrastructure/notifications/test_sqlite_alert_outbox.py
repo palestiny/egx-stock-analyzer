@@ -1,10 +1,18 @@
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from uuid import uuid4
 
 import pytest
 
 from app.application.alerts.outbox import AlertOutboxStatus
-from app.domain.alerts.model import AlertEvent, AlertEventType
+from app.domain.alerts.model import (
+    AlertEvent,
+    AlertEventType,
+    AlertEvidenceSnapshot,
+    AlertSignalSnapshot,
+    AlertTargetSnapshot,
+)
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 
 
@@ -25,7 +33,23 @@ def make_event(*, message: str = "Signal invalidated") -> AlertEvent:
 def test_sqlite_outbox_persists_event_and_deduplicates_replay(tmp_path) -> None:
     database = tmp_path / "alerts.db"
     store = SQLiteAlertOutbox(database)
-    event = make_event()
+    event = replace(
+        make_event(),
+        signal_snapshot=AlertSignalSnapshot(
+            direction="BUY",
+            status="ACTIVE",
+            timeframe="1d",
+            entry_lower=Decimal("80"),
+            entry_upper=Decimal("81"),
+            invalidation=Decimal("78"),
+            targets=(AlertTargetSnapshot(Decimal("85"), "T1"),),
+            evidence=(AlertEvidenceSnapshot("trend", "Trend evidence"),),
+            strategy_id="trend-breakout",
+            strategy_version="1",
+            generated_at=NOW,
+            data_timestamp=NOW,
+        ),
+    )
 
     store.publish(event)
     store.publish(event)
@@ -81,16 +105,15 @@ def test_sqlite_outbox_tracks_failure_then_success(tmp_path) -> None:
 def test_sqlite_outbox_requires_aware_timestamps_and_positive_limit(tmp_path) -> None:
     store = SQLiteAlertOutbox(tmp_path / "alerts.db")
     event = make_event()
-    naive_event = AlertEvent(
-        event_id=uuid4(),
-        signal_id=event.signal_id,
-        symbol=event.symbol,
-        event_type=event.event_type,
-        occurred_at=datetime(2026, 10, 26, 12, 0),
-        message=event.message,
-    )
-
     with pytest.raises(ValueError, match="occurred_at must be timezone-aware"):
+        naive_event = AlertEvent(
+            event_id=uuid4(),
+            signal_id=event.signal_id,
+            symbol=event.symbol,
+            event_type=event.event_type,
+            occurred_at=datetime(2026, 10, 26, 12, 0),
+            message=event.message,
+        )
         store.publish(naive_event)
     with pytest.raises(ValueError, match="limit must be positive"):
         store.pending(0)
