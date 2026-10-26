@@ -248,7 +248,7 @@ The design is ready for implementation only when:
 
 **Design gate status: PROPOSED — multiple implementation slices have passing CI, but end-to-end implementation remains incomplete.**
 
-PR #350 (`feature/technical-indicator-foundation`) has an earlier reviewed head with all five CI jobs passing. It now includes extra VWAP input-validation tests and the Fibonacci-extension primitive; the latest commits are undergoing a fresh CI run after correcting the test expectation and tightening input validation. Do not treat the earlier green run as verification of the latest head until that run completes. The feature set includes SMA/EMA, Wilder RSI, MACD, Bollinger Bands, ATR, Stochastic, CCI, OBV, MFI, directional movement/ADX, Ichimoku components, selected candlestick patterns, Fibonacci retracements/extensions, and session-scoped VWAP.
+PR #350 (`feature/technical-indicator-foundation`) has passed all five CI jobs on its latest reviewed head (run #40368474901), including the added VWAP input-validation tests after correcting a weighted-average expectation. The feature set includes SMA/EMA, Wilder RSI, MACD, Bollinger Bands, ATR, Stochastic, CCI, OBV, MFI, directional movement/ADX, Ichimoku components, selected candlestick patterns, Fibonacci retracements/extensions, and session-scoped VWAP.
 
 PR #355 (API/domain integration) and PR #357 (dashboard chart) have passed all five CI jobs on their reviewed heads. PR #359 (confirmed swing points and automatic Fibonacci-extension candidates) has passed CI. PR #360 (broader deterministic candlestick pattern registry) and PR #361 (provider-neutral news ingestion orchestration) have also passed CI. These are open, stacked or unmerged PRs; passing CI does not mean they are released to `main`.
 
