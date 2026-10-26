@@ -703,6 +703,10 @@ def create_app(
             raise HTTPException(status_code=400, detail="Invalid Telegram update") from None
         if not isinstance(update, dict):
             return {"ok": True}
+        raw_update_id = update.get("update_id")
+        if not isinstance(raw_update_id, (str, int)) or not str(raw_update_id).strip():
+            return {"ok": True}
+        webhook_now = datetime.now(timezone.utc)
         message = update.get("message")
         if not isinstance(message, dict):
             return {"ok": True}
@@ -719,6 +723,11 @@ def create_app(
             return {"ok": True}
 
         if len(parts) != 2 or not parts[1].strip():
+            if not telegram_account_linking.claim_webhook_update(
+                str(raw_update_id),
+                now=webhook_now,
+            ):
+                return {"ok": True, "duplicate": True}
             telegram_notification_provider.send_message(
                 chat_id,
                 "To link your account, generate a one-time link token in EGX Stock Analyzer and send /start <token>.",
@@ -729,14 +738,25 @@ def create_app(
             linked_user_id = telegram_account_linking.consume(
                 parts[1].strip(),
                 chat_id,
-                now=datetime.now(timezone.utc),
+                now=webhook_now,
             )
         except TelegramChatAlreadyLinked:
+            if not telegram_account_linking.claim_webhook_update(
+                str(raw_update_id),
+                now=webhook_now,
+            ):
+                return {"ok": True, "duplicate": True}
             telegram_notification_provider.send_message(
                 chat_id,
                 "This Telegram chat is already linked to another EGX account.",
             )
             return {"ok": True}
+
+        if not telegram_account_linking.claim_webhook_update(
+            str(raw_update_id),
+            now=webhook_now,
+        ):
+            return {"ok": True, "duplicate": True}
 
         if linked_user_id is None:
             telegram_notification_provider.send_message(
@@ -749,81 +769,5 @@ def create_app(
                 "Your Telegram account is now linked to EGX Stock Analyzer.",
             )
         return {"ok": True}
-
-    @app.post("/api/v1/news/ingest")
-    def ingest_news_events_route(
-        since: datetime | None = None,
-        _identity: AuthenticatedIdentity = Depends(require_operator),
-    ) -> dict[str, object]:
-        if news_ingestion_service is None:
-            raise HTTPException(
-                status_code=503,
-                detail="News ingestion is not configured; set EGX_NEWS_RSS_URL to an approved HTTPS feed",
-            )
-        if since is not None and (since.tzinfo is None or since.utcoffset() is None):
-            raise HTTPException(status_code=422, detail="since must include a timezone")
-        try:
-            summary = news_ingestion_service.ingest(since)
-        except (ValueError, OSError, TimeoutError) as error:
-            logger.warning("Configured news feed ingestion failed: %s", error.__class__.__name__)
-            raise HTTPException(
-                status_code=502,
-                detail="Configured news source could not be ingested",
-            ) from error
-        return {
-            "source_name": summary.source_name,
-            "fetched": summary.fetched,
-            "inserted": summary.inserted,
-            "duplicates": summary.duplicates,
-        }
-
-    @app.get("/api/v1/news/events")
-    def get_news_events_route(
-        symbol: str | None = None,
-        as_of: datetime | None = None,
-        minimum_entity_confidence: Decimal = Decimal("0.8"),
-        limit: int = 100,
-        _identity: AuthenticatedIdentity = Depends(require_authenticated),
-    ) -> dict[str, object]:
-        if news_event_store is None:
-            raise HTTPException(status_code=503, detail="News event reporting is not configured")
-        normalized_symbol = symbol.strip().upper() if symbol is not None else None
-        if symbol is not None and not normalized_symbol:
-            raise HTTPException(status_code=400, detail="symbol cannot be empty")
-        cutoff = as_of or datetime.now(timezone.utc)
-        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
-            raise HTTPException(status_code=422, detail="as_of must include a timezone")
-        try:
-            events = news_event_store.query_as_of(
-                cutoff,
-                symbol=normalized_symbol,
-                minimum_entity_confidence=minimum_entity_confidence,
-                limit=limit,
-            )
-        except ValueError as error:
-            raise HTTPException(status_code=422, detail=str(error)) from error
-        return {
-            "as_of": cutoff.isoformat(),
-            "symbol": normalized_symbol,
-            "count": len(events),
-            "events": [
-                {
-                    "event_id": str(event.event_id),
-                    "source_name": event.source_name,
-                    "source_type": event.source_type.value,
-                    "source_url": event.source_url,
-                    "title": event.title,
-                    "category": event.category.value,
-                    "published_at": event.published_at.isoformat() if event.published_at else None,
-                    "retrieved_at": event.retrieved_at.isoformat(),
-                    "first_seen_at": event.first_seen_at.isoformat(),
-                    "matched_symbols": list(event.matched_symbols),
-                    "entity_match_confidence": str(event.entity_match_confidence),
-                    "content_fingerprint": event.content_fingerprint,
-                }
-                for event in events
-            ],
-        }
-
 
     return app
