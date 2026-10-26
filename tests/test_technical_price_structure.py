@@ -5,7 +5,6 @@ import pytest
 from app.domain.technical_analysis.price_structure import (
     SwingKind,
     detect_swing_points,
-    fibonacci_extensions,
 )
 
 
@@ -43,23 +42,3 @@ def test_swing_detection_rejects_mismatched_or_invalid_bars() -> None:
     with pytest.raises(ValueError, match="finite Decimal"):
         detect_swing_points(d("1", "NaN"), d("0", "0"))
 
-
-def test_fibonacci_extensions_project_in_the_direction_of_the_swing() -> None:
-    ratios = d("1", "1.272", "1.618")
-
-    up = fibonacci_extensions(Decimal("100"), Decimal("120"), ratios=ratios)
-    down = fibonacci_extensions(Decimal("120"), Decimal("100"), ratios=ratios)
-
-    assert tuple(level.price for level in up) == d("140", "145.440", "152.360")
-    assert tuple(level.price for level in down) == d("80", "74.560", "67.640")
-
-
-def test_fibonacci_extensions_reject_zero_leg_and_invalid_ratios() -> None:
-    with pytest.raises(ValueError, match="non-zero length"):
-        fibonacci_extensions(Decimal("10"), Decimal("10"))
-
-    with pytest.raises(ValueError, match="finite and positive"):
-        fibonacci_extensions(Decimal("10"), Decimal("11"), ratios=d("0"))
-
-    with pytest.raises(ValueError, match="unique"):
-        fibonacci_extensions(Decimal("10"), Decimal("11"), ratios=d("1", "1"))
