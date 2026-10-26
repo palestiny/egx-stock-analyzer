@@ -194,3 +194,29 @@ def test_evidence_change_does_not_reopen_or_reinvalidate_terminal_signal():
     assert result is None
     assert history.history(created.signal_id) == (created,)
     assert alerts.events == []
+
+
+def test_new_evaluation_timestamp_alone_does_not_invalidate_same_setup():
+    from dataclasses import replace
+
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    track_record = InMemoryTrackRecordStore()
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
+    original = make_signal()
+    created = history.record(original, "CREATED", original.generated_at)
+    next_evaluation = replace(
+        original,
+        generated_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+    )
+
+    result = orchestrator.invalidate_for_evidence_change(
+        next_evaluation,
+        observed_at=datetime(2026, 10, 5, 1, tzinfo=timezone.utc),
+    )
+
+    assert result is not None
+    assert result.changed is False
+    assert result.signal_id == created.signal_id
+    assert history.history(created.signal_id) == (created,)
+    assert alerts.events == []
