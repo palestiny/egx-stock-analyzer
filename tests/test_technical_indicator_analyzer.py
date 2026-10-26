@@ -49,3 +49,35 @@ def test_indicator_analyzer_rejects_unsorted_bars() -> None:
 
 def test_indicator_analyzer_accepts_empty_history() -> None:
     assert TechnicalIndicatorAnalyzer.analyze([]).points == ()
+
+
+
+def test_indicator_analyzer_includes_expanded_candlestick_pattern_evidence() -> None:
+    stock_id = uuid4()
+    timestamp = datetime(2026, 10, 26, tzinfo=timezone.utc)
+    sample = [
+        PriceBar.create(
+            stock_id=stock_id,
+            timeframe=Timeframe.DAILY,
+            timestamp=timestamp,
+            open=Price(Decimal("10")),
+            high=Price(Decimal("10.2")),
+            low=Price(Decimal("7.8")),
+            close=Price(Decimal("8")),
+            volume=Volume(1000),
+        ),
+        PriceBar.create(
+            stock_id=stock_id,
+            timeframe=Timeframe.DAILY,
+            timestamp=timestamp + timedelta(days=1),
+            open=Price(Decimal("7.5")),
+            high=Price(Decimal("10.6")),
+            low=Price(Decimal("7.3")),
+            close=Price(Decimal("10.5")),
+            volume=Volume(1500),
+        ),
+    ]
+
+    evidence = TechnicalIndicatorAnalyzer.analyze(sample)
+
+    assert "bullish_engulfing" in evidence.points[1].candlestick_patterns
