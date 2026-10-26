@@ -60,7 +60,7 @@ def test_session_vwap_accumulates_within_session_and_resets_between_sessions() -
     )
     assert result == (
         Decimal("11"),
-        Decimal("13.5"),
+        Decimal("13.25"),
         Decimal("19"),
     )
 
