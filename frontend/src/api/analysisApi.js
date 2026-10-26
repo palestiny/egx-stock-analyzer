@@ -276,3 +276,19 @@ export function getTechnicalIndicatorHistory(symbol, limit = 250) {
     "Technical indicator history request",
   );
 }
+
+
+
+export function getNewsEvents(symbol, options = {}) {
+  const params = new URLSearchParams();
+  if (symbol) params.set("symbol", symbol.trim().toUpperCase());
+  if (options.asOf) params.set("as_of", options.asOf);
+  if (options.minimumEntityConfidence != null) {
+    params.set("minimum_entity_confidence", String(options.minimumEntityConfidence));
+  }
+  params.set("limit", String(options.limit ?? 20));
+  return getJson(
+    "/api/v1/news/events?" + params.toString(),
+    "News events request",
+  );
+}
