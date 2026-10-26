@@ -1,4 +1,6 @@
 import json
+from dataclasses import replace
+from datetime import datetime, timezone
 import sqlite3
 from datetime import date
 from decimal import Decimal
@@ -27,6 +29,10 @@ from app.domain.opportunity.classification import (
     OpportunityClassificationResult,
 )
 from app.domain.scoring.stock_quality import StockQualityScore
+from app.domain.technical_analysis.indicator_evidence import (
+    TechnicalIndicatorEvidence,
+    TechnicalIndicatorPoint,
+)
 from app.domain.technical_analysis.momentum import MomentumEvidence, MomentumStatus
 from app.domain.technical_analysis.result import TechnicalAnalysisResult
 from app.domain.technical_analysis.scoring import TechnicalScore
@@ -403,3 +409,66 @@ def test_deserializer_defaults_indicator_evidence_for_legacy_snapshot() -> None:
     technical_fields.pop("indicators")
     restored = deserialize_analysis_result(json.dumps(document))
     assert restored.technical_analysis.indicators is None
+
+
+
+def test_serializer_round_trips_nested_swing_and_fibonacci_tuple_types() -> None:
+    result = make_result()
+    point = TechnicalIndicatorPoint(
+        timestamp=datetime(2026, 10, 26, tzinfo=timezone.utc),
+        close=Decimal("100"),
+        sma_20=None,
+        sma_50=None,
+        sma_200=None,
+        ema_9=None,
+        ema_20=None,
+        ema_50=None,
+        ema_200=None,
+        rsi_14=None,
+        macd_line=None,
+        macd_signal=None,
+        macd_histogram=None,
+        bollinger_upper=None,
+        bollinger_middle=None,
+        bollinger_lower=None,
+        atr_14=None,
+        stochastic_k_14=None,
+        stochastic_d_3=None,
+        cci_20=None,
+        obv=None,
+        mfi_14=None,
+        plus_di_14=None,
+        minus_di_14=None,
+        adx_14=None,
+        ichimoku_conversion_9=None,
+        ichimoku_base_26=None,
+        ichimoku_span_a_unshifted=None,
+        ichimoku_span_b_unshifted=None,
+        candlestick_patterns=("hammer",),
+        confirmed_swings=(("high", Decimal("105")), ("low", Decimal("95"))),
+        fibonacci_direction="up",
+        fibonacci_anchor_indices=(3, 7),
+        fibonacci_retracements=(
+            (Decimal("0.382"), Decimal("101.18")),
+            (Decimal("0.618"), Decimal("98.82")),
+        ),
+    )
+    technical = replace(
+        result.technical_analysis,
+        indicators=TechnicalIndicatorEvidence((point,)),
+    )
+    result = replace(result, technical_analysis=technical)
+
+    restored = deserialize_analysis_result(serialize_analysis_result(result))
+
+    assert restored == result
+    restored_point = restored.technical_analysis.indicators.points[0]
+    assert restored_point.confirmed_swings == (
+        ("high", Decimal("105")),
+        ("low", Decimal("95")),
+    )
+    assert restored_point.fibonacci_anchor_indices == (3, 7)
+    assert restored_point.fibonacci_retracements[0] == (
+        Decimal("0.382"),
+        Decimal("101.18"),
+    )
