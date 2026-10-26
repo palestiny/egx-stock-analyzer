@@ -221,6 +221,7 @@ def create_infrastructure_runtime(
             outbox=signal_alert_outbox,
             recipients=telegram_account_link_store,
             deliveries=signal_alert_delivery_store,
+            users=user_store,
             history=signal_history_store,
             entitlements=entitlement_evaluator,
             transport=telegram_notification_provider,
