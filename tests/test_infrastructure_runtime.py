@@ -211,6 +211,8 @@ def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> 
 def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path) -> None:
     from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
     from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
+    from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+    from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
     from app.application.subscriptions.entitlements import EntitlementService
     from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 
@@ -228,6 +230,8 @@ def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path
     assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
     assert isinstance(runtime.dispatch_signal_alert_outbox, DispatchSignalAlertOutbox)
     assert isinstance(runtime.publish_signal_opportunity, PublishSignalOpportunity)
+    assert isinstance(runtime.owner_dashboard_overview, GetOwnerDashboardOverview)
+    assert isinstance(runtime.session_opportunity_report_store, SQLiteSessionOpportunityReportStore)
     assert isinstance(runtime.entitlement_service, EntitlementService)
     assert runtime.deliver_alert is None
     runtime.close()
