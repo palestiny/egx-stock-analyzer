@@ -14,6 +14,12 @@ class IssuedTelegramLinkChallenge:
     expires_at: datetime
 
 
+@dataclass(frozen=True)
+class LinkedTelegramAccount:
+    user_id: UUID
+    chat_id: str
+
+
 class TelegramChatAlreadyLinked(ValueError):
     """Raised when a Telegram chat is already owned by another account."""
 
@@ -35,6 +41,7 @@ class TelegramAccountLinkStore(Protocol):
     ) -> UUID | None: ...
 
     def get_chat_id(self, user_id: UUID) -> str | None: ...
+    def list_linked_accounts(self) -> tuple[LinkedTelegramAccount, ...]: ...
 
     def unlink(self, user_id: UUID, occurred_at: datetime) -> bool: ...
 
