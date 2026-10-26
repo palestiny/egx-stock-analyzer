@@ -1,5 +1,5 @@
 import json
-from dataclasses import fields, is_dataclass
+from dataclasses import MISSING, fields, is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -129,12 +129,22 @@ def _decode(value: Any, expected_type: Any) -> Any:
     if isinstance(expected_type, type) and is_dataclass(expected_type):
         fields_by_name = get_type_hints(expected_type)
         payload = value["fields"]
-        return expected_type(
-            **{
-                name: _decode(payload[name], field_type)
-                for name, field_type in fields_by_name.items()
-            }
-        )
+        definitions = {field.name: field for field in fields(expected_type)}
+        decoded: dict[str, Any] = {}
+        for name, field_type in fields_by_name.items():
+            if name in payload:
+                decoded[name] = _decode(payload[name], field_type)
+                continue
+            definition = definitions[name]
+            if definition.default is not MISSING:
+                decoded[name] = definition.default
+            elif definition.default_factory is not MISSING:
+                decoded[name] = definition.default_factory()
+            else:
+                raise AnalysisResultSerializationError(
+                    f"Missing required field {name!r} for {expected_type.__name__}"
+                )
+        return expected_type(**decoded)
 
     return value
 
