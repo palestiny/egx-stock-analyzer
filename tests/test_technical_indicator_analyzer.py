@@ -34,6 +34,9 @@ def test_indicator_analyzer_returns_aligned_history_and_long_lookbacks() -> None
     evidence = TechnicalIndicatorAnalyzer.analyze(bars())
     assert len(evidence.points) == 205
     assert evidence.points[0].sma_200 is None
+    assert evidence.points[0].rsi_14 is None
+    assert evidence.points[0].macd_signal is None
+    assert evidence.points[0].bollinger_upper is None
     assert evidence.points[198].sma_200 is None
     assert evidence.points[199].sma_200 is not None
     assert evidence.latest is not None
