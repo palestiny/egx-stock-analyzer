@@ -20,16 +20,16 @@ class TelegramNotificationProvider(NotificationProvider):
     def __init__(
         self,
         bot_token: str,
-        chat_id: str,
+        chat_id: str | None,
         *,
         client: httpx.Client | None = None,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
         normalized_token = bot_token.strip()
-        normalized_chat_id = chat_id.strip()
+        normalized_chat_id = chat_id.strip() if chat_id is not None else None
         if not normalized_token:
             raise ValueError("Telegram bot token cannot be empty")
-        if not normalized_chat_id:
+        if chat_id is not None and not normalized_chat_id:
             raise ValueError("Telegram chat ID cannot be empty")
         if timeout <= 0:
             raise ValueError("Telegram timeout must be positive")
@@ -44,6 +44,10 @@ class TelegramNotificationProvider(NotificationProvider):
         if channel.strip().lower() != self.CHANNEL:
             raise TelegramNotificationProviderError(
                 f"Unsupported notification channel: {channel}"
+            )
+        if self._chat_id is None:
+            raise TelegramNotificationProviderError(
+                "Telegram chat ID is not configured for legacy single-chat delivery"
             )
         self.send_message(self._chat_id, self._format_message(candidate))
 
