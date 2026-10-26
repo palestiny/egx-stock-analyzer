@@ -330,17 +330,30 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 **Next step:** resolve priority, universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
 
 
-## 17. Implementation Status — 2026-10-26
+## 17. Implementation Status — 2026-10-26 (refreshed)
 
-The following implementation slices have passing CI on their reviewed heads, but remain open/unmerged:
-- PR #346: durable SQLite signal history/outcome storage and alert outbox foundation.
+Merged into `main` and present in the current tree:
+- PR #346: durable SQLite signal history, outcomes, and alert-outbox foundation.
 - PR #348: recipient-targeted Telegram signal messages.
-- PR #349: secure Telegram account linking.
-- PR #351: subscription and capability-entitlement persistence/evaluation foundation.
-- PR #352: entitlement-aware opportunity publication and Telegram dispatch.
+- PR #354: Elliott impulse candidate validation.
 - PR #356: point-in-time session opportunity ledger generation.
-- PR #358: audited server-side capability grants/revocations.
+- PR #364: technical-analysis evidence in the dashboard.
+- PR #369: secure Telegram account linking.
+- PR #370: versioned subscription plans and server-side plan entitlement evaluation.
+- PR #376: immutable signal snapshots, per-recipient Telegram delivery persistence, replay handling, and a shared evaluator that combines plan entitlements with audited explicit capability grants.
+- Commit `5f7aa746`: opt-in RSS/news-event ingestion and authenticated point-in-time news-event API.
+- Commit `124dde01`: audited capability-grant/revocation storage and service. The original stacked PR #358 was closed as stale; its code was integrated through a current-main port.
 
-These are stacked branches and must be validated together against their current parent heads; isolated green runs are not sufficient proof that the whole chain is compatible. The Telegram stack still needs end-to-end replay/restart/rate-limit/blocked-recipient/expiry verification in the final combined tree, plus a live send only with explicit opt-in.
+Open implementation:
+- PR #377 is the current-main port for the operator dashboard, persisted/versioned session reports, and authenticated publish/dispatch endpoints. It remains draft while CI validates the combined tree.
 
-Not yet implemented as a complete production feature: a verified payment gateway and reconciliation/webhook flow, final-session-calendar/data-finalization scheduling, persisted/versioned market-wide session reports and delivery status, complete owner dashboard, actual personal portfolio accounting, provider/license acceptance, and M61 historical-data acceptance. No subscription should be sold and no profitability claim should be made until the applicable acceptance criteria above pass and the owner decisions in Section 13 are resolved.
+The current tree is materially ahead of the original stacked PRs. Do not merge stale stacked branches #349, #351, #352, #358, #363, or #367; use the clean-main ports/merged code instead. A live Telegram send still requires explicit opt-in and real deployment secrets.
+
+Still not complete as a production feature:
+- Automatic post-session scheduling with an accepted EGX calendar, holiday handling, and data-finalization cutoff.
+- Subscription management/administration APIs, accepted product tiers/prices, payment gateway, reconciliation/webhooks, refunds/support handling, and access revocation workflows.
+- Expected holding-duration estimates backed by strategy-specific validation.
+- Actual portfolio accounting and broker integration.
+- M61 historical-data acceptance and strategy-performance validation using a source with verified provenance, adjustment policy, and redistribution rights.
+
+The gate remains **Draft**. The implementation progress above does not accept any open decision in Section 13, authorize spending on data, select payment/plan pricing, or permit profitability claims.
