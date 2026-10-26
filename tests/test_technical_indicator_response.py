@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -5,6 +6,11 @@ from types import SimpleNamespace
 import pytest
 
 from app.api.technical_indicator_response import TechnicalIndicatorHistoryResponse
+from app.domain.technical_analysis.elliott import (
+    ElliottDirection,
+    ElliottImpulseCandidate,
+    ElliottWaveCount,
+)
 from app.domain.technical_analysis.indicator_evidence import (
     TechnicalIndicatorEvidence,
     TechnicalIndicatorPoint,
@@ -46,3 +52,31 @@ def test_response_limits_points_and_preserves_decimal_precision_as_strings() -> 
 def test_response_rejects_invalid_limit() -> None:
     with pytest.raises(ValueError, match="between 1 and 1000"):
         TechnicalIndicatorHistoryResponse.from_report(report(), limit=1001)
+
+def test_response_exposes_elliott_rule_diagnostics_and_invalidation_level() -> None:
+    candidate = ElliottWaveCount(
+        start_index=2,
+        end_index=17,
+        candidate=ElliottImpulseCandidate(
+            ElliottDirection.UP,
+            (
+                Decimal("10"),
+                Decimal("20"),
+                Decimal("13"),
+                Decimal("25"),
+                Decimal("22"),
+                Decimal("30"),
+            ),
+        ),
+    )
+    analysis = report()
+    analysis.technical_analysis.indicators = TechnicalIndicatorEvidence(
+        (replace(point(1), elliott_candidates=(candidate,)),)
+    )
+
+    response = TechnicalIndicatorHistoryResponse.from_report(analysis)
+    item = response["points"][0]["elliott_candidates"][0]
+    assert item["is_rule_consistent"] is True
+    assert item["rule_violations"] == []
+    assert item["wave_two_invalidation_price"] == "10"
+
