@@ -1,7 +1,6 @@
 from dataclasses import replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 
