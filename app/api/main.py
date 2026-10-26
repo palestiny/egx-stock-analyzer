@@ -174,7 +174,7 @@ def create_app(
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
     scan_breakouts = ScanBreakouts(result_store)
-    generate_signal = GenerateSignal(result_store)
+    generate_signal = generate_signal or GenerateSignal(result_store)
     get_stock_research = GetStockResearch(get_analysis_report) if get_analysis_report is not None else None
     legacy_test_composition = isinstance(operator_token, _OperatorTokenNotProvided) and authenticator is None
     configured_token = (
