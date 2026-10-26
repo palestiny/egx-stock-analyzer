@@ -47,7 +47,7 @@ class TechnicalIndicatorPoint:
 @dataclass(frozen=True)
 class TechnicalIndicatorEvidence:
     points: tuple[TechnicalIndicatorPoint, ...]
-    methodology_version: str = "technical-indicators-v1"
+    methodology_version: str = "technical-indicators-v2"
 
     @property
     def latest(self) -> TechnicalIndicatorPoint | None:
