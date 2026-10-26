@@ -39,6 +39,9 @@ class TechnicalIndicatorPoint:
     fibonacci_direction: str | None = None
     fibonacci_anchor_indices: tuple[int, int] | None = None
     fibonacci_retracements: tuple[tuple[Decimal, Decimal], ...] = ()
+    fibonacci_extension_direction: str | None = None
+    fibonacci_extension_anchor_indices: tuple[int, int, int] | None = None
+    fibonacci_extensions: tuple[tuple[Decimal, Decimal], ...] = ()
 
 
 @dataclass(frozen=True)
