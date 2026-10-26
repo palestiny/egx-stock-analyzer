@@ -90,3 +90,20 @@ def test_from_environment_rejects_invalid_automatic_retention_enabled(monkeypatc
 
     with pytest.raises(ValueError, match="EGX_AUTOMATIC_RETENTION_ENABLED"):
         InfrastructureConfig.from_environment()
+
+
+def test_from_environment_reads_default_subscription_plan(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_ID", "free")
+    monkeypatch.setenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION", "2")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.default_subscription_plan_id == "free"
+    assert config.default_subscription_plan_version == 2
+
+
+def test_default_configuration_has_no_implicit_subscription_plan() -> None:
+    config = InfrastructureConfig()
+
+    assert config.default_subscription_plan_id is None
+    assert config.default_subscription_plan_version is None
