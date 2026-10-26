@@ -25,11 +25,14 @@ from app.api.analysis_run_list_response import AnalysisRunListResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
+from app.api.technical_indicator_response import TechnicalIndicatorHistoryResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.stock_research_response import StockResearchResponse
+from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
     CalculateSnapshotPerformance,
@@ -133,6 +136,7 @@ def create_app(
     delete_analysis_run: DeleteAnalysisRun | None = None,
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None,
     news_event_store: NewsEventStore | None = None,
     news_ingestion_service: NewsIngestionService | None = None,
 ) -> FastAPI:
@@ -495,6 +499,29 @@ def create_app(
         except InvalidSnapshotPerformanceError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
+    @app.get("/api/v1/session-opportunity-ledger")
+    def get_session_opportunity_ledger_route(
+        session_date: date,
+        generated_at: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if build_session_opportunity_ledger is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Session opportunity ledger is not configured",
+            )
+        cutoff = generated_at or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="generated_at must include a timezone")
+        try:
+            report = build_session_opportunity_ledger.execute(
+                session_date,
+                generated_at=cutoff,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return SessionOpportunityLedgerResponse.from_report(report)
+
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if get_analysis_report is None:
@@ -512,6 +539,21 @@ def create_app(
 
         response = AnalysisReportResponse.from_report(report)
         return asdict(response)
+
+    @app.get("/api/v1/technical-indicators/{symbol}")
+    def get_technical_indicator_history(
+        symbol: str,
+        limit: int = 250,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_analysis_report is None:
+            raise HTTPException(status_code=503, detail="Analysis reporting is not configured")
+        if limit < 1 or limit > 1000:
+            raise HTTPException(status_code=400, detail="limit must be between 1 and 1000")
+        report = get_analysis_report.execute(symbol, identity=identity)
+        if report is None:
+            raise HTTPException(status_code=404, detail=f"Analysis report not found for {symbol}")
+        return TechnicalIndicatorHistoryResponse.from_report(report, limit=limit)
 
     @app.get("/api/v1/research/{symbol}")
     def get_stock_research_route(

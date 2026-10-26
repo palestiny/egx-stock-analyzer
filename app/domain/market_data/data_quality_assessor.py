@@ -59,14 +59,22 @@ class DataQualityAssessor:
                 observation.close,
             )
             if any(
-                value is not None and value < Decimal("0")
+                value is not None
+                and (not value.is_finite() or value <= Decimal("0"))
                 for value in numeric_values
             ) or (
                 observation.volume is not None and observation.volume < 0
             ):
                 issues.append(DataQualityIssue(DataQualityIssueCode.INVALID_VALUE))
 
-            if all(value is not None for value in numeric_values):
+            # Do not compare OHLC values until every price is finite and positive.
+            # Decimal NaN comparisons can raise InvalidOperation.
+            if all(
+                value is not None
+                and value.is_finite()
+                and value > Decimal("0")
+                for value in numeric_values
+            ):
                 assert observation.open is not None
                 assert observation.high is not None
                 assert observation.low is not None

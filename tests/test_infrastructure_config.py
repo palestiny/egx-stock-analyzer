@@ -89,7 +89,6 @@ def test_from_environment_rejects_invalid_automatic_retention_enabled(monkeypatc
         InfrastructureConfig.from_environment()
 
 
-
 def test_from_environment_reads_optional_news_rss_configuration(monkeypatch) -> None:
     monkeypatch.setenv("EGX_NEWS_RSS_URL", "https://news.example.test/feed.xml")
     monkeypatch.setenv("EGX_NEWS_RSS_SOURCE_NAME", "Official disclosures")

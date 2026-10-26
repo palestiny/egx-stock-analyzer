@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
 import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
 import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
+import { TechnicalIndicatorPanel } from "./components/TechnicalIndicatorPanel";
 
 function Metric({ label, value }) {
   return (
@@ -33,6 +34,9 @@ function DetailPanel({ title, items }) {
 function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [symbol, setSymbol] = useState("");
   const [report, setReport] = useState(null);
+  const [indicatorHistory, setIndicatorHistory] = useState(null);
+  const [indicatorError, setIndicatorError] = useState(null);
+  const [indicatorLoading, setIndicatorLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
@@ -91,6 +95,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     setSymbol(normalizedSymbol);
     setLoading(true);
     setReport(null);
+    setIndicatorHistory(null);
+    setIndicatorError(null);
+    setIndicatorLoading(true);
     setAlert(null);
     setHistory(null);
     setHistoryError(null);
@@ -100,6 +107,14 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     try {
       const reportResult = await getReport(normalizedSymbol);
       setReport(reportResult);
+
+      try {
+        setIndicatorHistory(await getTechnicalIndicatorHistory(normalizedSymbol));
+      } catch (indicatorRequestError) {
+        setIndicatorError(indicatorRequestError);
+      } finally {
+        setIndicatorLoading(false);
+      }
 
       try {
         setAlert(await getAlert(normalizedSymbol));
@@ -119,6 +134,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     } catch (requestError) {
       setError(requestError);
       setHistoryLoading(false);
+      setIndicatorLoading(false);
     } finally {
       setLoading(false);
     }
@@ -890,6 +906,8 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
               ]}
             />
           </section>
+
+          <TechnicalIndicatorPanel history={indicatorHistory} loading={indicatorLoading} error={indicatorError} />
 
           <section className="panel alert-panel" aria-label="alert result">
             <div>

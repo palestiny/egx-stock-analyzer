@@ -45,16 +45,26 @@ class TelegramNotificationProvider(NotificationProvider):
             raise TelegramNotificationProviderError(
                 f"Unsupported notification channel: {channel}"
             )
+        self.send_message(self._chat_id, self._format_message(candidate))
 
-        payload = {
-            "chat_id": self._chat_id,
-            "text": self._format_message(candidate),
-        }
+    def send_message(self, chat_id: str, message: str) -> None:
+        """Send a prepared message to one explicitly selected recipient.
+
+        Callers must authorize the recipient and check entitlements before calling
+        this transport primitive. The recipient ID is never inferred from message
+        content and the bot token is never included in raised error text.
+        """
+        normalized_chat_id = chat_id.strip()
+        normalized_message = message.strip()
+        if not normalized_chat_id:
+            raise ValueError("Telegram chat ID cannot be empty")
+        if not normalized_message:
+            raise ValueError("Telegram message cannot be empty")
 
         try:
             response = self._client.post(
                 f"{self.API_BASE_URL}/bot{self._bot_token}/sendMessage",
-                json=payload,
+                json={"chat_id": normalized_chat_id, "text": normalized_message},
                 timeout=self._timeout,
             )
         except httpx.TimeoutException:
@@ -83,6 +93,8 @@ class TelegramNotificationProvider(NotificationProvider):
         if body.get("ok") is not True:
             description = body.get("description")
             detail = str(description) if description else "provider rejected the request"
+            if self._bot_token in detail:
+                detail = "provider rejected the request"
             raise TelegramNotificationProviderError(
                 f"Telegram rejected the request: {detail}"
             )

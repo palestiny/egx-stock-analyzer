@@ -268,6 +268,41 @@ def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> Non
     runtime.close()
 
 
+def test_infrastructure_runtime_composes_durable_signal_lifecycle(tmp_path) -> None:
+    from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+    from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+    from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+    from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+
+    database_path = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+
+    assert isinstance(runtime.signal_history_store, SQLiteSignalHistoryStore)
+    assert isinstance(runtime.signal_track_record_store, SQLiteTrackRecordStore)
+    assert isinstance(runtime.signal_alert_outbox, SQLiteAlertOutbox)
+    assert isinstance(runtime.signal_lifecycle_orchestrator, SignalLifecycleOrchestrator)
+    runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+    assert isinstance(second_runtime.signal_history_store, SQLiteSignalHistoryStore)
+    assert isinstance(second_runtime.signal_track_record_store, SQLiteTrackRecordStore)
+    assert isinstance(second_runtime.signal_alert_outbox, SQLiteAlertOutbox)
+    second_runtime.close()
+
 
 def test_runtime_composes_persistent_news_store_without_live_feed_by_default(tmp_path) -> None:
     from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore

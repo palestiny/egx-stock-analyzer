@@ -4,6 +4,11 @@ from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.news.ingestion import NewsIngestionService
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
+from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
+from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
@@ -78,6 +83,11 @@ class InfrastructureRuntime:
     user_management: UserManagementService | None = None
     news_event_store: SQLiteNewsEventStore | None = None
     news_ingestion_service: NewsIngestionService | None = None
+    signal_history_store: SQLiteSignalHistoryStore | None = None
+    signal_track_record_store: SQLiteTrackRecordStore | None = None
+    signal_alert_outbox: SQLiteAlertOutbox | None = None
+    signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -133,7 +143,6 @@ def create_infrastructure_runtime(
         credential_service=credential_service,
         audit_store=management_audit_store,
     )
-
     news_event_store = SQLiteNewsEventStore(config.analysis_database_path)
     news_ingestion_service = None
     if config.news_rss_feed_url is not None:
@@ -155,10 +164,24 @@ def create_infrastructure_runtime(
             symbol_names=symbol_names,
         )
         news_ingestion_service = NewsIngestionService(news_source, news_event_store)
+
     authenticator = DurableBearerTokenAuthenticator(
         credential_store=credential_store,
         user_store=user_store,
         fallback=configured_authenticator,
+    )
+
+    signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
+    signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
+    signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
+    signal_lifecycle_orchestrator = SignalLifecycleOrchestrator(
+        history=signal_history_store,
+        alerts=signal_alert_outbox,
+        track_record=signal_track_record_store,
+    )
+    build_session_opportunity_ledger = BuildSessionOpportunityLedger(
+        history=signal_history_store,
+        track_record=signal_track_record_store,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -258,4 +281,9 @@ def create_infrastructure_runtime(
         user_management=user_management,
         news_event_store=news_event_store,
         news_ingestion_service=news_ingestion_service,
+        signal_history_store=signal_history_store,
+        signal_track_record_store=signal_track_record_store,
+        signal_alert_outbox=signal_alert_outbox,
+        signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
+        build_session_opportunity_ledger=build_session_opportunity_ledger,
     )

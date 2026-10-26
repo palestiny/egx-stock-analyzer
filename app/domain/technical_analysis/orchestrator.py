@@ -2,6 +2,7 @@ from uuid import UUID
 
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
+from app.domain.technical_analysis.indicator_analyzer import TechnicalIndicatorAnalyzer
 from app.domain.technical_analysis.momentum import MomentumAnalyzer
 from app.domain.technical_analysis.result import TechnicalAnalysisResult
 from app.domain.technical_analysis.support_resistance import SupportResistanceAnalyzer
@@ -43,6 +44,7 @@ class TechnicalAnalysisOrchestrator:
             price_bars,
             volume_lookback,
         )
+        indicators = TechnicalIndicatorAnalyzer.analyze(price_bars)
 
         return TechnicalAnalysisResult(
             stock_id=stock_id,
@@ -51,4 +53,5 @@ class TechnicalAnalysisOrchestrator:
             support_resistance=support_resistance,
             momentum=momentum,
             volume=volume,
+            indicators=indicators,
         )

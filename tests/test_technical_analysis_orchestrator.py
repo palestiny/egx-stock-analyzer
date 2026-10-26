@@ -66,6 +66,8 @@ def test_orchestrator_composes_all_evidence():
     assert result.support_resistance == support_resistance
     assert result.momentum == momentum
     assert result.volume == volume
+    assert result.indicators is not None
+    assert len(result.indicators.points) == len(price_bars)
 
 
 # Tests that Momentum and Volume receive independent lookback configuration.
