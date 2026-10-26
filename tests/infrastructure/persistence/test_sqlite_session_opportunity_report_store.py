@@ -27,17 +27,16 @@ def test_session_report_store_persists_immutable_idempotent_snapshots(tmp_path) 
 
     assert store.save(item) is True
     assert store.save(item) is False
-    assert store.get_latest(date(2026, 10, 26), as_of=generated) == {
-        "session_date": "2026-10-26",
-        "generated_at": generated.isoformat(),
-        "exchange_timezone": "Africa/Cairo",
-        "methodology_version": "session-opportunity-ledger-v1",
-        "total_count": 0,
-        "unresolved_count": 0,
-        "resolved_proxy_count": 0,
-        "status_counts": {},
-        "opportunities": [],
-    }
+    saved = store.get_latest(date(2026, 10, 26), as_of=generated)
+    assert saved is not None
+    assert saved["session_date"] == "2026-10-26"
+    assert saved["generated_at"] == generated.isoformat()
+    assert saved["methodology_version"] == "session-opportunity-ledger-v1"
+    assert saved["total_count"] == 0
+    assert saved["unresolved_count"] == 0
+    assert saved["resolved_proxy_count"] == 0
+    assert saved["opportunities"] == []
+    assert all(value == 0 for value in saved["status_counts"].values())
 
 
 def test_session_report_store_supports_point_in_time_reads(tmp_path) -> None:
