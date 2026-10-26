@@ -57,3 +57,13 @@ def test_no_signal_when_trend_is_not_breakout_aligned():
         volume=VolumeEvidence(VolumeStatus.ABOVE_AVERAGE, Decimal("1.5")),
     )
     assert GenerateSignal(store).execute("COMI") is None
+
+
+def test_does_not_generate_signal_from_undated_analysis_snapshot():
+    dated_store = make_store()
+    record = dated_store.get_record("COMI")
+    assert record is not None
+    undated_store = InMemoryAnalysisResultStore()
+    undated_store.save("COMI", record.result, analysis_date=None)
+
+    assert GenerateSignal(undated_store).execute("COMI") is None
