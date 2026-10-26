@@ -18,6 +18,8 @@ from app.domain.technical_analysis.indicators import (
     stochastic_oscillator,
 )
 from app.domain.technical_analysis.candlestick_patterns import detect_candlestick_patterns
+from app.domain.technical_analysis.price_action import fibonacci_retracements
+from app.domain.technical_analysis.price_structure import detect_swing_points
 
 
 class TechnicalIndicatorAnalyzer:
@@ -60,6 +62,52 @@ class TechnicalIndicatorAnalyzer:
             lows,
             closes,
         )
+        swings = detect_swing_points(highs, lows, left_bars=2, right_bars=2)
+        confirmed_swings_by_index: list[list[tuple[str, Decimal]]] = [
+            [] for _ in price_bars
+        ]
+        for swing in swings:
+            confirmation_index = swing.index + 2
+            if confirmation_index < len(price_bars):
+                confirmed_swings_by_index[confirmation_index].append(
+                    (swing.kind.value, swing.price)
+                )
+
+        fib_by_index: list[tuple[str | None, tuple[int, int] | None, tuple[tuple[Decimal, Decimal], ...]]] = []
+        visible_swings = []
+        for index in range(len(price_bars)):
+            visible_swings = [
+                swing for swing in swings
+                if swing.index + 2 <= index
+            ]
+            latest_pair = next(
+                (
+                    (visible_swings[position - 1], visible_swings[position])
+                    for position in range(len(visible_swings) - 1, 0, -1)
+                    if visible_swings[position - 1].index < visible_swings[position].index
+                    and visible_swings[position - 1].kind is not visible_swings[position].kind
+                ),
+                None,
+            )
+            if latest_pair is None:
+                fib_by_index.append((None, None, ()))
+                continue
+            first_swing, second_swing = latest_pair
+            if first_swing.kind.value == "low":
+                low_swing, high_swing, direction = first_swing, second_swing, "up"
+            else:
+                high_swing, low_swing, direction = first_swing, second_swing, "down"
+            fib = fibonacci_retracements(
+                low_swing.price,
+                high_swing.price,
+                direction=direction,
+            )
+            fib_by_index.append((
+                direction,
+                (low_swing.index, high_swing.index),
+                fib.retracements,
+            ))
+
         candle_patterns_by_index: list[list[str]] = [
             [] for _ in price_bars
         ]
@@ -98,6 +146,10 @@ class TechnicalIndicatorAnalyzer:
                 ichimoku_span_a_unshifted=ichimoku.leading_span_a_unshifted[index],
                 ichimoku_span_b_unshifted=ichimoku.leading_span_b_unshifted[index],
                 candlestick_patterns=tuple(candle_patterns_by_index[index]),
+                confirmed_swings=tuple(confirmed_swings_by_index[index]),
+                fibonacci_direction=fib_by_index[index][0],
+                fibonacci_anchor_indices=fib_by_index[index][1],
+                fibonacci_retracements=fib_by_index[index][2],
             )
             for index, bar in enumerate(price_bars)
         )
