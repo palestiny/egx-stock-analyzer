@@ -35,6 +35,10 @@ class TechnicalIndicatorPoint:
     ichimoku_span_a_unshifted: Decimal | None
     ichimoku_span_b_unshifted: Decimal | None
     candlestick_patterns: tuple[str, ...]
+    confirmed_swings: tuple[tuple[str, Decimal], ...] = ()
+    fibonacci_direction: str | None = None
+    fibonacci_anchor_indices: tuple[int, int] | None = None
+    fibonacci_retracements: tuple[tuple[Decimal, Decimal], ...] = ()
 
 
 @dataclass(frozen=True)
