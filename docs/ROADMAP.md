@@ -207,3 +207,18 @@ The following product capabilities were merged into `main` after the M61 acquisi
 - PR #330: dashboard Market Breadth & Stress Pulse panel; all five CI jobs passed before merge. It shows coverage and missing symbols and explicitly labels its snapshot-based heuristic as neither live intraday data nor a crash prediction; see https://github.com/palestiny/egx-stock-analyzer/pull/330.
 
 **Next execution priority remains M61 real historical dataset acquisition and validation.** The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.
+
+
+---
+
+# Proposed Product Expansion — Comprehensive Technical & News Intelligence
+
+**Status:** Design proposal only; M61 remains the active execution priority.
+
+Design gate: [Comprehensive Technical & News Intelligence](COMPREHENSIVE-TECHNICAL-NEWS-INTELLIGENCE-DESIGN-GATE.md).
+
+The requested capability expansion includes SMA/EMA 50 and 200, broader momentum/trend/volatility/volume indicators, deterministic Japanese candlestick patterns, swing-based Fibonacci levels, support/resistance and price-action structure, advisory Elliott Wave candidate counts, and news/disclosure context with source links and publication-time handling.
+
+This proposal must not displace the M61 requirement for legally retainable, point-in-time historical market and financial evidence. News-aware backtesting additionally requires point-in-time news timestamps and permitted historical retention. No composite score, Telegram trade alert, or strategy-performance claim should be promoted before source quality, look-ahead controls, fees/slippage, and disjoint holdout validation are addressed.
+
+Recommended sequencing: first inventory current data/API contracts; then implement deterministic indicator semantics test-first; next price-action/Fibonacci/candle evidence; then source-reviewed official disclosures and news adapters; finally scenario reporting and advisory Elliott candidates. Composite weighting and Telegram delivery remain later gates.
