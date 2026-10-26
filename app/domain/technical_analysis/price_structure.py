@@ -82,6 +82,6 @@ def fibonacci_extensions(
         raise ValueError("extension ratios must be unique")
 
     return tuple(
-        FibonacciExtension(ratio=ratio, price=end_price + leg * (ratio - Decimal("1")))
+        FibonacciExtension(ratio=ratio, price=end_price + leg * ratio)
         for ratio in normalized_ratios
     )
