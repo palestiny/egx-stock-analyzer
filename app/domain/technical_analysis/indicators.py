@@ -380,3 +380,103 @@ def money_flow_index(
             result[index] = Decimal("100") - Decimal("100") / (Decimal("1") + ratio)
 
     return tuple(result)
+
+
+@dataclass(frozen=True)
+class DirectionalMovementSeries:
+    plus_di: IndicatorSeries
+    minus_di: IndicatorSeries
+    adx: IndicatorSeries
+
+
+def average_directional_index(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    closes: Sequence[Decimal],
+    period: int = 14,
+) -> DirectionalMovementSeries:
+    """Calculate Wilder +DI, -DI, and ADX with explicit warm-up gaps."""
+    if period < 1:
+        raise ValueError("period must be a positive integer")
+    high_values, low_values, close_values = tuple(highs), tuple(lows), tuple(closes)
+    if not (len(high_values) == len(low_values) == len(close_values)):
+        raise ValueError("highs, lows, and closes must have equal lengths")
+    if any(
+        not value.is_finite()
+        for value in (*high_values, *low_values, *close_values)
+    ):
+        raise ValueError("indicator inputs must be finite Decimal values")
+    if any(high < low for high, low in zip(high_values, low_values)):
+        raise ValueError("each high must be greater than or equal to its low")
+
+    count = len(high_values)
+    plus_di: list[Decimal | None] = [None] * count
+    minus_di: list[Decimal | None] = [None] * count
+    adx: list[Decimal | None] = [None] * count
+    if count < period:
+        return DirectionalMovementSeries(tuple(plus_di), tuple(minus_di), tuple(adx))
+
+    true_ranges: list[Decimal] = []
+    plus_moves: list[Decimal] = []
+    minus_moves: list[Decimal] = []
+    for index in range(count):
+        if index == 0:
+            true_ranges.append(high_values[index] - low_values[index])
+            plus_moves.append(Decimal("0"))
+            minus_moves.append(Decimal("0"))
+            continue
+        up_move = high_values[index] - high_values[index - 1]
+        down_move = low_values[index - 1] - low_values[index]
+        plus_moves.append(up_move if up_move > down_move and up_move > 0 else Decimal("0"))
+        minus_moves.append(down_move if down_move > up_move and down_move > 0 else Decimal("0"))
+        true_ranges.append(max(
+            high_values[index] - low_values[index],
+            abs(high_values[index] - close_values[index - 1]),
+            abs(low_values[index] - close_values[index - 1]),
+        ))
+
+    smoothed_tr = sum(true_ranges[:period], Decimal("0"))
+    smoothed_plus = sum(plus_moves[:period], Decimal("0"))
+    smoothed_minus = sum(minus_moves[:period], Decimal("0"))
+    dx_values: list[Decimal | None] = [None] * count
+
+    for index in range(period - 1, count):
+        if index >= period:
+            smoothed_tr = smoothed_tr - smoothed_tr / Decimal(period) + true_ranges[index]
+            smoothed_plus = smoothed_plus - smoothed_plus / Decimal(period) + plus_moves[index]
+            smoothed_minus = smoothed_minus - smoothed_minus / Decimal(period) + minus_moves[index]
+        if smoothed_tr == 0:
+            plus_di[index] = Decimal("0")
+            minus_di[index] = Decimal("0")
+            dx_values[index] = Decimal("0")
+            continue
+        plus_value = Decimal("100") * smoothed_plus / smoothed_tr
+        minus_value = Decimal("100") * smoothed_minus / smoothed_tr
+        plus_di[index] = plus_value
+        minus_di[index] = minus_value
+        denominator = plus_value + minus_value
+        dx_values[index] = (
+            Decimal("0")
+            if denominator == 0
+            else Decimal("100") * abs(plus_value - minus_value) / denominator
+        )
+
+    first_adx_index = 2 * period - 2
+    if count > first_adx_index:
+        first_dx_window = [
+            value for value in dx_values[period - 1:first_adx_index + 1]
+            if value is not None
+        ]
+        if len(first_dx_window) == period:
+            previous_adx = sum(first_dx_window, Decimal("0")) / Decimal(period)
+            adx[first_adx_index] = previous_adx
+            for index in range(first_adx_index + 1, count):
+                current_dx = dx_values[index]
+                if current_dx is None:
+                    continue
+                previous_adx = (
+                    previous_adx * Decimal(period - 1) + current_dx
+                ) / Decimal(period)
+                adx[index] = previous_adx
+
+    return DirectionalMovementSeries(tuple(plus_di), tuple(minus_di), tuple(adx))
