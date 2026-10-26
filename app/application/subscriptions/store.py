@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -17,7 +18,7 @@ class SubscriptionStore(Protocol):
         subscription_id: UUID,
         new_status: SubscriptionStatus,
         *,
-        occurred_at,
+        occurred_at: datetime,
         actor: str,
         reason: str,
     ) -> Subscription: ...
