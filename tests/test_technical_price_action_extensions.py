@@ -58,9 +58,10 @@ def test_session_vwap_accumulates_within_session_and_resets_between_sessions() -
         volumes=[10, 30, 20],
         session_ids=["2026-10-26", "2026-10-26", "2026-10-27"],
     )
+    # Typical-price VWAP: (11*10 + 14*30) / (10 + 30) = 13.25.
     assert result == (
         Decimal("11"),
-        Decimal("13.5"),
+        Decimal("13.25"),
         Decimal("19"),
     )
 
