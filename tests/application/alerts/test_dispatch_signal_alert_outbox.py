@@ -176,6 +176,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     assert "Status: INVALIDATED" in message
     assert "Invalidation: 78" in message
     assert "T1: 85" in message
+  assert "Targets:\n- T1: 85\n- T2: 88\nEvidence:\n- support_rejection: Rejected support" in message
     assert str(event.event_id) in message
     assert outbox.get(event.event_id).status.value == "DELIVERED"
     assert deliveries.get(event.event_id, entitled_user, "telegram").status is SignalAlertDeliveryStatus.DELIVERED
