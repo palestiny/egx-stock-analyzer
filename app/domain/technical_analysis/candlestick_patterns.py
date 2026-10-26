@@ -135,7 +135,6 @@ def detect_candlestick_patterns(
     for i in range(2, count):
         first, middle, last = i - 2, i - 1, i
         midpoint_first = (open_values[first] + close_values[first]) / Decimal("2")
-        midpoint_last = (open_values[last] + close_values[last]) / Decimal("2")
         small_middle = bodies[middle] <= bodies[first] * Decimal("0.5")
         if (
             bearish(first) and small_middle and bullish(last)
