@@ -4,7 +4,6 @@ import pytest
 
 from app.domain.technical_analysis.candlestick_patterns import (
     CandlestickPattern,
-    PatternDirection,
     detect_candlestick_patterns,
 )
 
