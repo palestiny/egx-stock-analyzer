@@ -86,7 +86,7 @@ def make_event(signal_id) -> AlertEvent:
     )
 
 
-def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=()):
+def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), inactive_users=()):
     database = tmp_path / "dispatch.db"
     history = InMemorySignalHistoryStore()
     signal = make_signal()
@@ -98,7 +98,8 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=()):
     subscriptions = SQLiteSubscriptionStore(database)
     user_store = SQLiteUserStore(database)
     for account in accounts:
-        user_store.save(User(id=account.user_id, status=UserStatus.ACTIVE))
+        status = UserStatus.DISABLED if account.user_id in inactive_users else UserStatus.ACTIVE
+        user_store.save(User(id=account.user_id, status=status))
     subscriptions.save_plan(
         SubscriptionPlan(
             plan_id="plus",
@@ -238,3 +239,21 @@ def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
     assert len(message) <= 3900
     assert str(event.event_id) in message
     assert "not proof of an executed trade" in message
+
+
+def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, _, deliveries, transport, event = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-disabled")],
+        entitled_users=(user_id,),
+        inactive_users=(user_id,),
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.recipients_suppressed == 1
+    assert transport.sent == []
+    record = deliveries.get(event.event_id, user_id, "telegram")
+    assert record.status is SignalAlertDeliveryStatus.SUPPRESSED
+    assert record.last_error == "user_inactive_or_missing"
