@@ -21,6 +21,9 @@ from app.domain.technical_analysis.indicators import (
 )
 from app.domain.technical_analysis.candlestick_patterns import detect_candlestick_patterns
 from app.domain.technical_analysis.price_action import fibonacci_retracements
+from app.domain.technical_analysis.price_action_extensions import (
+    fibonacci_extensions as project_fibonacci_extensions,
+)
 from app.domain.technical_analysis.price_structure import detect_swing_points
 
 
@@ -77,6 +80,7 @@ class TechnicalIndicatorAnalyzer:
                 )
 
         fib_by_index: list[tuple[str | None, tuple[int, int] | None, tuple[tuple[Decimal, Decimal], ...]]] = []
+        fib_extensions_by_index: list[tuple[str | None, tuple[int, int, int] | None, tuple[tuple[Decimal, Decimal], ...]]] = []
         visible_swings = []
         for index in range(len(price_bars)):
             visible_swings = [
@@ -109,6 +113,40 @@ class TechnicalIndicatorAnalyzer:
                 direction,
                 (low_swing.index, high_swing.index),
                 fib.retracements,
+            ))
+
+            index_counts = {
+                pivot.index: sum(1 for item in visible_swings if item.index == pivot.index)
+                for pivot in visible_swings
+            }
+            unambiguous_swings = [
+                pivot for pivot in visible_swings
+                if index_counts[pivot.index] == 1
+            ]
+            extension_result = None
+            extension_anchors = None
+            extension_direction = None
+            for start_position in range(len(unambiguous_swings) - 3, -1, -1):
+                triple = unambiguous_swings[start_position:start_position + 3]
+                kinds = tuple(item.kind.value for item in triple)
+                if kinds == ("low", "high", "low"):
+                    extension_direction = "up"
+                elif kinds == ("high", "low", "high"):
+                    extension_direction = "down"
+                else:
+                    continue
+                extension_result = project_fibonacci_extensions(
+                    triple[0].price,
+                    triple[1].price,
+                    triple[2].price,
+                    direction=extension_direction,
+                )
+                extension_anchors = tuple(item.index for item in triple)
+                break
+            fib_extensions_by_index.append((
+                extension_direction,
+                extension_anchors,  # type: ignore[arg-type]
+                extension_result.levels if extension_result is not None else (),
             ))
 
         candle_patterns_by_index: list[list[str]] = [
@@ -153,6 +191,9 @@ class TechnicalIndicatorAnalyzer:
                 fibonacci_direction=fib_by_index[index][0],
                 fibonacci_anchor_indices=fib_by_index[index][1],
                 fibonacci_retracements=fib_by_index[index][2],
+                fibonacci_extension_direction=fib_extensions_by_index[index][0],
+                fibonacci_extension_anchor_indices=fib_extensions_by_index[index][1],
+                fibonacci_extensions=fib_extensions_by_index[index][2],
             )
             for index, bar in enumerate(price_bars)
         )
