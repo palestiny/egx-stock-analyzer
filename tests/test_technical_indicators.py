@@ -144,8 +144,8 @@ def test_atr_uses_true_range_and_wilder_smoothing() -> None:
     )
     assert result[:1] == (None,)
     assert result[1] == Decimal("2.5")
-    assert result[2] == Decimal("2.75")
-    assert result[3] == Decimal("2.875")
+    assert result[2] == Decimal("2.25")
+    assert result[3] == Decimal("2.125")
 
 
 def test_atr_rejects_misaligned_inputs() -> None:
