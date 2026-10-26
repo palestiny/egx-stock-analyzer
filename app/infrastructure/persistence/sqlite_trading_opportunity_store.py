@@ -57,7 +57,8 @@ class SQLiteTradingOpportunityStore:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS opportunity_lifecycle_events (
-                    event_id TEXT PRIMARY KEY,
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id TEXT NOT NULL UNIQUE,
                     opportunity_id TEXT NOT NULL,
                     from_status TEXT NOT NULL,
                     to_status TEXT NOT NULL,
@@ -73,7 +74,7 @@ class SQLiteTradingOpportunityStore:
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_opportunity_events_timeline
-                ON opportunity_lifecycle_events(opportunity_id, occurred_at, event_id)
+                ON opportunity_lifecycle_events(opportunity_id, sequence)
                 """
             )
 
@@ -257,7 +258,7 @@ class SQLiteTradingOpportunityStore:
                    reason, actor, evidence_version
             FROM opportunity_lifecycle_events
             WHERE opportunity_id = ?
-            ORDER BY occurred_at, event_id
+            ORDER BY sequence
             """,
             (str(opportunity_id),),
         ).fetchall()
