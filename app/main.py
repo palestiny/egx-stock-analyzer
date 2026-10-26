@@ -75,6 +75,7 @@ def create_application(
             if stock_catalog is not None and market_data_provider is not None
             else None
         ),
+        news_event_store=getattr(runtime, "news_event_store", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
