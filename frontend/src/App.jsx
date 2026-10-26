@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory } from "./api/analysisApi";
+import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getNewsEvents } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
 import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHistoryPanel";
 import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
 import { TechnicalIndicatorPanel } from "./components/TechnicalIndicatorPanel";
+import { NewsEventsPanel } from "./components/NewsEventsPanel";
 
 function Metric({ label, value }) {
   return (
@@ -37,6 +38,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
   const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [indicatorError, setIndicatorError] = useState(null);
   const [indicatorLoading, setIndicatorLoading] = useState(false);
+  const [newsEvents, setNewsEvents] = useState(null);
+  const [newsError, setNewsError] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
@@ -98,6 +102,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
     setIndicatorHistory(null);
     setIndicatorError(null);
     setIndicatorLoading(true);
+    setNewsEvents(null);
+    setNewsError(null);
+    setNewsLoading(true);
     setAlert(null);
     setHistory(null);
     setHistoryError(null);
@@ -114,6 +121,14 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
         setIndicatorError(indicatorRequestError);
       } finally {
         setIndicatorLoading(false);
+      }
+
+      try {
+        setNewsEvents(await getNewsEvents(normalizedSymbol));
+      } catch (newsRequestError) {
+        setNewsError(newsRequestError);
+      } finally {
+        setNewsLoading(false);
       }
 
       try {
@@ -135,6 +150,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
       setError(requestError);
       setHistoryLoading(false);
       setIndicatorLoading(false);
+      setNewsLoading(false);
     } finally {
       setLoading(false);
     }
@@ -908,6 +924,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns }) {
           </section>
 
           <TechnicalIndicatorPanel history={indicatorHistory} loading={indicatorLoading} error={indicatorError} />
+          <NewsEventsPanel data={newsEvents} loading={newsLoading} error={newsError} />
 
           <section className="panel alert-panel" aria-label="alert result">
             <div>
