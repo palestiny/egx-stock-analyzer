@@ -6,6 +6,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.application.alerts.outbox import AlertOutbox, AlertOutboxRecord
+from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.identity.user_store import UserStore
 from app.application.alerts.telegram_delivery_store import (
     SignalAlertDeliveryStatus,
@@ -17,6 +18,7 @@ from app.application.notifications.telegram_account_linking import (
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.signals.store import SignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementDecision
+from app.domain.alerts.model import AlertSignalSnapshot
 from app.domain.signals.model import Signal
 
 
@@ -86,7 +88,11 @@ class DispatchSignalAlertOutbox:
 
         for record in events:
             event_failed = False
-            signal_record = self._history.get(record.event.signal_id)
+            signal_snapshot = record.event.signal_snapshot
+            if signal_snapshot is None:
+                signal_record = self._history.get(record.event.signal_id)
+                if signal_record is not None:
+                    signal_snapshot = snapshot_signal(signal_record.signal)
             for recipient in recipients:
                 existing = self._deliveries.get(
                     record.event.event_id,
@@ -134,7 +140,7 @@ class DispatchSignalAlertOutbox:
                     suppressed += 1
                     continue
 
-                if signal_record is None:
+                if signal_snapshot is None:
                     self._deliveries.mark_failed(
                         record.event.event_id,
                         recipient.user_id,
@@ -146,7 +152,7 @@ class DispatchSignalAlertOutbox:
                     event_failed = True
                     continue
 
-                message = self._format_message(record, signal_record.signal)
+                message = self._format_message(record, signal_snapshot)
                 try:
                     self._transport.send_message(recipient.chat_id, message)
                 except Exception as error:
@@ -186,21 +192,24 @@ class DispatchSignalAlertOutbox:
         )
 
     @staticmethod
-    def _format_message(record: AlertOutboxRecord, signal: Signal) -> str:
-        targets = "\n".join(
+    def _format_message(
+        record: AlertOutboxRecord,
+        signal: AlertSignalSnapshot,
+    ) -> str:
+        targets = "\\n".join(
             f"- {target.label}: {target.price}" for target in signal.targets
         )
-        evidence = "\n".join(
+        evidence = "\\n".join(
             f"- {item.kind}: {item.description}" for item in signal.evidence
         )
         message = (
             "EGX Stock Analyzer — Opportunity Update\\n"
-            f"Symbol: {signal.symbol}\\n"
+            f"Symbol: {record.event.symbol}\\n"
             f"Event: {record.event.event_type.value}\\n"
-            f"Direction: {signal.direction.value}\\n"
-            f"Status: {signal.status.value}\\n"
+            f"Direction: {signal.direction}\\n"
+            f"Status: {signal.status}\\n"
             f"Timeframe: {signal.timeframe}\\n"
-            f"Entry zone: {signal.entry_zone.lower} – {signal.entry_zone.upper}\\n"
+            f"Entry zone: {signal.entry_lower} – {signal.entry_upper}\\n"
             f"Invalidation: {signal.invalidation}\\n"
             f"Targets:\\n{targets}\\n"
             f"Evidence:\\n{evidence}\\n"
