@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.api.main import create_app
 from app.application.market_intelligence.analyze_stock_regime import AnalyzeStockRegime
 from app.application.security.authentication import Authenticator
+from app.application.signals.generate_signal import GenerateSignal
 from app.application.analysis.result_store import (
     AnalysisResultStore,
 )
@@ -69,6 +70,10 @@ def create_application(
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
         telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
+        generate_signal=GenerateSignal(runtime.application_runtime.result_store),
+        publish_signal_opportunity=getattr(runtime, "publish_signal_opportunity", None),
+        dispatch_signal_alert_outbox=getattr(runtime, "dispatch_signal_alert_outbox", None),
+        get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
         get_analysis_run=runtime.application_runtime.get_analysis_run,
         list_analysis_runs=getattr(runtime.application_runtime, "list_analysis_runs", None),
         delete_analysis_run=getattr(runtime.application_runtime, "delete_analysis_run", None),
