@@ -17,7 +17,7 @@ from app.domain.technical_analysis.indicators import (
     simple_moving_average,
     stochastic_oscillator,
 )
-from app.domain.technical_analysis.price_action import detect_candlestick_patterns
+from app.domain.technical_analysis.candlestick_patterns import detect_candlestick_patterns
 
 
 class TechnicalIndicatorAnalyzer:
@@ -54,7 +54,17 @@ class TechnicalIndicatorAnalyzer:
         mfi14 = money_flow_index(highs, lows, closes, volumes, 14)
         directional = average_directional_index(highs, lows, closes, 14)
         ichimoku = ichimoku_cloud(highs, lows)
-        candle_evidence = detect_candlestick_patterns(price_bars)
+        candle_evidence = detect_candlestick_patterns(
+            tuple(bar.open.value for bar in price_bars),
+            highs,
+            lows,
+            closes,
+        )
+        candle_patterns_by_index: list[list[str]] = [
+            [] for _ in price_bars
+        ]
+        for item in candle_evidence:
+            candle_patterns_by_index[item.index].append(item.pattern.value)
 
         points = tuple(
             TechnicalIndicatorPoint(
@@ -87,9 +97,7 @@ class TechnicalIndicatorAnalyzer:
                 ichimoku_base_26=ichimoku.base_line[index],
                 ichimoku_span_a_unshifted=ichimoku.leading_span_a_unshifted[index],
                 ichimoku_span_b_unshifted=ichimoku.leading_span_b_unshifted[index],
-                candlestick_patterns=tuple(
-                    item.pattern.value for item in candle_evidence[index]
-                ),
+                candlestick_patterns=tuple(candle_patterns_by_index[index]),
             )
             for index, bar in enumerate(price_bars)
         )
