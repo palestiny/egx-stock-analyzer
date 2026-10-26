@@ -262,8 +262,10 @@ export function OwnerDashboardPage({
                         <th>Status</th>
                         <th>Entry zone</th>
                         <th>Invalidation</th>
+                        <th>Original targets</th>
                         <th>Market proxy outcome</th>
                         <th>Market proxy return</th>
+                        <th>Market proxy R</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -273,8 +275,10 @@ export function OwnerDashboardPage({
                           <td>{item.current_status}</td>
                           <td>{item.original_entry_lower} – {item.original_entry_upper}</td>
                           <td>{item.original_invalidation}</td>
+                          <td>{(item.original_targets ?? []).map((target) => `${target.label}: ${target.price}`).join(", ") || "—"}</td>
                           <td>{item.market_proxy_outcome ?? "Unresolved"}</td>
                           <td>{item.market_proxy_return ?? "—"}</td>
+                          <td>{item.market_proxy_r ?? "—"}</td>
                         </tr>
                       ))}
                     </tbody>
