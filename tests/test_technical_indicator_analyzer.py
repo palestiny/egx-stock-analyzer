@@ -142,3 +142,43 @@ def test_indicator_analyzer_projects_extensions_only_after_three_confirmed_swing
     assert evidence.points[8].fibonacci_extension_direction == "up"
     assert evidence.points[8].fibonacci_extension_anchor_indices == (2, 4, 6)
     assert len(evidence.points[8].fibonacci_extensions) == 5
+
+def test_elliott_candidates_use_only_confirmed_swings_and_expose_invalidation() -> None:
+    stock_id = uuid4()
+    start = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    highs = (
+        "14", "15", "16", "17", "18", "20", "19", "18", "17", "18",
+        "19", "25", "24", "23", "22", "23", "24", "30", "28", "27",
+    )
+    lows = (
+        "12", "11", "10", "11", "12", "14", "15", "14", "13", "14",
+        "15", "20", "23", "24", "22", "24", "25", "26", "25", "24",
+    )
+    sample = []
+    for index, (high_text, low_text) in enumerate(zip(highs, lows)):
+        high = Decimal(high_text)
+        low = Decimal(low_text)
+        close = (high + low) / Decimal("2")
+        sample.append(
+            PriceBar.create(
+                stock_id=stock_id,
+                timeframe=Timeframe.DAILY,
+                timestamp=start + timedelta(days=index),
+                open=Price(close),
+                high=Price(high),
+                low=Price(low),
+                close=Price(close),
+                volume=Volume(1000),
+            )
+        )
+
+    evidence = TechnicalIndicatorAnalyzer.analyze(sample)
+
+    assert evidence.points[18].elliott_candidates == ()
+    assert len(evidence.points[19].elliott_candidates) == 1
+    candidate = evidence.points[19].elliott_candidates[0]
+    assert candidate.is_rule_consistent
+    assert candidate.start_index == 2
+    assert candidate.end_index == 17
+    assert candidate.wave_two_invalidation_price == Decimal("10")
+
