@@ -173,6 +173,8 @@ def create_infrastructure_runtime(
     has_telegram_chat_id = config.telegram_chat_id is not None
     if has_telegram_chat_id and not has_telegram_token:
         raise ValueError("Telegram chat ID requires a bot token")
+    if config.telegram_webhook_secret is not None and not config.telegram_webhook_secret.strip():
+        raise ValueError("Telegram webhook secret cannot be empty")
     if config.telegram_webhook_secret is not None and not has_telegram_token:
         raise ValueError("Telegram webhook secret requires a bot token")
 
