@@ -1,0 +1,313 @@
+# DEC-134 — Trading Opportunities, Telegram Distribution, Session Reports, Subscriptions, and Owner Dashboard
+
+**Status:** Draft — owner decisions required before implementation  
+**Date:** 2026-10-26  
+**Repository:** palestiny/egx-stock-analyzer  
+**Current active milestone:** M61 — Backtesting & Strategy Validation
+
+## 1. Purpose
+
+Define the product direction without silently changing current analytical, alert-delivery, or roadmap behavior. The goal is to evolve EGX Stock Analyzer into an explainable EGX opportunity-monitoring platform with a Telegram bot, post-session reports, subscription plans, and an owner dashboard.
+
+This is a design proposal, not implementation approval. M61 remains the active milestone until the owner explicitly reprioritizes it. No live historical performance, future profit, or brokerage execution is implied.
+
+## 2. Verified Existing Foundation and Limits
+
+Repository review confirms:
+- Technical/fundamental analysis, scoring, stock quality, entry quality, opportunity classification, explainable scanners, market breadth/stress analysis, and a pre-breakout momentum/volume watchlist already exist.
+- The application uses FastAPI + React/Vite and a modular-monolith architecture.
+- Alert candidates, notification-provider abstraction, durable alert-delivery records, automatic alert delivery, scheduled analysis/delivery composition, and a Telegram provider already exist.
+- The Telegram provider currently sends a formatted alert candidate to one configured chat ID. This is not yet a subscriber-aware opportunity-publishing product.
+- The domain already defines AlertEvent types SIGNAL_TRIGGERED and SIGNAL_INVALIDATED, but that alone does not prove an end-to-end opportunity lifecycle, evidence re-evaluation, invalidation delivery, or subscription entitlements are complete.
+- Telegram configuration and explicit live-send verification are documented in docs/TELEGRAM_CONNECTION_VERIFICATION.md.
+- Strategy simulation and backtest metrics exist, but the real historical dataset and evidence-backed strategy validation remain unaccepted.
+- PR #343 adds Crash Radar analysis-date evidence metadata. Its head 3e7bc011724df565cc4ba6081f5728bed2c73e07 passed all five reported CI jobs in run #4166 on 2026-10-26. PR #343 remains open and unmerged. PR #342 is an open draft design gate for Crash Radar v2.
+
+Reuse existing contracts when suitable; do not create a parallel alert system or infer product completeness from a class name.
+
+## 3. Product Principles
+
+1. Evidence before language: each opportunity states its observations, timeframe, data freshness, and rules.
+2. A published setup is not proof of an executed trade.
+3. Published opportunity versions and their original rationale are immutable and auditable.
+4. Invalidation is a first-class event, never a silent edit.
+5. Liquidity sweeps, order blocks, and inducement are labeled as confirmed only when suitable source data supports that claim. From OHLCV candles alone, label them as price-action inferences/proxies.
+6. Stale, missing, or contradictory evidence is visible and may block publication under an owner-approved policy.
+7. Retries and duplicate analysis runs must not duplicate subscriber messages.
+8. Entitlements are enforced server-side across API and Telegram.
+9. Explainable, versioned rules take precedence over opaque ranking.
+10. Backtest metrics, hypothetical opportunity outcomes, and actual portfolio P&L remain separate.
+11. High-impact administrative and policy actions are audited.
+
+## 4. Opportunity Evidence and Lifecycle
+
+### 4.1 Evidence families
+
+Reuse current analysis and scanner outputs. Add a normalized, versioned evidence record only where existing contracts do not cover the requirement.
+
+Potential evidence families:
+- Market structure: trend regime, swing highs/lows, support/resistance, breakout/retest.
+- Candles: rejection, engulfing, pin bar, inside bar, close strength, range expansion, volume-confirmed patterns.
+- Volume/momentum: relative volume, momentum changes, volatility expansion/contraction, pre-breakout conditions.
+- Liquidity/price action: equal highs/lows, sweep-like wick/close behavior, failed breakout, reclaim/rejection, inducement hypothesis.
+- Risk context: volatility, drawdown, market breadth/stress, sector regime, turnover/liquidity constraints, corporate/event risk.
+- Later optional sources: corporate actions, official disclosures, reliable intraday/order-book feeds.
+
+Each evaluation should retain symbol, timeframe, observation/session timestamp, source/data version, rule version, evidence references, freshness/completeness, trigger state, explanation, and uncertainty.
+
+### 4.2 TradingOpportunity
+
+Introduce a domain-level TradingOpportunity (name subject to code review) rather than overloading the existing AlertCandidate.
+
+Minimum fields:
+- stable opportunity ID and immutable published version;
+- symbol, direction, timeframe, strategy/rule version;
+- created, triggered, published, evaluated, and expiry timestamps;
+- entry condition and entry zone/trigger price, with source and timestamp;
+- invalidation condition/price and target levels with rationale;
+- expected holding horizon as an estimate/range, not a promise;
+- estimated risk/reward based on stated assumptions;
+- evidence references, quality/freshness state, rationale;
+- lifecycle status, terminal reason, publication and delivery references;
+- outcome metrics only when the data and evaluation convention support them.
+
+Keep separate: setup published; entry condition observed; market-price proxy met; actual user trade confirmed. A candle touching a price does not prove an order filled. If daily OHLCV cannot establish whether a stop or target happened first inside one candle, record ambiguity or use an explicitly approved conservative convention.
+
+### 4.3 Proposed lifecycle
+
+Proposed states, subject to owner approval:
+
+DRAFT → WATCHING → ACTIVE → ENTRY_TRIGGERED → IN_PROGRESS → TARGET_PARTIAL / TARGET_REACHED.
+
+Terminal alternatives:
+- INVALIDATED: market evidence contradicts the defined setup.
+- STOPPED_OUT: a defined risk boundary is crossed under the accepted convention.
+- EXPIRED: the horizon ends without the required trigger or resolution.
+- CANCELLED: an authorized operator withdraws the setup.
+- DATA_UNRELIABLE: current data cannot support a trustworthy evaluation; this is a data-quality suspension, not necessarily market invalidation.
+
+Every transition is append-only and records time, reason, evidence/data version, rule version, and actor/source. Material edits create a new linked version; no silent movement of stops or targets.
+
+### 4.4 Re-evaluation and invalidation
+
+Re-evaluate when new observations arrive, candles are corrected, corporate actions/symbol mappings change, supporting evidence changes, entry/target/stop/expiry conditions may have occurred, or source freshness/completeness fails policy.
+
+Distinguish setup invalidation, risk boundary reached, data-quality suspension, owner-approved amendment, and expiry. Preserve the originally published rationale. If available data cannot prove intrabar sequence, report uncertainty rather than asserting exact order.
+
+## 5. Telegram Product
+
+### 5.1 Message types
+
+1. New opportunity: symbol, direction, timeframe, entry zone/trigger, invalidation, targets, expected horizon, risk/reward assumptions, evidence summary, timestamp, data-quality state, methodology version, disclaimer.
+2. Entry-condition update with observation and explicit note that actual execution is unconfirmed.
+3. Target/stop/expiry update under the declared evaluation convention.
+4. Invalidation/amendment with reason, old/new version, and reference to original post.
+5. Optional pre-session watchlist, subject to data readiness.
+6. Post-session market report and opportunity ledger.
+7. Data-quality/service notices for stale feeds, missing symbols, suspensions, or provider conflicts.
+8. Subscription activation, expiry, payment status, and entitlement-change notices.
+
+### 5.2 Delivery design
+
+- Reuse NotificationProvider, DeliverAlert, and durable delivery concepts where they fit.
+- Add subscriber/recipient routing; one global chat ID cannot serve as the paying-customer model.
+- Link Telegram identity only after a deliberate start/link flow and verification.
+- Use a durable outbox or equivalent so a persisted state transition and pending message cannot be lost between separate steps.
+- Idempotency key identifies event + opportunity version + recipient + channel.
+- Track pending, sent/accepted, retryable/permanent failure, and suppressed/entitlement-denied outcomes. Telegram accepting a request does not prove it was read.
+- Respect rate limits, bulk-send controls, and materiality thresholds; do not publish every internal recalculation.
+- Keep bot tokens out of source, logs, URLs shown to users, errors, and audit records.
+- Candidate commands: /start, /help, /status, /plans, /subscribe, /watchlist, /mute and owner-only private portfolio/admin commands. Every command must enforce identity and entitlements server-side.
+- Separate private owner/admin chat from subscriber delivery. Never expose owner portfolio or subscriber data in a public group.
+
+Users should be able to configure permitted topics and frequency, such as new opportunities, material updates/invalidation, session reports, and selected symbols. Never promise real-time updates if source data or scheduling is delayed.
+
+## 6. Post-Session Report
+
+Generate after the EGX session is closed and the accepted data-finalization condition is met. The trigger must use a verified exchange calendar, holidays, and feed-arrival behavior rather than assuming a fixed daily time.
+
+### 6.1 Market-wide summary
+- session date and data-finalization timestamp;
+- benchmark/index move and available breadth/advance-decline statistics;
+- sector/stock movers, turnover/volume context, unusual activity where sourced;
+- market regime and Crash Radar state with evidence date/coverage;
+- missing/stale symbols, suspensions, provider conflicts;
+- comparison with the previous valid session where comparable.
+
+### 6.2 Detailed analysis
+- watchlist changes and notable structures;
+- support/resistance/Fibonacci only when based on identified, validated swing points;
+- breakout/retest and candle/volume evidence;
+- risk context and uncertainty;
+- clear distinction between observed facts and model interpretation.
+
+### 6.3 Complete opportunity ledger — mandatory
+For every opportunity in the defined reporting cohort:
+- original publication time/version and original entry, invalidation, and targets;
+- current status and entry-condition observations under the declared convention;
+- targets reached/not reached, stop/invalidation, expiry, or unresolved status;
+- favorable/adverse excursion only when data supports it;
+- hypothetical result after declared costs/slippage, separated from actual portfolio P&L;
+- amendment/invalidation reasons, intrabar ambiguity, and data-quality exceptions;
+- cohort statistics with sample size, unresolved cases, and exclusions.
+
+Never remove losing, invalidated, expired, or unresolved opportunities from the record. Do not report a success rate without a defined denominator, evaluation window, and treatment of unresolved cases.
+
+Persist a versioned report reference, dataset/snapshot version, methodology version, generation timestamp, and delivery state. Re-running fixed finalized input should be deterministic or explicitly create a new version. Report-generation failure must not alter opportunity states.
+
+## 7. Subscriptions and Monetization
+
+### 7.1 Capabilities
+- subscriber account and verified Telegram association;
+- versioned plan and entitlements;
+- lifecycle states for pending, active, past-due, grace period if offered, expired, cancelled, refunded/chargeback where applicable;
+- payment intent/order, provider transaction reference, reconciliation events, append-only billing audit;
+- shared entitlement evaluator for web API and Telegram;
+- renewal/expiry notices and access revocation;
+- audited complimentary access grants with reason and expiry;
+- cancellation/refund/support workflow;
+- privacy, export, and deletion handling while preserving legally required accounting records.
+
+### 7.2 Payment boundary
+
+Keep a provider-neutral payment interface. Do not hard-code a gateway before the owner selects launch countries/currencies and current fees, settlement, recurring-payment support, refund/webhook behavior, and legal availability are verified.
+
+A payment is confirmed only by a trusted server-to-server event or verified reconciliation—not a screenshot or client redirect. Webhooks must authenticate, be idempotent, and handle replay/out-of-order delivery.
+
+### 7.3 Candidate tiers — not approved
+
+- Free: delayed/limited recap and a limited sample/watchlist.
+- Plus: full opportunity stream and material lifecycle updates within declared data limits.
+- Pro: richer evidence, strategy/risk views, personalized watchlists, detailed session reports.
+- Owner/Admin: private operational controls, not a customer-facing tier.
+
+These are packaging hypotheses, not approved prices or entitlements. Validate willingness to pay and data redistribution licensing before selling real-time feeds or reports.
+
+## 8. Owner Dashboard
+
+### Overview
+Market/session status, latest finalized data time and coverage, source health, new/active/invalidated/expired opportunities, last report status, Telegram delivery health, subscribers, renewals, payment exceptions, and recent admin actions.
+
+### Opportunities
+Search/filter by symbol, strategy, status, timeframe, and date; view evidence timeline and versions; entry/target/invalidation history; audited pause/cancel/republish with mandatory reason; compare original terms with amendments.
+
+### Strategy and performance lab
+Hypothetical outcomes, unresolved cases, win/loss/flat counts, average win/loss, expectancy, profit factor, trade-sequence drawdown, fees/slippage assumptions, and breakdown by strategy/timeframe/regime/cohort. Show sample size, missingness, and uncertainty. Out-of-sample/walk-forward views only when data supports them. Do not label a small sample as predictive proof.
+
+### Personal portfolio
+Manual positions, quantities, average cost, fees, cash, dividends, deposits/withdrawals, and corporate actions; realized/unrealized P&L, concentration/exposure, benchmark comparison, drawdown, corrections, and reconciliation history. Keep actual holdings separate from paper portfolio and hypothetical opportunity ledger. No broker execution/account linking is assumed.
+
+### Subscribers and billing
+Plan mix, active/expired/past-due counts, renewals, churn, refunds, payment reconciliation exceptions, audited entitlement grants/revokes, support notes, Telegram linking and delivery status. Avoid unnecessary payment-sensitive data.
+
+### Operations and governance
+Provider freshness/coverage, ingestion errors, scheduled runs, session-report jobs, outbox/retry/replay, per-recipient delivery, audit logs, feature flags, methodology versions, incident history, backup/restore verification, retention and access-review status.
+
+## 9. Additional Recommended Features
+
+1. Opportunity replay/evidence timeline: reconstruct exactly what the system knew when each message was published.
+2. Strategy/rule registry with version, tests, owner approval, and rollout history.
+3. Paper portfolio/shadow ledger using a fixed, explicit execution convention.
+4. Risk-budget/position-sizing calculator as a scenario, not a guarantee.
+5. Regime analytics to inspect results across trend/range/volatility/stress states without silently tuning rules.
+6. Corporate-action/event awareness for splits, dividends, suspensions, disclosures, and symbol mapping.
+7. Personalized watchlists and filters within plan entitlements.
+8. Separate setup quality from data confidence; do not hide poor evidence behind one score.
+9. Digest/quiet hours, topic opt-outs, materiality thresholds, and duplicate suppression.
+10. Transparent correction notices when revised source data changes reports or opportunity status.
+11. Subscriber activation/retention/churn analytics with data minimization.
+12. Reliability: outbox replay, dead-letter review, backup/restore drills, monitoring, and incident playbooks.
+13. Public methodology/performance disclosure with cohort definitions, sample sizes, exclusions, costs, and limitations.
+14. Additional channels (web push/email/mobile) only after Telegram lifecycle and entitlements are reliable.
+
+## 10. Architecture Direction
+
+Preserve the modular monolith unless measured load or operations justify a different deployment model.
+
+Logical flow:
+- Market data + provenance → analysis/signal evaluation → opportunity lifecycle/re-evaluation → durable domain event/outbox → Telegram delivery policy + entitlement check → per-recipient delivery.
+- Finalized session + persisted opportunity history → report generator → versioned report → entitled delivery.
+- Identity + plan + subscription + payment reconciliation → shared entitlement evaluator → API and Telegram authorization.
+
+The owner dashboard reads application-facing query/reporting capabilities; it does not implement market rules. Important state transitions and outbox records need atomic persistence. Provider calls occur outside database transactions. Delivery retries must not duplicate events. Secrets stay in deployment secret configuration.
+
+## 11. Proposed Delivery Sequence
+
+This proposal does not automatically replace the active M61 roadmap.
+
+### Stage 0 — Design and acceptance
+Resolve lifecycle and price evaluation semantics, timeframes/data needs for liquidity claims, publication/invalidation policy, entitlements, and report acceptance. Inspect existing alert, Telegram, audit, auth, and dashboard contracts before adding abstractions.
+
+### Stage 1 — Evidence trust and opportunity ledger
+Close or explicitly reprioritize the M61 real historical dataset blocker. Add a versioned opportunity model and append-only lifecycle events. Implement deterministic re-evaluation/invalidation and replay tests using fixed data. No paid performance claims before evidence acceptance.
+
+### Stage 2 — Telegram opportunity delivery
+Link users/recipients, add durable outbox, per-recipient idempotency, delivery states, safe retry, and new-opportunity/material-update/invalidation messages. Use fake-transport end-to-end tests; live send remains explicit opt-in.
+
+### Stage 3 — Session reports
+Define exchange calendar and data-finalization rule; generate market-wide and per-opportunity sections; persist report versions/delivery outcomes; test stale, missing, corrected, and unresolved cases.
+
+### Stage 4 — Owner dashboard and personal portfolio
+Build overview, opportunity lifecycle, data health, report history, delivery and audit views. Keep real portfolio and hypothetical ledger separate. Add performance analytics only after definitions/data are accepted.
+
+### Stage 5 — Subscriptions and payment reconciliation
+Build identity/linking and server-side entitlements first; select a gateway only after owner decision and verification. Add authenticated/idempotent webhooks, renewals, cancellations, refunds, reconciliation, and audit. Test-mode and reconciliation reports precede live payments.
+
+### Stage 6 — Advanced analytics and growth
+Add regime analytics, strategy registry, personalized watchlists, public methodology/performance disclosures, and other channels when evidence, licensing, operating cost, and user value justify them.
+
+## 12. Critical Acceptance Tests
+
+- Every opportunity version is immutable and each lifecycle transition is audited.
+- Corrected inputs can change status and create exactly one corresponding event per version/recipient/channel.
+- Missing/stale data cannot silently appear fresh.
+- Actual trade execution is distinguished from market-price proxy.
+- Ambiguous intrabar stop/target ordering follows an approved conservative/ambiguous rule.
+- Replaying identical input is deterministic and does not duplicate messages.
+- Telegram timeout/retry, rate limits, blocked recipients, expired entitlements, and process restart are tested.
+- Payment webhook replay cannot activate/extend a subscription twice.
+- A client-side redirect cannot grant premium access.
+- Expired/unauthorized users cannot access premium API data or Telegram messages.
+- Session reports include losing, invalidated, expired, unresolved, and data-suspended opportunities in the defined cohort.
+- Reports are deterministic for fixed finalized data and methodology.
+- Actual portfolio P&L and simulated results are never combined misleadingly.
+- CI fixtures are deterministic; live provider tests are separately marked external.
+- No profitability or real-time claim is published without accepted data, validation, and redistribution rights.
+
+## 13. Owner Decisions Required
+
+1. **M61 priority:** finish real historical evidence first, or explicitly pause it to prioritize product delivery?
+2. **Initial universe:** EGX30, current configured universe, or a versioned broad EGX universe?
+3. **Timeframes:** daily only initially, or daily plus intraday? Intraday liquidity claims require suitable licensed data.
+4. **Entry semantics:** publish a watch setup before trigger, wait for candle-close confirmation, or support both as separate states?
+5. **Evaluation granularity:** daily OHLCV first, or reliable intraday bars/ticks? This changes claims about exact fills and target/stop ordering.
+6. **Direction:** long-only first, or include short scenarios? No brokerage execution is assumed.
+7. **Duration:** fixed horizon buckets or strategy-specific estimated bar ranges?
+8. **Telegram packaging:** public/free channel plus private subscriber bot, or private bot conversations for all tiers?
+9. **Plan limits:** which features, delays, watchlists, and message frequencies belong to Free/Plus/Pro?
+10. **Payments:** launch countries/currencies and which gateway should be evaluated?
+11. **Portfolio:** manual entries/import first, or broker integration later?
+12. **Session report:** one final report after data finalization, or preliminary clearly labeled plus final?
+13. **Publishing authority:** fully automatic under approved rules, operator approval for every opportunity, or hybrid?
+14. **Performance transparency:** publish full cohort statistics to everyone, or reserve detailed analytics for paid tiers while keeping limitations truthful for all users?
+
+## 14. Proposed Defaults — Not Yet Accepted
+
+- Keep M61 active until explicit reprioritization.
+- Start with daily candles and long-only scenarios.
+- Label liquidity sweep/inducement as inferred price-action evidence unless suitable source data verifies liquidity/order-book behavior.
+- Support pre-trigger watch setups and confirmed entry events as distinct states.
+- Automate invalidation/material amendments under versioned rules with an operator pause/kill switch.
+- Use a durable outbox and server-side entitlements.
+- Publish final session reports only after data finalization; preliminary reports must be labeled provisional.
+- Start personal portfolio with manual entry and separate actual holdings from hypothetical results.
+- Do not accept live subscriptions until billing reconciliation, access revocation, support/refund handling, and data redistribution rights are verified.
+
+## 15. Non-Goals
+
+This gate does not authorize changing Crash Radar scoring, changing existing BUY/scanner behavior, brokerage execution, silent stop/target movement, treating a Telegram send as trade execution, choosing a gateway or price, claiming profitability before M61 evidence acceptance, replacing the modular monolith without evidence, or removing M61 from the roadmap without owner decision.
+
+## 16. Decision Record
+
+**Status:** Draft. No decision in Section 13 is accepted yet.  
+**Next step:** resolve priority, universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
