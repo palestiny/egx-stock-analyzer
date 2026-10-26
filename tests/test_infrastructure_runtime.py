@@ -220,8 +220,6 @@ def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path
             telegram_bot_token="token",
             analysis_database_path=str(tmp_path / "analysis.db"),
         ),
-        result_store=InMemoryAnalysisResultStore(),
-        retry_policy=RetryPolicy(1),
     )
 
     assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
