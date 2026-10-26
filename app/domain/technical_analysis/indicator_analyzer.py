@@ -136,6 +136,14 @@ class TechnicalIndicatorAnalyzer:
                     extension_direction = "down"
                 else:
                     continue
+                # A projected extension is valid only when the pullback remains inside the impulse range.
+                # A failed retracement must not abort analysis for the entire symbol.
+                if not (
+                    min(triple[0].price, triple[1].price)
+                    <= triple[2].price
+                    <= max(triple[0].price, triple[1].price)
+                ):
+                    continue
                 extension_result = project_fibonacci_extensions(
                     triple[0].price,
                     triple[1].price,
