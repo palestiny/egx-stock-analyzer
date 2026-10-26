@@ -76,6 +76,8 @@ def create_application(
             else None
         ),
         build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
+        news_event_store=getattr(runtime, "news_event_store", None),
+        news_ingestion_service=getattr(runtime, "news_ingestion_service", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
         telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
