@@ -246,6 +246,8 @@ The design is ready for implementation only when:
 
 ## 10. Status
 
-**Design gate status: PROPOSED — implementation not yet started.**
+**Design gate status: PROPOSED — initial calculation primitives are under review; end-to-end implementation is incomplete.**
 
-The immediate next increment should inventory the existing technical analyzer/data-quality/API contracts and deliver Phase A's first small test-first capability. This proposal does not authorize weakening M61 data acceptance or merging unreviewed changes.
+PR #350 (`feature/technical-indicator-foundation`) currently proposes isolated, test-covered calculations for SMA, EMA, Wilder RSI, MACD, Bollinger Bands, ATR, Stochastic, CCI, OBV, MFI, directional movement/ADX, selected candlestick patterns, and Fibonacci retracements. These are not yet integrated into `TechnicalAnalysisOrchestrator`, saved analysis snapshots, API contracts, dashboard charts, opportunity evaluation, or Telegram reports. Their latest-head CI result must be checked before treating the slice as verified.
+
+Still outstanding: Ichimoku and other candle patterns; explicit swing selection and Elliott-wave candidate counts; news/disclosure source selection, licensed ingestion and point-in-time history; persisted provenance/evidence; API/UI integration; scenario reporting; and historical backtesting/acceptance. This proposal does not authorize weakening M61 data acceptance or merging unreviewed changes.
