@@ -21,6 +21,7 @@ class SignalHistoryStore(Protocol):
     def get(self, signal_id: UUID) -> SignalRecord | None: ...
     def history(self, signal_id: UUID) -> tuple[SignalRecord, ...]: ...
     def latest(self, symbol: str) -> SignalRecord | None: ...
+    def all_records(self) -> tuple[SignalRecord, ...]: ...
 
 
 class InMemorySignalHistoryStore:
@@ -53,3 +54,11 @@ class InMemorySignalHistoryStore:
     def latest(self, symbol: str) -> SignalRecord | None:
         signal_id = self._by_symbol.get(symbol.strip().upper())
         return self.get(signal_id) if signal_id else None
+
+    def all_records(self) -> tuple[SignalRecord, ...]:
+        records = [
+            record
+            for history in self._records.values()
+            for record in history
+        ]
+        return tuple(sorted(records, key=lambda record: (record.recorded_at, str(record.signal_id))))
