@@ -108,3 +108,78 @@ def test_news_events_route_is_unavailable_when_store_is_not_configured() -> None
         )
 
     assert response.status_code == 503
+
+
+
+class FakeNewsIngestionService:
+    def __init__(self):
+        self.received_since = None
+
+    def ingest(self, since=None):
+        self.received_since = since
+        from app.application.news.ingestion import NewsIngestionSummary
+
+        return NewsIngestionSummary(
+            source_name="Configured EGX Feed",
+            fetched=3,
+            inserted=2,
+            duplicates=1,
+        )
+
+
+def test_operator_can_trigger_configured_news_ingestion() -> None:
+    service = FakeNewsIngestionService()
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        news_ingestion_service=service,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/news/ingest?since=2026-10-25T00:00:00%2B00:00",
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "source_name": "Configured EGX Feed",
+        "fetched": 3,
+        "inserted": 2,
+        "duplicates": 1,
+    }
+    assert service.received_since == datetime(2026, 10, 25, tzinfo=timezone.utc)
+
+
+def test_news_ingestion_route_is_unavailable_when_no_feed_is_configured() -> None:
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/news/ingest",
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 503
+    assert "EGX_NEWS_RSS_URL" in response.json()["detail"]
+
+
+def test_news_ingestion_route_rejects_naive_since_timestamp() -> None:
+    service = FakeNewsIngestionService()
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        news_ingestion_service=service,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/news/ingest?since=2026-10-25T00:00:00",
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 422
+    assert "timezone" in response.json()["detail"]
