@@ -97,6 +97,15 @@ def test_telegram_webhook_requires_secret_and_links_chat(tmp_path):
     assert json.loads(sent_requests[0].content)["chat_id"] == "987654321"
     assert "now linked" in json.loads(sent_requests[0].content)["text"]
 
+    replay = client.post(
+        "/api/v1/telegram/webhook",
+        headers={"X-Telegram-Bot-Api-Secret-Token": WEBHOOK_SECRET},
+        json=update,
+    )
+    assert replay.status_code == 200
+    assert replay.json() == {"ok": True, "duplicate": True}
+    assert len(sent_requests) == 1
+
 
 def test_telegram_webhook_rejects_wrong_secret_without_sending(tmp_path):
     client, _, sent_requests = make_client(tmp_path)
