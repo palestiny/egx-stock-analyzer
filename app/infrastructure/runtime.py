@@ -8,6 +8,7 @@ from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+from app.application.subscriptions.entitlements import EntitlementService
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
@@ -17,6 +18,7 @@ from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import 
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
@@ -88,6 +90,8 @@ class InfrastructureRuntime:
     news_event_store: SQLiteNewsEventStore | None = None
     news_ingestion_service: NewsIngestionService | None = None
     subscription_store: SQLiteSubscriptionStore | None = None
+    entitlement_store: SQLiteEntitlementStore | None = None
+    entitlement_service: EntitlementService | None = None
     entitlement_evaluator: EntitlementEvaluator | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
@@ -187,10 +191,13 @@ def create_infrastructure_runtime(
 
     signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
     subscription_store = SQLiteSubscriptionStore(config.analysis_database_path)
+    entitlement_store = SQLiteEntitlementStore(config.analysis_database_path)
+    entitlement_service = EntitlementService(entitlement_store)
     entitlement_evaluator = EntitlementEvaluator(
         subscription_store,
         default_plan_id=config.default_subscription_plan_id,
         default_plan_version=config.default_subscription_plan_version,
+        explicit_grants=entitlement_service,
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
@@ -322,6 +329,8 @@ def create_infrastructure_runtime(
         news_event_store=news_event_store,
         news_ingestion_service=news_ingestion_service,
         subscription_store=subscription_store,
+        entitlement_store=entitlement_store,
+        entitlement_service=entitlement_service,
         entitlement_evaluator=entitlement_evaluator,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
