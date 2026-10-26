@@ -13,6 +13,9 @@ from app.application.notifications.telegram_account_linking import TelegramAccou
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
+from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
@@ -107,6 +110,8 @@ class InfrastructureRuntime:
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
+    owner_dashboard_overview: GetOwnerDashboardOverview | None = None
+    session_opportunity_report_store: SQLiteSessionOpportunityReportStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -273,6 +278,13 @@ def create_infrastructure_runtime(
             transport=telegram_notification_provider,
         )
 
+    session_opportunity_report_store = SQLiteSessionOpportunityReportStore(config.analysis_database_path)
+    owner_dashboard_overview = GetOwnerDashboardOverview(
+        SQLiteOwnerDashboardReadStore(config.analysis_database_path),
+        telegram_configured=telegram_notification_provider is not None,
+        news_source_configured=news_ingestion_service is not None,
+    )
+
     if has_telegram_token and has_telegram_chat_id:
         assert telegram_notification_provider is not None
         delivery_store = SQLiteAlertDeliveryStore(config.analysis_database_path)
@@ -346,4 +358,6 @@ def create_infrastructure_runtime(
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
         build_session_opportunity_ledger=build_session_opportunity_ledger,
+        owner_dashboard_overview=owner_dashboard_overview,
+        session_opportunity_report_store=session_opportunity_report_store,
     )
