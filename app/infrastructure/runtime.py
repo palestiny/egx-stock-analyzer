@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
-from app.application.alerts.outbox import AlertOutbox
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
