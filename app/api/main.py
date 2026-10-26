@@ -656,6 +656,15 @@ def create_app(
             raise HTTPException(status_code=400, detail="Invalid Telegram update") from None
         if not isinstance(update, dict):
             return {"ok": True}
+        raw_update_id = update.get("update_id")
+        if not isinstance(raw_update_id, (str, int)) or not str(raw_update_id).strip():
+            return {"ok": True}
+        webhook_now = datetime.now(timezone.utc)
+        if not telegram_account_linking.claim_webhook_update(
+            str(raw_update_id),
+            now=webhook_now,
+        ):
+            return {"ok": True, "duplicate": True}
         message = update.get("message")
         if not isinstance(message, dict):
             return {"ok": True}
@@ -682,7 +691,7 @@ def create_app(
             linked_user_id = telegram_account_linking.consume(
                 parts[1].strip(),
                 chat_id,
-                now=datetime.now(timezone.utc),
+                now=webhook_now,
             )
         except TelegramChatAlreadyLinked:
             telegram_notification_provider.send_message(
