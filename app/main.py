@@ -76,6 +76,9 @@ def create_application(
             else None
         ),
         build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
+        telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
+        telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
+        telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan

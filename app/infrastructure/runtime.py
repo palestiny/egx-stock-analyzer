@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
+from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
@@ -68,6 +70,8 @@ class InfrastructureRuntime:
     automatic_alert_delivery: AutomaticAlertDelivery | None = None
     run_configured_market_analysis_with_automatic_alert_delivery: RunConfiguredMarketAnalysisWithAutomaticAlertDelivery | None = None
     telegram_notification_provider: TelegramNotificationProvider | None = None
+    telegram_account_linking: TelegramAccountLinkingService | None = None
+    telegram_webhook_secret: str | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
@@ -173,12 +177,25 @@ def create_infrastructure_runtime(
 
     has_telegram_token = config.telegram_bot_token is not None
     has_telegram_chat_id = config.telegram_chat_id is not None
-    if has_telegram_token != has_telegram_chat_id:
-        raise ValueError(
-            "Telegram bot token and chat ID must be configured together"
-        )
+    if has_telegram_chat_id and not has_telegram_token:
+        raise ValueError("Telegram chat ID requires a bot token")
+    if config.telegram_webhook_secret is not None and not config.telegram_webhook_secret.strip():
+        raise ValueError("Telegram webhook secret cannot be empty")
+    if config.telegram_webhook_secret is not None and not has_telegram_token:
+        raise ValueError("Telegram webhook secret requires a bot token")
 
-    telegram_notification_provider = None
+    telegram_account_linking = TelegramAccountLinkingService(
+        SQLiteTelegramAccountLinkStore(config.analysis_database_path)
+    )
+    telegram_notification_provider = (
+        TelegramNotificationProvider(
+            config.telegram_bot_token,
+            config.telegram_chat_id,
+            timeout=config.telegram_timeout_seconds,
+        )
+        if has_telegram_token and config.telegram_bot_token is not None
+        else None
+    )
     deliver_alert = None
     deliver_alert_by_symbol = None
     automatic_alert_delivery = None
@@ -190,13 +207,7 @@ def create_infrastructure_runtime(
     get_scheduled_workflow_execution_history = GetScheduledWorkflowExecutionHistory(workflow_store)
     get_scheduled_workflow_history = GetScheduledWorkflowHistory(workflow_store)
     if has_telegram_token and has_telegram_chat_id:
-        assert config.telegram_bot_token is not None
-        assert config.telegram_chat_id is not None
-        telegram_notification_provider = TelegramNotificationProvider(
-            config.telegram_bot_token,
-            config.telegram_chat_id,
-            timeout=config.telegram_timeout_seconds,
-        )
+        assert telegram_notification_provider is not None
         delivery_store = SQLiteAlertDeliveryStore(config.analysis_database_path)
         deliver_alert = DeliverAlert(
             store=delivery_store,
@@ -242,6 +253,8 @@ def create_infrastructure_runtime(
             run_configured_market_analysis_with_automatic_alert_delivery
         ),
         telegram_notification_provider=telegram_notification_provider,
+        telegram_account_linking=telegram_account_linking,
+        telegram_webhook_secret=config.telegram_webhook_secret,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
