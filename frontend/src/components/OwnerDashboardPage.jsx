@@ -249,10 +249,9 @@ export function OwnerDashboardPage({
               <div className="session-report-result" role="status">
                 <h3>Session {sessionReport.session_date}</h3>
                 <div className="metrics-grid">
-                  <Metric label="Opportunities" value={sessionReport.opportunities?.length ?? 0} />
+                  <Metric label="Total opportunities" value={sessionReport.total_count ?? sessionReport.opportunities?.length ?? 0} />
                   <Metric label="Resolved market proxies" value={sessionReport.resolved_proxy_count ?? 0} />
                   <Metric label="Unresolved" value={sessionReport.unresolved_count ?? 0} />
-                  <Metric label="Persisted" value={sessionReport.persisted === false ? "No" : "Yes"} />
                 </div>
                 <p className="muted">Methodology: {sessionReport.methodology_version ?? "Unknown"} · Generated: {sessionReport.generated_at ?? "Unknown"}</p>
                 <div className="table-scroll">
