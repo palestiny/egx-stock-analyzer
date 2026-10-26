@@ -99,7 +99,7 @@ from app.application.notifications.telegram_account_linking import (
     TelegramAccountLinkingService,
     TelegramChatAlreadyLinked,
 )
-from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+from app.application.notifications.telegram_message_sender import TelegramMessageSender
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def create_app(
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
     telegram_account_linking: TelegramAccountLinkingService | None = None,
-    telegram_notification_provider: TelegramNotificationProvider | None = None,
+    telegram_notification_provider: TelegramMessageSender | None = None,
     telegram_webhook_secret: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
