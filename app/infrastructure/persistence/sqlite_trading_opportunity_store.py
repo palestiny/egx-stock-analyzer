@@ -310,6 +310,6 @@ class SQLiteTradingOpportunityStore:
                 for item in payload["evidence"]
             ),
             status=OpportunityStatus(str(row[3])),
-            version=int(row[4]),
+            version=int(str(row[4])),
             lifecycle_events=events,
         )
