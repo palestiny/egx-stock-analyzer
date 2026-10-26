@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from uuid import UUID, uuid4
