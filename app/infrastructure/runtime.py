@@ -40,6 +40,7 @@ from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredent
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
 from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
@@ -72,6 +73,7 @@ class InfrastructureRuntime:
     credential_service: CredentialService | None = None
     user_store: SQLiteUserStore | None = None
     user_management: UserManagementService | None = None
+    news_event_store: SQLiteNewsEventStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -99,6 +101,7 @@ def create_infrastructure_runtime(
         raise ValueError("EGX_OPERATOR_TOKEN must be configured")
 
     result_store = result_store or SQLiteAnalysisResultStore(config.analysis_database_path)
+    news_event_store = SQLiteNewsEventStore(config.analysis_database_path)
     analysis_run_store = analysis_run_store or SQLiteAnalysisRunStore(config.analysis_database_path)
     retry_policy = retry_policy or RetryPolicy(1)
 
@@ -228,4 +231,5 @@ def create_infrastructure_runtime(
         credential_service=credential_service,
         user_store=user_store,
         user_management=user_management,
+        news_event_store=news_event_store,
     )
