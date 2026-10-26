@@ -79,6 +79,7 @@ class InfrastructureRuntime:
     user_store: SQLiteUserStore | None = None
     user_management: UserManagementService | None = None
     news_event_store: SQLiteNewsEventStore | None = None
+    news_ingestion_service: NewsIngestionService | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -259,4 +260,5 @@ def create_infrastructure_runtime(
         user_store=user_store,
         user_management=user_management,
         news_event_store=news_event_store,
+        news_ingestion_service=news_ingestion_service,
     )
