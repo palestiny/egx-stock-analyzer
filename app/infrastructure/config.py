@@ -24,9 +24,6 @@ class InfrastructureConfig:
     news_rss_feed_url: str | None = None
     news_rss_source_name: str = "Configured EGX News Feed"
     news_rss_source_type: str = "other"
-    news_rss_feed_url: str | None = None
-    news_rss_source_name: str = "Configured EGX News Feed"
-    news_rss_source_type: str = "other"
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -56,13 +53,6 @@ class InfrastructureConfig:
             automatic_retention_batch_limit=int(
                 os.getenv("EGX_AUTOMATIC_RETENTION_BATCH_LIMIT", "100")
             ),
-            news_rss_feed_url=(os.getenv("EGX_NEWS_RSS_URL") or "").strip() or None,
-            news_rss_source_name=os.getenv(
-                "EGX_NEWS_RSS_SOURCE_NAME", "Configured EGX News Feed"
-            ).strip(),
-            news_rss_source_type=os.getenv(
-                "EGX_NEWS_RSS_SOURCE_TYPE", "other"
-            ).strip(),
             news_rss_feed_url=(os.getenv("EGX_NEWS_RSS_URL") or "").strip() or None,
             news_rss_source_name=os.getenv(
                 "EGX_NEWS_RSS_SOURCE_NAME", "Configured EGX News Feed"
