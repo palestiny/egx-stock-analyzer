@@ -137,6 +137,8 @@ class SQLiteEntitlementStore(EntitlementStore):
                 "SELECT * FROM entitlement_grants WHERE grant_id = ?",
                 (str(grant_id),),
             ).fetchone()
+        if updated is None:
+            raise RuntimeError("revoked entitlement grant disappeared")
         return self._to_grant(updated)
 
     def get(self, grant_id: UUID) -> EntitlementGrant | None:
@@ -160,7 +162,7 @@ class SQLiteEntitlementStore(EntitlementStore):
         return tuple(self._to_grant(row) for row in rows)
 
     @staticmethod
-    def _grant_values(grant: EntitlementGrant) -> tuple[str, ...]:
+    def _grant_values(grant: EntitlementGrant) -> tuple[str | None, ...]:
         return (
             str(grant.grant_id),
             str(grant.user_id),
