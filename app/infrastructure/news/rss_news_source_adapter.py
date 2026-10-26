@@ -15,6 +15,7 @@ from app.domain.news.event import NewsEvent, NewsEventCategory, NewsSourceType
 
 
 _MAX_FEED_BYTES = 2 * 1024 * 1024
+_MAX_FEED_ENTRIES = 500
 _DEFAULT_TIMEOUT_SECONDS = 10.0
 _ATOM_NAMESPACE = "{http://www.w3.org/2005/Atom}"
 
@@ -44,8 +45,8 @@ class RssNewsSourceAdapter:
             raise ValueError("news feed URL must be an absolute HTTPS URL")
         if not source_name.strip():
             raise ValueError("source_name cannot be empty")
-        if not timeout_seconds > 0:
-            raise ValueError("timeout_seconds must be positive")
+        if not 0.1 <= timeout_seconds <= 60:
+            raise ValueError("timeout_seconds must be between 0.1 and 60 seconds")
 
         self._source_name = source_name.strip()
         self._source_type = source_type
@@ -78,7 +79,7 @@ class RssNewsSourceAdapter:
         raw = self._fetch_bytes(self._feed_url, self._timeout, _MAX_FEED_BYTES)
         if len(raw) > _MAX_FEED_BYTES:
             raise ValueError("news feed exceeds the configured size limit")
-        upper = raw[:4096].upper()
+        upper = raw.upper()
         if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:
             raise ValueError("DTD and entity declarations are not accepted")
         try:
@@ -87,7 +88,7 @@ class RssNewsSourceAdapter:
             raise ValueError("news feed is not valid RSS/Atom XML") from error
 
         events: list[NewsEvent] = []
-        for entry in self._entries(root):
+        for entry in self._entries(root)[:_MAX_FEED_ENTRIES]:
             title = self._child_text(entry, "title")
             if not title:
                 continue
