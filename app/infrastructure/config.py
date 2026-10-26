@@ -34,13 +34,13 @@ class InfrastructureConfig:
             ),
             operator_token=os.getenv("EGX_OPERATOR_TOKEN"),
             user_bearer_tokens=user_bearer_tokens,
-            telegram_bot_token=os.getenv("EGX_TELEGRAM_BOT_TOKEN"),
-            telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
-            telegram_webhook_secret=os.getenv("EGX_TELEGRAM_WEBHOOK_SECRET"),
-            default_subscription_plan_id=os.getenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_ID"),
+            telegram_bot_token=_optional_env("EGX_TELEGRAM_BOT_TOKEN"),
+            telegram_chat_id=_optional_env("EGX_TELEGRAM_CHAT_ID"),
+            telegram_webhook_secret=_optional_env("EGX_TELEGRAM_WEBHOOK_SECRET"),
+            default_subscription_plan_id=_optional_env("EGX_DEFAULT_SUBSCRIPTION_PLAN_ID"),
             default_subscription_plan_version=(
-                int(os.environ["EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION"])
-                if os.getenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION") is not None
+                int(version)
+                if (version := _optional_env("EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION")) is not None
                 else None
             ),
             telegram_timeout_seconds=float(
@@ -59,6 +59,11 @@ class InfrastructureConfig:
                 os.getenv("EGX_AUTOMATIC_RETENTION_BATCH_LIMIT", "100")
             ),
         )
+
+
+def _optional_env(name: str) -> str | None:
+    value = os.getenv(name)
+    return value.strip() if value and value.strip() else None
 
 
 def _parse_user_bearer_tokens(raw: str | None) -> dict[str, UUID]:
