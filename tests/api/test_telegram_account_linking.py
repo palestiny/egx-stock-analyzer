@@ -8,6 +8,7 @@ from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
+from app.application.security.identity import LEGACY_OPERATOR_USER_ID
 from app.api.main import create_app
 
 
@@ -91,10 +92,7 @@ def test_telegram_webhook_requires_secret_and_links_chat(tmp_path):
     )
     assert accepted.status_code == 200
     assert accepted.json() == {"ok": True}
-    assert linking.get_chat_id(
-        # The legacy operator identity is the authenticated test principal.
-        __import__("app.application.security.identity", fromlist=["LEGACY_OPERATOR_USER_ID"]).LEGACY_OPERATOR_USER_ID
-    ) == "987654321"
+    assert linking.get_chat_id(LEGACY_OPERATOR_USER_ID) == "987654321"
     assert len(sent_requests) == 1
     assert json.loads(sent_requests[0].content)["chat_id"] == "987654321"
     assert "now linked" in json.loads(sent_requests[0].content)["text"]
