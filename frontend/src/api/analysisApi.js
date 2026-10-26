@@ -267,3 +267,12 @@ export function getUserAuditHistory(filters = {}) {
     "User audit history request",
   );
 }
+
+
+export function getTechnicalIndicatorHistory(symbol, limit = 250) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return getJson(
+    "/api/v1/technical-indicators/" + encodeURIComponent(symbol) + "?" + params.toString(),
+    "Technical indicator history request",
+  );
+}
