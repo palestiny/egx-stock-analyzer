@@ -13,8 +13,8 @@ from app.api.market_intelligence_routes import create_market_intelligence_router
 from app.api.user_management_routes import create_user_management_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
-from app.application.news.store import NewsEventStore
 from app.application.news.ingestion import NewsIngestionService
+from app.application.news.store import NewsEventStore
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
@@ -568,6 +568,74 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(error)) from error
         return StockResearchResponse.from_view(view).to_dict()
 
+    @app.post("/api/v1/market-analysis")
+    def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
+        if run_configured_market_analysis is None:
+            raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
+
+        try:
+            execution = run_configured_market_analysis.execute(
+                egx_today(),
+                owner_user_id=identity.user_id if Permission.OPERATOR not in identity.permissions else None,
+            )
+        except Exception as error:
+            logger.exception("Market-wide analysis execution failed", exc_info=error)
+            raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
+
+        response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
+        return asdict(response)
+
+    @app.get("/api/v1/opportunities")
+    def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if get_market_opportunity_ranking is None:
+            raise HTTPException(status_code=503, detail="Market opportunity reporting is not configured")
+
+        requested_symbols = [
+            symbol.strip().upper()
+            for symbol in symbols.split(",")
+            if symbol.strip()
+        ]
+
+        try:
+            view = get_market_opportunity_ranking.execute(requested_symbols)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        response = MarketOpportunityViewResponse.from_view(view)
+        return asdict(response)
+    @app.post("/api/v1/alerts/{symbol}/deliver")
+    def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if deliver_alert_by_symbol is None:
+            raise HTTPException(status_code=503, detail="Alert delivery is not configured")
+
+        try:
+            record = deliver_alert_by_symbol.execute(symbol, channel)
+        except AlertCandidateNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        response = AlertDeliveryResponse.from_record(record)
+        return asdict(response)
+
+    @app.get("/api/v1/alerts/{symbol}")
+    def get_alert(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
+        if get_alert_candidate is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Alert reporting is not configured",
+            )
+
+        candidate = get_alert_candidate.execute(symbol)
+        if candidate is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Alert candidate not found for {symbol}",
+            )
+
+        response = AlertCandidateResponse.from_candidate(candidate)
+        return asdict(response)
+
     @app.post("/api/v1/news/ingest")
     def ingest_news_events_route(
         since: datetime | None = None,
@@ -643,72 +711,5 @@ def create_app(
             ],
         }
 
-    @app.post("/api/v1/market-analysis")
-    def run_market_analysis(identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
-        if run_configured_market_analysis is None:
-            raise HTTPException(status_code=503, detail="Market analysis execution is not configured")
-
-        try:
-            execution = run_configured_market_analysis.execute(
-                egx_today(),
-                owner_user_id=identity.user_id if Permission.OPERATOR not in identity.permissions else None,
-            )
-        except Exception as error:
-            logger.exception("Market-wide analysis execution failed", exc_info=error)
-            raise HTTPException(status_code=500, detail="Market-wide analysis execution failed") from error
-
-        response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
-        return asdict(response)
-
-    @app.get("/api/v1/opportunities")
-    def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        if get_market_opportunity_ranking is None:
-            raise HTTPException(status_code=503, detail="Market opportunity reporting is not configured")
-
-        requested_symbols = [
-            symbol.strip().upper()
-            for symbol in symbols.split(",")
-            if symbol.strip()
-        ]
-
-        try:
-            view = get_market_opportunity_ranking.execute(requested_symbols)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-
-        response = MarketOpportunityViewResponse.from_view(view)
-        return asdict(response)
-    @app.post("/api/v1/alerts/{symbol}/deliver")
-    def deliver_alert(symbol: str, channel: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        if deliver_alert_by_symbol is None:
-            raise HTTPException(status_code=503, detail="Alert delivery is not configured")
-
-        try:
-            record = deliver_alert_by_symbol.execute(symbol, channel)
-        except AlertCandidateNotFoundError as error:
-            raise HTTPException(status_code=404, detail=str(error)) from error
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error)) from error
-
-        response = AlertDeliveryResponse.from_record(record)
-        return asdict(response)
-
-    @app.get("/api/v1/alerts/{symbol}")
-    def get_alert(symbol: str, _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
-        if get_alert_candidate is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Alert reporting is not configured",
-            )
-
-        candidate = get_alert_candidate.execute(symbol)
-        if candidate is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Alert candidate not found for {symbol}",
-            )
-
-        response = AlertCandidateResponse.from_candidate(candidate)
-        return asdict(response)
 
     return app
