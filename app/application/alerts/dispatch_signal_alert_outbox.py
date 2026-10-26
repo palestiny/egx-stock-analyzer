@@ -14,9 +14,19 @@ from app.application.notifications.telegram_account_linking import (
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.signals.store import SignalHistoryStore
-from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+from app.application.subscriptions.entitlement_evaluator import EntitlementDecision
 from app.domain.alerts.model import AlertEventType
 from app.domain.signals.model import Signal
+
+
+class EntitlementAccessEvaluator(Protocol):
+    def evaluate(
+        self,
+        user_id: object,
+        entitlement_code: str,
+        *,
+        now: datetime,
+    ) -> EntitlementDecision: ...
 
 
 class TelegramRecipientDirectory(Protocol):
@@ -44,7 +54,7 @@ class DispatchSignalAlertOutbox:
         recipients: TelegramRecipientDirectory,
         deliveries: SignalAlertDeliveryStore,
         history: SignalHistoryStore,
-        entitlements: EntitlementEvaluator,
+        entitlements: EntitlementAccessEvaluator,
         transport: TelegramMessageSender,
     ) -> None:
         self._outbox = outbox
