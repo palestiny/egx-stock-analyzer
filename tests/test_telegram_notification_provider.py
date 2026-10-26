@@ -104,3 +104,55 @@ def test_telegram_provider_requires_configuration():
 
     with pytest.raises(ValueError, match="timeout"):
         TelegramNotificationProvider(TOKEN, CHAT_ID, timeout=0)
+
+
+def test_telegram_provider_can_send_to_an_explicit_recipient():
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"ok": True, "result": {"message_id": 2}})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = TelegramNotificationProvider(TOKEN, CHAT_ID, client=client)
+
+    provider.send_message("recipient-chat-42", "Opportunity invalidated: COMI")
+
+    assert len(requests) == 1
+    payload = json.loads(requests[0].content)
+    assert payload["chat_id"] == "recipient-chat-42"
+    assert payload["text"] == "Opportunity invalidated: COMI"
+
+
+def test_telegram_provider_rejects_empty_explicit_recipient_or_message():
+    provider = TelegramNotificationProvider(
+        TOKEN,
+        CHAT_ID,
+        client=httpx.Client(transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, json={"ok": True})
+        )),
+    )
+
+    with pytest.raises(ValueError, match="chat ID"):
+        provider.send_message("  ", "Message")
+    with pytest.raises(ValueError, match="message"):
+        provider.send_message("recipient-chat-42", "  ")
+
+
+def test_telegram_provider_does_not_echo_token_from_provider_error():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"ok": False, "description": f"invalid {TOKEN}"},
+        )
+
+    provider = TelegramNotificationProvider(
+        TOKEN,
+        CHAT_ID,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    with pytest.raises(TelegramNotificationProviderError) as error:
+        provider.send_message("recipient-chat-42", "Message")
+
+    assert TOKEN not in str(error.value)
