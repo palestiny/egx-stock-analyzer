@@ -14,6 +14,7 @@ from app.api.user_management_routes import create_user_management_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 from app.application.news.store import NewsEventStore
+from app.application.news.ingestion import NewsIngestionService
 
 from app.api.auth_rate_limit import AuthenticationRateLimiter
 from app.api.alert_candidate_response import AlertCandidateResponse
@@ -133,6 +134,7 @@ def create_app(
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
     news_event_store: NewsEventStore | None = None,
+    news_ingestion_service: NewsIngestionService | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -523,6 +525,35 @@ def create_app(
         except StockResearchNotFoundError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
         return StockResearchResponse.from_view(view).to_dict()
+
+    @app.post("/api/v1/news/ingest")
+    def ingest_news_events_route(
+        since: datetime | None = None,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if Permission.OPERATOR not in identity.permissions:
+            raise HTTPException(status_code=403, detail="Operator permission is required")
+        if news_ingestion_service is None:
+            raise HTTPException(
+                status_code=503,
+                detail="News ingestion is not configured; set EGX_NEWS_RSS_URL to an approved HTTPS feed",
+            )
+        if since is not None and (since.tzinfo is None or since.utcoffset() is None):
+            raise HTTPException(status_code=422, detail="since must include a timezone")
+        try:
+            summary = news_ingestion_service.ingest(since)
+        except (ValueError, OSError, TimeoutError) as error:
+            logger.warning("Configured news feed ingestion failed: %s", error.__class__.__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Configured news source could not be ingested",
+            ) from error
+        return {
+            "source_name": summary.source_name,
+            "fetched": summary.fetched,
+            "inserted": summary.inserted,
+            "duplicates": summary.duplicates,
+        }
 
     @app.get("/api/v1/news/events")
     def get_news_events_route(
