@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
@@ -51,6 +52,7 @@ from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredent
 from app.infrastructure.persistence.sqlite_analysis_result_store import (
     SQLiteAnalysisResultStore,
 )
+from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
 from app.infrastructure.persistence.sqlite_analysis_run_store import SQLiteAnalysisRunStore
 from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLiteAnalysisLifecycleStore
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
@@ -82,6 +84,7 @@ class InfrastructureRuntime:
     telegram_webhook_secret: str | None = None
     subscription_store: SQLiteSubscriptionStore | None = None
     entitlement_evaluator: EntitlementEvaluator | None = None
+    owner_dashboard_overview: GetOwnerDashboardOverview | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
@@ -269,6 +272,11 @@ def create_infrastructure_runtime(
             store=workflow_store,
         )
 
+    owner_dashboard_overview = GetOwnerDashboardOverview(
+        SQLiteOwnerDashboardReadStore(config.analysis_database_path),
+        telegram_configured=telegram_notification_provider is not None,
+    )
+
     return InfrastructureRuntime(
         application_runtime=application_runtime,
         market_data_provider=market_data_provider,
@@ -287,6 +295,7 @@ def create_infrastructure_runtime(
         telegram_webhook_secret=config.telegram_webhook_secret,
         subscription_store=subscription_store,
         entitlement_evaluator=entitlement_evaluator,
+        owner_dashboard_overview=owner_dashboard_overview,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
