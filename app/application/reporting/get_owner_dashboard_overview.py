@@ -13,6 +13,7 @@ class OwnerDashboardReadStore(Protocol):
 class GetOwnerDashboardOverview:
     store: OwnerDashboardReadStore
     telegram_configured: bool
+    news_source_configured: bool = False
 
     def execute(self, *, as_of: datetime | None = None) -> dict[str, Any]:
         cutoff = as_of or datetime.now(timezone.utc)
@@ -23,6 +24,6 @@ class GetOwnerDashboardOverview:
             **result,
             "integrations": {
                 "telegram_transport_configured": self.telegram_configured,
-                "news_source_configured": bool(result["availability"]["news_events"]),
+                "news_source_configured": self.news_source_configured,
             },
         }
