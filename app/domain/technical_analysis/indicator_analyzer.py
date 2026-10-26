@@ -64,6 +64,7 @@ class TechnicalIndicatorAnalyzer:
             lows,
             closes,
         )
+        # A pivot becomes observable only after its right-side confirmation bars close.
         swings = detect_swing_points(highs, lows, left_bars=2, right_bars=2)
         confirmed_swings_by_index: list[list[tuple[str, Decimal]]] = [
             [] for _ in price_bars
