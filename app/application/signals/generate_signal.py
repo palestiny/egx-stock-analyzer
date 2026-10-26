@@ -26,6 +26,11 @@ class GenerateSignal:
         record = self.result_store.get_record(normalized)
         if record is None:
             return None
+        # An undated saved snapshot cannot support a trustworthy signal timestamp.
+        # Do not replace missing provenance with today's date.
+        if record.analysis_date is None:
+            return None
+
         result = record.result
         entry = result.entry_context
         current_price = entry.current_price
@@ -34,7 +39,7 @@ class GenerateSignal:
         current = current_price.value
         technical = result.technical_analysis
         now = datetime.combine(
-            record.analysis_date or datetime.now(timezone.utc).date(),
+            record.analysis_date,
             time.min,
             tzinfo=timezone.utc,
         )
