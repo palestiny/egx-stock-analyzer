@@ -106,4 +106,4 @@ def test_news_rss_is_disabled_by_default() -> None:
     config = InfrastructureConfig()
 
     assert config.news_rss_feed_url is None
-    assert config.news_rss_source_type == "exchange_disclosure"
+    assert config.news_rss_source_type == "other"
