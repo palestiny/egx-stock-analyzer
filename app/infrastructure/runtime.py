@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
@@ -8,6 +9,7 @@ from app.application.reporting.build_session_opportunity_ledger import BuildSess
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
@@ -72,6 +74,8 @@ class InfrastructureRuntime:
     telegram_notification_provider: TelegramNotificationProvider | None = None
     telegram_account_linking: TelegramAccountLinkingService | None = None
     telegram_webhook_secret: str | None = None
+    subscription_store: SQLiteSubscriptionStore | None = None
+    entitlement_evaluator: EntitlementEvaluator | None = None
     automatic_workflow_recovery: AutomaticWorkflowRecovery | None = None
     get_scheduled_workflow_executions: GetScheduledWorkflowExecutions | None = None
     get_scheduled_workflow_execution_history: GetScheduledWorkflowExecutionHistory | None = None
@@ -148,6 +152,12 @@ def create_infrastructure_runtime(
     )
 
     signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
+    subscription_store = SQLiteSubscriptionStore(config.analysis_database_path)
+    entitlement_evaluator = EntitlementEvaluator(
+        subscription_store,
+        default_plan_id=config.default_subscription_plan_id,
+        default_plan_version=config.default_subscription_plan_version,
+    )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
     signal_lifecycle_orchestrator = SignalLifecycleOrchestrator(
@@ -255,6 +265,8 @@ def create_infrastructure_runtime(
         telegram_notification_provider=telegram_notification_provider,
         telegram_account_linking=telegram_account_linking,
         telegram_webhook_secret=config.telegram_webhook_secret,
+        subscription_store=subscription_store,
+        entitlement_evaluator=entitlement_evaluator,
         automatic_workflow_recovery=automatic_workflow_recovery,
         get_scheduled_workflow_executions=get_scheduled_workflow_executions,
         get_scheduled_workflow_execution_history=get_scheduled_workflow_execution_history,
