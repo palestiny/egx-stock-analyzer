@@ -20,6 +20,7 @@ from app.domain.technical_analysis.indicators import (
 from app.domain.technical_analysis.price_action import detect_candlestick_patterns
 
 
+# Keep candle detection behind the PriceBar-based adapter in price_action.py.
 class TechnicalIndicatorAnalyzer:
     @staticmethod
     def analyze(price_bars: list[PriceBar]) -> TechnicalIndicatorEvidence:
