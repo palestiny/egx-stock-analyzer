@@ -23,6 +23,15 @@ const point = {
   fibonacci_extension_direction: "up",
   fibonacci_extension_anchor_indices: [1, 2, 5],
   fibonacci_extensions: [["1.618", "120"]],
+  elliott_candidates: [{
+    start_index: 2,
+    end_index: 17,
+    candidate: { direction: "up", points: ["10", "20", "13", "25", "22", "30"] },
+    is_rule_consistent: true,
+    rule_violations: [],
+    warnings: [],
+    wave_two_invalidation_price: "10",
+  }],
 };
 
 describe("TechnicalIndicatorPanel", () => {
@@ -48,6 +57,9 @@ describe("TechnicalIndicatorPanel", () => {
     expect(screen.getByText("Bollinger upper")).toBeTruthy();
     expect(screen.getByText("Fibonacci retracement")).toBeTruthy();
     expect(screen.getByText("Fibonacci extension")).toBeTruthy();
+    expect(screen.getByText("Elliott wave candidates")).toBeTruthy();
+    expect(screen.getByText(/UP · pivots 2–17/)).toBeTruthy();
+    expect(screen.getByText(/Invalidation 10.00/)).toBeTruthy();
     expect(screen.getByText("HIGH 101.00")).toBeTruthy();
     expect(screen.getByText("50.0%")).toBeTruthy();
     expect(screen.getByText("161.8%")).toBeTruthy();
