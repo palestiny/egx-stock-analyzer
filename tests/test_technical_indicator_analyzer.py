@@ -114,3 +114,31 @@ def test_indicator_analyzer_exposes_swings_only_after_confirmation_and_fibonacci
     assert evidence.points[5].fibonacci_direction == "down"
     assert evidence.points[5].fibonacci_anchor_indices == (3, 2)
     assert len(evidence.points[5].fibonacci_retracements) == 5
+
+
+
+def test_indicator_analyzer_projects_extensions_only_after_three_confirmed_swings() -> None:
+    stock_id = uuid4()
+    start = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    highs = tuple(Decimal(value) for value in ("12", "11", "10", "14", "16", "13", "12", "13", "14"))
+    lows = tuple(Decimal(value) for value in ("8", "7", "5", "8", "9", "8", "6", "7", "8"))
+    sample = []
+    for index, (high, low) in enumerate(zip(highs, lows)):
+        close = (high + low) / Decimal("2")
+        sample.append(PriceBar.create(
+            stock_id=stock_id,
+            timeframe=Timeframe.DAILY,
+            timestamp=start + timedelta(days=index),
+            open=Price(close),
+            high=Price(high),
+            low=Price(low),
+            close=Price(close),
+            volume=Volume(1000),
+        ))
+
+    evidence = TechnicalIndicatorAnalyzer.analyze(sample)
+
+    assert evidence.points[7].fibonacci_extension_direction is None
+    assert evidence.points[8].fibonacci_extension_direction == "up"
+    assert evidence.points[8].fibonacci_extension_anchor_indices == (2, 4, 6)
+    assert len(evidence.points[8].fibonacci_extensions) == 5
