@@ -1,6 +1,6 @@
 # Comprehensive Technical & News Intelligence — Design Gate
 
-**Status:** Design proposal; implementation not started  
+**Status:** Design accepted as a proposal; implementation is in progress on stacked draft PRs and is not merged to `main`  
 **Milestone:** Proposed follow-on to M61, not a replacement for M61  
 **Branch:** `design/comprehensive-technical-news-analysis`  
 **Scope:** EGX equities, daily analysis first, multi-timeframe extensions when source coverage supports them
@@ -41,6 +41,18 @@ The current `main` source tree was inspected before proposing implementation:
 - The inspected `app/domain/technical_analysis` tree contains no dedicated news/event, candlestick-pattern, Fibonacci, or Elliott Wave module at this baseline.
 
 **Implication:** the first increment is not “turn on all indicators”; it is to define a small, testable indicator evidence contract and calculate SMA/EMA values from validated, chronologically ordered bars, including explicit warm-up/insufficient-history states. Reuse existing data-quality and domain boundaries rather than duplicating or silently changing the stock-regime endpoint.
+
+## 2.2 Implementation and verification status — 2026-10-26
+
+The following increments now exist as draft PRs; their existence does not mean the feature stack is merged or production-complete:
+
+- **Indicator calculations and price action:** PR #350 adds core indicator/price-action primitives; PR #359 adds confirmed swing pivots; PR #360 adds deterministic candlestick patterns, indicator extensions, Fibonacci extensions, and session VWAP with intraday-session inputs.
+- **Analysis/API integration:** PR #355 adds timestamp-aligned indicator history, API exposure, persistence compatibility, and point-in-time Fibonacci anchors. Its latest observed CI run passed all five jobs after fixing invalid Fibonacci-extension pullback handling.
+- **Elliott candidates:** PR #354 adds deterministic impulse-candidate rules. PR #362 adds candidates to indicator history/API with confirmed-pivot timing and explicit rule diagnostics/invalidation. PR #362's latest unit-test run was still being revalidated after correcting a test-fixture OHLC bound; do not call this integration green until the new run completes.
+- **Dashboard:** PR #357 presents indicator charts, technical metrics, candle evidence, and Fibonacci structure; its latest UI extension adds Elliott candidates and is awaiting CI verification.
+- **News event contract and storage:** PR #353 adds normalized point-in-time event metadata and SQLite storage; PR #361 adds provider-neutral ingestion orchestration; PR #363 adds an authenticated point-in-time news-events API. Their observed CI runs passed.
+- **Important missing production capability:** no live EGX news source adapter has been accepted or wired. The official EGX News Center is visible, but a stable machine-readable endpoint and the terms/rights for automated retrieval have not been verified. Therefore news ingestion can orchestrate an injected adapter and the API can query stored events, but the system must not claim live EGX news coverage yet.
+- **Integration status:** these are stacked draft PRs and none of the above is merged into `main`. Existing signal scoring and Telegram recommendations are intentionally not silently changed by the indicator/news evidence work. M61 historical-data acceptance remains active, so no trading edge or predictive accuracy is established.
 
 ## 3. Proposed capability catalogue
 
