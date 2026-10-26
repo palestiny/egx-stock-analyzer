@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
@@ -85,6 +85,44 @@ class Subscription:
             raise ValueError("payment provider cannot be empty")
         if self.payment_reference is not None and not self.payment_reference.strip():
             raise ValueError("payment reference cannot be empty")
+
+    def transition_to(
+        self,
+        new_status: SubscriptionStatus,
+        *,
+        occurred_at: datetime,
+    ) -> Subscription:
+        _require_aware(occurred_at, "occurred_at")
+        if occurred_at < self.updated_at:
+            raise ValueError("subscription transition time cannot move backwards")
+        allowed = {
+            SubscriptionStatus.PENDING: {
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.CANCELLED,
+                SubscriptionStatus.EXPIRED,
+                SubscriptionStatus.REFUNDED,
+            },
+            SubscriptionStatus.ACTIVE: {
+                SubscriptionStatus.PAST_DUE,
+                SubscriptionStatus.CANCELLED,
+                SubscriptionStatus.EXPIRED,
+                SubscriptionStatus.REFUNDED,
+            },
+            SubscriptionStatus.PAST_DUE: {
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.CANCELLED,
+                SubscriptionStatus.EXPIRED,
+                SubscriptionStatus.REFUNDED,
+            },
+            SubscriptionStatus.CANCELLED: set(),
+            SubscriptionStatus.EXPIRED: set(),
+            SubscriptionStatus.REFUNDED: set(),
+        }
+        if new_status not in allowed[self.status]:
+            raise ValueError(
+                f"Transition from {self.status.value} to {new_status.value} is not allowed"
+            )
+        return replace(self, status=new_status, updated_at=occurred_at)
 
     def grants_access_at(self, now: datetime) -> bool:
         _require_aware(now, "now")
