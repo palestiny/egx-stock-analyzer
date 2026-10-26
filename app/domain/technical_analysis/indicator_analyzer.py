@@ -25,6 +25,7 @@ from app.domain.technical_analysis.price_action_extensions import (
     fibonacci_extensions as project_fibonacci_extensions,
 )
 from app.domain.technical_analysis.price_structure import detect_swing_points
+from app.domain.technical_analysis.elliott import enumerate_impulse_counts
 
 
 class TechnicalIndicatorAnalyzer:
@@ -80,6 +81,7 @@ class TechnicalIndicatorAnalyzer:
                 )
 
         fib_by_index: list[tuple[str | None, tuple[int, int] | None, tuple[tuple[Decimal, Decimal], ...]]] = []
+        elliott_by_index = []
         fib_extensions_by_index: list[tuple[str | None, tuple[int, int, int] | None, tuple[tuple[Decimal, Decimal], ...]]] = []
         visible_swings = []
         for index in range(len(price_bars)):
@@ -87,6 +89,8 @@ class TechnicalIndicatorAnalyzer:
                 swing for swing in swings
                 if swing.index + 2 <= index
             ]
+            # Elliott candidates use only pivots confirmed by this bar; no future bars leak into history.
+            elliott_by_index.append(enumerate_impulse_counts(visible_swings))
             latest_pair = next(
                 (
                     (visible_swings[position - 1], visible_swings[position])
@@ -195,6 +199,7 @@ class TechnicalIndicatorAnalyzer:
                 fibonacci_extension_direction=fib_extensions_by_index[index][0],
                 fibonacci_extension_anchor_indices=fib_extensions_by_index[index][1],
                 fibonacci_extensions=fib_extensions_by_index[index][2],
+                elliott_candidates=elliott_by_index[index],
             )
             for index, bar in enumerate(price_bars)
         )
