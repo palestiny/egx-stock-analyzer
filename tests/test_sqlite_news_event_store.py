@@ -40,6 +40,30 @@ def test_news_store_round_trip_and_idempotent_replay(tmp_path) -> None:
     assert reopened.get(event.event_id) == event
 
 
+def test_news_store_replay_ignores_retrieval_time_but_preserves_first_seen(tmp_path) -> None:
+    store = SQLiteNewsEventStore(tmp_path / "news.db")
+    original = make_event()
+    assert store.upsert(original)
+
+    replay = make_event(
+        event_id=original.event_id,
+        retrieved_at=dt(21, 11),
+        first_seen_at=dt(21, 11),
+    )
+    assert not store.upsert(replay)
+    assert store.get(original.event_id) == original
+
+
+def test_news_store_rejects_changed_content_for_existing_event_id(tmp_path) -> None:
+    store = SQLiteNewsEventStore(tmp_path / "news.db")
+    original = make_event()
+    assert store.upsert(original)
+
+    conflicting = make_event(event_id=original.event_id, title="Changed disclosure title")
+    with pytest.raises(ValueError, match="conflicting news event replay"):
+        store.upsert(conflicting)
+
+
 def test_news_store_deduplicates_content_fingerprint(tmp_path) -> None:
     store = SQLiteNewsEventStore(tmp_path / "news.db")
     first = make_event()
