@@ -100,6 +100,10 @@ from app.application.notifications.telegram_account_linking import (
     TelegramChatAlreadyLinked,
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
+from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
+from app.application.signals.generate_signal import GenerateSignal
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +143,10 @@ def create_app(
     telegram_account_linking: TelegramAccountLinkingService | None = None,
     telegram_notification_provider: TelegramMessageSender | None = None,
     telegram_webhook_secret: str | None = None,
+    generate_signal: GenerateSignal | None = None,
+    publish_signal_opportunity: PublishSignalOpportunity | None = None,
+    dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
+    get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -546,6 +554,69 @@ def create_app(
 
         response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
         return asdict(response)
+
+    @app.get("/api/v1/owner/overview")
+    def get_owner_dashboard_overview_route(
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if get_owner_dashboard_overview is None:
+            raise HTTPException(status_code=503, detail="Owner dashboard reporting is not configured")
+        if as_of is not None and (as_of.tzinfo is None or as_of.utcoffset() is None):
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            return get_owner_dashboard_overview.execute(as_of=as_of)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.post("/api/v1/opportunities/{symbol}/publish")
+    def publish_opportunity_route(
+        symbol: str,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if generate_signal is None or publish_signal_opportunity is None:
+            raise HTTPException(status_code=503, detail="Opportunity publication is not configured")
+        try:
+            signal = generate_signal.execute(symbol)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        if signal is None:
+            raise HTTPException(status_code=404, detail="No actionable signal exists in the latest dated analysis snapshot")
+        now = datetime.now(timezone.utc)
+        try:
+            publication = publish_signal_opportunity.execute(signal, recorded_at=now)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if publication is None:
+            raise HTTPException(status_code=409, detail="This signal is no longer active and cannot be published")
+        return {
+            "signal_id": str(publication.signal_id),
+            "event_id": str(publication.event_id),
+            "queued_new_event": publication.queued_new_event,
+            "recorded_at": now.isoformat(),
+            "delivery": "queued_not_yet_delivered",
+        }
+
+    @app.post("/api/v1/telegram/opportunities/dispatch")
+    def dispatch_telegram_opportunities_route(
+        limit: int = 100,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if dispatch_signal_alert_outbox is None:
+            raise HTTPException(status_code=503, detail="Subscriber-aware Telegram dispatch is not configured")
+        try:
+            result = dispatch_signal_alert_outbox.execute(
+                now=datetime.now(timezone.utc),
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return {
+            "events_processed": result.events_processed,
+            "recipients_delivered": result.recipients_delivered,
+            "recipients_suppressed": result.recipients_suppressed,
+            "recipients_failed": result.recipients_failed,
+        }
 
     @app.get("/api/v1/opportunities")
     def get_opportunities(symbols: str = "", _identity: AuthenticatedIdentity = Depends(require_operator)) -> dict[str, object]:
