@@ -105,7 +105,6 @@ from app.application.alerts.publish_signal_opportunity import PublishSignalOppor
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger, SessionOpportunityReportStore
 from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
-from app.application.signals.generate_signal import GenerateSignal
 
 logger = logging.getLogger(__name__)
 
