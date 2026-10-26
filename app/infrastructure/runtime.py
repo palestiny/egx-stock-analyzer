@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
@@ -76,6 +77,7 @@ class InfrastructureRuntime:
     telegram_account_linking: TelegramAccountLinkingService | None = None
     telegram_account_link_store: SQLiteTelegramAccountLinkStore | None = None
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None
+    publish_signal_opportunity: PublishSignalOpportunity | None = None
     signal_alert_delivery_store: SQLiteSignalAlertDeliveryStore | None = None
     telegram_webhook_secret: str | None = None
     subscription_store: SQLiteSubscriptionStore | None = None
@@ -167,6 +169,10 @@ def create_infrastructure_runtime(
         history=signal_history_store,
         alerts=signal_alert_outbox,
         track_record=signal_track_record_store,
+    )
+    publish_signal_opportunity = PublishSignalOpportunity(
+        history=signal_history_store,
+        outbox=signal_alert_outbox,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -294,4 +300,5 @@ def create_infrastructure_runtime(
         signal_track_record_store=signal_track_record_store,
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
+        publish_signal_opportunity=publish_signal_opportunity,
     )
