@@ -115,3 +115,16 @@ def test_ingestion_rejects_events_claiming_another_source() -> None:
     source = FakeSource((make_event("Different Source"),))
     with pytest.raises(ValueError, match="does not match"):
         NewsIngestionService(source, FakeStore()).ingest()
+
+def test_ingestion_rejects_replay_with_conflicting_event_content() -> None:
+    original = make_event()
+    conflicting = replace(
+        original,
+        title="Changed title under the same event identity",
+        retrieved_at=datetime(2026, 10, 26, 13, tzinfo=timezone.utc),
+    )
+    store = FakeStore()
+    store.upsert(original)
+
+    with pytest.raises(ValueError, match="conflicting news event replay"):
+        store.upsert(conflicting)
