@@ -79,3 +79,16 @@ def test_fibonacci_rejects_invalid_swing(low: str, high: str, direction: str) ->
 def test_candlestick_output_stays_aligned_to_input_bars() -> None:
     bars = [bar("10", "11", "9", "10.5", 1), bar("10.5", "12", "10", "11.5", 2)]
     assert len(detect_candlestick_patterns(bars)) == len(bars)
+
+
+def test_hammer_requires_long_lower_wick_and_small_upper_wick() -> None:
+    result = detect_candlestick_patterns([bar("10", "10.5", "7", "10.2", 3)])
+    assert any(item.pattern is CandlestickPattern.HAMMER for item in result[0])
+
+
+def test_bearish_engulfing_requires_a_bullish_previous_candle() -> None:
+    result = detect_candlestick_patterns([
+        bar("9", "10.5", "8.5", "10", 4),
+        bar("10.2", "11", "8", "8.7", 5),
+    ])
+    assert any(item.pattern is CandlestickPattern.BEARISH_ENGULFING for item in result[1])
