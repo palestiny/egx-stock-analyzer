@@ -105,16 +105,15 @@ def test_sqlite_outbox_tracks_failure_then_success(tmp_path) -> None:
 def test_sqlite_outbox_requires_aware_timestamps_and_positive_limit(tmp_path) -> None:
     store = SQLiteAlertOutbox(tmp_path / "alerts.db")
     event = make_event()
-    naive_event = AlertEvent(
-        event_id=uuid4(),
-        signal_id=event.signal_id,
-        symbol=event.symbol,
-        event_type=event.event_type,
-        occurred_at=datetime(2026, 10, 26, 12, 0),
-        message=event.message,
-    )
-
     with pytest.raises(ValueError, match="occurred_at must be timezone-aware"):
+        naive_event = AlertEvent(
+            event_id=uuid4(),
+            signal_id=event.signal_id,
+            symbol=event.symbol,
+            event_type=event.event_type,
+            occurred_at=datetime(2026, 10, 26, 12, 0),
+            message=event.message,
+        )
         store.publish(naive_event)
     with pytest.raises(ValueError, match="limit must be positive"):
         store.pending(0)
