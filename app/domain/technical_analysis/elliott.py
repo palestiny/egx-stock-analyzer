@@ -1,6 +1,9 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
+
+from app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
 
 
 class ElliottDirection(StrEnum):
@@ -70,11 +73,6 @@ class ElliottImpulseCandidate:
     @property
     def is_rule_consistent(self) -> bool:
         return not self.rule_violations
-
-
-from collections.abc import Sequence
-
-from app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
 
 
 @dataclass(frozen=True)
