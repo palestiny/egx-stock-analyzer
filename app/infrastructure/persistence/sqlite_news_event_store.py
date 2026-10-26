@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 import json
@@ -62,7 +63,13 @@ class SQLiteNewsEventStore(NewsEventStore):
                 (str(event.event_id),),
             ).fetchone()
             if existing is not None:
-                if self._to_event(existing) != event:
+                existing_event = self._to_event(existing)
+                replay = replace(
+                    event,
+                    retrieved_at=existing_event.retrieved_at,
+                    first_seen_at=existing_event.first_seen_at,
+                )
+                if replay != existing_event:
                     raise ValueError("conflicting news event replay")
                 return False
             if event.content_fingerprint is not None:
