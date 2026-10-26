@@ -152,6 +152,45 @@ function PriceStructureEvidence({ latest }) {
   );
 }
 
+function ElliottWaveEvidence({ latest }) {
+  const candidates = latest?.elliott_candidates ?? [];
+
+  return (
+    <div className="indicator-structure">
+      <h4>Elliott wave candidates</h4>
+      {candidates.length === 0 ? (
+        <p className="muted">No confirmed six-pivot impulse candidate is available for this bar.</p>
+      ) : (
+        <ul className="fibonacci-levels">
+          {candidates.map((item) => (
+            <li key={`${item.start_index}-${item.end_index}-${item.candidate.direction}`}>
+              <span>
+                {item.candidate.direction.toUpperCase()} · pivots {item.start_index}–{item.end_index}
+                <br />
+                {item.candidate.points.map(formatValue).join(" → ")}
+                {item.rule_violations.length > 0 && (
+                  <small> · Rule issues: {item.rule_violations.join(", ")}</small>
+                )}
+                {item.warnings.length > 0 && (
+                  <small> · Warnings: {item.warnings.join(", ")}</small>
+                )}
+              </span>
+              <strong>
+                {item.is_rule_consistent ? "Rule-consistent" : "Rule violations"}
+                <br />
+                Invalidation {formatValue(item.wave_two_invalidation_price)}
+              </strong>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted indicator-note">
+        Elliott counts are mechanical candidates based on confirmed swings, not probabilities or forecasts.
+      </p>
+    </div>
+  );
+}
+
 export function TechnicalIndicatorPanel({ history, loading, error }) {
   const points = history?.points ?? [];
   const latest = points.at(-1);
@@ -175,6 +214,7 @@ export function TechnicalIndicatorPanel({ history, loading, error }) {
             ))}
           </div>
           <PriceStructureEvidence latest={latest} />
+          <ElliottWaveEvidence latest={latest} />
           <div className="detail-row">
             <span>Latest candle evidence</span>
             <strong>{latest?.candlestick_patterns?.length ? latest.candlestick_patterns.join(", ") : "No recognized pattern"}</strong>
