@@ -51,4 +51,4 @@ The GET endpoint supports symbol, timezone-aware `as_of`, minimum entity-match c
 
 ## Operational limits
 
-The current implementation supports explicit ingestion and authenticated querying. Automatic polling/scheduling, a verified EGX session calendar/data-finalization trigger, a market-wide post-session report, and Telegram delivery of that report are separate features and must not be represented as complete until implemented and tested. Live-source tests are intentionally excluded from deterministic CI.
+The adapter enforces a 2 MB payload limit, a 0.1–60 second timeout bound, rejects DTD/entity declarations across the full payload, and processes at most 500 entries per poll. The current implementation supports explicit operator-triggered ingestion and authenticated querying. Automatic polling/scheduling, a verified EGX session calendar/data-finalization trigger, a market-wide post-session report, and Telegram delivery of that report are separate features and must not be represented as complete until implemented and tested. Live-source tests are intentionally excluded from deterministic CI.
