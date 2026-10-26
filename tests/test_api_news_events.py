@@ -208,4 +208,4 @@ def test_news_ingestion_route_requires_operator_permission() -> None:
         )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Operator permission is required"
+    assert response.json()["detail"] == "Forbidden"
