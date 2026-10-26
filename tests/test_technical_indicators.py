@@ -85,7 +85,7 @@ def test_rsi_is_fifty_when_all_changes_are_zero() -> None:
     )
 
 
-def test_rsi_is_one_hundred_when_average_loss_is_zero() -> None:
+def test_rsi_is_zero_when_average_gain_is_zero() -> None:
     assert relative_strength_index(d("5", "4", "3", "2"), 3) == (
         None,
         None,
