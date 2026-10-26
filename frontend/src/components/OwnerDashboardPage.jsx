@@ -19,12 +19,17 @@ export function OwnerDashboardPage({
   getOverview,
   publishOpportunity,
   dispatchOpportunities,
+  createSessionReport,
+  getSessionReport,
   onBack,
 }) {
   const [overview, setOverview] = useState(null);
   const [symbol, setSymbol] = useState("");
   const [publishResult, setPublishResult] = useState(null);
   const [dispatchResult, setDispatchResult] = useState(null);
+  const [sessionDate, setSessionDate] = useState("");
+  const [sessionReport, setSessionReport] = useState(null);
+  const [reportBusy, setReportBusy] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -89,6 +94,38 @@ export function OwnerDashboardPage({
       setError(requestError);
     } finally {
       setDispatching(false);
+    }
+  }
+
+  async function handleCreateSessionReport(event) {
+    event.preventDefault();
+    const normalizedDate = sessionDate.trim();
+    if (!normalizedDate) return;
+    setReportBusy(true);
+    setError(null);
+    setSessionReport(null);
+    try {
+      setSessionReport(await createSessionReport(normalizedDate));
+      await refresh();
+    } catch (requestError) {
+      setError(requestError);
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
+  async function handleReadSessionReport() {
+    const normalizedDate = sessionDate.trim();
+    if (!normalizedDate) return;
+    setReportBusy(true);
+    setError(null);
+    setSessionReport(null);
+    try {
+      setSessionReport(await getSessionReport(normalizedDate));
+    } catch (requestError) {
+      setError(requestError);
+    } finally {
+      setReportBusy(false);
     }
   }
 
@@ -182,6 +219,68 @@ export function OwnerDashboardPage({
                 <Metric label="Delivered" value={dispatchResult.recipients_delivered} />
                 <Metric label="Suppressed" value={dispatchResult.recipients_suppressed} />
                 <Metric label="Failed" value={dispatchResult.recipients_failed} />
+              </div>
+            )}
+          </section>
+
+          <section className="panel" aria-label="session opportunity report">
+            <h2>Session opportunity report</h2>
+            <p className="muted">
+              Generate or load a persisted report for a selected session date. Generate only after confirming the source data for that session is finalized.
+            </p>
+            <form className="symbol-form" onSubmit={handleCreateSessionReport}>
+              <label htmlFor="session-report-date">EGX session date</label>
+              <input
+                id="session-report-date"
+                type="date"
+                value={sessionDate}
+                onChange={(event) => setSessionDate(event.target.value)}
+                required
+              />
+              <button type="submit" disabled={reportBusy || !sessionDate}>
+                {reportBusy ? "Working..." : "Generate and save report"}
+              </button>
+              <button type="button" onClick={handleReadSessionReport} disabled={reportBusy || !sessionDate}>
+                Load saved report
+              </button>
+            </form>
+            <p className="muted">Automatic exchange-calendar scheduling is not enabled; this is an operator-triggered workflow.</p>
+            {sessionReport && (
+              <div className="session-report-result" role="status">
+                <h3>Session {sessionReport.session_date}</h3>
+                <div className="metrics-grid">
+                  <Metric label="Opportunities" value={sessionReport.opportunities?.length ?? 0} />
+                  <Metric label="Resolved market proxies" value={sessionReport.resolved_proxy_count ?? 0} />
+                  <Metric label="Unresolved" value={sessionReport.unresolved_count ?? 0} />
+                  <Metric label="Persisted" value={sessionReport.persisted === false ? "No" : "Yes"} />
+                </div>
+                <p className="muted">Methodology: {sessionReport.methodology_version ?? "Unknown"} · Generated: {sessionReport.generated_at ?? "Unknown"}</p>
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Symbol</th>
+                        <th>Status</th>
+                        <th>Entry zone</th>
+                        <th>Invalidation</th>
+                        <th>Market proxy outcome</th>
+                        <th>Market proxy return</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(sessionReport.opportunities ?? []).map((item) => (
+                        <tr key={item.signal_id}>
+                          <td>{item.symbol}</td>
+                          <td>{item.current_status}</td>
+                          <td>{item.original_entry_lower} – {item.original_entry_upper}</td>
+                          <td>{item.original_invalidation}</td>
+                          <td>{item.market_proxy_outcome ?? "Unresolved"}</td>
+                          <td>{item.market_proxy_return ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </section>
