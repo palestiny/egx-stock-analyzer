@@ -293,6 +293,8 @@ def test_infrastructure_runtime_composes_durable_signal_lifecycle(tmp_path) -> N
     from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
     from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
     from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+    from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+    from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 
     database_path = tmp_path / "analysis.db"
     runtime = create_infrastructure_runtime(
@@ -308,6 +310,8 @@ def test_infrastructure_runtime_composes_durable_signal_lifecycle(tmp_path) -> N
     assert isinstance(runtime.signal_track_record_store, SQLiteTrackRecordStore)
     assert isinstance(runtime.signal_alert_outbox, SQLiteAlertOutbox)
     assert isinstance(runtime.signal_lifecycle_orchestrator, SignalLifecycleOrchestrator)
+    assert isinstance(runtime.subscription_store, SQLiteSubscriptionStore)
+    assert isinstance(runtime.entitlement_evaluator, EntitlementEvaluator)
     runtime.close()
 
     second_runtime = create_infrastructure_runtime(
