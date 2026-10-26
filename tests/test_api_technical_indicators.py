@@ -1,5 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -13,7 +14,6 @@ from app.domain.technical_analysis.indicator_evidence import (
     TechnicalIndicatorEvidence,
     TechnicalIndicatorPoint,
 )
-from tests.test_api_report_contract import make_report_result
 
 
 def indicator_point(day: int) -> TechnicalIndicatorPoint:
@@ -33,14 +33,38 @@ def indicator_point(day: int) -> TechnicalIndicatorPoint:
 
 
 def test_technical_indicator_route_returns_bounded_history() -> None:
-    result = make_report_result()
-    result.technical_analysis.timeframe = Timeframe.DAILY
-    result.technical_analysis.indicators = TechnicalIndicatorEvidence(
-        (indicator_point(1), indicator_point(2), indicator_point(3))
+    result = SimpleNamespace(
+        technical_analysis=SimpleNamespace(
+            timeframe=Timeframe.DAILY,
+            indicators=TechnicalIndicatorEvidence(
+                (indicator_point(1), indicator_point(2), indicator_point(3))
+            ),
+            trend=SimpleNamespace(status=SimpleNamespace(value="uptrend")),
+            momentum=SimpleNamespace(status=SimpleNamespace(value="positive")),
+            volume=SimpleNamespace(status=SimpleNamespace(value="above_average")),
+        ),
+        fundamental_analysis=SimpleNamespace(
+            period_end=date(2026, 6, 30),
+            profitability=SimpleNamespace(status=SimpleNamespace(value="profitable")),
+            liquidity=SimpleNamespace(status=SimpleNamespace(value="above_one")),
+            growth=SimpleNamespace(status=SimpleNamespace(value="positive")),
+        ),
+        stock_quality=SimpleNamespace(
+            technical_score=SimpleNamespace(total_score=26),
+            fundamental_score=SimpleNamespace(total=21),
+            total_score=47,
+        ),
+        entry_context=SimpleNamespace(
+            current_price=SimpleNamespace(value=Decimal("10")),
+            nearest_support=None,
+            nearest_resistance=None,
+        ),
+        entry_quality=SimpleNamespace(total_score=2),
+        opportunity=SimpleNamespace(classification=SimpleNamespace(value="watch")),
     )
     stock = Stock.create("EGAL", "Egypt Aluminum")
     store = InMemoryAnalysisResultStore()
-    store.save("EGAL", result, analysis_date=__import__("datetime").date(2026, 10, 3))
+    store.save("EGAL", result, analysis_date=date(2026, 10, 3))
     app = create_app(
         store,
         get_analysis_report=GetAnalysisReport(InMemoryStockCatalog([stock]), store),
