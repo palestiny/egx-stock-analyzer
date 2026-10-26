@@ -135,3 +135,84 @@ def macd(
             histogram[index] = line[index] - signal_value
 
     return MACDSeries(tuple(line), tuple(signal), tuple(histogram))
+
+
+@dataclass(frozen=True)
+class BollingerBands:
+    upper: IndicatorSeries
+    middle: IndicatorSeries
+    lower: IndicatorSeries
+
+
+def bollinger_bands(
+    values: Sequence[Decimal],
+    period: int = 20,
+    standard_deviations: Decimal = Decimal("2"),
+) -> BollingerBands:
+    """Calculate population-standard-deviation Bollinger bands with aligned warm-up gaps."""
+    samples = _validated_values(values, period)
+    if not standard_deviations.is_finite() or standard_deviations < 0:
+        raise ValueError("standard_deviations must be finite and non-negative")
+    middle = simple_moving_average(samples, period)
+    upper: list[Decimal | None] = [None] * len(samples)
+    lower: list[Decimal | None] = [None] * len(samples)
+
+    for index in range(period - 1, len(samples)):
+        window = samples[index - period + 1:index + 1]
+        mean = sum(window, Decimal("0")) / Decimal(period)
+        variance = sum(((value - mean) ** 2 for value in window), Decimal("0")) / Decimal(period)
+        deviation = variance.sqrt()
+        upper[index] = mean + standard_deviations * deviation
+        lower[index] = mean - standard_deviations * deviation
+
+    return BollingerBands(tuple(upper), middle, tuple(lower))
+
+
+def average_true_range(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    closes: Sequence[Decimal],
+    period: int = 14,
+) -> IndicatorSeries:
+    """Calculate Wilder ATR from aligned high, low, and close observations."""
+    if period < 1:
+        raise ValueError("period must be a positive integer")
+    high_values = tuple(highs)
+    low_values = tuple(lows)
+    close_values = tuple(closes)
+    if not (len(high_values) == len(low_values) == len(close_values)):
+        raise ValueError("highs, lows, and closes must have equal lengths")
+    if any(
+        not value.is_finite()
+        for value in (*high_values, *low_values, *close_values)
+    ):
+        raise ValueError("indicator inputs must be finite Decimal values")
+    for high, low in zip(high_values, low_values):
+        if high < low:
+            raise ValueError("each high must be greater than or equal to its low")
+
+    result: list[Decimal | None] = [None] * len(high_values)
+    true_ranges: list[Decimal] = []
+    for index, (high, low, close) in enumerate(zip(high_values, low_values, close_values)):
+        if index == 0:
+            true_range = high - low
+        else:
+            true_range = max(
+                high - low,
+                abs(high - close_values[index - 1]),
+                abs(low - close_values[index - 1]),
+            )
+        true_ranges.append(true_range)
+
+    if len(true_ranges) < period:
+        return tuple(result)
+
+    previous_atr = sum(true_ranges[:period], Decimal("0")) / Decimal(period)
+    result[period - 1] = previous_atr
+    for index in range(period, len(true_ranges)):
+        previous_atr = (
+            previous_atr * Decimal(period - 1) + true_ranges[index]
+        ) / Decimal(period)
+        result[index] = previous_atr
+
+    return tuple(result)
