@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-from decimal import Decimal
 from typing import Any
 
 from app.application.news.ingestion import NewsIngestionService
