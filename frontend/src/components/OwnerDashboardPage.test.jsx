@@ -89,7 +89,8 @@ describe("OwnerDashboardPage", () => {
 
     expect(await screen.findByText("Events processed")).toBeInTheDocument();
     expect(dispatchOpportunities).toHaveBeenCalledWith(100);
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("0")).toBeInTheDocument();
+    const dispatchResult = screen.getByLabelText("dispatch result");
+    expect(dispatchResult).toHaveTextContent("3");
+    expect(dispatchResult).toHaveTextContent("0");
   });
 });
