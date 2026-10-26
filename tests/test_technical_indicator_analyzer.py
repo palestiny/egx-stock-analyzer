@@ -152,7 +152,7 @@ def test_elliott_candidates_use_only_confirmed_swings_and_expose_invalidation() 
     )
     lows = (
         "12", "11", "10", "11", "12", "14", "15", "14", "13", "14",
-        "15", "20", "23", "24", "22", "24", "25", "26", "25", "24",
+        "15", "20", "23", "22.8", "22", "22.5", "23.5", "26", "25", "24",
     )
     sample = []
     for index, (high_text, low_text) in enumerate(zip(highs, lows)):
