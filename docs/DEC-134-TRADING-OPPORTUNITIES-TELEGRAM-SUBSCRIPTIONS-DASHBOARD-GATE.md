@@ -66,7 +66,7 @@ Do not create a parallel TradingOpportunity aggregate without evidence that the 
 - `app/application/signals/track_record.py` defines `TrackRecordStore`, currently with an in-memory implementation.
 - `app/domain/signals/outcome.py` and `app/application/signals/performance.py` already represent terminal outcomes and descriptive track-record metrics.
 
-The first missing foundation is durable history/outcome persistence and reliable event delivery, not a second signal entity. PR #345 was closed before merge after discovering the overlap. PR #346 proposes SQLite implementations for the existing signal-store contracts; it remains a draft and is not yet accepted or merged.
+The first missing foundation is durable history/outcome persistence and reliable event delivery, not a second signal entity. PR #345 was closed before merge after discovering the overlap. PR #346 now proposes SQLite implementations for the existing signal-history and outcome contracts, a durable alert-event outbox, and runtime composition of these stores with the existing lifecycle orchestrator. It also adds evidence-change invalidation for changes represented in the current Signal fields. It remains a draft and is not yet accepted or merged. Raw-data revision fingerprints and atomic transactions spanning lifecycle history plus outbox are still gaps; do not claim end-to-end delivery reliability until those are addressed.
 
 Extend the existing model only where gaps are verified. Likely additions include:
 - explicit published-version identity and immutable publication snapshots;
