@@ -65,6 +65,14 @@ class SQLiteTelegramAccountLinkStore(TelegramAccountLinkStore):
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS telegram_webhook_updates (
+                    update_id TEXT PRIMARY KEY,
+                    received_at TEXT NOT NULL
+                )
+                """
+            )
 
     def create_challenge(
         self,
@@ -199,6 +207,20 @@ class SQLiteTelegramAccountLinkStore(TelegramAccountLinkStore):
                 (str(user_id),),
             ).fetchone()
         return str(row[0]) if row else None
+
+    def claim_webhook_update(self, update_id: str, now: datetime) -> bool:
+        self._require_aware(now, "now")
+        if not update_id.strip():
+            raise ValueError("Telegram update ID is required")
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO telegram_webhook_updates(update_id, received_at)
+                VALUES (?, ?)
+                """,
+                (update_id.strip(), now.isoformat()),
+            )
+        return cursor.rowcount == 1
 
     def list_linked_accounts(self) -> tuple[LinkedTelegramAccount, ...]:
         with self._connect() as connection:
