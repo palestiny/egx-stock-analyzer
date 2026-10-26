@@ -26,7 +26,7 @@ The breadth-stress response additionally reports:
 
 - `analysis_dates_by_symbol`: each analyzed symbol mapped to its persisted analysis calendar date, or `null` when the saved record has no usable date.
 - `undated_symbols`: analyzed symbols whose saved record has no usable date.
-- `analysis_date_status`: `CONSISTENT` when every requested symbol is analyzed and all analyzed records share one known date; `MIXED` when all requested symbols are analyzed and known dates differ; `PARTIAL` when at least one requested symbol is missing or at least one analyzed record is undated while some known dates exist; `UNKNOWN` when no known analysis date exists.
+- `analysis_date_status`: `CONSISTENT` when every requested symbol is analyzed and all analyzed records share one known date; `MIXED` when all requested symbols are analyzed and known dates differ; `PARTIAL` when at least one requested symbol is missing, or when some analyzed records are dated and others are undated; `UNKNOWN` when every requested symbol has a saved analysis but none has a usable analysis date.
 - `latest_analysis_date`: latest known date among analyzed records, or `null` when no date is known.
 - `methodology_version`: currently `stress-heuristic-v1`.
 
