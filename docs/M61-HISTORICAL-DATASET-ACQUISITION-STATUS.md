@@ -272,19 +272,19 @@ References:
 - https://mansaapi.com/terms
 
 
-## No-budget execution update — 2026-10-09
+## No-budget execution update — refreshed 2026-10-26
 
 **Owner constraint:** no payment or paid subscription is available. Do not block M61 progress on EGX.news, Mansa Pro, ICE, or any other paid source.
 
-The paid-source candidates above are retained as historical research notes only; they are not the next action. The active path is now documented in [M61 No-Cost Data Acquisition](M61-NO-COST-DATA-ACQUISITION.md).
+The existing no-cost probes have now established the following:
+- Yahoo `.CA` returned HTTP 200 and history through 2025-12-31 for the ten-symbol cohort, but all ten tickers were classified as `MUTUALFUND`, not `EQUITY`.
+- The 2026-10-26 metadata-only probe produced 3,843 validation findings across the cohort, including extensive OHLC relationship violations, nulls, and invalid values. FWRY history starts on 2019-08-14; the other nine symbols start on 2019-01-01.
+- The EGID public OpenAPI contract was inspected. History operations declare Bearer security, and the unauthenticated COMI history request returned HTTP 401. No free historical-data entitlement or authorized credential has been established.
+- Paid sources remain excluded because no payment is possible. StockAnalysis automated scraping is prohibited by its terms; EGXAPI's public legal page remains a draft with placeholder terms.
 
-1. Probe the ten Yahoo `.CA` ticker candidates using `tools/m61_free_market_probe.py`. This is a no-cost diagnostic path only. It must record actual response status, source timezone, coverage, raw-response checksum, adjustment fields, and validation findings; it must never auto-accept the source.
-2. Investigate the public EGID/EGX feed as the next no-cost alternative only after its exact request/response contract and historical range can be verified.
-3. Build point-in-time financial evidence from dated issuer/EGX disclosure documents without inventing availability dates. The current financial source gate remains separate and open.
-4. If the free market probe returns incomplete coverage or is blocked, record that result and continue testing a different free candidate. Do not silently substitute fixtures or synthesize bars.
+**Decision:** Yahoo is rejected for Strategy v0; EGID remains blocked pending an authorized provider-issued account/credential or a real CSV the owner already has permission to store and use. Do not retry source variants, bypass authentication, build a production adapter from guessed fields, or generate synthetic bars to stand in for real observations.
 
-**Current status remains NOT ACCEPTED.** This update changes the acquisition strategy to respect the no-payment constraint; it does not claim that the free probe has already run successfully, that Yahoo terms permit long-term storage, or that the ten-symbol market-plus-financial dataset is complete.
-
+Continue functional engineering with the deterministic synthetic dataset and production-path tests. Real-market acceptance remains open until actual OHLCV evidence passes the acceptance gate and point-in-time financial snapshots have defensible `available_at` dates.
 
 ## EGID contract probe implementation — 2026-10-09
 
