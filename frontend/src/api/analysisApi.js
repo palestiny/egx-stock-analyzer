@@ -276,3 +276,50 @@ export function getTechnicalIndicatorHistory(symbol, limit = 250) {
     "Technical indicator history request",
   );
 }
+
+
+export function getOwnerDashboardOverview(asOf) {
+  const params = new URLSearchParams();
+  if (asOf) params.set("as_of", asOf);
+  const query = params.toString();
+  return getJson(
+    "/api/v1/owner/overview" + (query ? "?" + query : ""),
+    "Owner dashboard overview request",
+  );
+}
+
+export function publishOpportunity(symbol) {
+  return getJson(
+    "/api/v1/opportunities/" + encodeURIComponent(symbol.trim().toUpperCase()) + "/publish",
+    "Publish opportunity request",
+    { method: "POST" },
+  );
+}
+
+export function dispatchTelegramOpportunities(limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return getJson(
+    "/api/v1/telegram/opportunities/dispatch?" + params.toString(),
+    "Telegram opportunity dispatch request",
+    { method: "POST" },
+  );
+}
+
+export function createSessionOpportunityReport(sessionDate, generatedAt) {
+  const params = new URLSearchParams({ session_date: sessionDate });
+  if (generatedAt) params.set("generated_at", generatedAt);
+  return getJson(
+    "/api/v1/session-opportunity-reports?" + params.toString(),
+    "Create session opportunity report request",
+    { method: "POST" },
+  );
+}
+
+export function getSessionOpportunityReport(sessionDate, asOf) {
+  const params = new URLSearchParams({ session_date: sessionDate });
+  if (asOf) params.set("as_of", asOf);
+  return getJson(
+    "/api/v1/session-opportunity-reports?" + params.toString(),
+    "Session opportunity report request",
+  );
+}
