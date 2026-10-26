@@ -209,6 +209,7 @@ def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> 
 
 
 def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path) -> None:
+    from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
     from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
 
     runtime = create_infrastructure_runtime(
@@ -224,6 +225,7 @@ def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path
     )
 
     assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
+    assert isinstance(runtime.dispatch_signal_alert_outbox, DispatchSignalAlertOutbox)
     assert runtime.deliver_alert is None
     runtime.close()
 
