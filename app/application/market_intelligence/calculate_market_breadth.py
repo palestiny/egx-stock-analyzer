@@ -146,7 +146,7 @@ class CalculateMarketBreadth:
         )
         if not known_dates:
             analysis_date_status = "UNKNOWN"
-        elif undated_symbols:
+        elif undated_symbols or missing:
             analysis_date_status = "PARTIAL"
         elif len(known_dates) > 1:
             analysis_date_status = "MIXED"
