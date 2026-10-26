@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
@@ -26,7 +26,9 @@ from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.stock_research_response import StockResearchResponse
+from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
+from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.reporting.calculate_snapshot_performance import (
     AnalysisSnapshotPerformanceNotFoundError,
     CalculateSnapshotPerformance,
@@ -130,6 +132,7 @@ def create_app(
     delete_analysis_run: DeleteAnalysisRun | None = None,
     delete_analysis_snapshot: DeleteAnalysisSnapshot | None = None,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
+    build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
