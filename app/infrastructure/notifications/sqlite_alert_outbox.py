@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from decimal import Decimal
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
 from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
-from app.domain.alerts.model import AlertEvent, AlertEventType
+from app.domain.alerts.model import (
+    AlertEvent,
+    AlertEventType,
+    AlertEvidenceSnapshot,
+    AlertSignalSnapshot,
+    AlertTargetSnapshot,
+)
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
@@ -157,6 +164,30 @@ class SQLiteAlertOutbox:
             "event_type": event.event_type.value,
             "occurred_at": event.occurred_at.isoformat(),
             "message": event.message,
+            "signal_snapshot": (
+                {
+                    "direction": event.signal_snapshot.direction,
+                    "status": event.signal_snapshot.status,
+                    "timeframe": event.signal_snapshot.timeframe,
+                    "entry_lower": str(event.signal_snapshot.entry_lower),
+                    "entry_upper": str(event.signal_snapshot.entry_upper),
+                    "invalidation": str(event.signal_snapshot.invalidation),
+                    "targets": [
+                        {"price": str(item.price), "label": item.label}
+                        for item in event.signal_snapshot.targets
+                    ],
+                    "evidence": [
+                        {"kind": item.kind, "description": item.description}
+                        for item in event.signal_snapshot.evidence
+                    ],
+                    "strategy_id": event.signal_snapshot.strategy_id,
+                    "strategy_version": event.signal_snapshot.strategy_version,
+                    "generated_at": event.signal_snapshot.generated_at.isoformat(),
+                    "data_timestamp": event.signal_snapshot.data_timestamp.isoformat(),
+                }
+                if event.signal_snapshot is not None
+                else None
+            ),
         }
         return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
@@ -177,6 +208,35 @@ class SQLiteAlertOutbox:
     @staticmethod
     def _deserialize_event(payload_text: str) -> AlertEvent:
         payload = json.loads(payload_text)
+        raw_snapshot = payload.get("signal_snapshot")
+        snapshot = None
+        if isinstance(raw_snapshot, dict):
+            snapshot = AlertSignalSnapshot(
+                direction=str(raw_snapshot["direction"]),
+                status=str(raw_snapshot["status"]),
+                timeframe=str(raw_snapshot["timeframe"]),
+                entry_lower=Decimal(str(raw_snapshot["entry_lower"])),
+                entry_upper=Decimal(str(raw_snapshot["entry_upper"])),
+                invalidation=Decimal(str(raw_snapshot["invalidation"])),
+                targets=tuple(
+                    AlertTargetSnapshot(
+                        price=Decimal(str(item["price"])),
+                        label=str(item["label"]),
+                    )
+                    for item in raw_snapshot["targets"]
+                ),
+                evidence=tuple(
+                    AlertEvidenceSnapshot(
+                        kind=str(item["kind"]),
+                        description=str(item["description"]),
+                    )
+                    for item in raw_snapshot["evidence"]
+                ),
+                strategy_id=str(raw_snapshot["strategy_id"]),
+                strategy_version=str(raw_snapshot["strategy_version"]),
+                generated_at=datetime.fromisoformat(str(raw_snapshot["generated_at"])),
+                data_timestamp=datetime.fromisoformat(str(raw_snapshot["data_timestamp"])),
+            )
         return AlertEvent(
             event_id=UUID(str(payload["event_id"])),
             signal_id=UUID(str(payload["signal_id"])),
@@ -184,4 +244,5 @@ class SQLiteAlertOutbox:
             event_type=AlertEventType(str(payload["event_type"])),
             occurred_at=datetime.fromisoformat(str(payload["occurred_at"])),
             message=str(payload["message"]),
+            signal_snapshot=snapshot,
         )
