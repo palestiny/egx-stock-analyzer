@@ -24,6 +24,7 @@ class SQLiteOwnerDashboardReadStore:
             subscriptions = self._status_counts(connection, tables, "subscriptions", "status")
             linked_accounts = self._count(connection, tables, "telegram_account_links")
             news_events = self._count(connection, tables, "news_events")
+            session_reports = self._count(connection, tables, "session_opportunity_reports")
             pending_challenges = self._count_where(
                 connection,
                 tables,
@@ -51,6 +52,7 @@ class SQLiteOwnerDashboardReadStore:
                 "linked_telegram_accounts": linked_accounts,
                 "unconsumed_unexpired_link_challenges": pending_challenges,
                 "news_events": news_events,
+                "saved_session_reports": session_reports,
                 "oldest_pending_outbox_created_at": outbox_oldest_pending,
             },
             "limitations": [
