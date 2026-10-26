@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
@@ -98,6 +98,92 @@ class SignalLifecycleOrchestrator:
             changed=True,
             outcome_recorded=outcome_recorded,
             alert_published=True,
+        )
+
+    def invalidate_for_evidence_change(
+        self,
+        candidate: Signal | None,
+        *,
+        observed_at: datetime,
+    ) -> SignalLifecycleResult | None:
+        """Invalidate an active published setup when its supporting signal changes.
+
+        A missing candidate is not treated as contradictory evidence: the caller
+        may be seeing a data outage or incomplete analysis. Evidence invalidation
+        is not recorded as a trade outcome because no market exit was observed.
+        """
+        if candidate is None:
+            return None
+        if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+
+        latest = self._history.latest(candidate.symbol)
+        if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
+            return None
+
+        current = latest.signal
+        if not self._supporting_evidence_changed(current, candidate):
+            return SignalLifecycleResult(
+                signal_id=latest.signal_id,
+                signal=current,
+                changed=False,
+                outcome_recorded=False,
+                alert_published=False,
+            )
+
+        invalidated = replace(current, status=SignalStatus.INVALIDATED)
+        event_id = uuid5(
+            NAMESPACE_URL,
+            (
+                f"signal-evidence-change:{latest.signal_id}:"
+                f"{candidate.generated_at.isoformat()}:"
+                f"{candidate.data_timestamp.isoformat()}"
+            ),
+        )
+        self._alerts.publish(
+            AlertEvent(
+                event_id=event_id,
+                signal_id=latest.signal_id,
+                symbol=current.symbol,
+                event_type=AlertEventType.SIGNAL_INVALIDATED,
+                occurred_at=observed_at,
+                message=(
+                    f"{current.symbol} signal invalidated because its supporting "
+                    "analysis evidence changed"
+                ),
+            )
+        )
+        self._history.record(
+            invalidated,
+            "EVIDENCE_CHANGED_INVALIDATED",
+            observed_at,
+        )
+        return SignalLifecycleResult(
+            signal_id=latest.signal_id,
+            signal=invalidated,
+            changed=True,
+            outcome_recorded=False,
+            alert_published=True,
+        )
+
+    @staticmethod
+    def _supporting_evidence_changed(previous: Signal, candidate: Signal) -> bool:
+        return any(
+            (
+                previous.symbol.strip().upper() != candidate.symbol.strip().upper(),
+                previous.direction != candidate.direction,
+                previous.generated_at != candidate.generated_at,
+                previous.timeframe != candidate.timeframe,
+                previous.entry_zone != candidate.entry_zone,
+                previous.invalidation != candidate.invalidation,
+                previous.targets != candidate.targets,
+                previous.confidence != candidate.confidence,
+                previous.risk_score != candidate.risk_score,
+                previous.evidence != candidate.evidence,
+                previous.strategy_id != candidate.strategy_id,
+                previous.strategy_version != candidate.strategy_version,
+                previous.data_timestamp != candidate.data_timestamp,
+            )
         )
 
     @staticmethod
