@@ -7,12 +7,15 @@ from app.application.news.ingestion import NewsIngestionService
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
+from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
+from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
 from app.application.subscriptions.entitlements import EntitlementService
 from app.application.notifications.telegram_account_linking import TelegramAccountLinkingService
 from app.infrastructure.persistence.sqlite_telegram_account_link_store import SQLiteTelegramAccountLinkStore
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
+from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
@@ -107,6 +110,8 @@ class InfrastructureRuntime:
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
+    session_opportunity_report_store: SQLiteSessionOpportunityReportStore | None = None
+    owner_dashboard_overview: GetOwnerDashboardOverview | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -231,6 +236,14 @@ def create_infrastructure_runtime(
     )
 
     has_telegram_token = config.telegram_bot_token is not None
+    session_opportunity_report_store = SQLiteSessionOpportunityReportStore(
+        config.analysis_database_path
+    )
+    owner_dashboard_overview = GetOwnerDashboardOverview(
+        store=SQLiteOwnerDashboardReadStore(config.analysis_database_path),
+        telegram_configured=has_telegram_token,
+        news_source_configured=config.news_rss_feed_url is not None,
+    )
     has_telegram_chat_id = config.telegram_chat_id is not None
     if has_telegram_chat_id and not has_telegram_token:
         raise ValueError("Telegram chat ID requires a bot token")
@@ -346,4 +359,6 @@ def create_infrastructure_runtime(
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
         build_session_opportunity_ledger=build_session_opportunity_ledger,
+        session_opportunity_report_store=session_opportunity_report_store,
+        owner_dashboard_overview=owner_dashboard_overview,
     )
