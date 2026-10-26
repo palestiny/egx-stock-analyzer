@@ -216,3 +216,87 @@ def average_true_range(
         result[index] = previous_atr
 
     return tuple(result)
+
+
+@dataclass(frozen=True)
+class StochasticSeries:
+    percent_k: IndicatorSeries
+    percent_d: IndicatorSeries
+
+
+def stochastic_oscillator(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    closes: Sequence[Decimal],
+    k_period: int = 14,
+    d_period: int = 3,
+) -> StochasticSeries:
+    """Calculate slow %K/%D; flat windows are marked unavailable, not neutral."""
+    if k_period < 1 or d_period < 1:
+        raise ValueError("period must be a positive integer")
+    high_values, low_values, close_values = tuple(highs), tuple(lows), tuple(closes)
+    if not (len(high_values) == len(low_values) == len(close_values)):
+        raise ValueError("highs, lows, and closes must have equal lengths")
+    if any(
+        not value.is_finite()
+        for value in (*high_values, *low_values, *close_values)
+    ):
+        raise ValueError("indicator inputs must be finite Decimal values")
+
+    percent_k: list[Decimal | None] = [None] * len(close_values)
+    for index in range(k_period - 1, len(close_values)):
+        start = index - k_period + 1
+        highest = max(high_values[start:index + 1])
+        lowest = min(low_values[start:index + 1])
+        if highest > lowest:
+            percent_k[index] = (
+                (close_values[index] - lowest) / (highest - lowest)
+            ) * Decimal("100")
+
+    percent_d: list[Decimal | None] = [None] * len(close_values)
+    for index in range(len(close_values)):
+        start = index - d_period + 1
+        if start < 0:
+            continue
+        window = percent_k[start:index + 1]
+        if all(value is not None for value in window):
+            percent_d[index] = sum(
+                (value for value in window if value is not None), Decimal("0")
+            ) / Decimal(d_period)
+
+    return StochasticSeries(tuple(percent_k), tuple(percent_d))
+
+
+def commodity_channel_index(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    closes: Sequence[Decimal],
+    period: int = 20,
+) -> IndicatorSeries:
+    """Calculate CCI from typical price and mean absolute deviation."""
+    if period < 1:
+        raise ValueError("period must be a positive integer")
+    high_values, low_values, close_values = tuple(highs), tuple(lows), tuple(closes)
+    if not (len(high_values) == len(low_values) == len(close_values)):
+        raise ValueError("highs, lows, and closes must have equal lengths")
+    if any(
+        not value.is_finite()
+        for value in (*high_values, *low_values, *close_values)
+    ):
+        raise ValueError("indicator inputs must be finite Decimal values")
+
+    typical = tuple(
+        (high + low + close) / Decimal("3")
+        for high, low, close in zip(high_values, low_values, close_values)
+    )
+    result: list[Decimal | None] = [None] * len(typical)
+    for index in range(period - 1, len(typical)):
+        window = typical[index - period + 1:index + 1]
+        mean = sum(window, Decimal("0")) / Decimal(period)
+        mean_deviation = sum(
+            (abs(value - mean) for value in window), Decimal("0")
+        ) / Decimal(period)
+        if mean_deviation != 0:
+            result[index] = (typical[index] - mean) / (Decimal("0.015") * mean_deviation)
+
+    return tuple(result)
