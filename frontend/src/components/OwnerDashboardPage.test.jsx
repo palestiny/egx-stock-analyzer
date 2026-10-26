@@ -115,6 +115,7 @@ describe("OwnerDashboardPage", () => {
         original_entry_lower: "100",
         original_entry_upper: "105",
         original_invalidation: "95",
+        original_targets: [{ label: "T1", price: "110" }],
         market_proxy_outcome: null,
         market_proxy_return: null,
       }],
@@ -137,6 +138,7 @@ describe("OwnerDashboardPage", () => {
 
     expect(await screen.findByText("Session 2026-10-26")).toBeInTheDocument();
     expect(screen.getByText("EGAL")).toBeInTheDocument();
+    expect(screen.getByText("T1: 110")).toBeInTheDocument();
     expect(screen.getByText("Unresolved")).toBeInTheDocument();
     expect(createSessionReport).toHaveBeenCalledWith("2026-10-26");
   });
