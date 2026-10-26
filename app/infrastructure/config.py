@@ -16,6 +16,8 @@ class InfrastructureConfig:
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     telegram_webhook_secret: str | None = None
+    default_subscription_plan_id: str | None = None
+    default_subscription_plan_version: int | None = None
     telegram_timeout_seconds: float = 10.0
     automatic_alert_delivery_channel: str = "telegram"
     automatic_retention_enabled: bool = False
@@ -35,6 +37,12 @@ class InfrastructureConfig:
             telegram_bot_token=os.getenv("EGX_TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=os.getenv("EGX_TELEGRAM_CHAT_ID"),
             telegram_webhook_secret=os.getenv("EGX_TELEGRAM_WEBHOOK_SECRET"),
+            default_subscription_plan_id=os.getenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_ID"),
+            default_subscription_plan_version=(
+                int(os.environ["EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION"])
+                if os.getenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION") is not None
+                else None
+            ),
             telegram_timeout_seconds=float(
                 os.getenv("EGX_TELEGRAM_TIMEOUT_SECONDS", "10")
             ),
