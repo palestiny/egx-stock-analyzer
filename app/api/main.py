@@ -559,6 +559,46 @@ def create_app(
         response = MarketAnalysisExecutionResponse.from_execution(execution.execution)
         return asdict(response)
 
+    @app.post("/api/v1/session-opportunity-reports")
+    def create_session_report(
+        session_date: date,
+        generated_at: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if build_session_opportunity_ledger is None or session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = generated_at or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="generated_at must include a timezone")
+        try:
+            report = build_session_opportunity_ledger.execute(session_date, generated_at=cutoff)
+            created = session_opportunity_report_store.save(report)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        response = SessionOpportunityLedgerResponse.from_report(report)
+        response["persisted"] = True
+        response["created"] = created
+        return response
+
+    @app.get("/api/v1/session-opportunity-reports")
+    def read_session_report(
+        session_date: date,
+        as_of: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if session_opportunity_report_store is None:
+            raise HTTPException(status_code=503, detail="Session opportunity reporting is not configured")
+        cutoff = as_of or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="as_of must include a timezone")
+        try:
+            report = session_opportunity_report_store.get_latest(session_date, as_of=cutoff)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        if report is None:
+            raise HTTPException(status_code=404, detail="No saved session opportunity report exists for that date and cutoff")
+        return report
+
     @app.get("/api/v1/owner/overview")
     def get_owner_dashboard_overview_route(
         as_of: datetime | None = None,
