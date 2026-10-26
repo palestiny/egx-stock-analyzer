@@ -269,10 +269,29 @@ export function getUserAuditHistory(filters = {}) {
 }
 
 
-export function getTechnicalIndicatorHistory(symbol, limit = 250) {
+export function getOwnerDashboardOverview(asOf) {
+  const params = new URLSearchParams();
+  if (asOf) params.set("as_of", asOf);
+  const query = params.toString();
+  return getJson(
+    "/api/v1/owner/overview" + (query ? "?" + query : ""),
+    "Owner dashboard overview request",
+  );
+}
+
+export function publishOpportunity(symbol) {
+  return getJson(
+    "/api/v1/opportunities/" + encodeURIComponent(symbol.trim().toUpperCase()) + "/publish",
+    "Publish opportunity request",
+    { method: "POST" },
+  );
+}
+
+export function dispatchTelegramOpportunities(limit = 100) {
   const params = new URLSearchParams({ limit: String(limit) });
   return getJson(
-    "/api/v1/technical-indicators/" + encodeURIComponent(symbol) + "?" + params.toString(),
-    "Technical indicator history request",
+    "/api/v1/telegram/opportunities/dispatch?" + params.toString(),
+    "Telegram opportunity dispatch request",
+    { method: "POST" },
   );
 }
