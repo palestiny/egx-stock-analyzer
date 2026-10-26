@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
@@ -22,6 +23,10 @@ class MarketBreadthSnapshot:
     stress_score: int | None
     stress_level: str
     data_status: str = "LATEST_SAVED_ANALYSIS_SNAPSHOT"
+    analysis_dates_by_symbol: dict[str, date | None] | None = None
+    undated_symbols: tuple[str, ...] = ()
+    analysis_date_status: str = "UNKNOWN"
+    latest_analysis_date: date | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -39,6 +44,18 @@ class MarketBreadthSnapshot:
             "stress_score": self.stress_score,
             "stress_level": self.stress_level,
             "data_status": self.data_status,
+            "analysis_dates_by_symbol": {
+                symbol: value.isoformat() if value is not None else None
+                for symbol, value in (self.analysis_dates_by_symbol or {}).items()
+            },
+            "undated_symbols": list(self.undated_symbols),
+            "analysis_date_status": self.analysis_date_status,
+            "latest_analysis_date": (
+                self.latest_analysis_date.isoformat()
+                if self.latest_analysis_date is not None
+                else None
+            ),
+            "methodology_version": "stress-heuristic-v1",
             "is_trading_signal": False,
             "methodology": "Stress is a heuristic: 50% downtrend share + 40% negative-momentum share + 10% negative-momentum-with-above-average-volume share. Percentages use analyzed symbols only.",
         }
@@ -65,6 +82,7 @@ class CalculateMarketBreadth:
             raise ValueError("Duplicate stock symbol in market breadth request")
 
         missing: list[str] = []
+        analysis_dates: dict[str, date | None] = {}
         uptrend = downtrend = positive = negative = above_average = 0
         negative_with_volume = 0
         analyzed = 0
@@ -75,6 +93,10 @@ class CalculateMarketBreadth:
                 missing.append(symbol)
                 continue
             analyzed += 1
+            raw_analysis_date = getattr(record, "analysis_date", None)
+            analysis_dates[symbol] = (
+                raw_analysis_date if isinstance(raw_analysis_date, date) else None
+            )
             technical = record.result.technical_analysis
             if technical.trend.status is TrendStatus.UPTREND:
                 uptrend += 1
@@ -116,6 +138,19 @@ class CalculateMarketBreadth:
                 Decimal(downtrend + negative) * Decimal("50") / Decimal(analyzed)
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+        known_dates = {value for value in analysis_dates.values() if value is not None}
+        undated_symbols = tuple(
+            symbol for symbol, value in analysis_dates.items() if value is None
+        )
+        if not known_dates:
+            analysis_date_status = "UNKNOWN"
+        elif undated_symbols:
+            analysis_date_status = "PARTIAL"
+        elif len(known_dates) > 1:
+            analysis_date_status = "MIXED"
+        else:
+            analysis_date_status = "CONSISTENT"
+
         return MarketBreadthSnapshot(
             requested_symbols=len(normalized),
             analyzed_symbols=analyzed,
@@ -129,4 +164,8 @@ class CalculateMarketBreadth:
             bearish_pressure_percent=bearish,
             stress_score=stress_score,
             stress_level=stress_level,
+            analysis_dates_by_symbol=analysis_dates,
+            undated_symbols=undated_symbols,
+            analysis_date_status=analysis_date_status,
+            latest_analysis_date=max(known_dates) if known_dates else None,
         )
