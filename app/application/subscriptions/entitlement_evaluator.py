@@ -58,6 +58,14 @@ class EntitlementEvaluator:
                 subscription.plan_id,
                 subscription.plan_version,
             )
+            if plan is None:
+                return EntitlementDecision(
+                    False,
+                    "subscription_plan_missing",
+                    subscription.plan_id,
+                    subscription.plan_version,
+                    normalized_code,
+                )
 
         if plan is None and self._default_plan_id is not None:
             assert self._default_plan_version is not None
