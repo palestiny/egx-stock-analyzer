@@ -166,7 +166,7 @@ class SQLiteAlertOutbox:
         return AlertOutboxRecord(
             event=event,
             status=AlertOutboxStatus(str(row[1])),
-            attempts=int(row[2]),
+            attempts=int(str(row[2])),
             created_at=datetime.fromisoformat(str(row[3])),
             delivered_at=(
                 datetime.fromisoformat(str(row[4])) if row[4] is not None else None
