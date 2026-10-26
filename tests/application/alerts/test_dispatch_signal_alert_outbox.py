@@ -1,8 +1,10 @@
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
 from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStatus
 from app.application.notifications.telegram_account_linking import LinkedTelegramAccount
 from app.application.signals.store import InMemorySignalHistoryStore
@@ -207,3 +209,26 @@ def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
     assert result.recipients_suppressed == 1
     assert transport.sent == []
     assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.SUPPRESSED
+
+
+def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
+    signal = replace(
+        make_signal(),
+        evidence=tuple(
+            SignalEvidence(f"evidence-{index}", "supporting observation " * 100)
+            for index in range(20)
+        ),
+    )
+    event = make_event(uuid4())
+    record = AlertOutboxRecord(
+        event=event,
+        status=AlertOutboxStatus.PENDING,
+        attempts=0,
+        created_at=NOW,
+    )
+
+    message = DispatchSignalAlertOutbox._format_message(record, signal)
+
+    assert len(message) <= 3900
+    assert str(event.event_id) in message
+    assert "not proof of an executed trade" in message
