@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import UUID
 
 from app.application.notifications.telegram_account_linking import (
+    LinkedTelegramAccount,
     TelegramAccountLinkStore,
     TelegramChatAlreadyLinked,
 )
@@ -198,6 +199,19 @@ class SQLiteTelegramAccountLinkStore(TelegramAccountLinkStore):
                 (str(user_id),),
             ).fetchone()
         return str(row[0]) if row else None
+
+    def list_linked_accounts(self) -> tuple[LinkedTelegramAccount, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT user_id, chat_id FROM telegram_account_links
+                ORDER BY user_id
+                """
+            ).fetchall()
+        return tuple(
+            LinkedTelegramAccount(user_id=UUID(str(row[0])), chat_id=str(row[1]))
+            for row in rows
+        )
 
     def unlink(self, user_id: UUID, occurred_at: datetime) -> bool:
         self._require_aware(occurred_at, "occurred_at")
