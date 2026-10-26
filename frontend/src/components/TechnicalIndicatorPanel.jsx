@@ -1,3 +1,5 @@
+import "./TechnicalIndicatorPanel.css";
+
 const SERIES = [
   { key: "close", label: "Close", color: "#172033" },
   { key: "sma_20", label: "SMA 20", color: "#2563eb" },
