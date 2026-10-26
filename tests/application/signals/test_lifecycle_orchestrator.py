@@ -123,7 +123,8 @@ def test_changed_supporting_evidence_invalidates_prior_signal_without_trade_outc
     revised_candidate = replace(
         original,
         evidence=(SignalEvidence("trend", "trend no longer confirms"),),
-        data_timestamp=datetime(2026, 10, 4, tzinfo=timezone.utc),
+        generated_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+        data_timestamp=datetime(2026, 10, 5, tzinfo=timezone.utc),
     )
 
     result = orchestrator.invalidate_for_evidence_change(
@@ -181,7 +182,8 @@ def test_evidence_change_does_not_reopen_or_reinvalidate_terminal_signal():
     revised_candidate = replace(
         original,
         evidence=(SignalEvidence("trend", "different evidence"),),
-        data_timestamp=datetime(2026, 10, 4, tzinfo=timezone.utc),
+        generated_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+        data_timestamp=datetime(2026, 10, 5, tzinfo=timezone.utc),
     )
 
     result = orchestrator.invalidate_for_evidence_change(
