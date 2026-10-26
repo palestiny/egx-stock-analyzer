@@ -1,0 +1,47 @@
+.indicator-chart-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.indicator-chart {
+  display: block;
+  width: 100%;
+  min-width: 480px;
+  height: auto;
+}
+
+.indicator-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.indicator-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #61708a;
+  font-size: 12px;
+}
+
+.indicator-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.indicator-metrics {
+  margin-top: 18px;
+}
+
+.indicator-note {
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+.error-message {
+  color: #9f2525;
+}
