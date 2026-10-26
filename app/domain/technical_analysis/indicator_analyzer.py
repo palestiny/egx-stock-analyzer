@@ -98,6 +98,7 @@ class TechnicalIndicatorAnalyzer:
             )
             if latest_pair is None:
                 fib_by_index.append((None, None, ()))
+                fib_extensions_by_index.append((None, None, ()))
                 continue
             first_swing, second_swing = latest_pair
             if first_swing.kind.value == "low":
