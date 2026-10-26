@@ -131,8 +131,9 @@ def macd(
     for offset, signal_value in enumerate(valid_signal):
         index = first_valid + offset
         signal[index] = signal_value
-        if signal_value is not None and line[index] is not None:
-            histogram[index] = line[index] - signal_value
+        line_value = line[index]
+        if signal_value is not None and line_value is not None:
+            histogram[index] = line_value - signal_value
 
     return MACDSeries(tuple(line), tuple(signal), tuple(histogram))
 
