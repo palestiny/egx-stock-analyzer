@@ -26,7 +26,9 @@ class SQLiteSubscriptionStore(SubscriptionStore):
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        return connect_sqlite(self._database_path)
+        connection = connect_sqlite(self._database_path)
+        connection.execute("PRAGMA foreign_keys = ON")
+        return connection
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -221,6 +223,30 @@ class SQLiteSubscriptionStore(SubscriptionStore):
                 LIMIT 1
                 """,
                 (str(user_id),),
+            ).fetchone()
+        return self._to_subscription(row) if row else None
+
+    def current_for_user(
+        self,
+        user_id: UUID,
+        *,
+        now: datetime,
+    ) -> Subscription | None:
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT subscription_id, user_id, plan_id, plan_version, status,
+                    created_at, starts_at, expires_at, updated_at,
+                    payment_provider, payment_reference
+                FROM subscriptions
+                WHERE user_id = ? AND status = 'ACTIVE'
+                    AND starts_at <= ? AND expires_at > ?
+                ORDER BY created_at DESC, subscription_id DESC
+                LIMIT 1
+                """,
+                (str(user_id), now.isoformat(), now.isoformat()),
             ).fetchone()
         return self._to_subscription(row) if row else None
 
