@@ -493,6 +493,29 @@ def create_app(
         except InvalidSnapshotPerformanceError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return AnalysisSnapshotPerformanceResponse.from_performance(performance).to_dict()
+    @app.get("/api/v1/session-opportunity-ledger")
+    def get_session_opportunity_ledger_route(
+        session_date: date,
+        generated_at: datetime | None = None,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if build_session_opportunity_ledger is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Session opportunity ledger is not configured",
+            )
+        cutoff = generated_at or datetime.now(timezone.utc)
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise HTTPException(status_code=422, detail="generated_at must include a timezone")
+        try:
+            report = build_session_opportunity_ledger.execute(
+                session_date,
+                generated_at=cutoff,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return SessionOpportunityLedgerResponse.from_report(report)
+
     @app.get("/api/v1/reports/{symbol}")
     def get_report(symbol: str, identity: AuthenticatedIdentity = Depends(require_authenticated)) -> dict[str, object]:
         if get_analysis_report is None:
