@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import date
 from decimal import Decimal
@@ -393,3 +394,12 @@ def test_sqlite_store_owner_scoped_snapshot_lookup_hides_other_users(tmp_path):
 
     assert store.get_snapshot(snapshot.snapshot_id, owner_user_id=other_owner_id) is None
     assert store.get_snapshot(snapshot.snapshot_id, owner_user_id=owner_id) == snapshot
+
+
+
+def test_deserializer_defaults_indicator_evidence_for_legacy_snapshot() -> None:
+    document = json.loads(serialize_analysis_result(make_result()))
+    technical_fields = document["result"]["fields"]["technical_analysis"]["fields"]
+    technical_fields.pop("indicators")
+    restored = deserialize_analysis_result(json.dumps(document))
+    assert restored.technical_analysis.indicators is None
