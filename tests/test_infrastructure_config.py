@@ -126,3 +126,21 @@ def test_news_rss_is_disabled_by_default() -> None:
 
     assert config.news_rss_feed_url is None
     assert config.news_rss_source_type == "other"
+
+
+def test_from_environment_normalizes_empty_optional_compose_values(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_OPERATOR_TOKEN", "test-token")
+    monkeypatch.setenv("EGX_TELEGRAM_BOT_TOKEN", "")
+    monkeypatch.setenv("EGX_TELEGRAM_CHAT_ID", "")
+    monkeypatch.setenv("EGX_TELEGRAM_WEBHOOK_SECRET", "")
+    monkeypatch.setenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_ID", "")
+    monkeypatch.setenv("EGX_DEFAULT_SUBSCRIPTION_PLAN_VERSION", "")
+    monkeypatch.setenv("EGX_USER_TOKENS", "")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.telegram_bot_token is None
+    assert config.telegram_chat_id is None
+    assert config.telegram_webhook_secret is None
+    assert config.default_subscription_plan_id is None
+    assert config.default_subscription_plan_version is None
