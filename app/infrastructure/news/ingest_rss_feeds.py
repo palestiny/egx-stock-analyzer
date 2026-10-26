@@ -6,6 +6,7 @@ This command does not schedule polling and does not claim that a configured feed
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 from dataclasses import asdict
 from datetime import datetime
@@ -53,7 +54,7 @@ def run_ingestion(
         raise ValueError("EGX_OPERATOR_TOKEN must be configured")
 
     if yfinance_module is None:
-        import yfinance as yfinance_module
+        yfinance_module = importlib.import_module("yfinance")
 
     runtime = runtime_factory(
         stock_catalog=stock_catalog_factory(),
