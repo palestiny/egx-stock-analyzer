@@ -5,6 +5,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app.application.subscriptions.store import SubscriptionStore
+from app.application.subscriptions.entitlements import EntitlementService
 from app.domain.subscriptions.model import SubscriptionPlan
 
 
@@ -27,6 +28,7 @@ class EntitlementEvaluator:
         *,
         default_plan_id: str | None = None,
         default_plan_version: int | None = None,
+        explicit_grants: EntitlementService | None = None,
     ) -> None:
         if (default_plan_id is None) != (default_plan_version is None):
             raise ValueError("default plan ID and version must be supplied together")
@@ -37,6 +39,7 @@ class EntitlementEvaluator:
         self._store = store
         self._default_plan_id = default_plan_id
         self._default_plan_version = default_plan_version
+        self._explicit_grants = explicit_grants
 
     def evaluate(
         self,
@@ -50,6 +53,19 @@ class EntitlementEvaluator:
         normalized_code = entitlement_code.strip()
         if not normalized_code:
             raise ValueError("entitlement code is required")
+
+        if self._explicit_grants is not None and self._explicit_grants.allows(
+            user_id,
+            normalized_code,
+            at=now,
+        ):
+            return EntitlementDecision(
+                True,
+                "explicit_grant",
+                None,
+                None,
+                normalized_code,
+            )
 
         subscription = self._store.current_for_user(user_id, now=now)
         plan: SubscriptionPlan | None = None
