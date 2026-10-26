@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
+from app.domain.technical_analysis.elliott import ElliottWaveCount
+
 
 @dataclass(frozen=True)
 class TechnicalIndicatorPoint:
@@ -42,6 +44,7 @@ class TechnicalIndicatorPoint:
     fibonacci_extension_direction: str | None = None
     fibonacci_extension_anchor_indices: tuple[int, int, int] | None = None
     fibonacci_extensions: tuple[tuple[Decimal, Decimal], ...] = ()
+    elliott_candidates: tuple[ElliottWaveCount, ...] = ()
 
 
 @dataclass(frozen=True)
