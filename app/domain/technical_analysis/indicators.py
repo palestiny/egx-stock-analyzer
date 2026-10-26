@@ -300,3 +300,83 @@ def commodity_channel_index(
             result[index] = (typical[index] - mean) / (Decimal("0.015") * mean_deviation)
 
     return tuple(result)
+
+
+def on_balance_volume(
+    closes: Sequence[Decimal],
+    volumes: Sequence[int],
+) -> tuple[int | None, ...]:
+    """Calculate cumulative OBV; the first observation establishes a zero baseline."""
+    close_values, volume_values = tuple(closes), tuple(volumes)
+    if len(close_values) != len(volume_values):
+        raise ValueError("closes and volumes must have equal lengths")
+    if any(not value.is_finite() for value in close_values):
+        raise ValueError("indicator inputs must be finite Decimal values")
+    if any(isinstance(volume, bool) or not isinstance(volume, int) or volume < 0 for volume in volume_values):
+        raise ValueError("volumes must be non-negative integers")
+    if not close_values:
+        return ()
+
+    result: list[int | None] = [0]
+    current = 0
+    for index in range(1, len(close_values)):
+        if close_values[index] > close_values[index - 1]:
+            current += volume_values[index]
+        elif close_values[index] < close_values[index - 1]:
+            current -= volume_values[index]
+        result.append(current)
+    return tuple(result)
+
+
+def money_flow_index(
+    highs: Sequence[Decimal],
+    lows: Sequence[Decimal],
+    closes: Sequence[Decimal],
+    volumes: Sequence[int],
+    period: int = 14,
+) -> IndicatorSeries:
+    """Calculate MFI from typical-price money flow and direction changes."""
+    if period < 1:
+        raise ValueError("period must be a positive integer")
+    high_values, low_values, close_values, volume_values = (
+        tuple(highs), tuple(lows), tuple(closes), tuple(volumes)
+    )
+    if not (len(high_values) == len(low_values) == len(close_values) == len(volume_values)):
+        raise ValueError("OHLC and volume inputs must have equal lengths")
+    if any(
+        not value.is_finite()
+        for value in (*high_values, *low_values, *close_values)
+    ):
+        raise ValueError("indicator inputs must be finite Decimal values")
+    if any(isinstance(volume, bool) or not isinstance(volume, int) or volume < 0 for volume in volume_values):
+        raise ValueError("volumes must be non-negative integers")
+
+    typical = tuple(
+        (high + low + close) / Decimal("3")
+        for high, low, close in zip(high_values, low_values, close_values)
+    )
+    raw_flow = tuple(
+        price * Decimal(volume)
+        for price, volume in zip(typical, volume_values)
+    )
+    result: list[Decimal | None] = [None] * len(typical)
+
+    for index in range(period, len(typical)):
+        positive = Decimal("0")
+        negative = Decimal("0")
+        for flow_index in range(index - period + 1, index + 1):
+            if typical[flow_index] > typical[flow_index - 1]:
+                positive += raw_flow[flow_index]
+            elif typical[flow_index] < typical[flow_index - 1]:
+                negative += raw_flow[flow_index]
+        if positive == 0 and negative == 0:
+            result[index] = Decimal("50")
+        elif negative == 0:
+            result[index] = Decimal("100")
+        elif positive == 0:
+            result[index] = Decimal("0")
+        else:
+            ratio = positive / negative
+            result[index] = Decimal("100") - Decimal("100") / (Decimal("1") + ratio)
+
+    return tuple(result)
