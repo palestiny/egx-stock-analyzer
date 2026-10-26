@@ -75,6 +75,7 @@ def create_application(
             if stock_catalog is not None and market_data_provider is not None
             else None
         ),
+        build_session_opportunity_ledger=getattr(runtime, "build_session_opportunity_ledger", None),
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
