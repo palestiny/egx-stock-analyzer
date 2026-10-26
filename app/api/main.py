@@ -2,6 +2,7 @@ import hmac
 import logging
 import os
 from dataclasses import asdict
+from decimal import Decimal
 from datetime import date, datetime, timezone
 from uuid import UUID
 
