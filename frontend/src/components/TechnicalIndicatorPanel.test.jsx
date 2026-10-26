@@ -53,8 +53,8 @@ describe("TechnicalIndicatorPanel", () => {
     expect(screen.getByRole("img", { name: /closing price with sma/i })).toBeTruthy();
     expect(screen.getByText("62.50")).toBeTruthy();
     expect(screen.getByText("bullish_engulfing")).toBeTruthy();
-    expect(screen.getByText("EMA 20")).toBeTruthy();
-    expect(screen.getByText("Bollinger upper")).toBeTruthy();
+    expect(screen.getAllByText("EMA 20").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Bollinger upper").length).toBeGreaterThan(1);
     expect(screen.getByText("Fibonacci retracement")).toBeTruthy();
     expect(screen.getByText("Fibonacci extension")).toBeTruthy();
     expect(screen.getByText("Elliott wave candidates")).toBeTruthy();
