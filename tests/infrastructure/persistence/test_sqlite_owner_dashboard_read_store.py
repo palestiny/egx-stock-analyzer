@@ -41,6 +41,8 @@ def test_owner_dashboard_returns_aggregate_counts_without_personal_fields(tmp_pa
             INSERT INTO telegram_account_links VALUES ('user-private', 'private-chat-id', '2026-10-26T09:00:00+00:00');
             CREATE TABLE news_events (event_id TEXT PRIMARY KEY);
             INSERT INTO news_events VALUES ('news-1');
+            CREATE TABLE session_opportunity_reports (session_date TEXT, report_json TEXT);
+            INSERT INTO session_opportunity_reports VALUES ('2026-10-26', '{}');
             """
         )
 
@@ -53,6 +55,8 @@ def test_owner_dashboard_returns_aggregate_counts_without_personal_fields(tmp_pa
     assert result["counts"]["subscriptions_by_status"] == {"ACTIVE": 1}
     assert result["counts"]["linked_telegram_accounts"] == 1
     assert result["counts"]["news_events"] == 1
+    assert result["availability"]["session_reports"] is True
+    assert result["counts"]["saved_session_reports"] == 1
     assert result["counts"]["oldest_pending_outbox_created_at"] == "2026-10-26T10:00:00+00:00"
     serialized = repr(result)
     assert "private-chat-id" not in serialized
