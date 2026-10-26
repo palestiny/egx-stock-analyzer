@@ -7,6 +7,8 @@ const point = {
   timestamp: "2026-10-26T10:00:00+02:00",
   close: "100",
   sma_20: "98",
+  ema_20: "99",
+  bollinger_upper: "102",
   sma_50: null,
   sma_200: null,
   rsi_14: "62.5",
@@ -14,6 +16,13 @@ const point = {
   atr_14: "2.1",
   adx_14: "24",
   candlestick_patterns: ["bullish_engulfing"],
+  confirmed_swings: [["high", "101"]],
+  fibonacci_direction: "up",
+  fibonacci_anchor_indices: [2, 5],
+  fibonacci_retracements: [["0.5", "95"]],
+  fibonacci_extension_direction: "up",
+  fibonacci_extension_anchor_indices: [1, 2, 5],
+  fibonacci_extensions: [["1.618", "120"]],
 };
 
 describe("TechnicalIndicatorPanel", () => {
@@ -35,6 +44,13 @@ describe("TechnicalIndicatorPanel", () => {
     expect(screen.getByRole("img", { name: /closing price with sma/i })).toBeTruthy();
     expect(screen.getByText("62.50")).toBeTruthy();
     expect(screen.getByText("bullish_engulfing")).toBeTruthy();
+    expect(screen.getByText("EMA 20")).toBeTruthy();
+    expect(screen.getByText("Bollinger upper")).toBeTruthy();
+    expect(screen.getByText("Fibonacci retracement")).toBeTruthy();
+    expect(screen.getByText("Fibonacci extension")).toBeTruthy();
+    expect(screen.getByText("HIGH 101.00")).toBeTruthy();
+    expect(screen.getByText("50.0%")).toBeTruthy();
+    expect(screen.getByText("161.8%")).toBeTruthy();
     expect(screen.getByText(/1 of 1 points/)).toBeTruthy();
   });
 
