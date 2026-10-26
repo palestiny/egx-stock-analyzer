@@ -156,6 +156,12 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
         ],
         entitled_users=(entitled_user,),
     )
+    # A later lifecycle state must not rewrite the snapshot attached to this event.
+    history.record(
+        replace(make_signal(), status=SignalStatus.CLOSED),
+        "STATUS_CLOSED",
+        NOW + timedelta(minutes=1),
+    )
 
     result = dispatcher.execute(now=NOW)
 
@@ -183,7 +189,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
 def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path) -> None:
     first_user = uuid4()
     second_user = uuid4()
-    dispatcher, outbox, deliveries, transport, event, history = setup_dispatch(
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [
             LinkedTelegramAccount(first_user, "chat-1"),
@@ -213,7 +219,7 @@ def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path)
 
 def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event, history = setup_dispatch(
+    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-unentitled")],
     )
@@ -250,7 +256,7 @@ def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
 
 def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event, history = setup_dispatch(
+    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-disabled")],
         entitled_users=(user_id,),
