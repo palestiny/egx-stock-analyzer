@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
@@ -23,7 +24,7 @@ class SQLiteAlertOutbox:
         self._database_path = str(path)
         self._initialize()
 
-    def _connect(self):
+    def _connect(self) -> sqlite3.Connection:
         return connect_sqlite(self._database_path)
 
     def _initialize(self) -> None:
