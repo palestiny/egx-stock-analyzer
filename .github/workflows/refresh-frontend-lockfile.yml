@@ -1,0 +1,38 @@
+name: Refresh frontend lockfile
+
+on:
+  push:
+    branches:
+      - chore/refresh-frontend-lockfile
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/refresh-frontend-lockfile
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Refresh vulnerable transitive dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit fix
+          npm audit --audit-level=high
+      - name: Commit regenerated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No lockfile changes required."
+          else
+            git commit -m "chore: refresh vulnerable frontend dependencies"
+            git push origin HEAD:chore/refresh-frontend-lockfile
+          fi
