@@ -1,6 +1,11 @@
 from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
+from app.application.alerts.outbox import AlertOutbox
+from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.application.identity.user_management import UserManagementService
 from app.infrastructure.persistence.sqlite_management_audit_store import SQLiteManagementAuditStore
 from app.application.analysis.automatic_analysis_retention import AutomaticRetentionPolicy
@@ -72,6 +77,10 @@ class InfrastructureRuntime:
     credential_service: CredentialService | None = None
     user_store: SQLiteUserStore | None = None
     user_management: UserManagementService | None = None
+    signal_history_store: SQLiteSignalHistoryStore | None = None
+    signal_track_record_store: SQLiteTrackRecordStore | None = None
+    signal_alert_outbox: SQLiteAlertOutbox | None = None
+    signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -131,6 +140,15 @@ def create_infrastructure_runtime(
         credential_store=credential_store,
         user_store=user_store,
         fallback=configured_authenticator,
+    )
+
+    signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
+    signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
+    signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
+    signal_lifecycle_orchestrator = SignalLifecycleOrchestrator(
+        history=signal_history_store,
+        alerts=signal_alert_outbox,
+        track_record=signal_track_record_store,
     )
 
     application_runtime = create_stock_analysis_runtime(
@@ -228,4 +246,8 @@ def create_infrastructure_runtime(
         credential_service=credential_service,
         user_store=user_store,
         user_management=user_management,
+        signal_history_store=signal_history_store,
+        signal_track_record_store=signal_track_record_store,
+        signal_alert_outbox=signal_alert_outbox,
+        signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
     )
