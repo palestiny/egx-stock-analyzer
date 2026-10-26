@@ -140,6 +140,13 @@ class TechnicalIndicatorAnalyzer:
                     extension_direction = "down"
                 else:
                     continue
+                # Invalid retracement geometry is not a valid extension anchor; keep scanning earlier swings.
+                if not (
+                    min(triple[0].price, triple[1].price)
+                    <= triple[2].price
+                    <= max(triple[0].price, triple[1].price)
+                ):
+                    continue
                 extension_result = project_fibonacci_extensions(
                     triple[0].price,
                     triple[1].price,
