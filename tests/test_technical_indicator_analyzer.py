@@ -81,3 +81,33 @@ def test_indicator_analyzer_includes_expanded_candlestick_pattern_evidence() -> 
     evidence = TechnicalIndicatorAnalyzer.analyze(sample)
 
     assert "bullish_engulfing" in evidence.points[1].candlestick_patterns
+
+
+
+def test_indicator_analyzer_exposes_swings_only_after_confirmation_and_fibonacci_anchors() -> None:
+    stock_id = uuid4()
+    start = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    highs = (Decimal("10"), Decimal("12"), Decimal("15"), Decimal("13"), Decimal("11"), Decimal("10"))
+    lows = (Decimal("8"), Decimal("9"), Decimal("10"), Decimal("7"), Decimal("8"), Decimal("9"))
+    sample = []
+    for index, (high, low) in enumerate(zip(highs, lows)):
+        close = (high + low) / Decimal("2")
+        sample.append(PriceBar.create(
+            stock_id=stock_id,
+            timeframe=Timeframe.DAILY,
+            timestamp=start + timedelta(days=index),
+            open=Price(close),
+            high=Price(high),
+            low=Price(low),
+            close=Price(close),
+            volume=Volume(1000),
+        ))
+
+    evidence = TechnicalIndicatorAnalyzer.analyze(sample)
+
+    assert evidence.points[3].confirmed_swings == ()
+    assert ("high", Decimal("15")) in evidence.points[4].confirmed_swings
+    assert evidence.points[4].fibonacci_direction is None
+    assert evidence.points[5].fibonacci_direction == "down"
+    assert evidence.points[5].fibonacci_anchor_indices == (3, 2)
+    assert len(evidence.points[5].fibonacci_retracements) == 5
