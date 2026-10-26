@@ -6,6 +6,7 @@ from app.domain.technical_analysis.momentum import MomentumEvidence
 from app.domain.technical_analysis.support_resistance import SupportResistanceEvidence
 from app.domain.technical_analysis.trend import TrendEvidence
 from app.domain.technical_analysis.volume import VolumeEvidence
+from app.domain.technical_analysis.indicator_evidence import TechnicalIndicatorEvidence
 
 
 @dataclass(frozen=True)
@@ -16,3 +17,4 @@ class TechnicalAnalysisResult:
     support_resistance: SupportResistanceEvidence
     momentum: MomentumEvidence
     volume: VolumeEvidence
+    indicators: TechnicalIndicatorEvidence | None = None

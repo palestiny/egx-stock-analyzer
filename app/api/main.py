@@ -22,6 +22,7 @@ from app.api.analysis_run_list_response import AnalysisRunListResponse
 from app.api.analysis_snapshot_performance_response import AnalysisSnapshotPerformanceResponse
 from app.api.alert_delivery_response import AlertDeliveryResponse
 from app.api.analysis_report_response import AnalysisReportResponse
+from app.api.technical_indicator_response import TechnicalIndicatorHistoryResponse
 from app.api.analysis_response import AnalysisResultResponse
 from app.api.market_analysis_execution_response import MarketAnalysisExecutionResponse
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
@@ -507,6 +508,21 @@ def create_app(
 
         response = AnalysisReportResponse.from_report(report)
         return asdict(response)
+
+    @app.get("/api/v1/technical-indicators/{symbol}")
+    def get_technical_indicator_history(
+        symbol: str,
+        limit: int = 250,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_analysis_report is None:
+            raise HTTPException(status_code=503, detail="Analysis reporting is not configured")
+        if limit < 1 or limit > 1000:
+            raise HTTPException(status_code=400, detail="limit must be between 1 and 1000")
+        report = get_analysis_report.execute(symbol, identity=identity)
+        if report is None:
+            raise HTTPException(status_code=404, detail=f"Analysis report not found for {symbol}")
+        return TechnicalIndicatorHistoryResponse.from_report(report, limit=limit)
 
     @app.get("/api/v1/research/{symbol}")
     def get_stock_research_route(

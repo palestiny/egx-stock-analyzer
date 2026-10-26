@@ -1,0 +1,89 @@
+.indicator-chart-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.indicator-chart {
+  display: block;
+  width: 100%;
+  min-width: 480px;
+  height: auto;
+}
+
+.indicator-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.indicator-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #61708a;
+  font-size: 12px;
+}
+
+.indicator-legend i {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.indicator-metrics {
+  margin-top: 18px;
+}
+
+.indicator-note {
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+.error-message {
+  color: #9f2525;
+}
+
+
+.indicator-structure {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e5eaf2;
+}
+
+.indicator-structure h4 {
+  margin: 0 0 12px;
+  color: #172033;
+  font-size: 14px;
+}
+
+.fibonacci-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 10px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.fibonacci-levels li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e5eaf2;
+  border-radius: 8px;
+  color: #61708a;
+  font-size: 12px;
+}
+
+.fibonacci-levels strong {
+  color: #172033;
+  font-variant-numeric: tabular-nums;
+}
+
+.indicator-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
