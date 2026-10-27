@@ -93,4 +93,80 @@ describe("OwnerDashboardPage", () => {
     expect(dispatchResult).toHaveTextContent("3");
     expect(dispatchResult).toHaveTextContent("0");
   });
+
+
+  it("generates and displays an explicitly provisional point-in-time report snapshot", async () => {
+    const report = {
+      session_date: "2026-10-26",
+      generated_at: "2026-10-27T05:00:00+00:00",
+      exchange_timezone: "Africa/Cairo",
+      methodology_version: "session-opportunity-ledger-v1",
+      total_count: 1,
+      unresolved_count: 1,
+      resolved_proxy_count: 0,
+      status_counts: { ACTIVE: 1, TRIGGERED: 0 },
+      opportunities: [{
+        signal_id: "signal-1",
+        symbol: "EGAL",
+        publication_time: "2026-10-26T11:00:00+00:00",
+        original_entry_lower: "350",
+        original_entry_upper: "355",
+        original_invalidation: "342",
+        original_targets: [{ label: "T1", price: "370" }],
+        current_status: "ACTIVE",
+        current_evidence: ["daily close above resistance"],
+        market_proxy_outcome: null,
+        market_proxy_return: null,
+        market_proxy_r: null,
+        outcome_observed_at: null,
+      }],
+      created: true,
+    };
+    const generateSessionReport = vi.fn().mockResolvedValue(report);
+    render(
+      <OwnerDashboardPage
+        getOverview={vi.fn().mockResolvedValue(overview)}
+        publishOpportunity={vi.fn()}
+        dispatchOpportunities={vi.fn()}
+        generateSessionReport={generateSessionReport}
+        getSessionReport={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("EGX session date"), {
+      target: { value: "2026-10-26" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Generate snapshot" }));
+
+    expect(await screen.findByText("A new immutable snapshot was saved.")).toBeInTheDocument();
+    expect(generateSessionReport).toHaveBeenCalledWith("2026-10-26");
+    expect(screen.getByText(/manual snapshot, not a finalized-session certification/)).toBeInTheDocument();
+    expect(screen.getByText("EGAL")).toBeInTheDocument();
+    expect(screen.getByText("350 – 355")).toBeInTheDocument();
+    expect(screen.getByText("daily close above resistance")).toBeInTheDocument();
+    expect(screen.getAllByText("Unresolved").length).toBeGreaterThan(0);
+  });
+
+  it("shows a clear empty state when no saved session snapshot exists", async () => {
+    const getSessionReport = vi.fn().mockRejectedValue({ status: 404, message: "not found" });
+    render(
+      <OwnerDashboardPage
+        getOverview={vi.fn().mockResolvedValue(overview)}
+        publishOpportunity={vi.fn()}
+        dispatchOpportunities={vi.fn()}
+        generateSessionReport={vi.fn()}
+        getSessionReport={getSessionReport}
+        onBack={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(await screen.findByLabelText("EGX session date"), {
+      target: { value: "2026-10-26" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Load saved snapshot" }));
+
+    expect(await screen.findByText("No saved report snapshot exists for this session date yet.")).toBeInTheDocument();
+    expect(getSessionReport).toHaveBeenCalledWith("2026-10-26");
+  });
 });
