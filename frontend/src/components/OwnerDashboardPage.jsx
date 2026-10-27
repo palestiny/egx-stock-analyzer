@@ -19,12 +19,19 @@ export function OwnerDashboardPage({
   getOverview,
   publishOpportunity,
   dispatchOpportunities,
+  generateSessionReport,
+  getSessionReport,
   onBack,
 }) {
   const [overview, setOverview] = useState(null);
   const [symbol, setSymbol] = useState("");
   const [publishResult, setPublishResult] = useState(null);
   const [dispatchResult, setDispatchResult] = useState(null);
+  const [sessionDate, setSessionDate] = useState("");
+  const [sessionReport, setSessionReport] = useState(null);
+  const [sessionReportError, setSessionReportError] = useState(null);
+  const [sessionReportNotice, setSessionReportNotice] = useState(null);
+  const [sessionReportAction, setSessionReportAction] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -89,6 +96,46 @@ export function OwnerDashboardPage({
       setError(requestError);
     } finally {
       setDispatching(false);
+    }
+  }
+
+  async function handleGenerateSessionReport() {
+    if (!sessionDate) return;
+    setSessionReportAction("generate");
+    setSessionReportError(null);
+    setSessionReportNotice(null);
+    try {
+      const result = await generateSessionReport(sessionDate);
+      setSessionReport(result);
+      setSessionReportNotice(
+        result.created
+          ? "A new immutable snapshot was saved."
+          : "The matching immutable snapshot already existed.",
+      );
+      await refresh();
+    } catch (requestError) {
+      setSessionReportError(requestError.message);
+    } finally {
+      setSessionReportAction(null);
+    }
+  }
+
+  async function handleLoadSessionReport() {
+    if (!sessionDate) return;
+    setSessionReportAction("load");
+    setSessionReportError(null);
+    setSessionReportNotice(null);
+    try {
+      setSessionReport(await getSessionReport(sessionDate));
+    } catch (requestError) {
+      setSessionReport(null);
+      setSessionReportError(
+        requestError.status === 404
+          ? "No saved report snapshot exists for this session date yet."
+          : requestError.message,
+      );
+    } finally {
+      setSessionReportAction(null);
     }
   }
 
@@ -183,6 +230,99 @@ export function OwnerDashboardPage({
                 <Metric label="Suppressed" value={dispatchResult.recipients_suppressed} />
                 <Metric label="Failed" value={dispatchResult.recipients_failed} />
               </div>
+            )}
+          </section>
+
+          <section className="panel" aria-label="session opportunity reports">
+            <h2>Session opportunity report snapshots</h2>
+            <p className="muted">
+              Generate or read an immutable point-in-time snapshot for a selected session date.
+              This is a manual snapshot, not a finalized-session certification, a profitability result,
+              or an automatic Telegram report.
+            </p>
+            <div className="symbol-form">
+              <label htmlFor="session-report-date">EGX session date</label>
+              <input
+                id="session-report-date"
+                type="date"
+                value={sessionDate}
+                onChange={(event) => setSessionDate(event.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={handleGenerateSessionReport}
+                disabled={!sessionDate || sessionReportAction !== null}
+              >
+                {sessionReportAction === "generate" ? "Saving snapshot..." : "Generate snapshot"}
+              </button>
+              <button
+                type="button"
+                onClick={handleLoadSessionReport}
+                disabled={!sessionDate || sessionReportAction !== null}
+              >
+                {sessionReportAction === "load" ? "Loading snapshot..." : "Load saved snapshot"}
+              </button>
+            </div>
+            {sessionReportError && (
+              <p className="state-card error" role="alert">{sessionReportError}</p>
+            )}
+            {sessionReportNotice && (
+              <p className="state-card" role="status">{sessionReportNotice}</p>
+            )}
+            {sessionReport && (
+              <>
+                <div className="metrics-grid" aria-label="session report metrics">
+                  <Metric label="Session date" value={sessionReport.session_date} />
+                  <Metric label="Snapshot generated at" value={sessionReport.generated_at} />
+                  <Metric label="Opportunities" value={sessionReport.total_count} />
+                  <Metric label="Unresolved" value={sessionReport.unresolved_count} />
+                  <Metric label="Resolved market proxies" value={sessionReport.resolved_proxy_count} />
+                </div>
+                <p className="muted">
+                  Methodology: {sessionReport.methodology_version} · Time zone: {sessionReport.exchange_timezone}
+                </p>
+                {sessionReport.opportunities?.length ? (
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Symbol</th>
+                          <th>Published</th>
+                          <th>Original entry zone</th>
+                          <th>Invalidation</th>
+                          <th>Targets</th>
+                          <th>Current status</th>
+                          <th>Market-proxy outcome</th>
+                          <th>Return / R</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sessionReport.opportunities.map((item) => (
+                          <tr key={item.signal_id}>
+                            <td>{item.symbol}</td>
+                            <td>{item.publication_time}</td>
+                            <td>{item.original_entry_lower} – {item.original_entry_upper}</td>
+                            <td>{item.original_invalidation}</td>
+                            <td>
+                              {item.original_targets?.length
+                                ? item.original_targets.map((target) => `${target.label}: ${target.price}`).join(" · ")
+                                : "—"}
+                            </td>
+                            <td>{item.current_status}</td>
+                            <td>{item.market_proxy_outcome ?? "Unresolved"}</td>
+                            <td>
+                              {item.market_proxy_return ?? "—"} / {item.market_proxy_r ?? "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="muted">This snapshot contains no opportunities for the selected session date.</p>
+                )}
+              </>
             )}
           </section>
 
