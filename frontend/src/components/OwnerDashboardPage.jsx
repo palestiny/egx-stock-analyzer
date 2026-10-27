@@ -241,7 +241,7 @@ export function OwnerDashboardPage({
               or an automatic Telegram report.
             </p>
             <div className="session-report-controls">
-              <label htmlFor="session-report-date">EGX session date
+              <label htmlFor="session-report-date">EGX session date</label>
               <input
                 id="session-report-date"
                 type="date"
