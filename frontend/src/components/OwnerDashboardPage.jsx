@@ -240,8 +240,8 @@ export function OwnerDashboardPage({
               This is a manual snapshot, not a finalized-session certification, a profitability result,
               or an automatic Telegram report.
             </p>
-            <div className="symbol-form">
-              <label htmlFor="session-report-date">EGX session date</label>
+            <div className="session-report-controls">
+              <label htmlFor="session-report-date">EGX session date
               <input
                 id="session-report-date"
                 type="date"
