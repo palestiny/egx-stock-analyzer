@@ -304,3 +304,22 @@ export function dispatchTelegramOpportunities(limit = 100) {
     { method: "POST" },
   );
 }
+
+
+export function generateSessionOpportunityReport(sessionDate) {
+  const params = new URLSearchParams({ session_date: sessionDate });
+  return getJson(
+    "/api/v1/session-opportunity-reports?" + params.toString(),
+    "Generate session opportunity report snapshot request",
+    { method: "POST" },
+  );
+}
+
+export function getSessionOpportunityReport(sessionDate, asOf) {
+  const params = new URLSearchParams({ session_date: sessionDate });
+  if (asOf) params.set("as_of", asOf);
+  return getJson(
+    "/api/v1/session-opportunity-reports?" + params.toString(),
+    "Read session opportunity report snapshot request",
+  );
+}
