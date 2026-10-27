@@ -282,6 +282,10 @@ export function OwnerDashboardPage({
                 <p className="muted">
                   Methodology: {sessionReport.methodology_version} · Time zone: {sessionReport.exchange_timezone}
                 </p>
+                <div className="detail-row">
+                  <span>Current status counts</span>
+                  <strong>{statusCounts(sessionReport.status_counts)}</strong>
+                </div>
                 {sessionReport.opportunities?.length ? (
                   <div className="table-scroll">
                     <table>
@@ -293,8 +297,10 @@ export function OwnerDashboardPage({
                           <th>Invalidation</th>
                           <th>Targets</th>
                           <th>Current status</th>
+                          <th>Current evidence</th>
                           <th>Market-proxy outcome</th>
                           <th>Return / R</th>
+                          <th>Outcome observed at</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -310,10 +316,12 @@ export function OwnerDashboardPage({
                                 : "—"}
                             </td>
                             <td>{item.current_status}</td>
+                            <td>{item.current_evidence?.length ? item.current_evidence.join(" · ") : "—"}</td>
                             <td>{item.market_proxy_outcome ?? "Unresolved"}</td>
                             <td>
                               {item.market_proxy_return ?? "—"} / {item.market_proxy_r ?? "—"}
                             </td>
+                            <td>{item.outcome_observed_at ?? "—"}</td>
                           </tr>
                         ))}
                       </tbody>
