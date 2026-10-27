@@ -104,6 +104,7 @@ describe("OwnerDashboardPage", () => {
       total_count: 1,
       unresolved_count: 1,
       resolved_proxy_count: 0,
+      status_counts: { ACTIVE: 1, TRIGGERED: 0 },
       opportunities: [{
         signal_id: "signal-1",
         symbol: "EGAL",
@@ -113,9 +114,11 @@ describe("OwnerDashboardPage", () => {
         original_invalidation: "342",
         original_targets: [{ label: "T1", price: "370" }],
         current_status: "ACTIVE",
+        current_evidence: ["daily close above resistance"],
         market_proxy_outcome: null,
         market_proxy_return: null,
         market_proxy_r: null,
+        outcome_observed_at: null,
       }],
       created: true,
     };
@@ -141,6 +144,7 @@ describe("OwnerDashboardPage", () => {
     expect(screen.getByText(/manual snapshot, not a finalized-session certification/)).toBeInTheDocument();
     expect(screen.getByText("EGAL")).toBeInTheDocument();
     expect(screen.getByText("350 – 355")).toBeInTheDocument();
+    expect(screen.getByText("daily close above resistance")).toBeInTheDocument();
     expect(screen.getAllByText("Unresolved").length).toBeGreaterThan(0);
   });
 
