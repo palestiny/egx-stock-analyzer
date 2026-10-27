@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 
 import pytest
@@ -51,6 +52,22 @@ def test_session_report_store_is_idempotent_for_equivalent_timezone_offsets(tmp_
     saved = store.get_latest(date(2026, 10, 26), as_of=utc_generated)
     assert saved is not None
     assert saved["generated_at"] == utc_generated.isoformat()
+
+
+def test_session_report_store_concurrent_duplicate_saves_are_idempotent(tmp_path) -> None:
+    database = tmp_path / "reports.db"
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    item = report(generated)
+    stores = [SQLiteSessionOpportunityReportStore(database) for _ in range(8)]
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(lambda store: store.save(item), stores))
+
+    assert results.count(True) == 1
+    assert results.count(False) == 7
+    saved = stores[0].get_latest(date(2026, 10, 26), as_of=generated)
+    assert saved is not None
+    assert saved["generated_at"] == generated.isoformat()
 
 
 def test_session_report_store_supports_point_in_time_reads(tmp_path) -> None:
