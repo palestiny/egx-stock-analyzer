@@ -39,6 +39,20 @@ def test_session_report_store_persists_immutable_idempotent_snapshots(tmp_path) 
     assert all(value == 0 for value in saved["status_counts"].values())
 
 
+def test_session_report_store_is_idempotent_for_equivalent_timezone_offsets(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    utc_generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    equivalent_offset = datetime.fromisoformat("2026-10-26T17:00:00+02:00")
+
+    assert utc_generated == equivalent_offset
+    assert store.save(report(utc_generated)) is True
+    assert store.save(report(equivalent_offset)) is False
+
+    saved = store.get_latest(date(2026, 10, 26), as_of=utc_generated)
+    assert saved is not None
+    assert saved["generated_at"] == utc_generated.isoformat()
+
+
 def test_session_report_store_supports_point_in_time_reads(tmp_path) -> None:
     store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
     generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
