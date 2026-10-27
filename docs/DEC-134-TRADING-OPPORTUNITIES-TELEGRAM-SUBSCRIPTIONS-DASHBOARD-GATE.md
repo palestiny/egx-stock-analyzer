@@ -338,7 +338,7 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 - **PR #378 — owner operations and session-report foundation:** merged. Wires operator-only publication/dispatch endpoints, aggregate owner overview, immutable session report persistence and as-of reads, and retry-safe Telegram webhook replies.
 - **PR #381 — owner session-report UI:** merged after all five CI jobs passed. Operators can manually generate or load a saved report snapshot and inspect original entry/invalidation/targets, current evidence/status, and market-proxy outcomes. The UI explicitly labels the result as a manual point-in-time snapshot, not a finalized-session certification or profitability claim.
 - **CI remediation issue #341:** closed after the current main passed all five CI jobs with Vite 8.3.5 and Vitest 5.0.5.
-- **PR #382 — report snapshot idempotency hardening:** open and awaiting CI. It canonicalizes snapshot timestamps to UTC and makes duplicate concurrent saves idempotent.
+- **PR #382 — report snapshot idempotency hardening:** merged after all five CI jobs passed. It canonicalizes snapshot timestamps to UTC and makes duplicate concurrent saves idempotent; latest main CI run #4497 is validating the combined merged state.
 
 ### Verified engineering and data status
 
