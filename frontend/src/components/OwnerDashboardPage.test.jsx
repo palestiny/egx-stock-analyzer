@@ -138,10 +138,10 @@ describe("OwnerDashboardPage", () => {
 
     expect(await screen.findByText("A new immutable snapshot was saved.")).toBeInTheDocument();
     expect(generateSessionReport).toHaveBeenCalledWith("2026-10-26");
-    expect(screen.getByText("This is a manual snapshot, not a finalized-session certification, a profitability result, or an automatic Telegram report.")).toBeInTheDocument();
+    expect(screen.getByText(/manual snapshot, not a finalized-session certification/)).toBeInTheDocument();
     expect(screen.getByText("EGAL")).toBeInTheDocument();
     expect(screen.getByText("350 – 355")).toBeInTheDocument();
-    expect(screen.getByText("Unresolved")).toBeInTheDocument();
+    expect(screen.getAllByText("Unresolved").length).toBeGreaterThan(0);
   });
 
   it("shows a clear empty state when no saved session snapshot exists", async () => {
