@@ -330,30 +330,29 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 **Next step:** resolve priority, universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
 
 
-## 17. Implementation Status — 2026-10-26 (refreshed)
+## 17. Implementation Status — 2026-10-27
 
-Merged into `main` and present in the current tree:
-- PR #346: durable SQLite signal history, outcomes, and alert-outbox foundation.
-- PR #348: recipient-targeted Telegram signal messages.
-- PR #354: Elliott impulse candidate validation.
-- PR #356: point-in-time session opportunity ledger generation.
-- PR #364: technical-analysis evidence in the dashboard.
-- PR #369: secure Telegram account linking.
-- PR #370: versioned subscription plans and server-side plan entitlement evaluation.
-- PR #376: immutable signal snapshots, per-recipient Telegram delivery persistence, replay handling, and a shared evaluator that combines plan entitlements with audited explicit capability grants.
-- Commit `5f7aa746`: opt-in RSS/news-event ingestion and authenticated point-in-time news-event API.
-- Commit `124dde01`: audited capability-grant/revocation storage and service. The original stacked PR #358 was closed as stale; its code was integrated through a current-main port.
+### Merged and verified foundations
 
-Open implementation:
-- PR #377 is the current-main port for the operator dashboard, persisted/versioned session reports, and authenticated publish/dispatch endpoints. It remains draft while CI validates the combined tree.
+- **PR #376 — Telegram opportunity delivery core:** merged. Persists immutable signal snapshots in the alert outbox, dispatches to linked active users with server-side entitlement checks, records per-recipient delivery outcomes, and suppresses duplicate webhook update IDs.
+- **PR #378 — owner operations and session-report foundation:** merged. Wires operator-only publication/dispatch endpoints, aggregate owner overview, immutable session report persistence and as-of reads, and retry-safe Telegram webhook replies.
+- **PR #381 — owner session-report UI:** merged after all five CI jobs passed. Operators can manually generate or load a saved report snapshot and inspect original entry/invalidation/targets, current evidence/status, and market-proxy outcomes. The UI explicitly labels the result as a manual point-in-time snapshot, not a finalized-session certification or profitability claim.
+- **CI remediation issue #341:** closed after the current main passed all five CI jobs with Vite 8.3.5 and Vitest 5.0.5.
+- **PR #382 — report snapshot idempotency hardening:** open and awaiting CI. It canonicalizes snapshot timestamps to UTC and makes duplicate concurrent saves idempotent.
 
-The current tree is materially ahead of the original stacked PRs. Do not merge stale stacked branches #349, #351, #352, #358, #363, or #367; use the clean-main ports/merged code instead. A live Telegram send still requires explicit opt-in and real deployment secrets.
+### Verified engineering and data status
 
-Still not complete as a production feature:
-- Automatic post-session scheduling with an accepted EGX calendar, holiday handling, and data-finalization cutoff.
-- Subscription management/administration APIs, accepted product tiers/prices, payment gateway, reconciliation/webhooks, refunds/support handling, and access revocation workflows.
-- Expected holding-duration estimates backed by strategy-specific validation.
-- Actual portfolio accounting and broker integration.
-- M61 historical-data acceptance and strategy-performance validation using a source with verified provenance, adjustment policy, and redistribution rights.
+- Latest main CI run #4486 passed all five jobs. The Python suite reported 1,346 passed, 8 deselected, and 90.46% coverage.
+- PR #381 latest-head CI run #4491 passed all five jobs.
+- Synthetic M61 end-to-end execution is verified, but **real-market Strategy v0 validation remains blocked**. The current no-cost probe classified all ten Yahoo candidates as mutual funds and produced 3,843 OHLCV validation findings; the anonymous EGID history request returned HTTP 401; TradingView-backed extraction is rejected for this automated research use. No permitted real COMI artifact or point-in-time financial snapshots are currently accepted.
+- No live Telegram delivery claim is made. Real delivery still requires explicit deployment secrets and an authorized live-send verification.
 
-The gate remains **Draft**. The implementation progress above does not accept any open decision in Section 13, authorize spending on data, select payment/plan pricing, or permit profitability claims.
+### Remaining implementation and acceptance gaps
+
+- **Session reports:** automatic scheduling/finalization and Telegram distribution are not implemented. Do not schedule or label a report final until the exchange calendar, data-finalization cutoff, missing/stale-source behavior, and provisional-versus-final policy are accepted.
+- **Opportunity lifecycle:** preserve the existing meaning of `SignalStatus.TRIGGERED` (target hit) until a compatibility migration is designed; entry-trigger, published-active, invalidated, suspended, amended, and expired states still need an accepted mapping.
+- **Subscriptions and billing:** no approved product tiers/prices or payment gateway. Payment reconciliation, authenticated/idempotent provider webhooks, refunds/chargebacks, support flows, and entitlement revocation remain outstanding. No live subscription activation should depend on a client redirect or screenshot.
+- **Strategy validation:** requires an owner-accessible historical CSV/API export whose terms permit local research/storage, preserved raw artifact and provenance, corporate-action semantics, warm-up history, and point-in-time financial snapshots. Do not use synthetic fixtures or rejected sources as performance evidence.
+- **Advanced analytics:** Crash Radar v2 and comprehensive technical/news intelligence remain under their separate draft design gates.
+
+The design gate remains **Draft — owner decisions required**. Implementation progress does not accept the decisions in Section 13, authorize paid data, select payment terms, change M61 priority, or permit profitability claims.
