@@ -86,7 +86,7 @@ class SQLiteSessionOpportunityReportStore:
     def _report_payload(report: SessionOpportunityLedgerReport) -> dict[str, Any]:
         return {
             "session_date": report.session_date.isoformat(),
-            "generated_at": report.generated_at.isoformat(),
+            "generated_at": report.generated_at.astimezone(timezone.utc).isoformat(),
             "exchange_timezone": report.exchange_timezone,
             "methodology_version": report.methodology_version,
             "total_count": report.total_count,
