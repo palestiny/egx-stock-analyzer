@@ -60,6 +60,18 @@ class SQLiteSessionOpportunityReportStore:
             report.generated_at.astimezone(timezone.utc).isoformat(),
         )
         with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO session_opportunity_reports(
+                    session_date, methodology_version, generated_at, report_json,
+                    total_count, unresolved_count, resolved_proxy_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (*values, payload, report.total_count, report.unresolved_count, report.resolved_proxy_count),
+            )
+            if cursor.rowcount == 1:
+                return True
+
             existing = connection.execute(
                 """
                 SELECT report_json FROM session_opportunity_reports
@@ -67,20 +79,11 @@ class SQLiteSessionOpportunityReportStore:
                 """,
                 values,
             ).fetchone()
-            if existing is not None:
-                if str(existing[0]) != payload:
-                    raise ValueError("session report snapshot is immutable")
-                return False
-            connection.execute(
-                """
-                INSERT INTO session_opportunity_reports(
-                    session_date, methodology_version, generated_at, report_json,
-                    total_count, unresolved_count, resolved_proxy_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (*values, payload, report.total_count, report.unresolved_count, report.resolved_proxy_count),
-            )
-        return True
+            if existing is None:
+                raise RuntimeError("session report snapshot conflict was not persisted")
+            if str(existing[0]) != payload:
+                raise ValueError("session report snapshot is immutable")
+        return False
 
     @staticmethod
     def _report_payload(report: SessionOpportunityLedgerReport) -> dict[str, Any]:
