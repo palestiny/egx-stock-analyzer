@@ -342,8 +342,8 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 
 ### Verified engineering and data status
 
-- Latest main CI run #4486 passed all five jobs. The Python suite reported 1,346 passed, 8 deselected, and 90.46% coverage.
-- PR #381 latest-head CI run #4491 passed all five jobs.
+- Latest main CI run #4497 passed all five jobs after both PRs were merged. The Python suite reported 1,348 passed, 8 deselected, and 90.46% coverage.
+- PR #381 latest-head CI run #4491 and PR #382 latest-head CI run #4494 each passed all five jobs.
 - Synthetic M61 end-to-end execution is verified, but **real-market Strategy v0 validation remains blocked**. The current no-cost probe classified all ten Yahoo candidates as mutual funds and produced 3,843 OHLCV validation findings; the anonymous EGID history request returned HTTP 401; TradingView-backed extraction is rejected for this automated research use. No permitted real COMI artifact or point-in-time financial snapshots are currently accepted.
 - No live Telegram delivery claim is made. Real delivery still requires explicit deployment secrets and an authorized live-send verification.
 
