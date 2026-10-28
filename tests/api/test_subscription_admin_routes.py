@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import sqlite3
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -80,6 +81,26 @@ def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_
     ).json()["status"] == "ACTIVE"
     assert store.latest_for_user(user_id).status.value == "ACTIVE"
 
+    with sqlite3.connect(store._database_path) as connection:
+        events = connection.execute(
+            """
+            SELECT event, actor, reason, previous_status, new_status
+            FROM subscription_events
+            WHERE subscription_id = ?
+            ORDER BY id
+            """,
+            (subscription_id,),
+        ).fetchall()
+    assert [(row[0], row[3], row[4]) for row in events] == [
+        ("SUBSCRIPTION_CREATED", None, "PENDING"),
+        ("STATUS_TRANSITION", "PENDING", "ACTIVE"),
+    ]
+    assert all(row[1] for row in events)
+    assert [row[2] for row in events] == [
+        "Manual pilot provisioning; payment is not implied",
+        "Operator verified pilot access",
+    ]
+
 
 def test_subscription_admin_routes_require_operator_authentication(tmp_path):
     client, _store = make_client(tmp_path)
@@ -129,3 +150,60 @@ def test_subscription_admin_maps_missing_subscription_transition_to_404(tmp_path
     )
 
     assert response.status_code == 404
+
+
+
+def test_subscription_admin_rejects_inactive_plan_provisioning(tmp_path):
+    client, _store = make_client(tmp_path)
+    plan_response = client.post(
+        "/api/v1/owner/subscription-plans",
+        headers=auth(),
+        json={
+            "plan_id": "retired",
+            "version": 1,
+            "display_name": "Retired plan",
+            "active": False,
+            "entitlements": [{"code": "telegram_opportunities"}],
+        },
+    )
+    assert plan_response.status_code == 200
+
+    now = datetime.now(timezone.utc)
+    response = client.post(
+        "/api/v1/owner/subscriptions",
+        headers=auth(),
+        json={
+            "user_id": str(uuid4()),
+            "plan_id": "retired",
+            "plan_version": 1,
+            "starts_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "reason": "test inactive plan guard",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Inactive subscription plans cannot be provisioned"
+
+
+def test_subscription_admin_rejects_unknown_plan_version_before_persistence(tmp_path):
+    client, store = make_client(tmp_path)
+    now = datetime.now(timezone.utc)
+
+    response = client.post(
+        "/api/v1/owner/subscriptions",
+        headers=auth(),
+        json={
+            "user_id": str(uuid4()),
+            "plan_id": "missing",
+            "plan_version": 1,
+            "starts_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "reason": "test missing plan guard",
+        },
+    )
+
+    assert response.status_code == 422
+    with sqlite3.connect(store._database_path) as connection:
+        count = connection.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
+    assert count == 0
