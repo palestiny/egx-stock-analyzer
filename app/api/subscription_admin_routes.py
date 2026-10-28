@@ -150,6 +150,8 @@ def create_subscription_admin_router(
             subscription_store.save_plan(plan)
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+        except IntegrityError as error:
+            raise HTTPException(status_code=409, detail="Subscription plan version already exists or conflicts with a concurrent creation") from error
         return _plan_payload(plan)
 
     @router.get("/api/v1/owner/subscription-plans/{plan_id}/{version}")
@@ -272,6 +274,13 @@ def create_subscription_admin_router(
             raise HTTPException(status_code=409, detail=str(error)) from error
         except LookupError as error:
             raise HTTPException(status_code=404, detail="Subscription not found") from error
+        except RuntimeError as error:
+            if "changed concurrently" not in str(error):
+                raise
+            raise HTTPException(
+                status_code=409,
+                detail="Subscription changed concurrently; reload before retrying",
+            ) from error
         return _subscription_payload(subscription)
 
     return router
