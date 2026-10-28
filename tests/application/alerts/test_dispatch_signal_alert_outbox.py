@@ -284,7 +284,7 @@ def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_pat
     assert record.last_error == "user_inactive_or_missing"
     assert outbox.get(event.event_id).status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
 
-def test_dispatch_keeps_event_pending_when_no_recipients_are_linked(tmp_path) -> None:
+def test_dispatch_suppresses_event_terminally_when_no_recipients_are_linked(tmp_path) -> None:
     dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [],
@@ -294,6 +294,7 @@ def test_dispatch_keeps_event_pending_when_no_recipients_are_linked(tmp_path) ->
 
     assert result.events_processed == 1
     assert result.events_suppressed_no_recipients == 1
+    assert result.events_suppressed_no_eligible_recipients == 0
     assert result.recipients_delivered == 0
     assert result.recipients_suppressed == 0
     assert result.recipients_failed == 0
