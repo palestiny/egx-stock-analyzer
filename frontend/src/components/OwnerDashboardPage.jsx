@@ -23,6 +23,7 @@ export function OwnerDashboardPage({
   generateSessionReport,
   getSessionReport,
   createSubscriptionPlan,
+  getSubscriptionPlan,
   createSubscription,
   getSubscription,
   getSubscriptionEvents,
@@ -360,6 +361,7 @@ export function OwnerDashboardPage({
 
       <SubscriptionAdminPanel
         createPlan={createSubscriptionPlan}
+        getSubscriptionPlan={getSubscriptionPlan}
         createSubscription={createSubscription}
         getSubscription={getSubscription}
         getSubscriptionEvents={getSubscriptionEvents}
