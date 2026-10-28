@@ -57,6 +57,7 @@ Content-Type: application/json
 - Activation is a separate audited transition: `POST /api/v1/owner/subscriptions/{subscription_id}/transition` with `{"status":"ACTIVE","reason":"..." }`.
 - The transition reason and actor are written to the subscription event history.
 - Read a subscription with `GET /api/v1/owner/subscriptions/{subscription_id}`.
+- Read its append-only audit history with `GET /api/v1/owner/subscriptions/{subscription_id}/events`.
 - Read the latest subscription for a user with `GET /api/v1/owner/subscriptions/by-user/{user_id}/latest`.
 
 The optional `payment_provider` and `payment_reference` fields are administrative references only. They must be supplied together and do not verify payment. Do not activate paid access unless the operator has independently completed the approved verification process. No price, plan packaging, refund policy, payment gateway, or automatic activation rule is defined here.
