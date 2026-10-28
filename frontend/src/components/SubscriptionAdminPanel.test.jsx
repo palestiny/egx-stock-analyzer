@@ -179,4 +179,45 @@ describe("SubscriptionAdminPanel", () => {
   });
 
 
+
+  it("submits the visible default transition when the prior selection is no longer valid", async () => {
+    const getSubscription = vi.fn().mockResolvedValue({
+      subscription_id: "subscription-active",
+      user_id: "user-1",
+      plan_id: "telegram-pilot",
+      plan_version: 1,
+      status: "ACTIVE",
+    });
+    const transitionSubscription = vi.fn().mockResolvedValue({
+      subscription_id: "subscription-active",
+      user_id: "user-1",
+      plan_id: "telegram-pilot",
+      plan_version: 1,
+      status: "PAST_DUE",
+    });
+    render(
+      <SubscriptionAdminPanel
+        getSubscription={getSubscription}
+        transitionSubscription={transitionSubscription}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Subscription ID"), {
+      target: { value: "subscription-active" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find by subscription ID" }));
+
+    const statusSelect = await screen.findByLabelText("New status");
+    expect(statusSelect).toHaveValue("PAST_DUE");
+    fireEvent.change(screen.getAllByLabelText("Audit reason")[0], {
+      target: { value: "Record renewal issue" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Record status transition" }));
+
+    await waitFor(() => expect(transitionSubscription).toHaveBeenCalledWith(
+      "subscription-active",
+      { status: "PAST_DUE", reason: "Record renewal issue" },
+    ));
+  });
+
 });
