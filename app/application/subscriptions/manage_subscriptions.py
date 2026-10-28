@@ -22,6 +22,10 @@ class SubscriptionUserNotFound(LookupError):
     """Raised when provisioning targets a user absent from the user directory."""
 
 
+class SubscriptionUserDirectoryNotConfigured(RuntimeError):
+    """Raised when subscription provisioning has no user directory configured."""
+
+
 class SubscriptionPlanNotFound(LookupError):
     """Raised when provisioning references an unknown immutable plan version."""
 
@@ -75,7 +79,7 @@ class SubscriptionAdministration:
         payment_reference: str | None = None,
     ) -> Subscription:
         if self._users is None:
-            raise RuntimeError("user directory is not configured")
+            raise SubscriptionUserDirectoryNotConfigured("user directory is not configured")
         if self._users.get(user_id) is None:
             raise SubscriptionUserNotFound("User not found")
 
