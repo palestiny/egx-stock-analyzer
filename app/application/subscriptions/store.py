@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domain.subscriptions.model import Subscription, SubscriptionPlan, SubscriptionStatus
+from app.domain.subscriptions.model import Subscription, SubscriptionEvent, SubscriptionPlan, SubscriptionStatus
 
 
 class SubscriptionStore(Protocol):
@@ -13,6 +13,7 @@ class SubscriptionStore(Protocol):
     def create(self, subscription: Subscription, *, actor: str, reason: str) -> None: ...
     def get(self, subscription_id: UUID) -> Subscription | None: ...
     def latest_for_user(self, user_id: UUID) -> Subscription | None: ...
+    def events_for_subscription(self, subscription_id: UUID) -> tuple[SubscriptionEvent, ...]: ...
     def current_for_user(self, user_id: UUID, *, now: datetime) -> Subscription | None: ...
     def transition(
         self,
