@@ -21,7 +21,7 @@ Repository review confirms:
 - The domain already defines AlertEvent types SIGNAL_TRIGGERED and SIGNAL_INVALIDATED, but that alone does not prove an end-to-end opportunity lifecycle, evidence re-evaluation, invalidation delivery, or subscription entitlements are complete.
 - Telegram configuration and explicit live-send verification are documented in docs/TELEGRAM_CONNECTION_VERIFICATION.md.
 - Strategy simulation and backtest metrics exist, but the real historical dataset and evidence-backed strategy validation remain unaccepted.
-- PR #343 adds Crash Radar analysis-date evidence metadata. Its head 3e7bc011724df565cc4ba6081f5728bed2c73e07 passed all five reported CI jobs in run #4166 on 2026-10-26. PR #343 remains open and unmerged. PR #342 is an open draft design gate for Crash Radar v2.
+- PR #343 (Crash Radar analysis-date evidence metadata) is merged; it is not an outstanding implementation PR. The reconciled Crash Radar v2 policy gate is tracked in `docs/DEC-133-CRASH-RADAR-V2-DESIGN-GATE.md`.
 
 Reuse existing contracts when suitable; do not create a parallel alert system or infer product completeness from a class name.
 
@@ -32,7 +32,7 @@ Verified merged increments:
 - **PR #407** merged the operator-only subscription lifecycle API, application service boundary, immutable versioned plans, provisioning guards, audited state transitions, and subscription-event history.
 - **PR #408** merged the owner-dashboard UI and API client integration for manual subscription administration.
 - **PR #409** merged explicit terminal suppression for Telegram alert events dispatched when no linked recipients exist, including an operator-visible count. This is not equivalent to delivery and is not a payment or entitlement feature.
-- Latest observed main CI for commit `24e487c3d0c31f06b5b8b16cfa4236b78b3fec80` had dependency audit, deterministic integration tests, and container build complete successfully; unit tests were still in progress when checked. Do not mark that run fully green until the unit-test job completes.
+- The documentation reconciliation PR #412 passed all five reported CI jobs (unit tests, integration tests, dependency audit, container build, and frontend tests) before merge. A new main-branch CI run for merge commit `1861931814ddd781ca1284bd48c8dc8e7629202a` was in progress at the time of this update; verify that run separately before treating the latest main revision as fully green.
 
 Remaining gaps are not all code-only:
 1. Subscription pricing, payment provider, checkout/webhook trust boundary, refunds, and reconciliation require an explicit product/payment decision before gateway implementation.
