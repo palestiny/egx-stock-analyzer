@@ -3,7 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.clock import egx_today
+from app.application.clock import EGX_TIMEZONE, egx_today
 from app.domain.technical_analysis.momentum import MomentumStatus
 from app.domain.technical_analysis.trend import TrendStatus
 from app.domain.technical_analysis.volume import VolumeStatus
@@ -144,7 +144,10 @@ class CalculateMarketBreadth:
             analyzed += 1
             raw_analysis_date = getattr(record, "analysis_date", None)
             if isinstance(raw_analysis_date, datetime):
-                raw_analysis_date = raw_analysis_date.date()
+                if raw_analysis_date.tzinfo is not None and raw_analysis_date.utcoffset() is not None:
+                    raw_analysis_date = raw_analysis_date.astimezone(EGX_TIMEZONE).date()
+                else:
+                    raw_analysis_date = raw_analysis_date.date()
             analysis_dates[symbol] = (
                 raw_analysis_date if isinstance(raw_analysis_date, date) else None
             )
