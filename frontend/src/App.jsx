@@ -623,12 +623,20 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
             )}
             {breadthView.analysis_dates_by_symbol && (
               <div className="snapshot-date-list" aria-label="snapshot dates by symbol">
-                {Object.entries(breadthView.analysis_dates_by_symbol).map(([symbol, analysisDate]) => (
-                  <div className="detail-row" key={symbol}>
-                    <span>{symbol} snapshot date</span>
-                    <strong>{analysisDate ?? "Unknown"}</strong>
-                  </div>
-                ))}
+                {Object.entries(breadthView.analysis_dates_by_symbol).map(([symbol, analysisDate]) => {
+                  const age = breadthView.snapshot_age_calendar_days_by_symbol?.[symbol];
+                  const ageLabel = age == null
+                    ? "Age unknown"
+                    : age < 0
+                      ? `${Math.abs(age)} calendar days ahead`
+                      : `${age} calendar day${age === 1 ? "" : "s"} old`;
+                  return (
+                    <div className="detail-row" key={symbol}>
+                      <span>{symbol} snapshot date</span>
+                      <strong>{analysisDate ?? "Unknown"} · {ageLabel}</strong>
+                    </div>
+                  );
+                })}
               </div>
             )}
             {breadthView.stress_components && (
