@@ -13,8 +13,10 @@ class SignalMarketState:
     price: Decimal
 
     def __post_init__(self) -> None:
-        if self.price <= 0:
-            raise ValueError("observed price must be positive")
+        if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
+            raise ValueError("observed_at must be timezone-aware")
+        if not self.price.is_finite() or self.price <= 0:
+            raise ValueError("observed price must be finite and positive")
 
 
 def transition_signal(signal: Signal, state: SignalMarketState) -> Signal:
@@ -27,6 +29,8 @@ def transition_signal(signal: Signal, state: SignalMarketState) -> Signal:
     - If both a target and invalidation are crossed in one observation,
       invalidation wins because the observation cannot establish path order.
     """
+    if state.observed_at < signal.generated_at:
+        raise ValueError("market observation cannot precede signal generation")
     if signal.status is not SignalStatus.ACTIVE:
         return signal
 
