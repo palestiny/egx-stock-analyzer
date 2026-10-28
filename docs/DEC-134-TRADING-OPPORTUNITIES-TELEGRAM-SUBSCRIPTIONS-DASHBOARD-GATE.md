@@ -9,7 +9,7 @@
 
 Define the product direction without silently changing current analytical, alert-delivery, or roadmap behavior. The goal is to evolve EGX Stock Analyzer into an explainable EGX opportunity-monitoring platform with a Telegram bot, post-session reports, subscription plans, and an owner dashboard.
 
-This is a design proposal, not implementation approval. M61 remains the active milestone until the owner explicitly reprioritizes it. No live historical performance, future profit, or brokerage execution is implied.
+This is a design proposal, not implementation approval. M61 is paused by explicit owner request as of 2026-10-28; no live historical performance, future profit, or brokerage execution is implied.
 
 ## 2. Verified Existing Foundation and Limits
 
