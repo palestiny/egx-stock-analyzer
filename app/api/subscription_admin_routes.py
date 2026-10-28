@@ -260,7 +260,7 @@ def create_subscription_admin_router(
         reason = payload.reason.strip()
         if not reason:
             raise HTTPException(status_code=422, detail="reason is required")
-        actor = str(identity.user_id) if identity.user_id is not None else "operator"
+        actor = identity.subject.strip() or "operator"
         try:
             subscription = configured_service().transition(
                 subscription_id,
