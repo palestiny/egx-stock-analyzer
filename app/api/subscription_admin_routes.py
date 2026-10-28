@@ -13,6 +13,7 @@ from app.application.subscriptions.store import SubscriptionStore
 from app.domain.subscriptions.model import (
     EntitlementGrant as PlanEntitlementGrant,
     Subscription,
+    SubscriptionEvent,
     SubscriptionPlan,
     SubscriptionStatus,
 )
@@ -89,6 +90,19 @@ def _subscription_payload(subscription: Subscription) -> dict[str, object]:
         "updated_at": subscription.updated_at.isoformat(),
         "payment_provider": subscription.payment_provider,
         "payment_reference": subscription.payment_reference,
+    }
+
+
+def _subscription_event_payload(event: SubscriptionEvent) -> dict[str, object]:
+    return {
+        "event_id": event.event_id,
+        "subscription_id": str(event.subscription_id),
+        "actor": event.actor,
+        "event": event.event,
+        "reason": event.reason,
+        "occurred_at": event.occurred_at.isoformat(),
+        "previous_status": event.previous_status.value if event.previous_status is not None else None,
+        "new_status": event.new_status.value,
     }
 
 
@@ -242,6 +256,22 @@ def create_subscription_admin_router(
         if subscription is None:
             raise HTTPException(status_code=404, detail="Subscription not found for user")
         return _subscription_payload(subscription)
+
+    @router.get("/api/v1/owner/subscriptions/{subscription_id}/events")
+    def get_subscription_events(
+        subscription_id: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        subscription_store = configured_store()
+        if subscription_store.get(subscription_id) is None:
+            raise HTTPException(status_code=404, detail="Subscription not found")
+        return {
+            "subscription_id": str(subscription_id),
+            "events": [
+                _subscription_event_payload(event)
+                for event in subscription_store.events_for_subscription(subscription_id)
+            ],
+        }
 
     @router.post("/api/v1/owner/subscriptions/{subscription_id}/transition")
     def transition_subscription(
