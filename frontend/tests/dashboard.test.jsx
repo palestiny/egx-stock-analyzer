@@ -302,7 +302,7 @@ describe("Dashboard", () => {
     expect(panel).toHaveTextContent("2026-10-27");
     expect(panel).toHaveTextContent("EGAL snapshot date");
     expect(panel).toHaveTextContent("IEEC snapshot date");
-    expect(panel).toHaveTextContent("1 calendar days old");
+    expect(panel).toHaveTextContent("1 calendar day old");
     expect(panel).toHaveTextContent("Age unknown");
     expect(panel).toHaveTextContent("Saved analyses with unknown dates: IEEC");
     expect(panel).toHaveTextContent("Downtrend");
