@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
 from app.application.analysis.stock_analysis import StockAnalysisPipeline
+from app.domain.fundamental_analysis.financial_period import FinancialPeriod
 from app.domain.market_data.price import Price
 from app.domain.market_data.price_bar import PriceBar
 from app.domain.market_data.timeframe import Timeframe
@@ -44,8 +45,8 @@ def test_analysis_result_preserves_latest_source_bar_timestamp():
             stock_id=stock_id,
             timeframe=Timeframe.DAILY,
             price_bars=bars,
-            current_period=None,
-            previous_period=None,
+            current_period=FinancialPeriod(date(2026, 9, 30), Decimal("100"), Decimal("10")),
+            previous_period=FinancialPeriod(date(2026, 6, 30), Decimal("90"), Decimal("8")),
             momentum_lookback=5,
             volume_lookback=5,
         )
