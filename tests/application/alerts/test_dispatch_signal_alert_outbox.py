@@ -377,6 +377,6 @@ def test_published_opportunity_reaches_entitled_telegram_recipient_once(tmp_path
     assert replay_dispatch.events_processed == 0
     assert len(transport.sent) == 1
     assert transport.sent[0][0] == "chat-paid"
-    assert "COMI opportunity published" in transport.sent[0][1]
+    assert "Update: COMI opportunity published from price-action v1" in transport.sent[0][1]
     assert outbox.get(publication.event_id).status is AlertOutboxStatus.DELIVERED
 
