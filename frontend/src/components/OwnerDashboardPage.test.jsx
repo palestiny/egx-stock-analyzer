@@ -72,6 +72,8 @@ describe("OwnerDashboardPage", () => {
   it("dispatches the queued alert batch and displays recipient outcomes", async () => {
     const dispatchOpportunities = vi.fn().mockResolvedValue({
       events_processed: 2,
+      events_suppressed_no_recipients: 0,
+      events_suppressed_no_eligible_recipients: 1,
       recipients_delivered: 3,
       recipients_suppressed: 1,
       recipients_failed: 0,
@@ -91,7 +93,9 @@ describe("OwnerDashboardPage", () => {
     expect(dispatchOpportunities).toHaveBeenCalledWith(100);
     const dispatchResult = screen.getByLabelText("dispatch result");
     expect(dispatchResult).toHaveTextContent("3");
-    expect(dispatchResult).toHaveTextContent("0");
+    expect(dispatchResult).toHaveTextContent("Events suppressed (no linked recipients)");
+    expect(dispatchResult).toHaveTextContent("Events suppressed (no eligible recipients)");
+    expect(dispatchResult).toHaveTextContent("1");
   });
 
 

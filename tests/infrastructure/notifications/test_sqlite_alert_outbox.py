@@ -119,3 +119,21 @@ def test_sqlite_outbox_requires_aware_timestamps_and_positive_limit(tmp_path) ->
         store.pending(0)
     with pytest.raises(ValueError, match="delivered_at must be timezone-aware"):
         store.mark_delivered(event.event_id, datetime(2026, 10, 26, 12, 0))
+
+def test_sqlite_outbox_persists_terminal_no_eligible_recipient_suppression(tmp_path) -> None:
+    database = tmp_path / "alerts.db"
+    store = SQLiteAlertOutbox(database)
+    event = make_event()
+    store.publish(event)
+
+    suppressed = store.mark_suppressed_no_eligible_recipients(
+        event.event_id,
+        "no eligible Telegram recipients at dispatch time",
+    )
+    reopened = SQLiteAlertOutbox(database)
+
+    assert suppressed.status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
+    assert suppressed.last_error == "no eligible Telegram recipients at dispatch time"
+    assert suppressed.delivered_at is None
+    assert reopened.get(event.event_id) == suppressed
+    assert reopened.pending() == ()
