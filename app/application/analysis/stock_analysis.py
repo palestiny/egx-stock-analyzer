@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from app.domain.entry_analysis.context import EntryContext, EntryContextAnalyzer
@@ -29,6 +30,9 @@ class StockAnalysisResult:
     entry_context: EntryContext
     entry_quality: EntryQualityScore
     opportunity: OpportunityClassificationResult
+    # Provenance of the latest source bar used by this analysis. Older persisted
+    # snapshots may not have this field; the serializer uses this default safely.
+    data_timestamp: datetime | None = None
 
 
 class StockAnalysisPipeline:
@@ -76,6 +80,11 @@ class StockAnalysisPipeline:
             entry_quality,
         )
 
+        data_timestamp = max(
+            (bar.timestamp for bar in price_bars),
+            default=None,
+        )
+
         return StockAnalysisResult(
             technical_analysis=technical_analysis,
             fundamental_analysis=fundamental_analysis,
@@ -85,4 +94,5 @@ class StockAnalysisPipeline:
             entry_context=entry_context,
             entry_quality=entry_quality,
             opportunity=opportunity,
+            data_timestamp=data_timestamp,
         )
