@@ -6,20 +6,25 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.domain.identity.user import User, UserStatus
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 
 
 TOKEN = "operator-test-token"
 
 
 def make_client(tmp_path):
-    store = SQLiteSubscriptionStore(tmp_path / "subscriptions.db")
+    database = tmp_path / "subscriptions.db"
+    store = SQLiteSubscriptionStore(database)
+    users = SQLiteUserStore(database)
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
         operator_token=TOKEN,
         subscription_store=store,
+        user_store=users,
     )
-    return TestClient(app), store
+    return TestClient(app), store, users
 
 
 def auth():
@@ -27,7 +32,7 @@ def auth():
 
 
 def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_transition(tmp_path):
-    client, store = make_client(tmp_path)
+    client, store, users = make_client(tmp_path)
     now = datetime.now(timezone.utc)
     plan_response = client.post(
         "/api/v1/owner/subscription-plans",
@@ -50,6 +55,7 @@ def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_
     ).json()["entitlements"][0]["code"] == "telegram_opportunities"
 
     user_id = uuid4()
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
     create_response = client.post(
         "/api/v1/owner/subscriptions",
         headers=auth(),
@@ -103,7 +109,7 @@ def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_
 
 
 def test_subscription_admin_routes_require_operator_authentication(tmp_path):
-    client, _store = make_client(tmp_path)
+    client, _store, _users = make_client(tmp_path)
 
     response = client.get("/api/v1/owner/subscription-plans/pilot/1")
 
@@ -111,7 +117,7 @@ def test_subscription_admin_routes_require_operator_authentication(tmp_path):
 
 
 def test_subscription_admin_rejects_naive_subscription_timestamps(tmp_path):
-    client, _store = make_client(tmp_path)
+    client, _store, _users = make_client(tmp_path)
     client.post(
         "/api/v1/owner/subscription-plans",
         headers=auth(),
@@ -141,7 +147,7 @@ def test_subscription_admin_rejects_naive_subscription_timestamps(tmp_path):
 
 
 def test_subscription_admin_maps_missing_subscription_transition_to_404(tmp_path):
-    client, _store = make_client(tmp_path)
+    client, _store, _users = make_client(tmp_path)
 
     response = client.post(
         f"/api/v1/owner/subscriptions/{uuid4()}/transition",
@@ -154,7 +160,7 @@ def test_subscription_admin_maps_missing_subscription_transition_to_404(tmp_path
 
 
 def test_subscription_admin_rejects_inactive_plan_provisioning(tmp_path):
-    client, _store = make_client(tmp_path)
+    client, _store, _users = make_client(tmp_path)
     plan_response = client.post(
         "/api/v1/owner/subscription-plans",
         headers=auth(),
@@ -169,11 +175,13 @@ def test_subscription_admin_rejects_inactive_plan_provisioning(tmp_path):
     assert plan_response.status_code == 200
 
     now = datetime.now(timezone.utc)
+    user_id = uuid4()
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
     response = client.post(
         "/api/v1/owner/subscriptions",
         headers=auth(),
         json={
-            "user_id": str(uuid4()),
+            "user_id": str(user_id),
             "plan_id": "retired",
             "plan_version": 1,
             "starts_at": now.isoformat(),
@@ -187,14 +195,16 @@ def test_subscription_admin_rejects_inactive_plan_provisioning(tmp_path):
 
 
 def test_subscription_admin_rejects_unknown_plan_version_before_persistence(tmp_path):
-    client, store = make_client(tmp_path)
+    client, store, users = make_client(tmp_path)
     now = datetime.now(timezone.utc)
+    user_id = uuid4()
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
 
     response = client.post(
         "/api/v1/owner/subscriptions",
         headers=auth(),
         json={
-            "user_id": str(uuid4()),
+            "user_id": str(user_id),
             "plan_id": "missing",
             "plan_version": 1,
             "starts_at": now.isoformat(),
