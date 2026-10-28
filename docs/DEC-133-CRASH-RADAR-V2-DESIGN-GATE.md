@@ -1,6 +1,6 @@
 # DEC-133 — EGX Crash Radar v2 Design Gate
 
-**Status:** Path C approved; remaining policy decisions pending  
+**Status:** Path C approved; M61 paused by owner request (2026-10-28); remaining Crash Radar policy decisions pending  
 **Date:** 2026-10-26  
 **Milestone relationship:** Candidate capability; does not replace the active M61 historical-evidence milestone.
 
@@ -107,4 +107,11 @@ First harden the existing endpoint with explicit freshness, coverage, and explai
 
 ## 9. Current disposition
 
-Option C is approved. The remaining decisions (universe, freshness warning/enforcement, minimum coverage, persistence/retention, and alerts) are not yet approved. Therefore this document authorizes the staged direction but does not authorize silently choosing those policy values or changing the scoring formula. The first implementation increment may add transparent evidence metadata without inventing missing timestamps or treating unknown/stale inputs as healthy. Any behavior that suppresses or changes the score based on policy thresholds must wait until those thresholds and the universe contract are accepted. M61 remains the active milestone.
+Option C is approved. The remaining decisions (universe, freshness warning/enforcement, minimum coverage, persistence/retention, and alerts) are not yet approved. Therefore this document authorizes the staged direction but does not authorize silently choosing those policy values or changing the scoring formula. The first implementation increment may add transparent evidence metadata without inventing missing timestamps or treating unknown/stale inputs as healthy. Any behavior that suppresses or changes the score based on policy thresholds must wait until those thresholds and the universe contract are accepted. M61 is paused by owner request as of 2026-10-28; its historical-data acceptance gate remains unchanged.
+
+
+## 10. Status reconciliation — 2026-10-28
+
+The owner has explicitly paused M61 and requested that non-M61 engineering/product gaps be completed first. This does not authorize a data-backed Crash Radar model or change M61 acceptance criteria. The safe first increment is explainability of the existing 50/40/10 heuristic; implementation is proposed in PR #386 and must pass CI before merge. Existing per-symbol analysis-date metadata remains evidence metadata only: it does not prove current prices, define a freshness threshold, or enforce a minimum-coverage policy.
+
+Still open: configured universe/versioning, freshness policy, minimum coverage, score suppression behavior, persistence/retention of daily score history, and whether notifications are allowed. No new thresholds or score changes are authorized by this status refresh.
