@@ -28,7 +28,7 @@ export function SubscriptionAdminPanel({
   const [planVersion, setPlanVersion] = useState("1");
   const [planName, setPlanName] = useState("New plan");
   const [entitlementsJson, setEntitlementsJson] = useState(DEFAULT_ENTITLEMENTS);
-  const [planActive, setPlanActive] = useState(true);
+  const [planActive, setPlanActive] = useState(false);
   const [lookupPlanId, setLookupPlanId] = useState("new-plan");
   const [lookupPlanVersion, setLookupPlanVersion] = useState("1");
   const [userId, setUserId] = useState("");
