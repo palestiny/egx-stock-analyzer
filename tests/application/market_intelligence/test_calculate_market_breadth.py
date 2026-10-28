@@ -230,3 +230,34 @@ def test_market_breadth_supports_legacy_records_without_analysis_date_attribute(
     }
     assert payload["undated_symbols"] == ["LEGACY"]
 
+
+def test_market_breadth_exposes_same_day_and_future_snapshot_ages_without_clamping():
+    store = StubStore({
+        "SAME_DAY": record(
+            TrendStatus.UPTREND,
+            MomentumStatus.POSITIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            date(2026, 10, 28),
+        ),
+        "FUTURE": record(
+            TrendStatus.DOWNTREND,
+            MomentumStatus.NEGATIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            date(2026, 10, 30),
+        ),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(
+        ["SAME_DAY", "FUTURE"], as_of_date=date(2026, 10, 28)
+    ).to_dict()
+
+    assert payload["as_of_date"] == "2026-10-28"
+    assert payload["snapshot_age_calendar_days_by_symbol"] == {
+        "SAME_DAY": 0,
+        "FUTURE": -2,
+    }
+    # Future-dated evidence stays visible; it is not silently clamped to fresh.
+    assert payload["analysis_dates_by_symbol"] == {
+        "SAME_DAY": "2026-10-28",
+        "FUTURE": "2026-10-30",
+    }
