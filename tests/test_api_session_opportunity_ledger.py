@@ -1,4 +1,5 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
@@ -66,3 +67,55 @@ def test_session_opportunity_ledger_route_returns_503_when_unconfigured() -> Non
         )
 
     assert response.status_code == 503
+
+
+
+def test_session_opportunity_report_create_persists_snapshot() -> None:
+    report_store = Mock()
+    report_store.save.return_value = True
+    builder = FakeLedgerBuilder()
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        build_session_opportunity_ledger=builder,
+        session_opportunity_report_store=report_store,
+    )
+    generated_at = "2026-10-26T15:00:00+00:00"
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/session-opportunity-reports",
+            params={"session_date": "2026-10-26", "generated_at": generated_at},
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["persisted"] is True
+    assert response.json()["created"] is True
+    report_store.save.assert_called_once()
+    saved_report = report_store.save.call_args.args[0]
+    assert saved_report.session_date == date(2026, 10, 26)
+    assert saved_report.generated_at == datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+
+
+def test_session_opportunity_report_read_returns_404_when_snapshot_missing() -> None:
+    report_store = Mock()
+    report_store.get_latest.return_value = None
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        session_opportunity_report_store=report_store,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/session-opportunity-reports",
+            params={"session_date": "2026-10-26", "as_of": "2026-10-26T16:00:00+00:00"},
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 404
+    report_store.get_latest.assert_called_once_with(
+        date(2026, 10, 26),
+        as_of=datetime(2026, 10, 26, 16, tzinfo=timezone.utc),
+    )
