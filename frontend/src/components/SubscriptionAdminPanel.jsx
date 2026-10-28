@@ -141,6 +141,7 @@ export function SubscriptionAdminPanel({
   async function handleLoadAuditEvents(event) {
     event.preventDefault();
     if (!currentSubscription?.subscription_id || !getSubscriptionEvents) return;
+    setAuditEvents(null);
     const value = await runAction("audit", () =>
       getSubscriptionEvents(currentSubscription.subscription_id),
     );
