@@ -11,7 +11,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 - Technical-analysis stack includes deterministic indicators and price-action evidence, with API/dashboard integration (PR #364 and follow-on integration).
 - News/event ingestion foundations include normalized metadata, SQLite persistence, provider-neutral orchestration, authenticated API, and operator-configured RSS/Atom feeds.
-- Crash Radar exposes explainable components and per-symbol snapshot-date evidence (PR #343/#387 history; verify exact merged commit history before attributing individual changes).
+- Crash Radar exposes explainable components and per-symbol snapshot-date evidence (merged PR #387), while the existing 50/40/10 heuristic remains unvalidated as a crash probability.
 - Operator subscription administration includes immutable versioned plans, guarded provisioning, audited transitions, and subscription event history (PR #407).
 - Owner dashboard subscription controls are merged (PR #408).
 - Telegram dispatch has explicit terminal suppression when no linked recipients exist (PR #409).
