@@ -446,3 +446,71 @@ h3 {
     text-align: left;
   }
 }
+
+
+.owner-admin-form {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+  margin: 18px 0;
+  padding: 16px 0;
+  border-top: 1px solid #edf0f5;
+}
+
+.owner-admin-form label {
+  display: grid;
+  gap: 6px;
+  color: #46536a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.owner-admin-form input,
+.owner-admin-form select,
+.owner-admin-form textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #ccd3df;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+
+.owner-admin-form .checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-admin-form .checkbox-row input {
+  width: auto;
+}
+
+.owner-admin-form button {
+  justify-self: start;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 14px;
+  background: #172033;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-admin-form button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.json-result {
+  max-width: 100%;
+  overflow: auto;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f4f6fa;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

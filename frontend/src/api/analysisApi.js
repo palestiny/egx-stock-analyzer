@@ -334,3 +334,56 @@ export function getSessionOpportunityReport(sessionDate, asOf) {
     "Read session opportunity report snapshot request",
   );
 }
+
+function postJson(url, payload, operation) {
+  return getJson(url, operation, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createSubscriptionPlan(payload) {
+  return postJson("/api/v1/owner/subscription-plans", payload, "Create subscription plan request");
+}
+
+export function getSubscriptionPlan(planId, version) {
+  return getJson(
+    "/api/v1/owner/subscription-plans/" + encodeURIComponent(planId) + "/" + encodeURIComponent(version),
+    "Read subscription plan request",
+  );
+}
+
+export function createSubscription(payload) {
+  return postJson("/api/v1/owner/subscriptions", payload, "Create pending subscription request");
+}
+
+export function getSubscription(subscriptionId) {
+  return getJson(
+    "/api/v1/owner/subscriptions/" + encodeURIComponent(subscriptionId),
+    "Read subscription request",
+  );
+}
+
+export function getLatestSubscriptionByUser(userId) {
+  return getJson(
+    "/api/v1/owner/subscriptions/by-user/" + encodeURIComponent(userId) + "/latest",
+    "Read latest user subscription request",
+  );
+}
+
+export function getSubscriptionEvents(subscriptionId) {
+  return getJson(
+    "/api/v1/owner/subscriptions/" + encodeURIComponent(subscriptionId) + "/events",
+    "Read subscription audit history request",
+  );
+}
+
+export function transitionSubscription(subscriptionId, payload) {
+  return postJson(
+    "/api/v1/owner/subscriptions/" + encodeURIComponent(subscriptionId) + "/transition",
+    payload,
+    "Transition subscription status request",
+  );
+}
+
