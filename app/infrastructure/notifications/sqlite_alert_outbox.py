@@ -175,6 +175,31 @@ class SQLiteAlertOutbox:
             raise LookupError("alert outbox event was not found")
         return record
 
+    def mark_suppressed_no_eligible_recipients(
+        self,
+        event_id: UUID,
+        reason: str,
+    ) -> AlertOutboxRecord:
+        if not reason.strip():
+            raise ValueError("suppression reason is required")
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE signal_alert_outbox
+                SET status = ?, attempts = attempts + 1, last_error = ?, delivered_at = NULL
+                WHERE event_id = ?
+                """,
+                (
+                    AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS.value,
+                    reason.strip(),
+                    str(event_id),
+                ),
+            )
+        record = self.get(event_id)
+        if record is None:
+            raise LookupError("alert outbox event was not found")
+        return record
+
     @staticmethod
     def _require_aware(value: datetime, field_name: str) -> None:
         if value.tzinfo is None or value.utcoffset() is None:
