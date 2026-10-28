@@ -42,6 +42,7 @@ class DispatchBatchResult:
     recipients_suppressed: int
     recipients_failed: int
     events_suppressed_no_recipients: int = 0
+    events_suppressed_no_eligible_recipients: int = 0
 
 
 class DispatchSignalAlertOutbox:
@@ -86,6 +87,7 @@ class DispatchSignalAlertOutbox:
         suppressed = 0
         failed = 0
         suppressed_no_recipients = 0
+        suppressed_no_eligible_recipients = 0
         processed_events = 0
 
         for record in events:
@@ -101,6 +103,7 @@ class DispatchSignalAlertOutbox:
                 continue
 
             event_failed = False
+            event_had_delivery = False
             processed_events += 1
             signal_snapshot = record.event.signal_snapshot
             if signal_snapshot is None:
@@ -113,10 +116,10 @@ class DispatchSignalAlertOutbox:
                     recipient.user_id,
                     self.CHANNEL,
                 )
-                if existing is not None and existing.status in {
-                    SignalAlertDeliveryStatus.DELIVERED,
-                    SignalAlertDeliveryStatus.SUPPRESSED,
-                }:
+                if existing is not None and existing.status is SignalAlertDeliveryStatus.DELIVERED:
+                    event_had_delivery = True
+                    continue
+                if existing is not None and existing.status is SignalAlertDeliveryStatus.SUPPRESSED:
                     continue
 
                 if existing is None:
@@ -189,14 +192,21 @@ class DispatchSignalAlertOutbox:
                     now=now,
                 )
                 delivered += 1
+                event_had_delivery = True
 
             if event_failed:
                 self._outbox.mark_failed(
                     record.event.event_id,
                     "one or more recipient deliveries failed",
                 )
-            else:
+            elif event_had_delivery:
                 self._outbox.mark_delivered(record.event.event_id, now)
+            else:
+                self._outbox.mark_suppressed_no_eligible_recipients(
+                    record.event.event_id,
+                    "no eligible Telegram recipients at dispatch time",
+                )
+                suppressed_no_eligible_recipients += 1
 
         return DispatchBatchResult(
             events_processed=processed_events,
@@ -204,6 +214,7 @@ class DispatchSignalAlertOutbox:
             recipients_suppressed=suppressed,
             recipients_failed=failed,
             events_suppressed_no_recipients=suppressed_no_recipients,
+            events_suppressed_no_eligible_recipients=suppressed_no_eligible_recipients,
         )
 
     @staticmethod
