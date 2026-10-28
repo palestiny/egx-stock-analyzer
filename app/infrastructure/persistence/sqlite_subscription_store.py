@@ -211,15 +211,7 @@ class SQLiteSubscriptionStore(SubscriptionStore):
                     payment_provider, payment_reference
                 FROM subscriptions
                 WHERE user_id = ?
-                ORDER BY
-                    CASE status
-                        WHEN 'ACTIVE' THEN 0
-                        WHEN 'PAST_DUE' THEN 1
-                        WHEN 'PENDING' THEN 2
-                        ELSE 3
-                    END,
-                    created_at DESC,
-                    subscription_id DESC
+                ORDER BY created_at DESC, subscription_id DESC
                 LIMIT 1
                 """,
                 (str(user_id),),
