@@ -112,6 +112,6 @@ Option C is approved. The remaining decisions (universe, freshness warning/enfor
 
 ## 10. Status reconciliation — 2026-10-28
 
-The owner has explicitly paused M61 and requested that non-M61 engineering/product gaps be completed first. This does not authorize a data-backed Crash Radar model or change M61 acceptance criteria. The safe first increment is explainability of the existing 50/40/10 heuristic; implementation is proposed in PR #386 and must pass CI before merge. Existing per-symbol analysis-date metadata remains evidence metadata only: it does not prove current prices, define a freshness threshold, or enforce a minimum-coverage policy.
+The owner has explicitly paused M61 and requested that non-M61 engineering/product gaps be completed first. This does not authorize a data-backed Crash Radar model or change M61 acceptance criteria. The safe first increment is explainability of the existing 50/40/10 heuristic; implementation is proposed in PR #387 and must pass CI before merge. Existing per-symbol analysis-date metadata remains evidence metadata only: it does not prove current prices, define a freshness threshold, or enforce a minimum-coverage policy.
 
 Still open: configured universe/versioning, freshness policy, minimum coverage, score suppression behavior, persistence/retention of daily score history, and whether notifications are allowed. No new thresholds or score changes are authorized by this status refresh.
