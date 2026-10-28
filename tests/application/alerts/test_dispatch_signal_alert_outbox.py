@@ -308,3 +308,75 @@ def test_dispatch_suppresses_event_terminally_when_no_recipients_are_linked(tmp_
             (str(event.event_id),),
         ).fetchone()[0]
     assert count == 0
+
+def test_published_opportunity_reaches_entitled_telegram_recipient_once(tmp_path) -> None:
+    from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
+
+    database = tmp_path / "publication-dispatch.db"
+    history = InMemorySignalHistoryStore()
+    outbox = SQLiteAlertOutbox(database)
+    publisher = PublishSignalOpportunity(history=history, outbox=outbox)
+    signal = make_signal()
+
+    publication = publisher.execute(signal, recorded_at=NOW)
+    assert publication is not None
+    assert publication.queued_new_event is True
+
+    user_id = uuid4()
+    users = SQLiteUserStore(database)
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
+    subscriptions = SQLiteSubscriptionStore(database)
+    subscriptions.save_plan(
+        SubscriptionPlan(
+            plan_id="plus",
+            version=1,
+            display_name="Plus",
+            entitlements=(EntitlementGrant("telegram_opportunities", True, 100),),
+            active=True,
+            created_at=NOW,
+        )
+    )
+    subscriptions.create(
+        Subscription(
+            subscription_id=uuid4(),
+            user_id=user_id,
+            plan_id="plus",
+            plan_version=1,
+            status=SubscriptionStatus.ACTIVE,
+            created_at=NOW,
+            starts_at=NOW,
+            expires_at=NOW + timedelta(days=30),
+            updated_at=NOW,
+        ),
+        actor="test-billing",
+        reason="Verified test subscription",
+    )
+    transport = FakeTransport()
+    dispatcher = DispatchSignalAlertOutbox(
+        outbox=outbox,
+        recipients=FakeRecipients([LinkedTelegramAccount(user_id, "chat-paid")]),
+        deliveries=SQLiteSignalAlertDeliveryStore(database),
+        users=users,
+        history=history,
+        entitlements=EntitlementEvaluator(subscriptions),
+        transport=transport,
+    )
+
+    first_dispatch = dispatcher.execute(now=NOW)
+    replay_publication = publisher.execute(
+        signal,
+        recorded_at=NOW + timedelta(minutes=1),
+    )
+    replay_dispatch = dispatcher.execute(now=NOW + timedelta(minutes=1))
+
+    assert first_dispatch.events_processed == 1
+    assert first_dispatch.recipients_delivered == 1
+    assert replay_publication is not None
+    assert replay_publication.event_id == publication.event_id
+    assert replay_publication.queued_new_event is False
+    assert replay_dispatch.events_processed == 0
+    assert len(transport.sent) == 1
+    assert transport.sent[0][0] == "chat-paid"
+    assert "Update: COMI opportunity published from price-action v1" in transport.sent[0][1]
+    assert outbox.get(publication.event_id).status is AlertOutboxStatus.DELIVERED
+
