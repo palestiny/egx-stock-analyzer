@@ -50,6 +50,38 @@ def test_market_breadth_reports_coverage_and_heuristic_stress():
     assert result.to_dict()["is_trading_signal"] is False
 
 
+def test_market_breadth_exposes_reconcilable_stress_components():
+    store = StubStore({
+        "AAA": record(TrendStatus.DOWNTREND, MomentumStatus.NEGATIVE, VolumeStatus.ABOVE_AVERAGE),
+        "BBB": record(TrendStatus.UPTREND, MomentumStatus.POSITIVE, VolumeStatus.ABOVE_AVERAGE),
+        "CCC": record(TrendStatus.SIDEWAYS, MomentumStatus.NEGATIVE, VolumeStatus.BELOW_AVERAGE),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB", "CCC"]).to_dict()
+
+    assert payload["stress_score"] == 47
+    assert payload["negative_momentum_with_above_average_volume_count"] == 1
+    assert payload["stress_components"] == {
+        "downtrend": {"count": 1, "share_percent": "33.33", "weight_points": "16.67"},
+        "negative_momentum": {"count": 2, "share_percent": "66.67", "weight_points": "26.67"},
+        "negative_momentum_with_above_average_volume": {
+            "count": 1, "share_percent": "33.33", "weight_points": "3.33"
+        },
+    }
+    assert payload["methodology_version"] == "stress-heuristic-v1"
+    assert payload["is_trading_signal"] is False
+
+
+def test_market_breadth_component_contributions_are_unavailable_without_data():
+    payload = CalculateMarketBreadth(StubStore({})).execute(["AAA"]).to_dict()
+
+    assert payload["stress_score"] is None
+    assert all(
+        component["weight_points"] is None
+        for component in payload["stress_components"].values()
+    )
+
+
 def test_market_breadth_without_any_saved_analysis_is_explicitly_insufficient():
     result = CalculateMarketBreadth(StubStore({})).execute(["AAA", "BBB"])
 
