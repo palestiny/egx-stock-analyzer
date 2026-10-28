@@ -154,6 +154,7 @@ function PriceStructureEvidence({ latest }) {
 
 function ElliottWaveEvidence({ latest }) {
   const candidates = latest?.elliott_candidates ?? [];
+  const corrections = latest?.elliott_corrections ?? [];
 
   return (
     <div className="indicator-structure">
@@ -184,8 +185,32 @@ function ElliottWaveEvidence({ latest }) {
           ))}
         </ul>
       )}
+      <h4>ABC zigzag correction candidates</h4>
+      {corrections.length === 0 ? (
+        <p className="muted">No confirmed four-pivot ABC zigzag candidate is available for this bar.</p>
+      ) : (
+        <ul className="fibonacci-levels">
+          {corrections.map((item) => (
+            <li key={`${item.start_index}-${item.end_index}-${item.candidate.direction}`}>
+              <span>
+                {item.candidate.direction.toUpperCase()} · pivots {item.start_index}–{item.end_index}
+                <br />
+                {item.candidate.points.map(formatValue).join(" → ")}
+                {item.rule_violations.length > 0 && (
+                  <small> · Rule issues: {item.rule_violations.join(", ")}</small>
+                )}
+              </span>
+              <strong>
+                {item.is_rule_consistent ? "Rule-consistent" : "Rule violations"}
+                <br />
+                B-wave origin boundary {formatValue(item.wave_b_origin_boundary_price)}
+              </strong>
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="muted indicator-note">
-        Elliott counts are mechanical candidates based on confirmed swings, not probabilities or forecasts.
+        Impulse and ABC zigzag counts are mechanical candidates based on confirmed swings, not probabilities or forecasts. Flat, triangle, and complex corrections are not inferred.
       </p>
     </div>
   );
