@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const DEFAULT_ENTITLEMENTS = '[{"code":"telegram_opportunities","enabled":true,"limit":50}]';
+const DEFAULT_ENTITLEMENTS = "[]";
 
 const ALLOWED_TRANSITIONS = {
   PENDING: ["ACTIVE", "CANCELLED", "EXPIRED", "REFUNDED"],
@@ -24,9 +24,9 @@ export function SubscriptionAdminPanel({
   getSubscriptionEvents,
   transitionSubscription,
 }) {
-  const [planId, setPlanId] = useState("telegram-pilot");
+  const [planId, setPlanId] = useState("new-plan");
   const [planVersion, setPlanVersion] = useState("1");
-  const [planName, setPlanName] = useState("Telegram Pilot");
+  const [planName, setPlanName] = useState("New plan");
   const [entitlementsJson, setEntitlementsJson] = useState(DEFAULT_ENTITLEMENTS);
   const [planActive, setPlanActive] = useState(true);
   const [lookupPlanId, setLookupPlanId] = useState("telegram-pilot");
