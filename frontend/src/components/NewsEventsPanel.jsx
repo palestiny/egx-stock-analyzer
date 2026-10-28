@@ -1,3 +1,13 @@
+function safeExternalUrl(value) {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatTimestamp(value) {
   if (!value) return "Publication time unknown";
   const parsed = new Date(value);
@@ -37,11 +47,13 @@ export function NewsEventsPanel({ result, loading, error }) {
 
       {!loading && !error && events.length > 0 && (
         <ul className="news-event-list">
-          {events.map((event) => (
+          {events.map((event) => {
+            const sourceUrl = safeExternalUrl(event.source_url);
+            return (
             <li key={event.event_id} className="news-event">
               <div className="news-event-heading">
-                {event.source_url ? (
-                  <a href={event.source_url} target="_blank" rel="noreferrer">
+                {sourceUrl ? (
+                  <a href={sourceUrl} target="_blank" rel="noreferrer">
                     {event.title || "Untitled news event"}
                   </a>
                 ) : (
@@ -74,7 +86,8 @@ export function NewsEventsPanel({ result, loading, error }) {
                 <strong>{event.entity_match_confidence ?? "Unknown"}</strong>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>
