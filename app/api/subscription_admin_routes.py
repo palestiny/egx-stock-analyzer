@@ -158,6 +158,10 @@ def create_subscription_admin_router(
         subscription_store = configured_store()
         _require_aware(payload.starts_at, "starts_at")
         _require_aware(payload.expires_at, "expires_at")
+        if users is None:
+            raise HTTPException(status_code=503, detail="User directory is not configured")
+        if users.get(payload.user_id) is None:
+            raise HTTPException(status_code=404, detail="User not found")
         plan_id = payload.plan_id.strip()
         plan = subscription_store.get_plan(plan_id, payload.plan_version)
         if plan is None:
