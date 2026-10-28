@@ -128,6 +128,9 @@ def create_subscription_admin_router(
                 active=payload.active,
                 created_at=created_at,
             )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        try:
             subscription_store.save_plan(plan)
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
