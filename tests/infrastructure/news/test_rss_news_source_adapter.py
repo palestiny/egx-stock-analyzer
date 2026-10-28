@@ -18,6 +18,19 @@ RSS = b"""<?xml version="1.0"?>
 <pubDate>Sun, 25 Oct 2026 10:00:00 +0000</pubDate></item>
 </channel></rss>"""
 
+RDF = b"""<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+ <channel rdf:about="https://news.example.test/"><title>Feed</title></channel>
+ <item rdf:about="https://news.example.test/egal/99">
+  <title>EGAL reports financial results</title>
+  <link>https://news.example.test/egal/99</link>
+  <dc:date>2026-10-26T16:00:00Z</dc:date>
+  <description>Egypt Aluminium earnings announcement.</description>
+ </item>
+</rdf:RDF>"""
+
+
 ATOM = b"""<?xml version="1.0"?>
 <feed xmlns="http://www.w3.org/2005/Atom"><title>Feed</title>
 <entry><id>tag:news.example.test,2026:42</id><title>Dividend declared for Egypt Aluminium</title>
@@ -76,6 +89,18 @@ def test_atom_adapter_parses_namespaced_fields_and_classifies_dividends() -> Non
     assert events[0].matched_symbols == ("EGAL",)
     assert events[0].entity_match_confidence == Decimal("0.90")
     assert events[0].category is NewsEventCategory.DIVIDEND
+
+
+def test_rdf_rss_adapter_parses_namespaced_item_fields_and_dc_date() -> None:
+    events = adapter(RDF).fetch_recent()
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.title == "EGAL reports financial results"
+    assert event.source_url == "https://news.example.test/egal/99"
+    assert event.published_at == datetime(2026, 10, 26, 16, tzinfo=timezone.utc)
+    assert event.matched_symbols == ("EGAL",)
+    assert event.category is NewsEventCategory.EARNINGS
 
 
 def test_adapter_rejects_non_https_feed_urls() -> None:
