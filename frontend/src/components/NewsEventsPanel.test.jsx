@@ -32,6 +32,29 @@ describe("NewsEventsPanel", () => {
     expect(screen.getByText(/Configured feed · other/)).toBeTruthy();
   });
 
+  it("does not render unsafe non-HTTPS feed URLs as clickable links", () => {
+    render(
+      <NewsEventsPanel
+        loading={false}
+        error={null}
+        result={{
+          events: [{
+            event_id: "event-unsafe",
+            title: "Untrusted title",
+            source_name: "Untrusted feed",
+            source_url: "javascript:alert(1)",
+            published_at: "2026-10-28T08:00:00Z",
+            retrieved_at: "2026-10-28T08:01:00Z",
+            entity_match_confidence: "0.9",
+          }],
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: "Untrusted title" })).toBeNull();
+    expect(screen.getByText("Untrusted title")).toBeTruthy();
+  });
+
   it("explains empty results without claiming there is no news", () => {
     render(
       <NewsEventsPanel loading={false} error={null} result={{ events: [] }} />,
