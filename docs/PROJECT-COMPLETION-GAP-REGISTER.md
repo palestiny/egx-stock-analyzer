@@ -2,8 +2,9 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-28  
-**Baseline:** `main` after PR #414 merge (`c4f11f217bd5fcfd2d0a1fb4cc0b2b8940304339`); post-merge CI run #40735031509 is pending at the time of this update.  
-**M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.
+**Baseline:** `main` includes PR #416 squash merge `2498bd98a848a37d3e2a4c47df9bb603339fe423`; post-merge CI run #40748408269 was queued at this update.  
+**M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
+**EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
 This register separates verified implementation from incomplete acceptance and decisions. A module, endpoint, or passing unit test alone does not prove an end-to-end user capability is complete.
 
@@ -15,36 +16,48 @@ This register separates verified implementation from incomplete acceptance and d
 - Operator subscription administration includes immutable versioned plans, guarded provisioning, audited transitions, and subscription event history (PR #407).
 - Owner dashboard subscription controls are merged (PR #408).
 - Telegram dispatch has explicit terminal suppression when no linked recipients exist (PR #409).
-- Session opportunity ledger/report domain, report builder, SQLite snapshot store, and authenticated snapshot API exist. PR #414 also prevents signals generated after a report's `generated_at` cutoff from leaking into a historical snapshot and validates signal data timestamp timezone-awareness. This does not prove automatic end-of-session scheduling or subscriber delivery is wired end-to-end.
+- Session opportunity ledger/report domain, report builder, SQLite snapshot store, and authenticated snapshot API exist. PR #414 prevents signals generated after a report's `generated_at` cutoff from leaking into a historical snapshot and validates signal data timestamp timezone-awareness. Automatic end-of-session scheduling and subscriber delivery remain unproven end-to-end.
+- PR #416 adds a passing contract test for publication through durable outbox to an entitled linked Telegram recipient with idempotent replay. This proves that tested path only, not all lifecycle states or production scheduling.
+- `docs/RELEASE-READINESS-CHECKLIST.md` exists as a checklist template, not a declaration of production readiness.
+- EGXBot approved design constraints and implementation gates are recorded in `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
 ## Non-M61 work remaining
 
-### P0 — Verify main after the documentation reconciliation merge
+### P0 — Verify post-PR-#416 main CI
 
-- [ ] Confirm post-PR-#414 `main` CI run #40735031509 for merge commit `c4f11f217bd5fcfd2d0a1fb4cc0b2b8940304339` completes successfully across unit tests, integration tests, frontend tests, dependency audit, and container build.
-- [ ] If any check fails, inspect the failing job and fix the root cause in a scoped PR; do not infer a green state from the earlier PR branch run.
+- [ ] Check post-merge main run #40748408269 for exact merge SHA `2498bd98a848a37d3e2a4c47df9bb603339fe423` across unit tests, integration tests, frontend tests, dependency audit, and container build.
+- [ ] If any check fails, inspect the failing job and fix the root cause in a scoped PR; do not infer a green state from the PR branch run.
+
+### P1 — EGXBot market-data readiness and dual engines
+
+- [ ] Inventory actual Yahoo Finance adapter behavior, EGX symbol coverage, supported bar intervals, timestamps, data delay, corrections, rate limits and licensing/terms.
+- [ ] Implement and test an explicit data freshness/provenance gate; suppress or clearly mark stale/insufficient data rather than producing a current-session actionable claim.
+- [ ] Introduce separate, versioned intraday and swing strategy boundaries without silently changing existing scoring or trade rules.
+- [ ] Keep intraday strategy output suppressed or explicitly observational until suitable intraday data freshness/granularity is verified; daily bars must not be presented as live intraday evidence.
+- [ ] Define relative volume/traded-value evidence from available bars; do not claim order-book imbalance or smart-money activity without suitable underlying data.
+- [ ] Record rationale, data timestamp, strategy version, entry conditions, invalidation, targets and expiry on every published opportunity.
 
 ### P1 — Opportunity lifecycle and Telegram delivery acceptance
 
-- [ ] Trace the full path from analysis/evidence generation through publication, durable outbox, recipient/entitlement resolution, delivery, retries, duplicate suppression, and operator-visible outcome.
-- [ ] Add or verify contract tests for new publication, revised version, invalidation, expiry, duplicate dispatch, retry exhaustion/recovery, no linked recipients, and entitlement changes.
-- [ ] Confirm that invalidation/re-evaluation and per-user opportunity history are actually wired end-to-end; event enum values or individual services alone are insufficient evidence.
+- [x] Verify publication -> durable outbox -> entitled linked recipient -> Telegram transport with idempotent replay via PR #416 contract test.
+- [ ] Add/verify contract tests for revised version, invalidation, expiry, target/stop observations, duplicate dispatch, transient failure/retry/recovery, retry exhaustion, no linked recipients and entitlement changes.
+- [ ] Confirm per-user opportunity history and end-to-end re-evaluation are wired; event enum values or individual services alone are insufficient evidence.
 - [ ] Preserve original published rationale and price levels; keep hypothetical opportunity outcomes separate from actual portfolio P&L.
 - [ ] No change to scoring thresholds or automatic recommendation policy without a separately accepted decision.
 
 ### P1 — Session reports
 
 - [x] Historical snapshot builder excludes signals whose `generated_at` or `data_timestamp` is after the requested report cutoff; timezone-aware timestamp validation is covered by tests (PR #414).
-- [ ] Trace the session report snapshot API, report store, owner dashboard, scheduler, and Telegram delivery composition.
-- [ ] Verify a repeatable end-of-session trigger using the Cairo exchange timezone, with idempotency, rerun/correction semantics, and operational failure visibility.
-- [ ] Verify report contents include session summary, opportunities published during the session, status changes/invalidation, resolved versus unresolved outcomes, and clear data/methodology limitations.
-- [ ] Add end-to-end tests for scheduled generation, duplicate scheduler invocation, missing data, delayed signals, timezone/session boundaries, and delivery failure.
-- [ ] Do not label this feature complete until scheduling and delivery are proven by integration tests or workflow evidence.
+- [ ] Trace session report API, store, owner dashboard, scheduler and Telegram delivery composition.
+- [ ] Verify a durable end-of-session trigger using Cairo exchange timezone, with idempotency, rerun/correction semantics and operational failure visibility.
+- [ ] Verify report contents include session summary, opportunities published during the session, status changes/invalidation, resolved versus unresolved outcomes, source freshness and methodology limitations.
+- [ ] Add end-to-end tests for scheduled generation, duplicate scheduler invocation, missing data, delayed signals, timezone/session boundaries and delivery failure.
+- [ ] Until scheduling and delivery are proven by integration tests or workflow evidence, describe reports as API/manual, not automatic.
 
 ### P1 — Subscription and commercial boundary
 
 - [ ] Keep current operator-managed activation explicitly manual until payment policy is approved.
-- [ ] Before gateway implementation, record owner decisions for pricing/tiers, payment provider, checkout, trusted webhook verification, idempotency, refunds/chargebacks, cancellation, and reconciliation.
+- [ ] Before gateway implementation, record owner decisions for pricing/tiers, payment provider, checkout, trusted webhook verification, idempotency, refunds/chargebacks, cancellation and reconciliation.
 - [ ] Verify server-side entitlement enforcement across API and Telegram, including expired/pending/cancelled subscriptions and replayed or out-of-order provider events.
 - [ ] Do not treat `payment_provider` or `payment_reference` metadata as verified payment.
 
@@ -54,14 +67,14 @@ Owner decisions required before changing score semantics:
 - Universe ownership (fixed EGX30, broad EGX universe, or operator-configured universe).
 - Freshness threshold and handling of unknown dates.
 - Minimum coverage and whether to suppress the composite score when evidence is insufficient.
-- Daily history persistence, retention, and correction policy.
-- Notification thresholds/hysteresis, audience, rate limits, and recovery/suppression behavior.
+- Daily history persistence, retention and correction policy.
+- Notification thresholds/hysteresis, audience, rate limits and recovery/suppression behavior.
 
 Until accepted, preserve the existing 50/40/10 heuristic, show coverage/freshness and limitations, and do not call it a crash probability or trading signal.
 
 ### P1 — News/source policy gate
 
-- [ ] Review a specific official EGX/company-disclosure source, its terms/licensing, attribution, retention, rate limits, timestamp quality, and historical coverage.
+- [ ] Review a specific official EGX/company-disclosure source, its terms/licensing, attribution, retention, rate limits, timestamp quality and historical coverage.
 - [ ] Configure only sources whose terms and operational access have been accepted; retain provenance and point-in-time timestamps.
 - [ ] Test duplicate/corrected/late/undated events and symbol-matching uncertainty.
 - [ ] Keep news interpretation separate from signal ranking and Telegram alerts until a versioned scoring/alert decision and tests are approved.
@@ -70,7 +83,7 @@ Until accepted, preserve the existing 50/40/10 heuristic, show coverage/freshnes
 
 - [ ] Review stale branches by comparing each branch to `main` and any associated PR before deletion. Do not mass-delete branches based on names alone.
 - [ ] Keep PR #321 and other M61 work paused; do not merge or close them as “complete” while the owner has explicitly deferred M61.
-- [ ] Add a release checklist for environment configuration, migrations/persistence, authentication/authorization, secrets, backups, observability, and rollback.
+- [x] Add a release checklist template for environment configuration, persistence/migrations, authentication/authorization, secrets, backups, observability and rollback; production readiness still requires evidence for every applicable item.
 - [ ] Run a final complete CI and API/UI smoke-test matrix before claiming product completion.
 
 ## Acceptance standard
@@ -78,8 +91,8 @@ Until accepted, preserve the existing 50/40/10 heuristic, show coverage/freshnes
 A work item is complete only when:
 1. its user-visible behavior and failure states are specified;
 2. the implementation respects domain/application/infrastructure boundaries and existing contracts;
-3. tests cover normal, edge, invalid, duplicate/retry, and authorization cases where relevant;
+3. tests cover normal, edge, invalid, duplicate/retry and authorization cases where relevant;
 4. CI is green on the final commit;
-5. docs match the shipped behavior and explicitly identify external dependencies or owner decisions.
+5. docs match shipped behavior and explicitly identify external dependencies or owner decisions.
 
-This register is not a claim that all listed work is implemented. It is the auditable checklist for closing the remaining non-M61 gaps without silently inventing product policy.
+This register is not a claim that all listed work is implemented. It is the auditable checklist for closing remaining non-M61 gaps without silently inventing product policy.
