@@ -79,3 +79,61 @@ def test_unauthorized_user_is_rejected_without_calling_egx_api() -> None:
     assert api_calls == []
     assert len(sent_messages) == 1
     assert "غير مصرح" in str(sent_messages[0]["text"])
+
+
+
+def test_polling_errors_never_log_telegram_bot_token(caplog: pytest.LogCaptureFixture) -> None:
+    token = "telegram-secret-must-not-appear-in-logs"
+    telegram_calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal telegram_calls
+        if request.url.host != "api.telegram.org":
+            return httpx.Response(404)
+        telegram_calls += 1
+        if telegram_calls == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "ok": True,
+                    "result": [
+                        {
+                            "update_id": 1,
+                            "message": {
+                                "from": {"id": 123},
+                                "chat": {"id": 123, "type": "private"},
+                                "text": "/help",
+                            },
+                        }
+                    ],
+                },
+            )
+        raise httpx.ConnectError(
+            f"failed to reach {request.url}",
+            request=request,
+        )
+
+    async def cancel_after_logged_error(_: float) -> None:
+        raise asyncio.CancelledError
+
+    async def scenario() -> None:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            bot = EgxTelegramBot(
+                token,
+                "http://egx.test",
+                "api-secret",
+                frozenset({123}),
+                http=client,
+            )
+            original_sleep = asyncio.sleep
+            try:
+                asyncio.sleep = cancel_after_logged_error  # type: ignore[assignment]
+                with pytest.raises(asyncio.CancelledError):
+                    await bot.run(poll_seconds=0)
+            finally:
+                asyncio.sleep = original_sleep  # type: ignore[assignment]
+
+    caplog.set_level("ERROR", logger="egx.telegram")
+    asyncio.run(scenario())
+    assert "Failed to process Telegram update" in caplog.text
+    assert token not in caplog.text
