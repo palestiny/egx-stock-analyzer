@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.application.identity.user_store import UserStore
 from app.application.security.identity import AuthenticatedIdentity
 from app.application.subscriptions.store import SubscriptionStore
 from app.domain.subscriptions.model import (
@@ -94,6 +95,7 @@ def _subscription_payload(subscription: Subscription) -> dict[str, object]:
 def create_subscription_admin_router(
     *,
     store: SubscriptionStore | None,
+    users: UserStore | None,
     require_operator,
 ) -> APIRouter:
     """Expose audited, operator-only subscription administration without billing claims."""
