@@ -221,16 +221,25 @@ def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path)
 
 def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-unentitled")],
     )
 
     result = dispatcher.execute(now=NOW)
 
+    assert result.events_processed == 1
+    assert result.events_suppressed_no_eligible_recipients == 1
     assert result.recipients_suppressed == 1
     assert transport.sent == []
     assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.SUPPRESSED
+    record = outbox.get(event.event_id)
+    assert record.status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
+    assert record.last_error == "no eligible Telegram recipients at dispatch time"
+
+    replay = dispatcher.execute(now=NOW + timedelta(minutes=1))
+    assert replay.events_processed == 0
+    assert transport.sent == []
 
 
 def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
@@ -258,7 +267,7 @@ def test_telegram_opportunity_message_respects_provider_length_limit() -> None:
 
 def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_path) -> None:
     user_id = uuid4()
-    dispatcher, _, deliveries, transport, event, _history = setup_dispatch(
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
         tmp_path,
         [LinkedTelegramAccount(user_id, "chat-disabled")],
         entitled_users=(user_id,),
@@ -268,10 +277,12 @@ def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_pat
     result = dispatcher.execute(now=NOW)
 
     assert result.recipients_suppressed == 1
+    assert result.events_suppressed_no_eligible_recipients == 1
     assert transport.sent == []
     record = deliveries.get(event.event_id, user_id, "telegram")
     assert record.status is SignalAlertDeliveryStatus.SUPPRESSED
     assert record.last_error == "user_inactive_or_missing"
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
 
 def test_dispatch_keeps_event_pending_when_no_recipients_are_linked(tmp_path) -> None:
     dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
