@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from uuid import UUID
+from sqlite3 import IntegrityError
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -159,7 +160,7 @@ def create_subscription_admin_router(
             raise HTTPException(status_code=422, detail="reason is required")
         try:
             subscription = Subscription(
-                subscription_id=UUID(int=__import__("uuid").uuid4().int),
+                subscription_id=uuid4(),
                 user_id=payload.user_id,
                 plan_id=payload.plan_id.strip(),
                 plan_version=payload.plan_version,
@@ -174,9 +175,9 @@ def create_subscription_admin_router(
             subscription_store.create(subscription, actor=actor, reason=reason)
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        except Exception as error:
+        except IntegrityError as error:
             # Keep database/driver details out of the API response.
-            raise HTTPException(status_code=409, detail="Subscription could not be created") from error
+            raise HTTPException(status_code=409, detail="Subscription could not be created; verify the plan version and payment-reference uniqueness") from error
         return _subscription_payload(subscription)
 
     @router.get("/api/v1/owner/subscriptions/{subscription_id}")
