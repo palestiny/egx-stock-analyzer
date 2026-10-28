@@ -209,7 +209,7 @@ describe("SubscriptionAdminPanel", () => {
 
     const statusSelect = await screen.findByLabelText("New status");
     expect(statusSelect).toHaveValue("PAST_DUE");
-    fireEvent.change(screen.getAllByLabelText("Audit reason")[0], {
+    fireEvent.change(screen.getAllByLabelText("Audit reason")[1], {
       target: { value: "Record renewal issue" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Record status transition" }));
