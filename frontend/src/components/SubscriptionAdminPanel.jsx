@@ -94,12 +94,14 @@ export function SubscriptionAdminPanel({
 
   async function handleLookupById(event) {
     event.preventDefault();
+    setCurrentSubscription(null);
     const value = await runAction("lookup", () => getSubscription(subscriptionId.trim()));
     if (value?.subscription_id) setCurrentSubscription(value);
   }
 
   async function handleLookupByUser(event) {
     event.preventDefault();
+    setCurrentSubscription(null);
     const value = await runAction("lookup", () => getLatestSubscriptionByUser(lookupUserId.trim()));
     if (value?.subscription_id) {
       setCurrentSubscription(value);
