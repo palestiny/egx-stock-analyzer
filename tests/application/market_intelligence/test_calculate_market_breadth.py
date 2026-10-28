@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -230,3 +230,20 @@ def test_market_breadth_supports_legacy_records_without_analysis_date_attribute(
     }
     assert payload["undated_symbols"] == ["LEGACY"]
 
+def test_market_breadth_normalizes_aware_snapshot_timestamps_to_egx_calendar_date():
+    store = StubStore({
+        "AAA": record(
+            TrendStatus.UPTREND,
+            MomentumStatus.POSITIVE,
+            VolumeStatus.ABOVE_AVERAGE,
+            datetime(2026, 10, 27, 22, 30, tzinfo=timezone.utc),
+        ),
+    })
+
+    payload = CalculateMarketBreadth(store).execute(
+        ["AAA"], as_of_date=date(2026, 10, 28)
+    ).to_dict()
+
+    # 22:30 UTC is after midnight in Cairo in this date range.
+    assert payload["analysis_dates_by_symbol"] == {"AAA": "2026-10-28"}
+    assert payload["snapshot_age_calendar_days_by_symbol"] == {"AAA": 0}
