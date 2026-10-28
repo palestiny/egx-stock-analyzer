@@ -6,7 +6,9 @@
 
 ## 1. Where We Are
 
-The repository is at **M61 — Backtesting & Strategy Validation**. The deterministic simulator and dataset software boundaries are implemented, but real historical evidence remains unaccepted.
+**Execution status (2026-10-28):** M61 is paused; continue non-M61 work only until the owner explicitly resumes M61. This is a priority change, not a change to the historical-data acceptance criteria.
+
+The M61 — Backtesting & Strategy Validation workstream is **paused by explicit owner request on 2026-10-28**. The deterministic simulator and dataset software boundaries exist, but real historical evidence remains unaccepted and M61 is not complete. Current execution priority is to close non-M61 product and engineering gaps, including Crash Radar explainability, technical/news integration verification, Telegram/session-report workflows, and engineering quality.
 
 ### Latest verified progress — 2026-10-20
 
