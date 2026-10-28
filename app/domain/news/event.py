@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
+from urllib.parse import urlsplit
 from uuid import UUID
 
 
@@ -59,8 +60,14 @@ class NewsEvent:
             raise ValueError("source_name cannot be empty")
         if not self.title.strip():
             raise ValueError("title cannot be empty")
-        if not self.source_url.startswith(("https://", "http://")):
-            raise ValueError("source_url must be an HTTP(S) URL")
+        parsed_source_url = urlsplit(self.source_url)
+        if (
+            parsed_source_url.scheme.lower() not in {"https", "http"}
+            or not parsed_source_url.hostname
+            or parsed_source_url.username is not None
+            or parsed_source_url.password is not None
+        ):
+            raise ValueError("source_url must be an absolute HTTP(S) URL without embedded credentials")
         if not self.entity_match_confidence.is_finite() or not (
             Decimal("0") <= self.entity_match_confidence <= Decimal("1")
         ):

@@ -50,3 +50,17 @@ def test_news_event_rejects_invalid_entity_match_confidence() -> None:
 def test_news_event_rejects_duplicate_symbols_after_normalization() -> None:
     with pytest.raises(ValueError, match="unique"):
         event(matched_symbols=("egal", "EGAL"))
+
+
+@pytest.mark.parametrize(
+    "source_url",
+    (
+        "https://",
+        "https:///missing-host",
+        "javascript:alert(1)",
+        "https://user@example.com/story",
+    ),
+)
+def test_news_event_rejects_malformed_or_credential_bearing_source_urls(source_url: str) -> None:
+    with pytest.raises(ValueError, match="absolute HTTP\\(S\\) URL"):
+        event(source_url=source_url)
