@@ -84,9 +84,17 @@ class DispatchSignalAlertOutbox:
         delivered = 0
         suppressed = 0
         failed = 0
+        processed_events = 0
 
         for record in events:
+            # An event with no linked recipients has not been dispatched. Keep it
+            # pending so the operational dashboard never reports a false delivery.
+            # Once a recipient links an account, the normal entitlement checks apply.
+            if not recipients:
+                continue
+
             event_failed = False
+            processed_events += 1
             signal_snapshot = record.event.signal_snapshot
             if signal_snapshot is None:
                 signal_record = self._history.get(record.event.signal_id)
@@ -184,7 +192,7 @@ class DispatchSignalAlertOutbox:
                 self._outbox.mark_delivered(record.event.event_id, now)
 
         return DispatchBatchResult(
-            events_processed=len(events),
+            events_processed=processed_events,
             recipients_delivered=delivered,
             recipients_suppressed=suppressed,
             recipients_failed=failed,

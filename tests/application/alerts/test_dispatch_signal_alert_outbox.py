@@ -271,3 +271,19 @@ def test_dispatch_suppresses_disabled_user_even_with_active_subscription(tmp_pat
     record = deliveries.get(event.event_id, user_id, "telegram")
     assert record.status is SignalAlertDeliveryStatus.SUPPRESSED
     assert record.last_error == "user_inactive_or_missing"
+
+def test_dispatch_keeps_event_pending_when_no_recipients_are_linked(tmp_path) -> None:
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [],
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.events_processed == 0
+    assert result.recipients_delivered == 0
+    assert result.recipients_suppressed == 0
+    assert result.recipients_failed == 0
+    assert transport.sent == []
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
+    assert deliveries.get(event.event_id, uuid4(), "telegram") is None
