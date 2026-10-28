@@ -112,6 +112,7 @@ from app.application.notifications.telegram_account_linking import (
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.subscriptions.store import SubscriptionStore
+from app.application.identity.user_store import UserStore
 
 logger = logging.getLogger(__name__)
 
@@ -160,6 +161,7 @@ def create_app(
     telegram_notification_provider: TelegramMessageSender | None = None,
     telegram_webhook_secret: str | None = None,
     subscription_store: SubscriptionStore | None = None,
+    user_store: UserStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -287,6 +289,7 @@ def create_app(
     app.include_router(
         create_subscription_admin_router(
             store=subscription_store,
+            users=user_store,
             require_operator=require_operator,
         )
     )
