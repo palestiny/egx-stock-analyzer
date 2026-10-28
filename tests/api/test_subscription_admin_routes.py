@@ -290,3 +290,45 @@ def test_subscription_admin_rejects_unknown_user_before_persistence(tmp_path):
         count = connection.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
     assert count == 0
 
+def test_subscription_admin_maps_concurrent_transition_conflict_to_409(tmp_path, monkeypatch):
+    client, store, users = make_client(tmp_path)
+    plan_response = client.post(
+        "/api/v1/owner/subscription-plans",
+        headers=auth(),
+        json={
+            "plan_id": "pilot",
+            "version": 1,
+            "display_name": "Pilot",
+            "entitlements": [{"code": "telegram_opportunities"}],
+        },
+    )
+    assert plan_response.status_code == 200
+    user_id = uuid4()
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
+    now = datetime.now(timezone.utc)
+    created = client.post(
+        "/api/v1/owner/subscriptions",
+        headers=auth(),
+        json={
+            "user_id": str(user_id),
+            "plan_id": "pilot",
+            "plan_version": 1,
+            "starts_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "reason": "concurrency fixture",
+        },
+    )
+    assert created.status_code == 200
+
+    def concurrent_conflict(*args, **kwargs):
+        raise RuntimeError("subscription changed concurrently; retry transition")
+
+    monkeypatch.setattr(store, "transition", concurrent_conflict)
+    response = client.post(
+        f"/api/v1/owner/subscriptions/{created.json()['subscription_id']}/transition",
+        headers=auth(),
+        json={"status": "ACTIVE", "reason": "concurrent operator update"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Subscription changed concurrently; reload before retrying"
