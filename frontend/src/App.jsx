@@ -609,6 +609,37 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
             <div className="detail-row"><span>Positive / negative momentum</span><strong>{breadthView.positive_momentum_count} / {breadthView.negative_momentum_count}</strong></div>
             <div className="detail-row"><span>Above-average volume</span><strong>{breadthView.above_average_volume_count}</strong></div>
             <div className="detail-row"><span>Coverage</span><strong>{breadthView.analyzed_symbols}/{breadthView.requested_symbols} ({breadthView.coverage_percent ?? "—"}%)</strong></div>
+            {breadthView.analysis_date_status && (
+              <div className="detail-row">
+                <span>Snapshot date status</span>
+                <strong>{breadthView.analysis_date_status}</strong>
+              </div>
+            )}
+            {breadthView.latest_analysis_date && (
+              <div className="detail-row">
+                <span>Latest saved analysis date</span>
+                <strong>{breadthView.latest_analysis_date}</strong>
+              </div>
+            )}
+            {breadthView.stress_components && (
+              <div className="stress-component-list" aria-label="stress score components">
+                {[
+                  ["downtrend", "Downtrend", breadthView.stress_components.downtrend],
+                  ["negative_momentum", "Negative momentum", breadthView.stress_components.negative_momentum],
+                  ["negative_momentum_with_above_average_volume", "Negative momentum + high volume", breadthView.stress_components.negative_momentum_with_above_average_volume],
+                ].map(([key, label, component]) => component && (
+                  <div className="detail-row" key={key}>
+                    <span>{label}</span>
+                    <strong>
+                      {component.count} symbols · {component.share_percent ?? "—"}% · {component.weight_points == null ? "—" : component.weight_points + " pts"}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            )}
+            {breadthView.undated_symbols?.length > 0 && (
+              <p className="muted">Saved analyses with unknown dates: {breadthView.undated_symbols.join(", ")}</p>
+            )}
             {breadthView.missing_symbols?.length > 0 && <p className="muted">Missing saved analyses: {breadthView.missing_symbols.join(", ")}</p>}
             <p className="muted">Data: {breadthView.data_status}. {breadthView.methodology}</p>
           </div>
