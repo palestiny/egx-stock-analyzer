@@ -189,7 +189,7 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 The next non-M61 work is limited to closing verified release gaps without inventing product policy:
 
-1. Finish and verify the in-flight engineering changes and keep `docs/CURRENT_STATE.md` aligned with the latest main CI.
+1. Keep the current-state inventory aligned with the latest main commit and its completed CI results; do not mark a merge verified until its main workflow finishes successfully.
 2. Resolve the owner decision gates in PR #342 (Crash Radar policy), PR #344 (opportunity/Telegram/session-report/commercial policy), and PR #347 (approved news provenance and remaining technical/news acceptance).
 3. Only after source and usage rights are approved, enable a supported news provider and schedule polling.
 4. Only after the exchange-session finalization policy is approved, automate final reports and distribution.
