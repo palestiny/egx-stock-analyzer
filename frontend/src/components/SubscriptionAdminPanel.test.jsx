@@ -155,9 +155,10 @@ describe("SubscriptionAdminPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Find by subscription ID" }));
     fireEvent.click(await screen.findByRole("button", { name: "Load audit history" }));
 
-    expect(await screen.findByText(/Verified pilot access/)).toBeInTheDocument();
+    const auditHistory = await screen.findByLabelText("subscription audit history");
+    expect(auditHistory).toHaveTextContent("Verified pilot access");
     expect(getSubscriptionEvents).toHaveBeenCalledWith("subscription-audit");
-    expect(screen.getByLabelText("subscription audit history")).toHaveTextContent("PENDING → ACTIVE");
+    expect(auditHistory).toHaveTextContent("PENDING → ACTIVE");
   });
 
 });
