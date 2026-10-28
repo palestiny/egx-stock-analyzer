@@ -621,6 +621,16 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
                 <strong>{breadthView.latest_analysis_date}</strong>
               </div>
             )}
+            {breadthView.analysis_dates_by_symbol && (
+              <div className="snapshot-date-list" aria-label="snapshot dates by symbol">
+                {Object.entries(breadthView.analysis_dates_by_symbol).map(([symbol, analysisDate]) => (
+                  <div className="detail-row" key={symbol}>
+                    <span>{symbol} snapshot date</span>
+                    <strong>{analysisDate ?? "Unknown"}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
             {breadthView.stress_components && (
               <div className="stress-component-list" aria-label="stress score components">
                 {[
