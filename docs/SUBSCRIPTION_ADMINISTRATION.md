@@ -65,10 +65,10 @@ The optional `payment_provider` and `payment_reference` fields are administrativ
 ## Error semantics
 
 - `401/403`: operator authentication or authorization failed.
-- `404`: the requested plan version or subscription does not exist.
-- `409`: immutable plan version conflict, invalid lifecycle transition, duplicate payment reference, or persistence conflict.
-- `422`: malformed IDs, invalid entitlements, naive timestamps, or invalid date ranges.
-- `503`: subscription storage is not configured.
+- `404`: the requested plan version, subscription, or target user does not exist on a read/provisioning operation.
+- `409`: immutable plan version conflict, inactive plan, invalid lifecycle transition, duplicate payment reference, or persistence/concurrency conflict.
+- `422`: malformed IDs, invalid entitlements, naive timestamps, invalid date ranges, or provisioning references an unknown plan version.
+- `503`: subscription storage or the user directory is not configured.
 
 ## Operational limits
 
