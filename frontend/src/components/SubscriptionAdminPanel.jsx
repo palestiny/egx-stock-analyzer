@@ -2,6 +2,15 @@ import { useState } from "react";
 
 const DEFAULT_ENTITLEMENTS = '[{"code":"telegram_opportunities","enabled":true,"limit":50}]';
 
+const ALLOWED_TRANSITIONS = {
+  PENDING: ["ACTIVE", "CANCELLED", "EXPIRED", "REFUNDED"],
+  ACTIVE: ["PAST_DUE", "CANCELLED", "EXPIRED", "REFUNDED"],
+  PAST_DUE: ["ACTIVE", "CANCELLED", "EXPIRED", "REFUNDED"],
+  CANCELLED: [],
+  EXPIRED: [],
+  REFUNDED: [],
+};
+
 function asPrettyJson(value) {
   return JSON.stringify(value, null, 2);
 }
@@ -121,6 +130,10 @@ export function SubscriptionAdminPanel({
     if (value?.subscription_id) setCurrentSubscription(value);
   }
 
+  const allowedNextStatuses = currentSubscription
+    ? (ALLOWED_TRANSITIONS[currentSubscription.status] || [])
+    : [];
+
   return (
     <section className="panel" aria-label="subscription administration">
       <h2>Subscription administration</h2>
@@ -216,14 +229,17 @@ export function SubscriptionAdminPanel({
         </button>
       </form>
 
-      {currentSubscription?.subscription_id && (
+      {currentSubscription?.subscription_id && allowedNextStatuses.length > 0 && (
         <form className="owner-admin-form" onSubmit={handleTransition}>
           <h3>Transition subscription status</h3>
           <p className="muted">Current status: {currentSubscription.status}</p>
           <label>
             New status
-            <select value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}>
-              {["PENDING", "ACTIVE", "PAST_DUE", "CANCELLED", "EXPIRED", "REFUNDED"].map((status) => (
+            <select
+              value={allowedNextStatuses.includes(nextStatus) ? nextStatus : allowedNextStatuses[0]}
+              onChange={(event) => setNextStatus(event.target.value)}
+            >
+              {allowedNextStatuses.map((status) => (
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
@@ -236,6 +252,11 @@ export function SubscriptionAdminPanel({
             {busyAction === "transition" ? "Saving status..." : "Record status transition"}
           </button>
         </form>
+      )}
+      {currentSubscription?.subscription_id && allowedNextStatuses.length === 0 && (
+        <p className="muted" role="status">
+          Current status: {currentSubscription.status}. This is a terminal status; no further transitions are allowed.
+        </p>
       )}
 
       {error && <p className="state-card error" role="alert">{error}</p>}
