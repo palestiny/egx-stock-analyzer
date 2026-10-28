@@ -187,9 +187,19 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 **Current priority: non-M61 engineering and product gaps. M61 is paused by explicit owner request dated 2026-10-28.** Do not resume historical-data acquisition, backtest evaluation, or performance claims until the owner explicitly resumes M61.
 
-Use the temporary execution focus below and `docs/CURRENT_STATE.md` to track verified non-M61 work. When M61 resumes, use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
+The next non-M61 work is limited to closing verified release gaps without inventing product policy:
 
-## M61 exploratory data is now usable for technical research — 2026-10-20
+1. Keep the current-state inventory aligned with the latest main commit and its completed CI results; do not mark a merge verified until its main workflow finishes successfully.
+2. Resolve the owner decision gates in PR #342 (Crash Radar policy), PR #344 (opportunity/Telegram/session-report/commercial policy), and PR #347 (approved news provenance and remaining technical/news acceptance).
+3. Only after source and usage rights are approved, enable a supported news provider and schedule polling.
+4. Only after the exchange-session finalization policy is approved, automate final reports and distribution.
+5. Only after a payment provider, plans, pricing, refunds, and entitlement rules are approved, implement live billing.
+
+M61 remains paused by explicit owner request. When M61 resumes, use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
+
+## M61 exploratory-data checkpoint (historical; paused by owner as of 2026-10-28)
+
+This is a historical diagnostic result, not an instruction to resume M61. The owner explicitly paused M61 on 2026-10-28; no new acquisition, backtesting, or performance claims are authorized until that pause is lifted.
 
 The public multi-symbol diagnostic workflow ran successfully against ten EGX symbols over 2021-10-25 through 2026-10-19 with no source-fetch failures. The pre-breakout proxy did not outperform the all-session baseline on mean gross returns at 5 or 10 sessions. Preserve the run and detailed metrics in [M61 public multi-symbol results](M61-PUBLIC-MULTI-SYMBOL-RESULTS-2026-10-20.md). This is exploratory only; do not change production opportunity ranking from this sample.
 
