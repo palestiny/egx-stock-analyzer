@@ -18,6 +18,18 @@ class SubscriptionPlanVersionConflict(Exception):
     """Raised when an immutable plan version already exists with other content."""
 
 
+class SubscriptionUserNotFound(LookupError):
+    """Raised when provisioning targets a user absent from the user directory."""
+
+
+class SubscriptionPlanNotFound(LookupError):
+    """Raised when provisioning references an unknown immutable plan version."""
+
+
+class InactiveSubscriptionPlan(ValueError):
+    """Raised when provisioning targets an inactive plan version."""
+
+
 class SubscriptionAdministration:
     """Application use cases for operator-managed subscription plans and lifecycle."""
 
@@ -65,14 +77,14 @@ class SubscriptionAdministration:
         if self._users is None:
             raise RuntimeError("user directory is not configured")
         if self._users.get(user_id) is None:
-            raise LookupError("User not found")
+            raise SubscriptionUserNotFound("User not found")
 
         normalized_plan_id = plan_id.strip()
         plan = self._store.get_plan(normalized_plan_id, plan_version)
         if plan is None:
-            raise LookupError("Subscription plan version does not exist")
+            raise SubscriptionPlanNotFound("Subscription plan version does not exist")
         if not plan.active:
-            raise ValueError("Inactive subscription plans cannot be provisioned")
+            raise InactiveSubscriptionPlan("Inactive subscription plans cannot be provisioned")
 
         now = datetime.now(timezone.utc)
         subscription = Subscription(
