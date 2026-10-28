@@ -10,6 +10,21 @@
 
 The M61 — Backtesting & Strategy Validation workstream is **paused by explicit owner request on 2026-10-28**. The deterministic simulator and dataset software boundaries exist, but real historical evidence remains unaccepted and M61 is not complete. Current execution priority is to close non-M61 product and engineering gaps, including Crash Radar explainability, technical/news integration verification, Telegram/session-report workflows, and engineering quality.
 
+### Latest verified non-M61 progress — 2026-10-28
+
+- PR #384 merged architecture-boundary regression tests; all five CI jobs passed before merge.
+- PR #385 and PR #388 reconciled the explicit M61 pause across the roadmap and current-state documentation. PR #390 updated the README to describe current capabilities and limitations.
+- PR #389 fixed RSS 1.0/RDF namespace-qualified field and Dublin Core date extraction. All five CI jobs passed before merge; merge commit: 7268aa3221f30755d401c76469d816b77a999e74.
+- PR #387 merged explainable Crash Radar components and per-symbol snapshot-date display. The 2026-10-28 CI run #4519 passed all five jobs: unit tests, deterministic integration tests, frontend tests/build, dependency audit, and container build. Merge commit: 1eb8e1faf598d27c69295b9a7aca31c24ff2d389.
+- The Crash Radar change preserves the existing 50/40/10 heuristic and exposes component counts/shares/weighted points; it does not define a freshness threshold or change signal ranking.
+
+Remaining non-M61 acceptance gaps:
+1. Crash Radar still needs owner-approved universe, freshness-warning/enforcement, minimum-coverage, persistence/retention, and notification policies before score suppression or alerts can be implemented.
+2. News ingestion supports explicit operator-configured RSS/Atom feeds, but no verified official EGX feed and source-reuse terms are accepted/configured.
+3. Session reports remain manual point-in-time snapshots; automatic session finalization/scheduling and Telegram report distribution are not complete.
+4. Subscription pricing/payment gateway and remaining opportunity-lifecycle semantics still require the open DEC-134 product decisions.
+5. M61 remains paused and incomplete; no strategy-profitability claim is authorized.
+
 ### Latest verified progress — 2026-10-20
 
 - PR #322 merged at `24a8193199f821e0fe4906dfdfcaa603ceb1ae73`; Strategy v0 reports profit factor, trade-sequence maximum drawdown, average winning/losing returns, and longest consecutive win/loss streaks. This is not daily portfolio drawdown.
