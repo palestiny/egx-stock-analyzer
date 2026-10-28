@@ -21,15 +21,24 @@ def _resolve_imported_module(path: Path, node: ast.Import | ast.ImportFrom) -> s
         return {alias.name for alias in node.names}
 
     if node.level == 0:
-        return {node.module} if node.module else set()
+        base_parts = node.module.split(".") if node.module else []
+    else:
+        relative_path = path.relative_to(REPOSITORY_ROOT / "app")
+        package_parts = ["app", *relative_path.parent.parts]
+        keep_parts = max(1, len(package_parts) - node.level + 1)
+        base_parts = package_parts[:keep_parts]
+        if node.module:
+            base_parts.extend(node.module.split("."))
 
-    relative_path = path.relative_to(REPOSITORY_ROOT / "app")
-    package_parts = ["app", *relative_path.parent.parts]
-    keep_parts = max(1, len(package_parts) - node.level + 1)
-    base_parts = package_parts[:keep_parts]
-    if node.module:
-        base_parts.extend(node.module.split("."))
-    return {".".join(base_parts)} if base_parts else set()
+    if not base_parts:
+        return set()
+
+    base_module = ".".join(base_parts)
+    imported_modules = {base_module}
+    for alias in node.names:
+        if alias.name != "*":
+            imported_modules.add(f"{base_module}.{alias.name}")
+    return imported_modules
 
 
 def _layer_imports(root: Path) -> list[tuple[str, str]]:
@@ -75,3 +84,23 @@ def test_application_does_not_depend_on_api_delivery_layer() -> None:
         "Application use-cases must not depend on the API/HTTP delivery layer. "
         f"Forbidden imports: {violations}"
     )
+
+
+
+def test_import_resolver_detects_forbidden_alias_modules_from_app_package() -> None:
+    path = REPOSITORY_ROOT / "app" / "domain" / "example.py"
+    node = ast.parse("from app import api, application").body[0]
+
+    imported = _resolve_imported_module(path, node)
+
+    assert "app.api" in imported
+    assert "app.application" in imported
+
+
+def test_import_resolver_handles_relative_from_imports() -> None:
+    path = REPOSITORY_ROOT / "app" / "domain" / "example.py"
+    node = ast.parse("from . import model").body[0]
+
+    imported = _resolve_imported_module(path, node)
+
+    assert "app.domain.model" in imported
