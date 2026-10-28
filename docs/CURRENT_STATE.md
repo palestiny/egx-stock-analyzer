@@ -348,7 +348,7 @@ Verified changes merged after the explicit M61 pause:
 - PR #394 fixes RSS/Atom point-in-time semantics: Atom `updated` is no longer substituted for publication time. Updated-only items remain ineligible for as-of analysis.
 - PR #395 strengthens the architecture regression guard so `from app import api`-style imports cannot bypass the domain/application dependency checks.
 - PR #396 normalizes timezone-aware snapshot timestamps to the `Africa/Cairo` calendar before calculating snapshot age, and tests same-day and future-dated evidence.
-- The implementation PRs above passed all five CI jobs before merge. Post-merge CI for the newest main commit must still be observed separately.
+- The implementation PRs above passed all five CI jobs before merge. Post-merge verification is tracked separately from PR-head CI; always inspect the latest `main` workflow before declaring closeout.
 
 Remaining non-M61 acceptance boundaries:
 
