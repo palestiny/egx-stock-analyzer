@@ -32,6 +32,14 @@ const point = {
     warnings: [],
     wave_two_invalidation_price: "10",
   }],
+  elliott_corrections: [{
+    start_index: 3,
+    end_index: 12,
+    candidate: { direction: "down", points: ["30", "20", "25", "15"] },
+    is_rule_consistent: true,
+    rule_violations: [],
+    wave_b_origin_boundary_price: "30",
+  }],
 };
 
 describe("TechnicalIndicatorPanel", () => {
@@ -60,6 +68,9 @@ describe("TechnicalIndicatorPanel", () => {
     expect(screen.getByText("Elliott wave candidates")).toBeTruthy();
     expect(screen.getByText(/UP · pivots 2–17/)).toBeTruthy();
     expect(screen.getByText(/Invalidation 10.00/)).toBeTruthy();
+    expect(screen.getByText("ABC zigzag correction candidates")).toBeTruthy();
+    expect(screen.getByText(/DOWN · pivots 3–12/)).toBeTruthy();
+    expect(screen.getByText(/B-wave origin boundary 30.00/)).toBeTruthy();
     expect(screen.getByText("HIGH 101.00")).toBeTruthy();
     expect(screen.getByText("50.0%")).toBeTruthy();
     expect(screen.getByText("161.8%")).toBeTruthy();

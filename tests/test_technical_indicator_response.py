@@ -9,6 +9,8 @@ from app.api.technical_indicator_response import TechnicalIndicatorHistoryRespon
 from app.domain.technical_analysis.elliott import (
     ElliottDirection,
     ElliottImpulseCandidate,
+    ElliottCorrectionCandidate,
+    ElliottCorrectionCount,
     ElliottWaveCount,
 )
 from app.domain.technical_analysis.indicator_evidence import (
@@ -80,3 +82,30 @@ def test_response_exposes_elliott_rule_diagnostics_and_invalidation_level() -> N
     assert item["rule_violations"] == []
     assert item["wave_two_invalidation_price"] == "10"
 
+
+
+def test_response_exposes_elliott_abc_correction_diagnostics() -> None:
+    correction = ElliottCorrectionCount(
+        start_index=3,
+        end_index=12,
+        candidate=ElliottCorrectionCandidate(
+            ElliottDirection.DOWN,
+            (
+                Decimal("30"),
+                Decimal("20"),
+                Decimal("25"),
+                Decimal("15"),
+            ),
+        ),
+    )
+    analysis = report()
+    analysis.technical_analysis.indicators = TechnicalIndicatorEvidence(
+        (replace(point(1), elliott_corrections=(correction,)),)
+    )
+
+    response = TechnicalIndicatorHistoryResponse.from_report(analysis)
+    item = response["points"][0]["elliott_corrections"][0]
+    assert item["is_rule_consistent"] is True
+    assert item["rule_violations"] == []
+    assert item["wave_b_origin_boundary_price"] == "30"
+    assert item["candidate"]["points"] == ["30", "20", "25", "15"]

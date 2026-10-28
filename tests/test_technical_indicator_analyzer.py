@@ -174,6 +174,9 @@ def test_elliott_candidates_use_only_confirmed_swings_and_expose_invalidation() 
 
     evidence = TechnicalIndicatorAnalyzer.analyze(sample)
 
+    assert len(evidence.points[12].elliott_corrections) == 0
+    assert len(evidence.points[13].elliott_corrections) == 1
+    assert evidence.points[13].elliott_corrections[0].is_rule_consistent
     assert evidence.points[18].elliott_candidates == ()
     assert len(evidence.points[19].elliott_candidates) == 1
     candidate = evidence.points[19].elliott_candidates[0]

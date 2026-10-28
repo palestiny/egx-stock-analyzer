@@ -3,7 +3,9 @@ from decimal import Decimal
 from app.domain.technical_analysis.elliott import (
     ElliottDirection,
     ElliottImpulseCandidate,
+    ElliottCorrectionCandidate,
     enumerate_impulse_counts,
+    enumerate_zigzag_corrections,
 )
 from app.domain.technical_analysis.price_structure import SwingKind, SwingPoint
 
@@ -110,3 +112,54 @@ def test_rejects_unsorted_swing_points() -> None:
         assert "ordered by index" in str(error)
     else:
         raise AssertionError("Expected unsorted swing points to be rejected")
+
+
+def test_valid_downward_abc_zigzag_candidate_is_rule_consistent() -> None:
+    candidate = ElliottCorrectionCandidate(
+        ElliottDirection.DOWN,
+        (Decimal("130"), Decimal("110"), Decimal("120"), Decimal("95")),
+    )
+    assert candidate.is_rule_consistent
+    assert candidate.rule_violations == ()
+    assert candidate.wave_b_origin_boundary_price == Decimal("130")
+
+
+def test_valid_upward_abc_zigzag_candidate_is_rule_consistent() -> None:
+    candidate = ElliottCorrectionCandidate(
+        ElliottDirection.UP,
+        (Decimal("80"), Decimal("100"), Decimal("90"), Decimal("108")),
+    )
+    assert candidate.is_rule_consistent
+
+
+def test_abc_zigzag_candidate_exposes_beyond_origin_and_c_leg_violations() -> None:
+    candidate = ElliottCorrectionCandidate(
+        ElliottDirection.DOWN,
+        (Decimal("130"), Decimal("110"), Decimal("132"), Decimal("112")),
+    )
+    assert "wave_b_exceeds_origin" in candidate.rule_violations
+    assert "wave_c_does_not_extend_wave_a" in candidate.rule_violations
+
+
+def test_enumerates_abc_zigzag_from_alternating_confirmed_swings() -> None:
+    swings = (
+        SwingPoint(10, SwingKind.HIGH, Decimal("130")),
+        SwingPoint(12, SwingKind.LOW, Decimal("110")),
+        SwingPoint(15, SwingKind.HIGH, Decimal("120")),
+        SwingPoint(18, SwingKind.LOW, Decimal("95")),
+    )
+    counts = enumerate_zigzag_corrections(swings)
+    assert len(counts) == 1
+    assert counts[0].candidate.direction is ElliottDirection.DOWN
+    assert counts[0].is_rule_consistent
+    assert (counts[0].start_index, counts[0].end_index) == (10, 18)
+
+
+def test_ignores_non_alternating_correction_windows() -> None:
+    swings = (
+        SwingPoint(0, SwingKind.HIGH, Decimal("130")),
+        SwingPoint(1, SwingKind.LOW, Decimal("110")),
+        SwingPoint(2, SwingKind.LOW, Decimal("105")),
+        SwingPoint(3, SwingKind.HIGH, Decimal("120")),
+    )
+    assert enumerate_zigzag_corrections(swings) == ()

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from app.domain.reporting.report import AnalysisReport
-from app.domain.technical_analysis.elliott import ElliottWaveCount
+from app.domain.technical_analysis.elliott import ElliottCorrectionCount, ElliottWaveCount
 
 
 def _json_value(value: Any) -> Any:
@@ -21,6 +21,15 @@ def _json_value(value: Any) -> Any:
             "rule_violations": list(value.rule_violations),
             "warnings": list(value.warnings),
             "wave_two_invalidation_price": str(value.wave_two_invalidation_price),
+        }
+    if isinstance(value, ElliottCorrectionCount):
+        return {
+            "start_index": value.start_index,
+            "end_index": value.end_index,
+            "candidate": _json_value(value.candidate),
+            "is_rule_consistent": value.is_rule_consistent,
+            "rule_violations": list(value.rule_violations),
+            "wave_b_origin_boundary_price": str(value.wave_b_origin_boundary_price),
         }
     if is_dataclass(value) and not isinstance(value, type):
         return {
