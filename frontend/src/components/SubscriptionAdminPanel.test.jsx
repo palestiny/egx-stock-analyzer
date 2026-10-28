@@ -27,14 +27,14 @@ describe("SubscriptionAdminPanel", () => {
   it("provisions a pending subscription and requires an explicit audited transition", async () => {
     const createSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-123",
-      user_id: "user-123",
+      user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
       plan_id: "telegram-pilot",
       plan_version: 1,
       status: "PENDING",
     });
     const transitionSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-123",
-      user_id: "user-123",
+      user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
       plan_id: "telegram-pilot",
       plan_version: 1,
       status: "ACTIVE",
@@ -46,7 +46,7 @@ describe("SubscriptionAdminPanel", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("User ID"), { target: { value: "user-123" } });
+    fireEvent.change(screen.getByLabelText("User ID"), { target: { value: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912" } });
     fireEvent.change(screen.getByLabelText("Starts at (ISO-8601 with timezone)"), {
       target: { value: "2026-10-28T09:00:00+03:00" },
     });
@@ -59,7 +59,7 @@ describe("SubscriptionAdminPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create pending subscription" }));
 
     await waitFor(() => expect(createSubscription).toHaveBeenCalledWith({
-      user_id: "user-123",
+      user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
       plan_id: "telegram-pilot",
       plan_version: 1,
       starts_at: "2026-10-28T09:00:00+03:00",
