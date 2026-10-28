@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.market_intelligence_routes import create_market_intelligence_router
 
 from app.api.user_management_routes import create_user_management_router
+from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -110,6 +111,7 @@ from app.application.notifications.telegram_account_linking import (
     TelegramChatAlreadyLinked,
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
+from app.application.subscriptions.store import SubscriptionStore
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +159,7 @@ def create_app(
     telegram_account_linking: TelegramAccountLinkingService | None = None,
     telegram_notification_provider: TelegramMessageSender | None = None,
     telegram_webhook_secret: str | None = None,
+    subscription_store: SubscriptionStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -278,6 +281,13 @@ def create_app(
             recover_durable_scheduled_workflow=recover_durable_scheduled_workflow,
             authenticator=authenticator,
             require_authenticated=require_authenticated,
+        )
+    )
+
+    app.include_router(
+        create_subscription_admin_router(
+            store=subscription_store,
+            require_operator=require_operator,
         )
     )
 
