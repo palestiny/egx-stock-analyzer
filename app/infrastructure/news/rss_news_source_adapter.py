@@ -100,7 +100,6 @@ class RssNewsSourceAdapter:
             published = self._parse_timestamp(
                 self._child_text(entry, "pubDate")
                 or self._child_text(entry, "published")
-                or self._child_text(entry, "updated")
                 or self._child_text(entry, "date")
             )
             if since is not None and (published is None or published < since):
