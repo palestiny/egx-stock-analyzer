@@ -64,6 +64,12 @@ class BuildSessionOpportunityLedger:
             current = current_record.signal
             if original.generated_at.tzinfo is None or original.generated_at.utcoffset() is None:
                 raise ValueError("signal generation timestamps must be timezone-aware")
+            if original.generated_at > generated_at:
+                continue
+            if original.data_timestamp.tzinfo is None or original.data_timestamp.utcoffset() is None:
+                raise ValueError("signal data timestamps must be timezone-aware")
+            if original.data_timestamp > generated_at:
+                continue
             if original.generated_at.astimezone(self._timezone).date() != session_date:
                 continue
 
