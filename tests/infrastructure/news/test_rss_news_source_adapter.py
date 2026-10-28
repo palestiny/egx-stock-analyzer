@@ -161,3 +161,21 @@ def test_adapter_caps_processed_entries_at_five_hundred() -> None:
     events = adapter(payload).fetch_recent()
 
     assert len(events) == 500
+
+def test_atom_updated_only_entry_has_no_publication_timestamp() -> None:
+    updated_only = b"""<?xml version="1.0"?>
+    <feed xmlns="http://www.w3.org/2005/Atom"><title>Feed</title>
+    <entry><id>tag:news.example.test,2026:updated-only</id>
+    <title>EGAL company update</title>
+    <link href="https://news.example.test/egal/updated-only"/>
+    <updated>2026-10-26T17:00:00Z</updated>
+    <summary>Company operational update</summary></entry></feed>"""
+
+    events = adapter(updated_only).fetch_recent()
+
+    assert len(events) == 1
+    assert events[0].published_at is None
+    assert not events[0].eligible_as_of(NOW)
+    assert adapter(updated_only).fetch_recent(
+        datetime(2026, 10, 26, 16, tzinfo=timezone.utc)
+    ) == ()
