@@ -339,3 +339,24 @@ Current non-M61 review queue:
 4. Engineering quality: architecture-boundary regression tests are now merged (PR #384); continue targeted regression/security/operational checks and keep `CURRENT_STATE.md` synchronized with verified GitHub evidence.
 
 M61-related draft PRs and exploratory artifacts remain isolated; do not merge them as a substitute for the accepted historical-data evidence gate.
+
+## Non-M61 quality follow-up — 2026-10-28
+
+Verified changes merged after the explicit M61 pause:
+
+- PR #392 adds the EGX-timezone reference date and per-symbol calendar-day snapshot age to Crash Radar. The existing 50/40/10 heuristic and its denominator are unchanged.
+- PR #394 fixes RSS/Atom point-in-time semantics: Atom `updated` is no longer substituted for publication time. Updated-only items remain ineligible for as-of analysis.
+- PR #395 strengthens the architecture regression guard so `from app import api`-style imports cannot bypass the domain/application dependency checks.
+- PR #396 normalizes timezone-aware snapshot timestamps to the `Africa/Cairo` calendar before calculating snapshot age, and tests same-day and future-dated evidence.
+- The implementation PRs above passed all five CI jobs before merge. Post-merge verification is tracked separately from PR-head CI; always inspect the latest `main` workflow before declaring closeout.
+
+Remaining non-M61 acceptance boundaries:
+
+1. **Crash Radar policy:** snapshot dates and ages are visible, but a configured universe, freshness warning/enforcement threshold, minimum-coverage policy, score suppression, historical score retention, and alerts remain unapproved. No score policy was silently selected.
+2. **News evidence:** the RSS/Atom ingestion path is operator-triggered and provider-neutral. No official EGX feed is enabled by default; source authenticity, usage/redistribution rights, coverage, and operational polling must be verified before claiming official or comprehensive news coverage.
+3. **Opportunities and Telegram:** existing signal, durable delivery, recipient, and owner/session-report foundations are not equivalent to an accepted end-to-end opportunity lifecycle with re-evaluation/invalidation and subscriber entitlements. The product policy gate in PR #344 remains a draft.
+4. **Session reports and monetization:** manual report foundations exist, but automatic session-finalization/distribution and payment/subscription behavior remain behind explicit design decisions. No payment gateway, price, or paid entitlement has been chosen.
+5. **Technical/news intelligence:** the merged calculation and ingestion components still require end-to-end acceptance across input quality, calculation semantics, API authorization/contracts, persistence, dashboard empty/error states, and source provenance. The draft design gate in PR #347 is not a release acceptance.
+6. **Crash Radar v2:** PR #342 remains a draft for the unresolved universe/freshness/coverage/retention/alert policy. Its two-stage direction does not authorize a new predictive score.
+
+M61 remains paused and incomplete. Its real historical-data evidence requirements and any performance-claim restrictions are unchanged.
