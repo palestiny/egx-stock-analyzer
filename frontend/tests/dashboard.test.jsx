@@ -266,9 +266,19 @@ describe("Dashboard", () => {
       positive_momentum_count: 1,
       negative_momentum_count: 1,
       above_average_volume_count: 1,
+      negative_momentum_with_above_average_volume_count: 1,
+      stress_components: {
+        downtrend: { count: 1, share_percent: "50.00", weight_points: "25.00" },
+        negative_momentum: { count: 1, share_percent: "50.00", weight_points: "20.00" },
+        negative_momentum_with_above_average_volume: { count: 1, share_percent: "50.00", weight_points: "5.00" },
+      },
+      analysis_date_status: "PARTIAL",
+      latest_analysis_date: "2026-10-27",
+      analysis_dates_by_symbol: { EGAL: "2026-10-27", IEEC: null },
+      undated_symbols: ["IEEC"],
       bullish_breadth_percent: "50.00",
       bearish_pressure_percent: "50.00",
-      stress_score: 54,
+      stress_score: 50,
       stress_level: "elevated",
       data_status: "LATEST_SAVED_ANALYSIS_SNAPSHOT",
       methodology: "Heuristic based on saved trends and momentum.",
@@ -280,10 +290,20 @@ describe("Dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Calculate Market Pulse" }));
 
     const panel = await screen.findByLabelText("market breadth and stress pulse");
-    expect(panel).toHaveTextContent("54 / elevated");
+    expect(panel).toHaveTextContent("50 / elevated");
     expect(panel).toHaveTextContent("66.67%");
     expect(panel).toHaveTextContent("Missing saved analyses: COMI");
     expect(panel).toHaveTextContent("LATEST_SAVED_ANALYSIS_SNAPSHOT");
+    expect(panel).toHaveTextContent("Snapshot date status");
+    expect(panel).toHaveTextContent("PARTIAL");
+    expect(panel).toHaveTextContent("Latest saved analysis date");
+    expect(panel).toHaveTextContent("2026-10-27");
+    expect(panel).toHaveTextContent("EGAL snapshot date");
+    expect(panel).toHaveTextContent("IEEC snapshot date");
+    expect(panel).toHaveTextContent("Saved analyses with unknown dates: IEEC");
+    expect(panel).toHaveTextContent("Downtrend");
+    expect(panel).toHaveTextContent("25.00 pts");
+    expect(panel).toHaveTextContent("Negative momentum + above-average volume");
     expect(getMarketBreadthStress).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
