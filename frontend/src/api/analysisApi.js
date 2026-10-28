@@ -45,6 +45,17 @@ export function getReport(symbol) {
   return getJson("/api/v1/reports/" + encodeURIComponent(symbol), "Report request");
 }
 
+export function getNewsEvents(symbol, limit = 20) {
+  const params = new URLSearchParams({
+    symbol: symbol.trim().toUpperCase(),
+    limit: String(limit),
+  });
+  return getJson(
+    "/api/v1/news/events?" + params.toString(),
+    "News events request",
+  );
+}
+
 export function getAlert(symbol) {
   return getJson("/api/v1/alerts/" + encodeURIComponent(symbol), "Alert request");
 }
