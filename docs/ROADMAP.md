@@ -10,7 +10,7 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟡 In Progress — Historical Dataset Acquisition Boundary Accepted; Real Historical Evaluation Pending
+**Status:** ⏸ Paused by owner request on 2026-10-28 — no M61 implementation or data-acquisition work until explicitly resumed
 
 DEC-126 is accepted. DEC-127 is accepted and implemented. DEC-128 and DEC-129 are accepted and implemented. DEC-130 is now accepted: real historical evidence acquisition must use immutable, provenance-traceable dataset versions with explicit point-in-time, corporate-action, missing-data, symbol-mapping, and survivorship controls.
 
@@ -206,4 +206,6 @@ The following product capabilities were merged into `main` after the M61 acquisi
 - PR #329: per-opportunity regime/risk context, without silently changing existing opportunity ranking; see https://github.com/palestiny/egx-stock-analyzer/pull/329.
 - PR #330: dashboard Market Breadth & Stress Pulse panel; all five CI jobs passed before merge. It shows coverage and missing symbols and explicitly labels its snapshot-based heuristic as neither live intraday data nor a crash prediction; see https://github.com/palestiny/egx-stock-analyzer/pull/330.
 
-**Next execution priority remains M61 real historical dataset acquisition and validation.** The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.
+**M61 is paused by explicit owner request on 2026-10-28. Do not start or continue M61 data acquisition, backtest evaluation, or performance claims until the owner resumes it.**
+
+**Temporary execution focus (outside M61):** close engineering/product gaps in existing capabilities. Work in this order: (1) verify and harden current Crash Radar / Market Breadth & Stress Pulse freshness, coverage, and explainability without changing its scoring formula; (2) finish the technical-analysis/news evidence stack already represented by merged implementation PRs and identify genuinely missing integration; (3) review and close the owner decisions in the trading-opportunity/Telegram/session-report/owner-dashboard design gate before any payment or subscription implementation; (4) complete repository quality, security, dependency, and operational documentation checks. Keep the M61 historical dataset isolated and unchanged during this pause. The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.

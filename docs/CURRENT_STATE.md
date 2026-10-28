@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-10-20  
+**Last verified:** 2026-10-28  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -309,3 +309,16 @@ When work resumes, the sequence is fixed:
 10. close M61 only after the complete evidence-backed gate passes.
 
 No performance conclusion is valid before that final sequence completes.
+
+
+## Temporary execution pause — 2026-10-28
+
+The owner explicitly requested that M61 be deferred while the remaining non-M61 gaps are completed. This pause changes execution priority only; it does not weaken M61's evidence requirements or mark M61 complete. No historical backtest performance conclusion is authorized during the pause.
+
+Current non-M61 review queue:
+1. Crash Radar / Market Breadth & Stress Pulse: verify freshness, coverage, missing-symbol handling, and clear heuristic labeling; retain the current score formula unless separately approved.
+2. Technical-analysis and news evidence: audit the merged stack end-to-end across domain calculation, API contracts, persistence, authorization, and dashboard rendering; do not infer live news coverage without an accepted provider adapter and source-rights review.
+3. Opportunity lifecycle, Telegram delivery, post-session reports, subscriptions, and owner dashboard: resolve the open design decisions before production behavior or payment integrations are changed.
+4. Engineering quality: architecture-boundary regression tests are now merged (PR #384); continue targeted regression/security/operational checks and keep `CURRENT_STATE.md` synchronized with verified GitHub evidence.
+
+M61-related draft PRs and exploratory artifacts remain isolated; do not merge them as a substitute for the accepted historical-data evidence gate.
