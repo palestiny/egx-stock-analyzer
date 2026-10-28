@@ -10,7 +10,7 @@
 
 ## M61 — Backtesting & Strategy Validation Design Gate
 
-**Status:** 🟡 In Progress — Historical Dataset Acquisition Boundary Accepted; Real Historical Evaluation Pending
+**Status:** ⏸ Paused by owner request on 2026-10-28 — historical evidence gate remains incomplete
 
 DEC-126 is accepted. DEC-127 is accepted and implemented. DEC-128 and DEC-129 are accepted and implemented. DEC-130 is now accepted: real historical evidence acquisition must use immutable, provenance-traceable dataset versions with explicit point-in-time, corporate-action, missing-data, symbol-mapping, and survivorship controls.
 
@@ -206,7 +206,9 @@ The following product capabilities were merged into `main` after the M61 acquisi
 - PR #329: per-opportunity regime/risk context, without silently changing existing opportunity ranking; see https://github.com/palestiny/egx-stock-analyzer/pull/329.
 - PR #330: dashboard Market Breadth & Stress Pulse panel; all five CI jobs passed before merge. It shows coverage and missing symbols and explicitly labels its snapshot-based heuristic as neither live intraday data nor a crash prediction; see https://github.com/palestiny/egx-stock-analyzer/pull/330.
 
-**Next execution priority remains M61 real historical dataset acquisition and validation.** The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.
+**M61 is paused by explicit owner request on 2026-10-28.** Do not start or continue M61 data acquisition, backtest evaluation, or performance claims until the owner resumes it.
+
+**Temporary execution focus (outside M61):** Crash Radar explainability/freshness/coverage; end-to-end technical-analysis/news integration; opportunity lifecycle, Telegram, session-report and owner-dashboard gaps; engineering quality/security/operations. Preserve M61's existing evidence acceptance criteria. The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.
 
 
 ---
