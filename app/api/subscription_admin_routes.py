@@ -2,13 +2,20 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from sqlite3 import IntegrityError
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.identity.user_store import UserStore
 from app.application.security.identity import AuthenticatedIdentity
+from app.application.subscriptions.manage_subscriptions import (
+    InactiveSubscriptionPlan,
+    SubscriptionAdministration,
+    SubscriptionPlanNotFound,
+    SubscriptionPlanVersionConflict,
+    SubscriptionUserNotFound,
+)
 from app.application.subscriptions.store import SubscriptionStore
 from app.domain.subscriptions.model import (
     EntitlementGrant as PlanEntitlementGrant,
@@ -112,46 +119,48 @@ def create_subscription_admin_router(
     users: UserStore | None,
     require_operator,
 ) -> APIRouter:
-    """Expose audited, operator-only subscription administration without billing claims."""
+    """Expose restricted operator routes while keeping business rules in application services."""
     router = APIRouter()
 
-    def configured_store() -> SubscriptionStore:
+    def configured_service() -> SubscriptionAdministration:
         if store is None:
             raise HTTPException(status_code=503, detail="Subscription management is not configured")
-        return store
+        return SubscriptionAdministration(store, users)
 
     @router.post("/api/v1/owner/subscription-plans")
     def create_subscription_plan(
         payload: SubscriptionPlanPayload,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
+        service = configured_service()
         created_at = payload.created_at or datetime.now(timezone.utc)
         _require_aware(created_at, "created_at")
         try:
-            plan = SubscriptionPlan(
-                plan_id=payload.plan_id.strip(),
+            entitlements = tuple(
+                PlanEntitlementGrant(
+                    code=item.code.strip(),
+                    enabled=item.enabled,
+                    limit=item.limit,
+                )
+                for item in payload.entitlements
+            )
+            plan = service.create_plan(
+                plan_id=payload.plan_id,
                 version=payload.version,
-                display_name=payload.display_name.strip(),
-                entitlements=tuple(
-                    PlanEntitlementGrant(
-                        code=item.code.strip(),
-                        enabled=item.enabled,
-                        limit=item.limit,
-                    )
-                    for item in payload.entitlements
-                ),
+                display_name=payload.display_name,
+                entitlements=entitlements,
                 active=payload.active,
                 created_at=created_at,
             )
+        except SubscriptionPlanVersionConflict as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        try:
-            subscription_store.save_plan(plan)
-        except ValueError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
         except IntegrityError as error:
-            raise HTTPException(status_code=409, detail="Subscription plan version already exists or conflicts with a concurrent creation") from error
+            raise HTTPException(
+                status_code=409,
+                detail="Subscription plan version already exists or conflicts with a concurrent creation",
+            ) from error
         return _plan_payload(plan)
 
     @router.get("/api/v1/owner/subscription-plans/{plan_id}/{version}")
@@ -160,8 +169,7 @@ def create_subscription_admin_router(
         version: int,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
-        plan = subscription_store.get_plan(plan_id, version)
+        plan = configured_service().get_plan(plan_id, version)
         if plan is None:
             raise HTTPException(status_code=404, detail="Subscription plan version not found")
         return _plan_payload(plan)
@@ -171,45 +179,42 @@ def create_subscription_admin_router(
         payload: SubscriptionCreatePayload,
         identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
+        service = configured_service()
         _require_aware(payload.starts_at, "starts_at")
         _require_aware(payload.expires_at, "expires_at")
-        if users is None:
-            raise HTTPException(status_code=503, detail="User directory is not configured")
-        if users.get(payload.user_id) is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        plan_id = payload.plan_id.strip()
-        plan = subscription_store.get_plan(plan_id, payload.plan_version)
-        if plan is None:
-            raise HTTPException(status_code=422, detail="Subscription plan version does not exist")
-        if not plan.active:
-            raise HTTPException(status_code=409, detail="Inactive subscription plans cannot be provisioned")
-
-        now = datetime.now(timezone.utc)
-        actor = identity.subject.strip() or "operator"
         reason = payload.reason.strip()
         if not reason:
             raise HTTPException(status_code=422, detail="reason is required")
+        actor = identity.subject.strip() or "operator"
         try:
-            subscription = Subscription(
-                subscription_id=uuid4(),
+            subscription = service.provision(
                 user_id=payload.user_id,
-                plan_id=plan_id,
+                plan_id=payload.plan_id,
                 plan_version=payload.plan_version,
-                status=SubscriptionStatus.PENDING,
-                created_at=now,
                 starts_at=payload.starts_at,
                 expires_at=payload.expires_at,
-                updated_at=now,
-                payment_provider=payload.payment_provider.strip() if payload.payment_provider else None,
-                payment_reference=payload.payment_reference.strip() if payload.payment_reference else None,
+                actor=actor,
+                reason=reason,
+                payment_provider=payload.payment_provider,
+                payment_reference=payload.payment_reference,
             )
-            subscription_store.create(subscription, actor=actor, reason=reason)
+        except RuntimeError as error:
+            if "user directory is not configured" not in str(error):
+                raise
+            raise HTTPException(status_code=503, detail="User directory is not configured") from error
+        except SubscriptionUserNotFound as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except SubscriptionPlanNotFound as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        except InactiveSubscriptionPlan as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         except IntegrityError as error:
-            # Keep database/driver details out of the API response.
-            raise HTTPException(status_code=409, detail="Subscription could not be created; verify the plan version and payment-reference uniqueness") from error
+            raise HTTPException(
+                status_code=409,
+                detail="Subscription could not be created; verify the plan version and payment-reference uniqueness",
+            ) from error
         return _subscription_payload(subscription)
 
     @router.get("/api/v1/owner/subscriptions/{subscription_id}")
@@ -217,8 +222,7 @@ def create_subscription_admin_router(
         subscription_id: UUID,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
-        subscription = subscription_store.get(subscription_id)
+        subscription = configured_service().get_subscription(subscription_id)
         if subscription is None:
             raise HTTPException(status_code=404, detail="Subscription not found")
         return _subscription_payload(subscription)
@@ -228,8 +232,7 @@ def create_subscription_admin_router(
         user_id: UUID,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
-        subscription = subscription_store.latest_for_user(user_id)
+        subscription = configured_service().latest_for_user(user_id)
         if subscription is None:
             raise HTTPException(status_code=404, detail="Subscription not found for user")
         return _subscription_payload(subscription)
@@ -239,15 +242,13 @@ def create_subscription_admin_router(
         subscription_id: UUID,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
-        if subscription_store.get(subscription_id) is None:
-            raise HTTPException(status_code=404, detail="Subscription not found")
+        try:
+            events = configured_service().events_for_subscription(subscription_id)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
         return {
             "subscription_id": str(subscription_id),
-            "events": [
-                _subscription_event_payload(event)
-                for event in subscription_store.events_for_subscription(subscription_id)
-            ],
+            "events": [_subscription_event_payload(event) for event in events],
         }
 
     @router.post("/api/v1/owner/subscriptions/{subscription_id}/transition")
@@ -256,24 +257,21 @@ def create_subscription_admin_router(
         payload: SubscriptionTransitionPayload,
         identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
-        subscription_store = configured_store()
-        now = datetime.now(timezone.utc)
-        actor = str(identity.user_id) if identity.user_id is not None else "operator"
         reason = payload.reason.strip()
         if not reason:
             raise HTTPException(status_code=422, detail="reason is required")
+        actor = str(identity.user_id) if identity.user_id is not None else "operator"
         try:
-            subscription = subscription_store.transition(
+            subscription = configured_service().transition(
                 subscription_id,
                 payload.status,
-                occurred_at=now,
                 actor=actor,
                 reason=reason,
             )
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
         except LookupError as error:
-            raise HTTPException(status_code=404, detail="Subscription not found") from error
+            raise HTTPException(status_code=404, detail=str(error)) from error
         except RuntimeError as error:
             if "changed concurrently" not in str(error):
                 raise
