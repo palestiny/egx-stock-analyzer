@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-28  
-**Baseline:** `main` after PR #412 merge (`1861931814ddd781ca1284bd48c8dc8e7629202a`)  
+**Baseline:** `main` after PR #414 merge (`c4f11f217bd5fcfd2d0a1fb4cc0b2b8940304339`); post-merge CI run #40735031509 is pending at the time of this update.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.
 
 This register separates verified implementation from incomplete acceptance and decisions. A module, endpoint, or passing unit test alone does not prove an end-to-end user capability is complete.
@@ -15,13 +15,13 @@ This register separates verified implementation from incomplete acceptance and d
 - Operator subscription administration includes immutable versioned plans, guarded provisioning, audited transitions, and subscription event history (PR #407).
 - Owner dashboard subscription controls are merged (PR #408).
 - Telegram dispatch has explicit terminal suppression when no linked recipients exist (PR #409).
-- Session opportunity ledger/report domain, report builder, and SQLite snapshot store exist. This does not by itself prove automatic end-of-session scheduling or subscriber delivery is wired end-to-end.
+- Session opportunity ledger/report domain, report builder, SQLite snapshot store, and authenticated snapshot API exist. PR #414 also prevents signals generated after a report's `generated_at` cutoff from leaking into a historical snapshot and validates signal data timestamp timezone-awareness. This does not prove automatic end-of-session scheduling or subscriber delivery is wired end-to-end.
 
 ## Non-M61 work remaining
 
 ### P0 — Verify main after the documentation reconciliation merge
 
-- [ ] Confirm the latest `main` CI run for merge commit `1861931814ddd781ca1284bd48c8dc8e7629202a` completes successfully across unit tests, integration tests, frontend tests, dependency audit, and container build.
+- [ ] Confirm post-PR-#414 `main` CI run #40735031509 for merge commit `c4f11f217bd5fcfd2d0a1fb4cc0b2b8940304339` completes successfully across unit tests, integration tests, frontend tests, dependency audit, and container build.
 - [ ] If any check fails, inspect the failing job and fix the root cause in a scoped PR; do not infer a green state from the earlier PR branch run.
 
 ### P1 — Opportunity lifecycle and Telegram delivery acceptance
@@ -34,6 +34,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 ### P1 — Session reports
 
+- [x] Historical snapshot builder excludes signals whose `generated_at` or `data_timestamp` is after the requested report cutoff; timezone-aware timestamp validation is covered by tests (PR #414).
 - [ ] Trace the session report snapshot API, report store, owner dashboard, scheduler, and Telegram delivery composition.
 - [ ] Verify a repeatable end-of-session trigger using the Cairo exchange timezone, with idempotency, rerun/correction semantics, and operational failure visibility.
 - [ ] Verify report contents include session summary, opportunities published during the session, status changes/invalidation, resolved versus unresolved outcomes, and clear data/methodology limitations.
