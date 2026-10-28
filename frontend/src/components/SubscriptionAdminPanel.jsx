@@ -20,6 +20,7 @@ export function SubscriptionAdminPanel({
   createSubscription,
   getSubscription,
   getLatestSubscriptionByUser,
+  getSubscriptionEvents,
   transitionSubscription,
 }) {
   const [planId, setPlanId] = useState("telegram-pilot");
@@ -38,6 +39,7 @@ export function SubscriptionAdminPanel({
   const [subscriptionId, setSubscriptionId] = useState("");
   const [lookupUserId, setLookupUserId] = useState("");
   const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [auditEvents, setAuditEvents] = useState(null);
   const [nextStatus, setNextStatus] = useState("ACTIVE");
   const [transitionReason, setTransitionReason] = useState("");
   const [result, setResult] = useState(null);
@@ -51,7 +53,7 @@ export function SubscriptionAdminPanel({
     try {
       const value = await operation();
       setResult({ action, value });
-      if (value?.subscription_id) setCurrentSubscription(value);
+      if (value?.subscription_id && value?.status) setCurrentSubscription(value);
       return value;
     } catch (requestError) {
       setError(requestError?.message || "Request failed");
@@ -98,12 +100,14 @@ export function SubscriptionAdminPanel({
     if (value?.subscription_id) {
       setSubscriptionId(value.subscription_id);
       setCurrentSubscription(value);
+      setAuditEvents(null);
     }
   }
 
   async function handleLookupById(event) {
     event.preventDefault();
     setCurrentSubscription(null);
+    setAuditEvents(null);
     const value = await runAction("lookup", () => getSubscription(subscriptionId.trim()));
     if (value?.subscription_id) setCurrentSubscription(value);
   }
@@ -111,6 +115,7 @@ export function SubscriptionAdminPanel({
   async function handleLookupByUser(event) {
     event.preventDefault();
     setCurrentSubscription(null);
+    setAuditEvents(null);
     const value = await runAction("lookup", () => getLatestSubscriptionByUser(lookupUserId.trim()));
     if (value?.subscription_id) {
       setCurrentSubscription(value);
@@ -127,7 +132,19 @@ export function SubscriptionAdminPanel({
         reason: transitionReason.trim(),
       }),
     );
-    if (value?.subscription_id) setCurrentSubscription(value);
+    if (value?.subscription_id) {
+      setCurrentSubscription(value);
+      setAuditEvents(null);
+    }
+  }
+
+  async function handleLoadAuditEvents(event) {
+    event.preventDefault();
+    if (!currentSubscription?.subscription_id || !getSubscriptionEvents) return;
+    const value = await runAction("audit", () =>
+      getSubscriptionEvents(currentSubscription.subscription_id),
+    );
+    if (value?.events) setAuditEvents(value.events);
   }
 
   const allowedNextStatuses = currentSubscription
@@ -229,6 +246,31 @@ export function SubscriptionAdminPanel({
         </button>
       </form>
 
+      {currentSubscription?.subscription_id && (
+        <form className="owner-admin-form" onSubmit={handleLoadAuditEvents}>
+          <h3>Subscription audit history</h3>
+          <p className="muted">Inspect the persisted actor, reason, timestamp, and status transition history.</p>
+          <button type="submit" disabled={busyAction !== null || !getSubscriptionEvents}>
+            {busyAction === "audit" ? "Loading history..." : "Load audit history"}
+          </button>
+        </form>
+      )}
+      {auditEvents && (
+        <div aria-label="subscription audit history">
+          {auditEvents.length === 0 ? (
+            <p className="muted">No audit events are recorded for this subscription.</p>
+          ) : auditEvents.map((item) => (
+            <div className="detail-row" key={item.event_id}>
+              <span>{item.event} · {item.occurred_at}</span>
+              <strong>
+                {item.previous_status ?? "—"} → {item.new_status}
+                <br />
+                {item.actor}: {item.reason}
+              </strong>
+            </div>
+          ))}
+        </div>
+      )}
       {currentSubscription?.subscription_id && allowedNextStatuses.length > 0 && (
         <form className="owner-admin-form" onSubmit={handleTransition}>
           <h3>Transition subscription status</h3>
