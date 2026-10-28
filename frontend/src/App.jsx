@@ -626,7 +626,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
                 {[
                   ["downtrend", "Downtrend", breadthView.stress_components.downtrend],
                   ["negative_momentum", "Negative momentum", breadthView.stress_components.negative_momentum],
-                  ["negative_momentum_with_above_average_volume", "Negative momentum + high volume", breadthView.stress_components.negative_momentum_with_above_average_volume],
+                  ["negative_momentum_with_above_average_volume", "Negative momentum + above-average volume", breadthView.stress_components.negative_momentum_with_above_average_volume],
                 ].map(([key, label, component]) => component && (
                   <div className="detail-row" key={key}>
                     <span>{label}</span>
