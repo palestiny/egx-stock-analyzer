@@ -375,7 +375,7 @@ Additional changes merged after the earlier quality follow-up:
 Verification:
 - PR-head CI succeeded for PRs #399–#404 before merge.
 - Main CI succeeded for commit `1d68a4b61459a31bcd87b7121dd498a55c1e7f09` after PR #403.
-- Main CI for the newest commit after PR #404 merge (`55c690adef5897645076eeb33583b7d90779c057`) must finish before final closeout.
+- Main CI succeeded for commit `55c690adef5897645076eeb33583b7d90779c057` after PR #404 (run `40676443992`). The documentation-only closeout PR must also pass CI before it is merged.
 
 Current feature inventory (implemented foundations, not a claim that every product gate is released):
 
