@@ -10,6 +10,7 @@ from app.application.subscriptions.store import SubscriptionStore
 from app.domain.subscriptions.model import (
     EntitlementGrant,
     Subscription,
+    SubscriptionEvent,
     SubscriptionPlan,
     SubscriptionStatus,
 )
@@ -201,6 +202,32 @@ class SQLiteSubscriptionStore(SubscriptionStore):
                 (str(subscription_id),),
             ).fetchone()
         return self._to_subscription(row) if row else None
+
+    def events_for_subscription(self, subscription_id: UUID) -> tuple[SubscriptionEvent, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, subscription_id, actor, event, reason, occurred_at,
+                    previous_status, new_status
+                FROM subscription_events
+                WHERE subscription_id = ?
+                ORDER BY id
+                """,
+                (str(subscription_id),),
+            ).fetchall()
+        return tuple(
+            SubscriptionEvent(
+                event_id=int(row[0]),
+                subscription_id=UUID(str(row[1])),
+                actor=str(row[2]),
+                event=str(row[3]),
+                reason=str(row[4]),
+                occurred_at=datetime.fromisoformat(str(row[5])),
+                previous_status=SubscriptionStatus(str(row[6])) if row[6] is not None else None,
+                new_status=SubscriptionStatus(str(row[7])),
+            )
+            for row in rows
+        )
 
     def latest_for_user(self, user_id: UUID) -> Subscription | None:
         with self._connect() as connection:
