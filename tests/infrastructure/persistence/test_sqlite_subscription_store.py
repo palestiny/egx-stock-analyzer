@@ -181,3 +181,26 @@ def test_payment_reference_is_unique_per_provider(tmp_path) -> None:
 
     with pytest.raises(sqlite3.IntegrityError):
         store.create(second, actor="billing", reason="Duplicate payment reference")
+
+def test_latest_subscription_for_user_means_most_recently_created_not_active_first(tmp_path) -> None:
+    store = SQLiteSubscriptionStore(tmp_path / "subscriptions.db")
+    store.save_plan(make_plan())
+    user_id = uuid4()
+    older_active = make_subscription(
+        user_id,
+        status=SubscriptionStatus.ACTIVE,
+        created_at=NOW - timedelta(days=2),
+        starts_at=NOW - timedelta(days=2),
+        expires_at=NOW + timedelta(days=28),
+    )
+    newer_pending = make_subscription(
+        user_id,
+        status=SubscriptionStatus.PENDING,
+        created_at=NOW - timedelta(days=1),
+        starts_at=NOW,
+        expires_at=NOW + timedelta(days=30),
+    )
+    store.create(older_active, actor="test", reason="Older active subscription")
+    store.create(newer_pending, actor="test", reason="Newer pending subscription")
+
+    assert store.latest_for_user(user_id) == newer_pending
