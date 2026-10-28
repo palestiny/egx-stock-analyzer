@@ -6,19 +6,19 @@ import { SubscriptionAdminPanel } from "./SubscriptionAdminPanel";
 describe("SubscriptionAdminPanel", () => {
   it("creates an immutable plan version from validated entitlement JSON", async () => {
     const createPlan = vi.fn().mockResolvedValue({
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       version: 1,
-      display_name: "Telegram Pilot",
+      display_name: "New plan",
     });
     render(<SubscriptionAdminPanel createPlan={createPlan} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Create plan version" }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledWith({
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       version: 1,
-      display_name: "Telegram Pilot",
-      entitlements: [{ code: "telegram_opportunities", enabled: true, limit: 50 }],
+      display_name: "New plan",
+      entitlements: [],
       active: true,
     }));
     expect(await screen.findByText("Latest result: plan")).toBeInTheDocument();
@@ -28,14 +28,14 @@ describe("SubscriptionAdminPanel", () => {
     const createSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-123",
       user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       plan_version: 1,
       status: "PENDING",
     });
     const transitionSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-123",
       user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       plan_version: 1,
       status: "ACTIVE",
     });
@@ -60,7 +60,7 @@ describe("SubscriptionAdminPanel", () => {
 
     await waitFor(() => expect(createSubscription).toHaveBeenCalledWith({
       user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       plan_version: 1,
       starts_at: "2026-10-28T09:00:00+03:00",
       expires_at: "2026-11-28T09:00:00+03:00",
@@ -99,7 +99,7 @@ describe("SubscriptionAdminPanel", () => {
     const getSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-terminal",
       user_id: "user-1",
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       plan_version: 1,
       status: "CANCELLED",
     });
@@ -126,7 +126,7 @@ describe("SubscriptionAdminPanel", () => {
     const getSubscription = vi.fn().mockResolvedValue({
       subscription_id: "subscription-audit",
       user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       plan_version: 1,
       status: "ACTIVE",
     });
@@ -164,17 +164,17 @@ describe("SubscriptionAdminPanel", () => {
 
   it("reads an existing immutable plan version", async () => {
     const getSubscriptionPlan = vi.fn().mockResolvedValue({
-      plan_id: "telegram-pilot",
+      plan_id: "new-plan",
       version: 1,
-      display_name: "Telegram Pilot",
+      display_name: "New plan",
       active: true,
-      entitlements: [{ code: "telegram_opportunities", enabled: true, limit: 50 }],
+      entitlements: [],
     });
     render(<SubscriptionAdminPanel getSubscriptionPlan={getSubscriptionPlan} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Find plan version" }));
 
-    await waitFor(() => expect(getSubscriptionPlan).toHaveBeenCalledWith("telegram-pilot", 1));
+    await waitFor(() => expect(getSubscriptionPlan).toHaveBeenCalledWith("new-plan", 1));
     expect(await screen.findByText("Latest result: plan-lookup")).toBeInTheDocument();
   });
 
