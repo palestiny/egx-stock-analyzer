@@ -163,6 +163,7 @@ def test_subscription_admin_rejects_naive_subscription_timestamps(tmp_path):
             "plan_id": "pilot",
             "version": 1,
             "display_name": "Pilot",
+            "active": True,
             "entitlements": [{"code": "telegram_opportunities"}],
         },
     )
