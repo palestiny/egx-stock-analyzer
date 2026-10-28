@@ -207,6 +207,31 @@ def create_subscription_admin_router(
             raise HTTPException(status_code=404, detail="Subscription not found")
         return _subscription_payload(subscription)
 
+    @router.get("/api/v1/owner/subscriptions/{subscription_id}/events")
+    def get_subscription_events(
+        subscription_id: UUID,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        subscription_store = configured_store()
+        if subscription_store.get(subscription_id) is None:
+            raise HTTPException(status_code=404, detail="Subscription not found")
+        events = subscription_store.events_for_subscription(subscription_id)
+        return {
+            "subscription_id": str(subscription_id),
+            "events": [
+                {
+                    "event_id": item.event_id,
+                    "actor": item.actor,
+                    "event": item.event,
+                    "reason": item.reason,
+                    "occurred_at": item.occurred_at.isoformat(),
+                    "previous_status": item.previous_status.value if item.previous_status else None,
+                    "new_status": item.new_status.value,
+                }
+                for item in events
+            ],
+        }
+
     @router.get("/api/v1/owner/subscriptions/by-user/{user_id}/latest")
     def get_latest_user_subscription(
         user_id: UUID,
