@@ -19,7 +19,7 @@ describe("SubscriptionAdminPanel", () => {
       version: 1,
       display_name: "New plan",
       entitlements: [],
-      active: true,
+      active: false,
     }));
     expect(await screen.findByText("Latest result: plan")).toBeInTheDocument();
   });
