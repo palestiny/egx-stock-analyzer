@@ -52,6 +52,8 @@ class SignalLifecycleOrchestrator:
     ) -> SignalLifecycleResult:
         if not entry_price.is_finite() or entry_price <= 0:
             raise ValueError("entry price must be finite and positive")
+        if state.observed_at < signal.generated_at:
+            raise ValueError("market observation cannot precede signal generation")
 
         latest = self._history.latest(signal.symbol)
         if (
