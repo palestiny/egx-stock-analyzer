@@ -90,7 +90,6 @@ def test_report_requires_timezone_aware_generation_time() -> None:
         builder.execute(date(2026, 10, 26), generated_at=datetime(2026, 10, 26, 13))
 
 
-
 def test_report_rejects_naive_signal_outcome_timestamps() -> None:
     history = InMemorySignalHistoryStore()
     track = InMemoryTrackRecordStore()
@@ -115,3 +114,15 @@ def test_report_rejects_naive_signal_outcome_timestamps() -> None:
 
     with pytest.raises(ValueError, match="observed_at.*timezone-aware"):
         builder.execute(date(2026, 10, 26), generated_at=dt(13))
+
+
+def test_report_excludes_signal_generated_after_snapshot_cutoff() -> None:
+    history = InMemorySignalHistoryStore()
+    future_signal = replace(make_signal(), generated_at=dt(11))
+    history.record(future_signal, "CREATED", dt(9))
+    builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
+
+    report = builder.execute(date(2026, 10, 26), generated_at=dt(10))
+
+    assert report.total_count == 0
+    assert report.unresolved_count == 0
