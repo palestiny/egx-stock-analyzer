@@ -51,7 +51,7 @@ The command requires `EGX_OPERATOR_TOKEN`, `EGX_NEWS_RSS_URL`, and the same veri
 
 ## Data and safety rules
 
-- RSS and Atom metadata are supported. The adapter uses bounded HTTPS retrieval, a timeout, a 2 MB response limit, and rejects DTD/entity declarations.
+- RSS 2.0, RSS 1.0/RDF, and Atom metadata are supported, including namespace-qualified fields and Dublin Core publication dates. The adapter uses bounded HTTPS retrieval, a timeout, a 2 MB response limit, and rejects DTD/entity declarations.
 - Item title and summary/description may be inspected transiently for symbol matching and keyword category heuristics; the event store persists only the normalized title and metadata, not the body.
 - Only timezone-aware publication timestamps qualify for point-in-time queries. Undated or timezone-naive entries are excluded when a `since` cutoff is requested and remain ineligible for as-of queries.
 - Event IDs and content fingerprints are stable across re-polls. A replay with a newer retrieval time preserves the original `first_seen_at`; changed content for an existing event ID is rejected.
