@@ -131,6 +131,7 @@ def test_dispatch_endpoint_returns_recipient_delivery_counts() -> None:
     assert response.json() == {
         "events_processed": 3,
         "events_suppressed_no_recipients": 0,
+        "events_suppressed_no_eligible_recipients": 0,
         "recipients_delivered": 4,
         "recipients_suppressed": 2,
         "recipients_failed": 1,
