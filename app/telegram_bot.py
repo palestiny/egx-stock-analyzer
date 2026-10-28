@@ -162,8 +162,14 @@ class EgxTelegramBot:
             else:
                 detail = f"فشل الطلب (HTTP {status}). حاول لاحقًا."
             await self._reply(chat_id, detail)
-        except (httpx.HTTPError, ValueError):
-            LOGGER.exception("EGX API request failed command=%s", command)
+        except (httpx.HTTPError, ValueError) as error:
+            # This block can catch failures from either the EGX API or Telegram
+            # reply transport; an httpx traceback may contain the Telegram token.
+            LOGGER.error(
+                "EGX API request failed command=%s (error_type=%s)",
+                command,
+                type(error).__name__,
+            )
             await self._reply(chat_id, "تعذر الاتصال بواجهة EGX حاليًا. لم يتم إنشاء نتيجة بديلة.")
 
     @staticmethod
