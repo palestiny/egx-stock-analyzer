@@ -8,7 +8,7 @@ Summarize the directional state of a caller-supplied EGX symbol universe from th
 
 Authenticated endpoint: `GET /api/v1/market-intelligence/breadth-stress?symbols=COMI,EGAL,TMGH`
 
-The response includes requested/analyzed counts, missing symbols, coverage, uptrend/downtrend counts, positive/negative momentum counts, above-average-volume count, bullish breadth, bearish pressure, and a 0–100 heuristic stress score.
+The response includes requested/analyzed counts, missing symbols, coverage, uptrend/downtrend counts, positive/negative momentum counts, above-average-volume count, bullish breadth, bearish pressure, and a 0–100 heuristic stress score. It also exposes `stress_components`, which returns the count, analyzed-universe share, and weighted score contribution for each of the three existing components. This is an additive response extension; the formula and legacy score remain unchanged.
 
 ## Stress score
 
@@ -30,7 +30,7 @@ The breadth-stress response additionally reports:
 - `latest_analysis_date`: latest known date among analyzed records, or `null` when no date is known.
 - `methodology_version`: currently `stress-heuristic-v1`.
 
-These fields describe the evidence available to the calculation; they do not prove that underlying market prices are current. Dates are calendar dates, so timestamps are normalized to their date component. Missing symbols remain distinct from analyzed-but-undated symbols. The existing score and its denominator remain unchanged: score percentages use analyzed symbols only. No freshness threshold, minimum-coverage policy, score suppression, or alerting policy is implied by these metadata fields.
+These fields describe the evidence available to the calculation; they do not prove that underlying market prices are current. Dates are calendar dates, so timestamps are normalized to their date component. Missing symbols remain distinct from analyzed-but-undated symbols. The existing score and its denominator remain unchanged: score percentages use analyzed symbols only. No freshness threshold, minimum-coverage policy, score suppression, or alerting policy is implied by these metadata fields. The `stress_components` values make the existing formula auditable: downtrend contributes up to 50 points, negative momentum up to 40, and negative momentum with above-average volume up to 10. `weight_points` are displayed to two decimal places; the final `stress_score` is rounded to the nearest integer, so displayed component points may sum to the unrounded score rather than the integer score. With no analyzed records, component contributions are `null` rather than zero.
 
 ### Interpretation examples
 
