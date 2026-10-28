@@ -13,6 +13,7 @@ from app.application.subscriptions.manage_subscriptions import (
     InactiveSubscriptionPlan,
     SubscriptionAdministration,
     SubscriptionPlanNotFound,
+    SubscriptionUserDirectoryNotConfigured,
     SubscriptionPlanVersionConflict,
     SubscriptionUserNotFound,
 )
@@ -198,9 +199,7 @@ def create_subscription_admin_router(
                 payment_provider=payload.payment_provider,
                 payment_reference=payload.payment_reference,
             )
-        except RuntimeError as error:
-            if "user directory is not configured" not in str(error):
-                raise
+        except SubscriptionUserDirectoryNotConfigured as error:
             raise HTTPException(status_code=503, detail="User directory is not configured") from error
         except SubscriptionUserNotFound as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
