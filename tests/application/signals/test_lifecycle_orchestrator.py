@@ -239,3 +239,22 @@ def test_orchestrator_rejects_non_finite_entry_price() -> None:
             ),
             entry_price=Decimal("NaN"),
         )
+
+
+def test_orchestrator_rejects_pre_generation_observation_before_writing_history() -> None:
+    history = InMemorySignalHistoryStore()
+    orchestrator = SignalLifecycleOrchestrator(
+        history,
+        InMemoryAlertPublisher(),
+        InMemoryTrackRecordStore(),
+    )
+    with pytest.raises(ValueError, match="cannot precede"):
+        orchestrator.process(
+            make_signal(),
+            SignalMarketState(
+                datetime(2026, 10, 2, tzinfo=timezone.utc),
+                Decimal("100"),
+            ),
+            entry_price=Decimal("100"),
+        )
+    assert history.all_records() == ()
