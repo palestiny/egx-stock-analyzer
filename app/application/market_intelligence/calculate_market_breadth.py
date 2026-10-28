@@ -18,6 +18,7 @@ class MarketBreadthSnapshot:
     positive_momentum_count: int
     negative_momentum_count: int
     above_average_volume_count: int
+    negative_momentum_with_above_average_volume_count: int
     bullish_breadth_percent: Decimal | None
     bearish_pressure_percent: Decimal | None
     stress_score: int | None
@@ -39,6 +40,12 @@ class MarketBreadthSnapshot:
             "positive_momentum_count": self.positive_momentum_count,
             "negative_momentum_count": self.negative_momentum_count,
             "above_average_volume_count": self.above_average_volume_count,
+            "negative_momentum_with_above_average_volume_count": self.negative_momentum_with_above_average_volume_count,
+            "stress_components": {
+                "downtrend": {"count": self.downtrend_count, "share_percent": _percent(self.downtrend_count, self.analyzed_symbols), "weight_points": _weighted_points(self.downtrend_count, self.analyzed_symbols, Decimal("50"))},
+                "negative_momentum": {"count": self.negative_momentum_count, "share_percent": _percent(self.negative_momentum_count, self.analyzed_symbols), "weight_points": _weighted_points(self.negative_momentum_count, self.analyzed_symbols, Decimal("40"))},
+                "negative_momentum_with_above_average_volume": {"count": self.negative_momentum_with_above_average_volume_count, "share_percent": _percent(self.negative_momentum_with_above_average_volume_count, self.analyzed_symbols), "weight_points": _weighted_points(self.negative_momentum_with_above_average_volume_count, self.analyzed_symbols, Decimal("10"))},
+            },
             "bullish_breadth_percent": str(self.bullish_breadth_percent) if self.bullish_breadth_percent is not None else None,
             "bearish_pressure_percent": str(self.bearish_pressure_percent) if self.bearish_pressure_percent is not None else None,
             "stress_score": self.stress_score,
@@ -59,6 +66,12 @@ class MarketBreadthSnapshot:
             "is_trading_signal": False,
             "methodology": "Stress is a heuristic: 50% downtrend share + 40% negative-momentum share + 10% negative-momentum-with-above-average-volume share. Percentages use analyzed symbols only.",
         }
+
+
+def _weighted_points(numerator: int, denominator: int, weight: Decimal) -> str | None:
+    if denominator <= 0:
+        return None
+    return str((Decimal(numerator) * weight / Decimal(denominator)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def _percent(numerator: int, denominator: int) -> str | None:
@@ -162,6 +175,7 @@ class CalculateMarketBreadth:
             positive_momentum_count=positive,
             negative_momentum_count=negative,
             above_average_volume_count=above_average,
+            negative_momentum_with_above_average_volume_count=negative_with_volume,
             bullish_breadth_percent=bullish,
             bearish_pressure_percent=bearish,
             stress_score=stress_score,
