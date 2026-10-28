@@ -61,3 +61,11 @@ The command requires `EGX_OPERATOR_TOKEN`, `EGX_NEWS_RSS_URL`, and the same veri
 ## Operational limits
 
 The adapter enforces a 2 MB payload limit, a 0.1–60 second timeout bound, rejects DTD/entity declarations across the full payload, and processes at most 500 entries per poll. The current implementation supports explicit operator-triggered ingestion and authenticated querying. Automatic polling/scheduling, a verified EGX session calendar/data-finalization trigger, a market-wide post-session report, and Telegram delivery of that report are separate features and must not be represented as complete until implemented and tested. Live-source tests are intentionally excluded from deterministic CI.
+
+## Stock-analysis dashboard integration
+
+The stock analysis screen requests `GET /api/v1/news/events?symbol=SYMBOL&limit=20` after the analysis report loads and displays returned event metadata in the related-news panel. The panel shows the source, source type, category, publication/retrieval timestamps, matching confidence, and source link. Only HTTPS source links are clickable.
+
+A feed that is not configured or a news-store/API error is shown as a panel-level warning and does not replace the technical analysis result. Empty filtered results are explicitly described as “no matching events,” not proof that no relevant news exists. Events without a publication timestamp are visibly marked and must not be treated as point-in-time historical evidence.
+
+This is a query/display integration only: it does not enable a feed, schedule polling, classify an event as an official disclosure, or turn news into a trading signal.

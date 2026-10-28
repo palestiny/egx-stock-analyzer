@@ -396,3 +396,53 @@ h3 {
 .table-scroll tr:last-child td {
   border-bottom: 0;
 }
+
+.news-event-list {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.news-event {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e0e5ee;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+
+.news-event-heading {
+  margin-bottom: 8px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.news-event-heading a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.news-event .detail-row {
+  gap: 12px;
+  padding: 5px 0;
+}
+
+.news-event .detail-row strong {
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .news-event .detail-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .news-event .detail-row strong {
+    text-align: left;
+  }
+}

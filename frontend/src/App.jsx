@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getOwnerDashboardOverview, publishOpportunity, dispatchTelegramOpportunities, generateSessionOpportunityReport, getSessionOpportunityReport } from "./api/analysisApi";
+import { getNewsEvents, getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getOwnerDashboardOverview, publishOpportunity, dispatchTelegramOpportunities, generateSessionOpportunityReport, getSessionOpportunityReport } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -8,6 +8,7 @@ import { ScheduledWorkflowHistoryPanel } from "./components/ScheduledWorkflowHis
 import { AnalysisRunPanel } from "./components/AnalysisRunPanel";
 import { TechnicalIndicatorPanel } from "./components/TechnicalIndicatorPanel";
 import { OwnerDashboardPage } from "./components/OwnerDashboardPage";
+import { NewsEventsPanel } from "./components/NewsEventsPanel";
 
 function Metric({ label, value }) {
   return (
@@ -38,6 +39,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
   const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [indicatorError, setIndicatorError] = useState(null);
   const [indicatorLoading, setIndicatorLoading] = useState(false);
+  const [newsResult, setNewsResult] = useState(null);
+  const [newsError, setNewsError] = useState(null);
+  const [newsLoading, setNewsLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [history, setHistory] = useState(null);
   const [historyError, setHistoryError] = useState(null);
@@ -99,6 +103,9 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
     setIndicatorHistory(null);
     setIndicatorError(null);
     setIndicatorLoading(true);
+    setNewsResult(null);
+    setNewsError(null);
+    setNewsLoading(true);
     setAlert(null);
     setHistory(null);
     setHistoryError(null);
@@ -108,6 +115,14 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
     try {
       const reportResult = await getReport(normalizedSymbol);
       setReport(reportResult);
+
+      try {
+        setNewsResult(await getNewsEvents(normalizedSymbol, 20));
+      } catch (newsRequestError) {
+        setNewsError(newsRequestError);
+      } finally {
+        setNewsLoading(false);
+      }
 
       try {
         setIndicatorHistory(await getTechnicalIndicatorHistory(normalizedSymbol));
@@ -136,6 +151,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
       setError(requestError);
       setHistoryLoading(false);
       setIndicatorLoading(false);
+      setNewsLoading(false);
     } finally {
       setLoading(false);
     }
@@ -959,6 +975,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
           </section>
 
           <TechnicalIndicatorPanel history={indicatorHistory} loading={indicatorLoading} error={indicatorError} />
+          <NewsEventsPanel result={newsResult} loading={newsLoading} error={newsError} />
 
           <section className="panel alert-panel" aria-label="alert result">
             <div>
