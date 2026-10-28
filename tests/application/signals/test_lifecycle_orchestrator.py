@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import pytest
+
 from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.signals.store import InMemorySignalHistoryStore
@@ -220,3 +222,20 @@ def test_new_evaluation_timestamp_alone_does_not_invalidate_same_setup():
     assert result.signal_id == created.signal_id
     assert history.history(created.signal_id) == (created,)
     assert alerts.events == []
+
+
+def test_orchestrator_rejects_non_finite_entry_price() -> None:
+    orchestrator = SignalLifecycleOrchestrator(
+        InMemorySignalHistoryStore(),
+        InMemoryAlertPublisher(),
+        InMemoryTrackRecordStore(),
+    )
+    with pytest.raises(ValueError, match="finite and positive"):
+        orchestrator.process(
+            make_signal(),
+            SignalMarketState(
+                datetime(2026, 10, 4, tzinfo=timezone.utc),
+                Decimal("100"),
+            ),
+            entry_price=Decimal("NaN"),
+        )
