@@ -187,7 +187,15 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 **Current priority: non-M61 engineering and product gaps. M61 is paused by explicit owner request dated 2026-10-28.** Do not resume historical-data acquisition, backtest evaluation, or performance claims until the owner explicitly resumes M61.
 
-Use the temporary execution focus below and `docs/CURRENT_STATE.md` to track verified non-M61 work. When M61 resumes, use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
+The next non-M61 work is limited to closing verified release gaps without inventing product policy:
+
+1. Finish and verify the in-flight engineering changes and keep `docs/CURRENT_STATE.md` aligned with the latest main CI.
+2. Resolve the owner decision gates in PR #342 (Crash Radar policy), PR #344 (opportunity/Telegram/session-report/commercial policy), and PR #347 (approved news provenance and remaining technical/news acceptance).
+3. Only after source and usage rights are approved, enable a supported news provider and schedule polling.
+4. Only after the exchange-session finalization policy is approved, automate final reports and distribution.
+5. Only after a payment provider, plans, pricing, refunds, and entitlement rules are approved, implement live billing.
+
+M61 remains paused by explicit owner request. When M61 resumes, use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
 
 ## M61 exploratory data is now usable for technical research — 2026-10-20
 
