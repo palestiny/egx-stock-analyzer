@@ -44,11 +44,14 @@ class BuildSessionOpportunityLedger:
             if record.recorded_at <= generated_at:
                 records_by_signal.setdefault(record.signal_id, []).append(record)
 
-        outcomes = {
-            outcome.signal_id: outcome
-            for outcome in self._track_record.all()
-            if outcome.observed_at <= generated_at
-        }
+        outcomes = {}
+        for outcome in self._track_record.all():
+            if outcome.observed_at.tzinfo is None or outcome.observed_at.utcoffset() is None:
+                raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
+            if outcome.data_timestamp.tzinfo is None or outcome.data_timestamp.utcoffset() is None:
+                raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
+            if outcome.observed_at <= generated_at:
+                outcomes[outcome.signal_id] = outcome
         entries: list[SessionOpportunityEntry] = []
         for signal_id, history in records_by_signal.items():
             if not history:
