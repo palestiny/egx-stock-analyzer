@@ -629,7 +629,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
                     ? "Age unknown"
                     : age < 0
                       ? `${Math.abs(age)} calendar days ahead`
-                      : `${age} calendar days old`;
+                      : `${age} calendar day${age === 1 ? "" : "s"} old`;
                   return (
                     <div className="detail-row" key={symbol}>
                       <span>{symbol} snapshot date</span>
