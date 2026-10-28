@@ -42,9 +42,32 @@ class MarketBreadthSnapshot:
             "above_average_volume_count": self.above_average_volume_count,
             "negative_momentum_with_above_average_volume_count": self.negative_momentum_with_above_average_volume_count,
             "stress_components": {
-                "downtrend": {"count": self.downtrend_count, "share_percent": _percent(self.downtrend_count, self.analyzed_symbols), "weight_points": _weighted_points(self.downtrend_count, self.analyzed_symbols, Decimal("50"))},
-                "negative_momentum": {"count": self.negative_momentum_count, "share_percent": _percent(self.negative_momentum_count, self.analyzed_symbols), "weight_points": _weighted_points(self.negative_momentum_count, self.analyzed_symbols, Decimal("40"))},
-                "negative_momentum_with_above_average_volume": {"count": self.negative_momentum_with_above_average_volume_count, "share_percent": _percent(self.negative_momentum_with_above_average_volume_count, self.analyzed_symbols), "weight_points": _weighted_points(self.negative_momentum_with_above_average_volume_count, self.analyzed_symbols, Decimal("10"))},
+                "downtrend": {
+                    "count": self.downtrend_count,
+                    "share_percent": _percent(self.downtrend_count, self.analyzed_symbols),
+                    "weight_points": _weighted_points(
+                        self.downtrend_count, self.analyzed_symbols, Decimal("50")
+                    ),
+                },
+                "negative_momentum": {
+                    "count": self.negative_momentum_count,
+                    "share_percent": _percent(self.negative_momentum_count, self.analyzed_symbols),
+                    "weight_points": _weighted_points(
+                        self.negative_momentum_count, self.analyzed_symbols, Decimal("40")
+                    ),
+                },
+                "negative_momentum_with_above_average_volume": {
+                    "count": self.negative_momentum_with_above_average_volume_count,
+                    "share_percent": _percent(
+                        self.negative_momentum_with_above_average_volume_count,
+                        self.analyzed_symbols,
+                    ),
+                    "weight_points": _weighted_points(
+                        self.negative_momentum_with_above_average_volume_count,
+                        self.analyzed_symbols,
+                        Decimal("10"),
+                    ),
+                },
             },
             "bullish_breadth_percent": str(self.bullish_breadth_percent) if self.bullish_breadth_percent is not None else None,
             "bearish_pressure_percent": str(self.bearish_pressure_percent) if self.bearish_pressure_percent is not None else None,
@@ -71,7 +94,10 @@ class MarketBreadthSnapshot:
 def _weighted_points(numerator: int, denominator: int, weight: Decimal) -> str | None:
     if denominator <= 0:
         return None
-    return str((Decimal(numerator) * weight / Decimal(denominator)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    contribution = (Decimal(numerator) * weight / Decimal(denominator)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return str(contribution)
 
 
 def _percent(numerator: int, denominator: int) -> str | None:
