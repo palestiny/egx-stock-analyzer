@@ -386,3 +386,10 @@ export function transitionSubscription(subscriptionId, payload) {
     "Transition subscription status request",
   );
 }
+
+export function getSubscriptionEvents(subscriptionId) {
+  return getJson(
+    "/api/v1/owner/subscriptions/" + encodeURIComponent(subscriptionId) + "/events",
+    "Read subscription audit history request",
+  );
+}
