@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { getNewsEvents, getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getOwnerDashboardOverview, publishOpportunity, dispatchTelegramOpportunities, generateSessionOpportunityReport, getSessionOpportunityReport, createSubscriptionPlan, createSubscription, getSubscription, getSubscriptionEvents, getLatestSubscriptionByUser, transitionSubscription } from "./api/analysisApi";
+import { getNewsEvents, getAlert, getAnalysisRuns, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution, getUsers, createUser, updateUserStatus, rotateOwnCredential, rotateUserCredential, getManagementAudit, getUserAuditHistory, getScheduledWorkflowExecutionHistory, getAnalysisRun, getTechnicalIndicatorHistory, getOwnerDashboardOverview, getSubscriptionPlan, publishOpportunity, dispatchTelegramOpportunities, generateSessionOpportunityReport, getSessionOpportunityReport, createSubscriptionPlan, createSubscription, getSubscription, getSubscriptionEvents, getLatestSubscriptionByUser, transitionSubscription } from "./api/analysisApi";
 import { clearSessionToken, getSessionToken, setSessionToken } from "./auth/session";
 import { UserAuditHistoryPanel } from "./components/UserAuditHistoryPanel";
 import { AnalysisRunsPage } from "./components/AnalysisRunsPage";
@@ -1271,6 +1271,7 @@ function App() {
         generateSessionReport={generateSessionOpportunityReport}
         getSessionReport={getSessionOpportunityReport}
         createSubscriptionPlan={createSubscriptionPlan}
+        getSubscriptionPlan={getSubscriptionPlan}
         createSubscription={createSubscription}
         getSubscription={getSubscription}
         getSubscriptionEvents={getSubscriptionEvents}
