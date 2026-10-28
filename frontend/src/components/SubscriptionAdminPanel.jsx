@@ -59,7 +59,9 @@ export function SubscriptionAdminPanel({
       entitlements = JSON.parse(entitlementsJson);
       if (!Array.isArray(entitlements)) throw new Error("Entitlements must be a JSON array");
     } catch (parseError) {
-      setError(parseError.message || "Entitlements must be valid JSON");
+      setError(parseError instanceof SyntaxError
+        ? "Entitlements must be valid JSON"
+        : parseError.message || "Entitlements must be a JSON array");
       return;
     }
     await runAction("plan", () => createPlan({
