@@ -138,7 +138,7 @@ export function SubscriptionAdminPanel({
     if (!currentSubscription?.subscription_id) return;
     const value = await runAction("transition", () =>
       transitionSubscription(currentSubscription.subscription_id, {
-        status: nextStatus,
+        status: allowedNextStatuses.includes(nextStatus) ? nextStatus : (allowedNextStatuses[0] || ""),
         reason: transitionReason.trim(),
       }),
     );
