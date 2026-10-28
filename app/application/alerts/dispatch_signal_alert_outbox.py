@@ -41,6 +41,7 @@ class DispatchBatchResult:
     recipients_delivered: int
     recipients_suppressed: int
     recipients_failed: int
+    events_suppressed_no_recipients: int = 0
 
 
 class DispatchSignalAlertOutbox:
@@ -84,13 +85,19 @@ class DispatchSignalAlertOutbox:
         delivered = 0
         suppressed = 0
         failed = 0
+        suppressed_no_recipients = 0
         processed_events = 0
 
         for record in events:
-            # An event with no linked recipients has not been dispatched. Keep it
-            # pending so the operational dashboard never reports a false delivery.
-            # Once a recipient links an account, the normal entitlement checks apply.
             if not recipients:
+                # Preserve the existing no-replay behavior without misreporting
+                # the event as delivered. This terminal state is visible to operators.
+                self._outbox.mark_suppressed_no_recipients(
+                    record.event.event_id,
+                    "no linked Telegram recipients at dispatch time",
+                )
+                suppressed_no_recipients += 1
+                processed_events += 1
                 continue
 
             event_failed = False
@@ -196,6 +203,7 @@ class DispatchSignalAlertOutbox:
             recipients_delivered=delivered,
             recipients_suppressed=suppressed,
             recipients_failed=failed,
+            events_suppressed_no_recipients=suppressed_no_recipients,
         )
 
     @staticmethod
