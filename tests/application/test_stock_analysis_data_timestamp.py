@@ -1,5 +1,6 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -25,6 +26,17 @@ def make_bar(stock_id, timestamp):
     )
 
 
+def _technical_result():
+    # The pipeline reads these fields before the scoring collaborators run.
+    # Scorers are mocked in these timestamp-focused unit tests.
+    return SimpleNamespace(
+        trend=object(),
+        momentum=object(),
+        volume=object(),
+        support_resistance=object(),
+    )
+
+
 def test_analysis_result_preserves_latest_source_bar_timestamp():
     stock_id = uuid4()
     earlier = datetime(2026, 10, 27, 12, 0, tzinfo=timezone.utc)
@@ -32,8 +44,14 @@ def test_analysis_result_preserves_latest_source_bar_timestamp():
     bars = [make_bar(stock_id, latest), make_bar(stock_id, earlier)]
 
     with (
-        patch("app.application.analysis.stock_analysis.TechnicalAnalysisOrchestrator.analyze", return_value=object()),
-        patch("app.application.analysis.stock_analysis.FundamentalAnalysisOrchestrator.analyze", return_value=object()),
+        patch(
+            "app.application.analysis.stock_analysis.TechnicalAnalysisOrchestrator.analyze",
+            return_value=_technical_result(),
+        ),
+        patch(
+            "app.application.analysis.stock_analysis.FundamentalAnalysisOrchestrator.analyze",
+            return_value=object(),
+        ),
         patch("app.application.analysis.stock_analysis.TechnicalScorer.score", return_value=object()),
         patch("app.application.analysis.stock_analysis.FundamentalScorer.score", return_value=object()),
         patch("app.application.analysis.stock_analysis.StockQualityScorer.score", return_value=object()),
@@ -56,8 +74,14 @@ def test_analysis_result_preserves_latest_source_bar_timestamp():
 
 def test_analysis_result_has_no_source_timestamp_when_no_bars_exist():
     with (
-        patch("app.application.analysis.stock_analysis.TechnicalAnalysisOrchestrator.analyze", return_value=object()),
-        patch("app.application.analysis.stock_analysis.FundamentalAnalysisOrchestrator.analyze", return_value=object()),
+        patch(
+            "app.application.analysis.stock_analysis.TechnicalAnalysisOrchestrator.analyze",
+            return_value=_technical_result(),
+        ),
+        patch(
+            "app.application.analysis.stock_analysis.FundamentalAnalysisOrchestrator.analyze",
+            return_value=object(),
+        ),
         patch("app.application.analysis.stock_analysis.TechnicalScorer.score", return_value=object()),
         patch("app.application.analysis.stock_analysis.FundamentalScorer.score", return_value=object()),
         patch("app.application.analysis.stock_analysis.StockQualityScorer.score", return_value=object()),
