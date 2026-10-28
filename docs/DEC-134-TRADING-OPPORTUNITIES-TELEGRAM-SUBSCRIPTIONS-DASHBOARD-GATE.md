@@ -3,7 +3,7 @@
 **Status:** Draft — owner decisions required before implementation  
 **Date:** 2026-10-26  
 **Repository:** palestiny/egx-stock-analyzer  
-**Current active milestone:** M61 — Backtesting & Strategy Validation
+**Current execution priority:** Non-M61 product and engineering gaps; M61 paused by owner request on 2026-10-28
 
 ## 1. Purpose
 
@@ -293,7 +293,7 @@ Add regime analytics, strategy registry, personalized watchlists, public methodo
 
 ## 13. Owner Decisions Required
 
-1. **M61 priority:** finish real historical evidence first, or explicitly pause it to prioritize product delivery?
+1. **M61 priority — RESOLVED 2026-10-28:** owner explicitly paused M61 and requested completion of non-M61 gaps first. M61 remains incomplete and its evidence gate is unchanged.
 2. **Initial universe:** EGX30, current configured universe, or a versioned broad EGX universe?
 3. **Timeframes:** daily only initially, or daily plus intraday? Intraday liquidity claims require suitable licensed data.
 4. **Entry semantics:** publish a watch setup before trigger, wait for candle-close confirmation, or support both as separate states?
@@ -310,7 +310,7 @@ Add regime analytics, strategy registry, personalized watchlists, public methodo
 
 ## 14. Proposed Defaults — Not Yet Accepted
 
-- Keep M61 active until explicit reprioritization.
+- Keep M61 paused until the owner explicitly resumes it; do not use exploratory artifacts as accepted performance evidence.
 - Start with daily candles and long-only scenarios.
 - Label liquidity sweep/inducement as inferred price-action evidence unless suitable source data verifies liquidity/order-book behavior.
 - Support pre-trigger watch setups and confirmed entry events as distinct states.
@@ -326,8 +326,8 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 
 ## 16. Decision Record
 
-**Status:** Draft. No decision in Section 13 is accepted yet.  
-**Next step:** resolve priority, universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
+**Status:** Draft. Decision 1 (M61 pause) is accepted on 2026-10-28; remaining product-policy decisions in Section 13 are still open.  
+**Next step:** resolve the remaining universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
 
 
 ## 17. Implementation Status — 2026-10-27
@@ -356,3 +356,21 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 - **Advanced analytics:** Crash Radar v2 and comprehensive technical/news intelligence remain under their separate draft design gates.
 
 The design gate remains **Draft — owner decisions required**. Implementation progress does not accept the decisions in Section 13, authorize paid data, select payment terms, change M61 priority, or permit profitability claims.
+
+
+## 18. Status reconciliation — 2026-10-28
+
+The earlier status notes above are historical snapshots. The current GitHub main branch now includes the following additional foundations:
+- PR #343: Crash Radar per-symbol analysis-date evidence metadata (merged).
+- PR #346: durable SQLite signal history/outcomes and alert outbox (merged).
+- PR #348: recipient-targeted Telegram delivery transport (merged).
+- PR #356: point-in-time session opportunity ledger (merged).
+- PR #376: Telegram opportunity delivery core with immutable snapshots, recipient entitlement checks, per-recipient outcomes, and webhook replay suppression (merged).
+- PR #378: owner operations and session-report persistence/read foundations (merged).
+- PR #381: owner session-report UI for manually generated or loaded point-in-time snapshots (merged).
+- PR #382: UTC canonicalization and idempotent report snapshot persistence (merged).
+- PR #384: Clean Architecture dependency-boundary regression tests (merged).
+
+The session-report feature is not end-to-end complete: automated scheduling/finalization and Telegram distribution remain unimplemented until the exchange calendar, data-finalization cutoff, stale/missing-data behavior, and provisional-versus-final policy are accepted. The existing UI report is a manual snapshot, not a certified final session report. Account linking and recipient delivery must be verified against current main behavior rather than inferred from older PR statuses.
+
+M61 is paused by the owner as of 2026-10-28. No historical performance conclusion or source acceptance is implied. Remaining policy decisions in Section 13 stay open; this status refresh does not authorize payment gateway selection, prices, paid entitlements, or unreviewed lifecycle semantics.
