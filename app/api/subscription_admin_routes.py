@@ -224,7 +224,7 @@ def create_subscription_admin_router(
             )
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
-        except KeyError as error:
+        except LookupError as error:
             raise HTTPException(status_code=404, detail="Subscription not found") from error
         return _subscription_payload(subscription)
 
