@@ -29,10 +29,10 @@ export function SubscriptionAdminPanel({
   const [planName, setPlanName] = useState("New plan");
   const [entitlementsJson, setEntitlementsJson] = useState(DEFAULT_ENTITLEMENTS);
   const [planActive, setPlanActive] = useState(true);
-  const [lookupPlanId, setLookupPlanId] = useState("telegram-pilot");
+  const [lookupPlanId, setLookupPlanId] = useState("new-plan");
   const [lookupPlanVersion, setLookupPlanVersion] = useState("1");
   const [userId, setUserId] = useState("");
-  const [subscriptionPlanId, setSubscriptionPlanId] = useState("telegram-pilot");
+  const [subscriptionPlanId, setSubscriptionPlanId] = useState("new-plan");
   const [subscriptionPlanVersion, setSubscriptionPlanVersion] = useState("1");
   const [startsAt, setStartsAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
