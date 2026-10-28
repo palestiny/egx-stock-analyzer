@@ -160,7 +160,7 @@ def test_subscription_admin_maps_missing_subscription_transition_to_404(tmp_path
 
 
 def test_subscription_admin_rejects_inactive_plan_provisioning(tmp_path):
-    client, _store, _users = make_client(tmp_path)
+    client, _store, users = make_client(tmp_path)
     plan_response = client.post(
         "/api/v1/owner/subscription-plans",
         headers=auth(),
