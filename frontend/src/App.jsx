@@ -676,6 +676,7 @@ function DashboardApp({ onLogout, identity, onOpenAnalysisRuns, onOpenOwnerDashb
             )}
             {breadthView.missing_symbols?.length > 0 && <p className="muted">Missing saved analyses: {breadthView.missing_symbols.join(", ")}</p>}
             <p className="muted">Data: {breadthView.data_status}. {breadthView.methodology}</p>
+            <p className="muted">This snapshot-based heuristic is not a crash prediction or a buy/sell signal. Missing, undated, or stale saved analyses can affect the score.</p>
           </div>
         )}
       </section>

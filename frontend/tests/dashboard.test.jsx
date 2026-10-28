@@ -296,6 +296,8 @@ describe("Dashboard", () => {
     expect(panel).toHaveTextContent("66.67%");
     expect(panel).toHaveTextContent("Missing saved analyses: COMI");
     expect(panel).toHaveTextContent("LATEST_SAVED_ANALYSIS_SNAPSHOT");
+    expect(panel).toHaveTextContent("not a crash prediction or a buy/sell signal");
+    expect(panel).toHaveTextContent("Missing, undated, or stale saved analyses can affect the score.");
     expect(panel).toHaveTextContent("Snapshot date status");
     expect(panel).toHaveTextContent("PARTIAL");
     expect(panel).toHaveTextContent("Latest saved analysis date");
