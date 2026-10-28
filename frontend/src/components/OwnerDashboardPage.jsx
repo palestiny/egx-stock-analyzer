@@ -226,6 +226,7 @@ export function OwnerDashboardPage({
             {dispatchResult && (
               <div className="metrics-grid" aria-label="dispatch result">
                 <Metric label="Events processed" value={dispatchResult.events_processed} />
+                <Metric label="Events suppressed (no linked recipients)" value={dispatchResult.events_suppressed_no_recipients ?? 0} />
                 <Metric label="Delivered" value={dispatchResult.recipients_delivered} />
                 <Metric label="Suppressed" value={dispatchResult.recipients_suppressed} />
                 <Metric label="Failed" value={dispatchResult.recipients_failed} />

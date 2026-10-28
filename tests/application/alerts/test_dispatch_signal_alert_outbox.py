@@ -1,4 +1,5 @@
 from dataclasses import replace
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -280,10 +281,18 @@ def test_dispatch_keeps_event_pending_when_no_recipients_are_linked(tmp_path) ->
 
     result = dispatcher.execute(now=NOW)
 
-    assert result.events_processed == 0
+    assert result.events_processed == 1
+    assert result.events_suppressed_no_recipients == 1
     assert result.recipients_delivered == 0
     assert result.recipients_suppressed == 0
     assert result.recipients_failed == 0
     assert transport.sent == []
-    assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
-    assert deliveries.get(event.event_id, uuid4(), "telegram") is None
+    record = outbox.get(event.event_id)
+    assert record.status is AlertOutboxStatus.SUPPRESSED_NO_RECIPIENTS
+    assert record.last_error == "no linked Telegram recipients at dispatch time"
+    with sqlite3.connect(tmp_path / "dispatch.db") as connection:
+        count = connection.execute(
+            "SELECT COUNT(*) FROM signal_alert_deliveries WHERE event_id = ?",
+            (str(event.event_id),),
+        ).fetchone()[0]
+    assert count == 0
