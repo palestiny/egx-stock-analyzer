@@ -117,6 +117,34 @@ def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_
         "Operator verified pilot access",
     ]
 
+    audit_response = client.get(
+        f"/api/v1/owner/subscriptions/{subscription_id}/events",
+        headers=auth(),
+    )
+    assert audit_response.status_code == 200
+    assert audit_response.json()["events"] == [
+        {
+            "event_id": audit_response.json()["events"][0]["event_id"],
+            "subscription_id": subscription_id,
+            "actor": audit_response.json()["events"][0]["actor"],
+            "event": "SUBSCRIPTION_CREATED",
+            "reason": "Manual pilot provisioning; payment is not implied",
+            "occurred_at": audit_response.json()["events"][0]["occurred_at"],
+            "previous_status": None,
+            "new_status": "PENDING",
+        },
+        {
+            "event_id": audit_response.json()["events"][1]["event_id"],
+            "subscription_id": subscription_id,
+            "actor": audit_response.json()["events"][1]["actor"],
+            "event": "STATUS_TRANSITION",
+            "reason": "Operator verified pilot access",
+            "occurred_at": audit_response.json()["events"][1]["occurred_at"],
+            "previous_status": "PENDING",
+            "new_status": "ACTIVE",
+        },
+    ]
+
 
 def test_subscription_admin_routes_require_operator_authentication(tmp_path):
     client, _store, _users = make_client(tmp_path)
