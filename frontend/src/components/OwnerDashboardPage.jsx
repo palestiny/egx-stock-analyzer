@@ -25,6 +25,7 @@ export function OwnerDashboardPage({
   createSubscriptionPlan,
   createSubscription,
   getSubscription,
+  getSubscriptionEvents,
   getLatestSubscriptionByUser,
   transitionSubscription,
   onBack,
@@ -361,6 +362,7 @@ export function OwnerDashboardPage({
         createPlan={createSubscriptionPlan}
         createSubscription={createSubscription}
         getSubscription={getSubscription}
+        getSubscriptionEvents={getSubscriptionEvents}
         getLatestSubscriptionByUser={getLatestSubscriptionByUser}
         transitionSubscription={transitionSubscription}
       />
