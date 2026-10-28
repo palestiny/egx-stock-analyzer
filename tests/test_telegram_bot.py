@@ -89,7 +89,7 @@ def test_polling_errors_never_log_telegram_bot_token(caplog: pytest.LogCaptureFi
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal telegram_calls
         if request.url.host != "api.telegram.org":
-            return httpx.Response(404)
+            return httpx.Response(200, json={"report": "saved"})
         telegram_calls += 1
         if telegram_calls == 1:
             return httpx.Response(
@@ -102,7 +102,7 @@ def test_polling_errors_never_log_telegram_bot_token(caplog: pytest.LogCaptureFi
                             "message": {
                                 "from": {"id": 123},
                                 "chat": {"id": 123, "type": "private"},
-                                "text": "/help",
+                                "text": "/report EGAL",
                             },
                         }
                     ],
@@ -135,5 +135,6 @@ def test_polling_errors_never_log_telegram_bot_token(caplog: pytest.LogCaptureFi
 
     caplog.set_level("ERROR", logger="egx.telegram")
     asyncio.run(scenario())
+    assert "EGX API request failed" in caplog.text
     assert "Failed to process Telegram update" in caplog.text
     assert token not in caplog.text
