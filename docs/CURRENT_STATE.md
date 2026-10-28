@@ -360,3 +360,36 @@ Remaining non-M61 acceptance boundaries:
 6. **Crash Radar v2:** PR #342 remains a draft for the unresolved universe/freshness/coverage/retention/alert policy. Its two-stage direction does not authorize a new predictive score.
 
 M61 remains paused and incomplete. Its real historical-data evidence requirements and any performance-claim restrictions are unchanged.
+
+## Verified non-M61 follow-up — 2026-10-28 (continued)
+
+Additional changes merged after the earlier quality follow-up:
+
+- PR #399 connects related normalized news events to the stock-analysis dashboard. The news panel has loading/empty/error states and does not replace or suppress the technical report when news retrieval fails.
+- PR #400 validates source URLs at the news domain boundary: absolute HTTP(S), a hostname, and no embedded user information are required.
+- PR #401 displays an explicit Crash Radar limitation next to the score: the saved-snapshot heuristic is not a crash prediction or buy/sell signal, and missing/undated/stale evidence can affect it.
+- PR #402 rejects non-finite/non-positive lifecycle prices, timezone-naive market observations, and observations preceding signal generation. Validation occurs before history mutation; regression tests cover the no-side-effect guarantee.
+- PR #403 adds dashboard-level news failure isolation and verifies the related-news API request contract.
+- PR #404 adds deterministic ABC zigzag correction candidates to Elliott analysis, API serialization, and the technical indicator panel. Candidates use only confirmed swings and expose rule violations. Flat, triangle, combination, and complex corrections are not inferred.
+
+Verification:
+- PR-head CI succeeded for PRs #399–#404 before merge.
+- Main CI succeeded for commit `1d68a4b61459a31bcd87b7121dd498a55c1e7f09` after PR #403.
+- Main CI for the newest commit after PR #404 merge (`55c690adef5897645076eeb33583b7d90779c057`) must finish before final closeout.
+
+Current feature inventory (implemented foundations, not a claim that every product gate is released):
+
+1. **Technical analysis:** price/trend/momentum/volume analysis, candlestick patterns, technical indicator history (SMA/EMA, RSI, MACD, Bollinger, ATR, stochastic, CCI, OBV, MFI, ADX/DI, Ichimoku), confirmed swing points, Fibonacci retracements/extensions, Elliott impulse candidates, and ABC zigzag correction candidates.
+2. **News intelligence:** normalized event evidence, RSS/Atom ingestion, publication/first-seen point-in-time rules, persistence/query APIs, and related-news dashboard display. The system is provider-neutral; an approved official source, usage rights, comprehensive coverage, and scheduled polling are not yet established.
+3. **Market context:** Market Breadth & Stress Pulse, component-level score transparency, analyzed-universe coverage, per-symbol snapshot dates/ages, future/unknown date visibility, and an explicit heuristic limitation note. Freshness thresholds, minimum coverage, score suppression, retention, and alerts remain unapproved.
+4. **Trading opportunities:** signal generation, immutable publication/outbox, lifecycle history, invalidation/trigger transitions, outcome tracking, Telegram account linking/delivery, and entitlement evaluation have implementation foundations. The final user-facing lifecycle, subscriber product rules, and live billing integration remain gated.
+5. **Session reporting and owner operations:** session opportunity ledger/report and owner dashboard foundations exist. Automatic exchange-session finalization/distribution is not yet accepted or enabled.
+6. **Quality and security:** dependency-boundary regression tests, point-in-time news tests, URL validation, lifecycle time/price invariants, dashboard failure-isolation tests, lint/type checks, unit/integration/frontend tests, dependency audit, and container build checks.
+
+Owner decisions and external prerequisites still blocking release claims:
+
+- PR #342: Crash Radar universe, freshness/coverage policy, historical retention, and alert behavior.
+- PR #344: opportunity lifecycle and Telegram packaging, subscriber entitlements, session-report behavior, and commercial/payment policy.
+- PR #347: approved news source/provenance and remaining technical/news intelligence acceptance, including Elliott alternatives beyond impulse/ABC zigzag.
+- M61 remains paused by explicit owner request. Do not resume historical-data acquisition, backtesting, or strategy-performance claims.
+- Issue #141 branch-ref deletion remains a manual GitHub UI/local Git operation because the connected integration does not expose branch deletion. Do not claim stale remote branches were deleted.
