@@ -17,6 +17,7 @@ function asPrettyJson(value) {
 
 export function SubscriptionAdminPanel({
   createPlan,
+  getSubscriptionPlan,
   createSubscription,
   getSubscription,
   getLatestSubscriptionByUser,
@@ -28,6 +29,8 @@ export function SubscriptionAdminPanel({
   const [planName, setPlanName] = useState("Telegram Pilot");
   const [entitlementsJson, setEntitlementsJson] = useState(DEFAULT_ENTITLEMENTS);
   const [planActive, setPlanActive] = useState(true);
+  const [lookupPlanId, setLookupPlanId] = useState("telegram-pilot");
+  const [lookupPlanVersion, setLookupPlanVersion] = useState("1");
   const [userId, setUserId] = useState("");
   const [subscriptionPlanId, setSubscriptionPlanId] = useState("telegram-pilot");
   const [subscriptionPlanVersion, setSubscriptionPlanVersion] = useState("1");
@@ -82,6 +85,13 @@ export function SubscriptionAdminPanel({
       entitlements,
       active: planActive,
     }));
+  }
+
+  async function handleLookupPlan(event) {
+    event.preventDefault();
+    await runAction("plan-lookup", () =>
+      getSubscriptionPlan(lookupPlanId.trim(), Number(lookupPlanVersion)),
+    );
   }
 
   async function handleCreateSubscription(event) {
@@ -184,6 +194,21 @@ export function SubscriptionAdminPanel({
         </label>
         <button type="submit" disabled={busyAction !== null || !createPlan}>
           {busyAction === "plan" ? "Saving plan..." : "Create plan version"}
+        </button>
+      </form>
+
+      <form className="owner-admin-form" onSubmit={handleLookupPlan}>
+        <h3>Inspect plan version</h3>
+        <label>
+          Plan ID
+          <input value={lookupPlanId} onChange={(event) => setLookupPlanId(event.target.value)} required />
+        </label>
+        <label>
+          Version
+          <input type="number" min="1" value={lookupPlanVersion} onChange={(event) => setLookupPlanVersion(event.target.value)} required />
+        </label>
+        <button type="submit" disabled={busyAction !== null || !getSubscriptionPlan}>
+          {busyAction === "plan-lookup" ? "Loading plan..." : "Find plan version"}
         </button>
       </form>
 
