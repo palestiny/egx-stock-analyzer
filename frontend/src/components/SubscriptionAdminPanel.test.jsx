@@ -121,4 +121,43 @@ describe("SubscriptionAdminPanel", () => {
     expect(transitionSubscription).not.toHaveBeenCalled();
   });
 
+
+  it("loads and displays persisted subscription audit events", async () => {
+    const getSubscription = vi.fn().mockResolvedValue({
+      subscription_id: "subscription-audit",
+      user_id: "7f1ec31e-2c2b-4a2e-a24c-7d2c2f81d912",
+      plan_id: "telegram-pilot",
+      plan_version: 1,
+      status: "ACTIVE",
+    });
+    const getSubscriptionEvents = vi.fn().mockResolvedValue({
+      subscription_id: "subscription-audit",
+      events: [{
+        event_id: 1,
+        actor: "operator",
+        event: "STATUS_TRANSITION",
+        reason: "Verified pilot access",
+        occurred_at: "2026-10-28T10:00:00+00:00",
+        previous_status: "PENDING",
+        new_status: "ACTIVE",
+      }],
+    });
+    render(
+      <SubscriptionAdminPanel
+        getSubscription={getSubscription}
+        getSubscriptionEvents={getSubscriptionEvents}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Subscription ID"), {
+      target: { value: "subscription-audit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find by subscription ID" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Load audit history" }));
+
+    expect(await screen.findByText(/Verified pilot access/)).toBeInTheDocument();
+    expect(getSubscriptionEvents).toHaveBeenCalledWith("subscription-audit");
+    expect(screen.getByLabelText("subscription audit history")).toHaveTextContent("PENDING → ACTIVE");
+  });
+
 });
