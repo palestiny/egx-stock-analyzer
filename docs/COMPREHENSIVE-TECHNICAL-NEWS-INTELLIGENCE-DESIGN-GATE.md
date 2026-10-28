@@ -2,7 +2,7 @@
 
 **Status:** Design accepted as a proposal; core technical-evidence and news-ingestion foundations are merged to `main`; remaining source-policy and end-to-end acceptance gaps are open  
 **Milestone:** Non-M61 product/quality work while M61 is paused by owner request (2026-10-28)  
-**Verified against:** `main` at `24e487c3d0c31f06b5b8b16cfa4236b78b3fec80` (2026-10-28)  
+**Verified against:** pre-reconciliation `main` at `24e487c3d0c31f06b5b8b16cfa4236b78b3fec80` (2026-10-28); documentation reconciliation merged as `1861931814ddd781ca1284bd48c8dc8e7629202a`  
 **Scope:** EGX equities, daily analysis first, multi-timeframe extensions when source coverage supports them
 
 ## 1. Goal
