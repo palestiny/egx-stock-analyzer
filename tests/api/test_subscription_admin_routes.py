@@ -255,3 +255,38 @@ def test_subscription_admin_rejects_unknown_plan_version_before_persistence(tmp_
     with sqlite3.connect(store._database_path) as connection:
         count = connection.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
     assert count == 0
+
+
+def test_subscription_admin_rejects_unknown_user_before_persistence(tmp_path):
+    client, store, _users = make_client(tmp_path)
+    client.post(
+        "/api/v1/owner/subscription-plans",
+        headers=auth(),
+        json={
+            "plan_id": "pilot",
+            "version": 1,
+            "display_name": "Pilot",
+            "entitlements": [{"code": "telegram_opportunities"}],
+        },
+    )
+    now = datetime.now(timezone.utc)
+
+    response = client.post(
+        "/api/v1/owner/subscriptions",
+        headers=auth(),
+        json={
+            "user_id": str(uuid4()),
+            "plan_id": "pilot",
+            "plan_version": 1,
+            "starts_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "reason": "unknown user guard",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User not found"
+    with sqlite3.connect(store._database_path) as connection:
+        count = connection.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0]
+    assert count == 0
+
