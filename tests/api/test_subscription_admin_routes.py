@@ -332,3 +332,32 @@ def test_subscription_admin_maps_concurrent_transition_conflict_to_409(tmp_path,
 
     assert response.status_code == 409
     assert response.json()["detail"] == "Subscription changed concurrently; reload before retrying"
+
+
+def test_subscription_plan_versions_are_immutable(tmp_path):
+    client, _store, _users = make_client(tmp_path)
+    first = {
+        "plan_id": "immutable",
+        "version": 1,
+        "display_name": "Initial",
+        "entitlements": [{"code": "telegram_opportunities"}],
+    }
+    assert client.post(
+        "/api/v1/owner/subscription-plans",
+        headers=auth(),
+        json=first,
+    ).status_code == 200
+
+    changed = {**first, "display_name": "Mutated"}
+    response = client.post(
+        "/api/v1/owner/subscription-plans",
+        headers=auth(),
+        json=changed,
+    )
+
+    assert response.status_code == 409
+    assert client.get(
+        "/api/v1/owner/subscription-plans/immutable/1",
+        headers=auth(),
+    ).json()["display_name"] == "Initial"
+
