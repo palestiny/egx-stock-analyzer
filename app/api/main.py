@@ -701,6 +701,7 @@ def create_app(
             raise HTTPException(status_code=400, detail=str(error)) from error
         return {
             "events_processed": result.events_processed,
+            "events_suppressed_no_recipients": getattr(result, "events_suppressed_no_recipients", 0),
             "recipients_delivered": result.recipients_delivered,
             "recipients_suppressed": result.recipients_suppressed,
             "recipients_failed": result.recipients_failed,
