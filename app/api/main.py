@@ -702,6 +702,7 @@ def create_app(
         return {
             "events_processed": result.events_processed,
             "events_suppressed_no_recipients": getattr(result, "events_suppressed_no_recipients", 0),
+            "events_suppressed_no_eligible_recipients": getattr(result, "events_suppressed_no_eligible_recipients", 0),
             "recipients_delivered": result.recipients_delivered,
             "recipients_suppressed": result.recipients_suppressed,
             "recipients_failed": result.recipients_failed,
