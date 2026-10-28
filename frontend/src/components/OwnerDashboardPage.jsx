@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SubscriptionAdminPanel } from "./SubscriptionAdminPanel";
 
 function Metric({ label, value }) {
   return (
@@ -21,6 +22,11 @@ export function OwnerDashboardPage({
   dispatchOpportunities,
   generateSessionReport,
   getSessionReport,
+  createSubscriptionPlan,
+  createSubscription,
+  getSubscription,
+  getLatestSubscriptionByUser,
+  transitionSubscription,
   onBack,
 }) {
   const [overview, setOverview] = useState(null);
@@ -350,6 +356,14 @@ export function OwnerDashboardPage({
           </section>
         </>
       )}
+
+      <SubscriptionAdminPanel
+        createPlan={createSubscriptionPlan}
+        createSubscription={createSubscription}
+        getSubscription={getSubscription}
+        getLatestSubscriptionByUser={getLatestSubscriptionByUser}
+        transitionSubscription={transitionSubscription}
+      />
 
       <p className="muted financial-disclaimer" role="note">
         Operational status only. A successful Telegram transport response does not prove that a subscriber read a message, and this dashboard does not imply a validated trading edge.
