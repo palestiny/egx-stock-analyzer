@@ -250,13 +250,13 @@ The owner dashboard reads application-facing query/reporting capabilities; it do
 
 ## 11. Proposed Delivery Sequence
 
-This proposal does not automatically replace the active M61 roadmap.
+M61 is paused by owner request as of 2026-10-28. This proposal does not authorize any M61 data acquisition or performance claim.
 
 ### Stage 0 — Design and acceptance
 Resolve lifecycle and price evaluation semantics, timeframes/data needs for liquidity claims, publication/invalidation policy, entitlements, and report acceptance. Inspect existing alert, Telegram, audit, auth, and dashboard contracts before adding abstractions.
 
 ### Stage 1 — Evidence trust and opportunity ledger
-Close or explicitly reprioritize the M61 real historical dataset blocker. Add a versioned opportunity model and append-only lifecycle events. Implement deterministic re-evaluation/invalidation and replay tests using fixed data. No paid performance claims before evidence acceptance.
+Keep M61 data acquisition paused. Audit and complete the existing signal/outbox/lifecycle foundations first; add or change opportunity versions and lifecycle events only after compatibility semantics are accepted. Implement deterministic re-evaluation/invalidation and replay tests using fixed fixtures. No paid performance claims before M61 evidence acceptance.
 
 ### Stage 2 — Telegram opportunity delivery
 Link users/recipients, add durable outbox, per-recipient idempotency, delivery states, safe retry, and new-opportunity/material-update/invalidation messages. Use fake-transport end-to-end tests; live send remains explicit opt-in.
@@ -355,7 +355,7 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 - **Strategy validation:** requires an owner-accessible historical CSV/API export whose terms permit local research/storage, preserved raw artifact and provenance, corporate-action semantics, warm-up history, and point-in-time financial snapshots. Do not use synthetic fixtures or rejected sources as performance evidence.
 - **Advanced analytics:** Crash Radar v2 and comprehensive technical/news intelligence remain under their separate draft design gates.
 
-The design gate remains **Draft — owner decisions required**. Implementation progress does not accept the decisions in Section 13, authorize paid data, select payment terms, change M61 priority, or permit profitability claims.
+The design gate remains **Draft — owner decisions required**. Implementation progress does not accept the remaining decisions in Section 13, authorize paid data, select payment terms, change the explicit M61 pause, or permit profitability claims.
 
 
 ## 18. Status reconciliation — 2026-10-28
