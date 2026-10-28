@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getAnalysis, getAnalysisHistory, getMarketBreadthStress, getMarketOpportunities, getStockRegime, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
+import { getAnalysis, getNewsEvents, getAnalysisHistory, getMarketBreadthStress, getMarketOpportunities, getStockRegime, getScheduledWorkflowExecutions, recoverScheduledWorkflowExecution, getScheduledWorkflowExecutionHistory } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 describe("analysis API client", () => {
@@ -254,4 +254,19 @@ describe("market breadth and stress API client", () => {
       "/api/v1/market-intelligence/breadth-stress?symbols=EGAL%2CIEEC%2CCOMI",
     );
   });
+});
+
+
+it("requests related news with a normalized symbol and bounded limit", async () => {
+  const result = { symbol: "EGAL", events: [] };
+  globalThis.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: vi.fn().mockResolvedValue(result),
+  });
+
+  await expect(getNewsEvents("egal", 20)).resolves.toEqual(result);
+
+  expect(globalThis.fetch).toHaveBeenCalledWith(
+    "/api/v1/news/events?symbol=EGAL&limit=20",
+  );
 });
