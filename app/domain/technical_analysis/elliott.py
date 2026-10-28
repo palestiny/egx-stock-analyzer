@@ -152,3 +152,109 @@ def enumerate_impulse_counts(
         ))
 
     return tuple(counts)
+
+@dataclass(frozen=True)
+class ElliottCorrectionCandidate:
+    """A deterministic ABC zigzag candidate, not a complete Elliott interpretation."""
+
+    direction: ElliottDirection
+    points: tuple[Decimal, Decimal, Decimal, Decimal]
+
+    def __post_init__(self) -> None:
+        if len(self.points) != 4:
+            raise ValueError("an ABC correction candidate requires four swing points")
+        if any(not point.is_finite() or point <= 0 for point in self.points):
+            raise ValueError("swing points must be finite positive prices")
+
+    @property
+    def rule_violations(self) -> tuple[str, ...]:
+        p0, p1, p2, p3 = self.points
+        violations: list[str] = []
+        if self.direction is ElliottDirection.DOWN:
+            if not p1 < p0:
+                violations.append("wave_a_direction")
+            if p2 >= p0:
+                violations.append("wave_b_exceeds_origin")
+            if not p3 < p1:
+                violations.append("wave_c_does_not_extend_wave_a")
+        else:
+            if not p1 > p0:
+                violations.append("wave_a_direction")
+            if p2 <= p0:
+                violations.append("wave_b_exceeds_origin")
+            if not p3 > p1:
+                violations.append("wave_c_does_not_extend_wave_a")
+        return tuple(violations)
+
+    @property
+    def is_rule_consistent(self) -> bool:
+        return not self.rule_violations
+
+    @property
+    def wave_b_origin_boundary_price(self) -> Decimal:
+        """The wave-A origin that wave B must not cross in a zigzag count."""
+        return self.points[0]
+
+
+@dataclass(frozen=True)
+class ElliottCorrectionCount:
+    """One ABC zigzag candidate derived from confirmed alternating swing points."""
+
+    start_index: int
+    end_index: int
+    candidate: ElliottCorrectionCandidate
+
+    @property
+    def rule_violations(self) -> tuple[str, ...]:
+        return self.candidate.rule_violations
+
+    @property
+    def is_rule_consistent(self) -> bool:
+        return self.candidate.is_rule_consistent
+
+    @property
+    def wave_b_origin_boundary_price(self) -> Decimal:
+        return self.candidate.wave_b_origin_boundary_price
+
+
+def enumerate_zigzag_corrections(
+    swing_points: Sequence[SwingPoint],
+) -> tuple[ElliottCorrectionCount, ...]:
+    """Enumerate confirmed H-L-H-L / L-H-L-H windows as ABC zigzag alternatives.
+
+    Rule-inconsistent windows are retained with diagnostics for transparency.
+    Flat, triangle, combination, and complex corrections are intentionally not inferred.
+    """
+    points = tuple(swing_points)
+    if any(point.index < 0 for point in points):
+        raise ValueError("swing indexes must be non-negative")
+    if any(not point.price.is_finite() or point.price <= 0 for point in points):
+        raise ValueError("swing prices must be finite positive prices")
+    if any(current.index < previous.index for previous, current in zip(points, points[1:])):
+        raise ValueError("swing points must be ordered by index")
+
+    counts: list[ElliottCorrectionCount] = []
+    for start in range(max(0, len(points) - 3)):
+        window = points[start:start + 4]
+        if len(window) != 4:
+            continue
+        if any(current.index <= previous.index for previous, current in zip(window, window[1:])):
+            continue
+        kinds = tuple(point.kind for point in window)
+        if kinds == (SwingKind.HIGH, SwingKind.LOW, SwingKind.HIGH, SwingKind.LOW):
+            direction = ElliottDirection.DOWN
+        elif kinds == (SwingKind.LOW, SwingKind.HIGH, SwingKind.LOW, SwingKind.HIGH):
+            direction = ElliottDirection.UP
+        else:
+            continue
+
+        candidate = ElliottCorrectionCandidate(
+            direction=direction,
+            points=tuple(point.price for point in window),  # type: ignore[arg-type]
+        )
+        counts.append(ElliottCorrectionCount(
+            start_index=window[0].index,
+            end_index=window[-1].index,
+            candidate=candidate,
+        ))
+    return tuple(counts)
