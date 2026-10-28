@@ -50,8 +50,8 @@ class SignalLifecycleOrchestrator:
         *,
         entry_price: Decimal,
     ) -> SignalLifecycleResult:
-        if entry_price <= 0:
-            raise ValueError("entry price must be positive")
+        if not entry_price.is_finite() or entry_price <= 0:
+            raise ValueError("entry price must be finite and positive")
 
         latest = self._history.latest(signal.symbol)
         if (
