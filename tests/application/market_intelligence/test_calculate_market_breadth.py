@@ -110,7 +110,7 @@ def test_market_breadth_exposes_consistent_analysis_date_evidence():
         "BBB": record(TrendStatus.UPTREND, MomentumStatus.POSITIVE, VolumeStatus.ABOVE_AVERAGE, observed_date),
     })
 
-    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"]).to_dict()
+    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"], as_of_date=date(2026, 10, 28)).to_dict()
 
     assert payload["analysis_dates_by_symbol"] == {
         "AAA": "2026-10-25",
@@ -118,6 +118,8 @@ def test_market_breadth_exposes_consistent_analysis_date_evidence():
     }
     assert payload["analysis_date_status"] == "CONSISTENT"
     assert payload["latest_analysis_date"] == "2026-10-25"
+    assert payload["as_of_date"] == "2026-10-28"
+    assert payload["snapshot_age_calendar_days_by_symbol"] == {"AAA": 3, "BBB": 3}
     assert payload["undated_symbols"] == []
     assert payload["methodology_version"] == "stress-heuristic-v1"
 
@@ -128,12 +130,13 @@ def test_market_breadth_marks_mixed_analysis_dates_without_hiding_the_mismatch()
         "BBB": record(TrendStatus.UPTREND, MomentumStatus.POSITIVE, VolumeStatus.ABOVE_AVERAGE, date(2026, 10, 25)),
     })
 
-    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"]).to_dict()
+    payload = CalculateMarketBreadth(store).execute(["AAA", "BBB"], as_of_date=date(2026, 10, 28)).to_dict()
 
     assert payload["analysis_date_status"] == "MIXED"
     assert payload["latest_analysis_date"] == "2026-10-25"
     assert payload["analysis_dates_by_symbol"]["AAA"] == "2026-10-23"
     assert payload["analysis_dates_by_symbol"]["BBB"] == "2026-10-25"
+    assert payload["snapshot_age_calendar_days_by_symbol"] == {"AAA": 5, "BBB": 3}
 
 
 def test_market_breadth_marks_partial_and_unknown_analysis_dates_explicitly():
