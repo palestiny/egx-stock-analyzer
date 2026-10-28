@@ -393,3 +393,28 @@ Owner decisions and external prerequisites still blocking release claims:
 - PR #347: approved news source/provenance and remaining technical/news intelligence acceptance, including Elliott alternatives beyond impulse/ABC zigzag.
 - M61 remains paused by explicit owner request. Do not resume historical-data acquisition, backtesting, or strategy-performance claims.
 - Issue #141 branch-ref deletion remains a manual GitHub UI/local Git operation because the connected integration does not expose branch deletion. Do not claim stale remote branches were deleted.
+
+## Non-M61 closeout update — 2026-10-28 (PRs #407–#410)
+
+The following additional corrections and operator capabilities have been merged:
+
+- **PR #407 — manual subscription administration API:** immutable plan versions; operator-only plan/subscription reads and writes; validation that the target user exists and the plan version is active; new subscriptions start as `PENDING`; explicit status transitions require an audit reason and persist actor/time/reason; audit history is readable through an operator endpoint; invalid lifecycle and concurrent-update conflicts are mapped to HTTP conflict responses. The "latest subscription by user" query is chronological rather than active-status-prioritized.
+- **PR #408 — owner subscription panel:** create immutable plan versions, provision pending subscriptions, inspect subscriptions by ID/user, load persisted audit history, and select only valid lifecycle transitions. Terminal states do not expose further transitions. This is manual administration only; the interface does not process or verify payments.
+- **PR #409 — no linked Telegram recipients:** outbox events with no linked accounts are marked as a durable terminal suppression rather than being retried indefinitely or reported as delivered.
+- **PR #410 — no eligible Telegram recipients:** an event is not marked delivered if every linked account is suppressed by user status or entitlement checks. This has its own durable terminal state and owner-dashboard/API metric, distinct from having no linked accounts. Partial delivery/retry behavior remains idempotent.
+
+Latest verified CI before this documentation update:
+- PR #407 latest-head CI passed all five jobs (run `40680659661`).
+- PR #408 latest-head CI passed all five jobs (run `40680589130`).
+- PR #410 latest-head CI passed all five jobs (run `40680309991`).
+- Main CI passed after PR #410 (run `40680901413`). The combined main state after PRs #407 and #408 must be checked separately before closeout is declared.
+
+Remaining release gates are unchanged:
+- PR #342: owner decisions for Crash Radar universe, freshness/coverage policy, history retention, and alerts.
+- PR #344: final opportunity lifecycle semantics, subscriber packaging, automatic session-report finalization/distribution, and commercial/payment policy.
+- PR #347: approved/licensed news source and remaining end-to-end technical/news acceptance, including Elliott alternatives beyond impulse/ABC zigzag.
+- Payment reconciliation, authenticated/idempotent payment webhooks, refunds/chargebacks, automatic expiry/finalization, and live Telegram send verification are not delivered by the manual subscription UI.
+- M61 remains paused by explicit owner request; no historical strategy-performance claim is accepted.
+- Issue #141 remote branch deletion still requires a manual GitHub UI/local Git operation because the connected integration does not expose branch deletion.
+
+This is an implementation/status record, not a declaration that all release gates are closed.
