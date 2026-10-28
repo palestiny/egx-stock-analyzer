@@ -300,6 +300,7 @@ def test_subscription_admin_maps_concurrent_transition_conflict_to_409(tmp_path,
             "plan_id": "pilot",
             "version": 1,
             "display_name": "Pilot",
+            "active": True,
             "entitlements": [{"code": "telegram_opportunities"}],
         },
     )
