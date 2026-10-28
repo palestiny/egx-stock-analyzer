@@ -1,7 +1,7 @@
 # Comprehensive Technical & News Intelligence — Design Gate
 
 **Status:** Design accepted as a proposal; implementation is in progress on stacked draft PRs and is not merged to `main`  
-**Milestone:** Proposed follow-on to M61, not a replacement for M61  
+**Milestone:** Non-M61 product/quality work while M61 is paused by owner request (2026-10-28)  
 **Branch:** `design/comprehensive-technical-news-analysis`  
 **Scope:** EGX equities, daily analysis first, multi-timeframe extensions when source coverage supports them
 
@@ -51,8 +51,8 @@ The following increments now exist as draft PRs; their existence does not mean t
 - **Elliott candidates:** PR #354 adds deterministic impulse-candidate rules. PR #362 adds candidates to indicator history/API with confirmed-pivot timing and explicit rule diagnostics/invalidation. PR #362's latest observed CI run passed all five jobs after correcting a test-fixture OHLC bound.
 - **Dashboard:** PR #357 presents indicator charts, technical metrics, candle evidence, and Fibonacci structure; its Elliott-aware combined integration is in PR #364, and the latest observed CI run passed all five jobs.
 - **News event contract and storage:** PR #353 adds normalized point-in-time event metadata and SQLite storage; PR #361 adds provider-neutral ingestion orchestration; PR #363 adds an authenticated point-in-time news-events API. Their observed CI runs passed.
-- **Important missing production capability:** no live EGX news source adapter has been accepted or wired. The official EGX News Center is visible, but a stable machine-readable endpoint and the terms/rights for automated retrieval have not been verified. Therefore news ingestion can orchestrate an injected adapter and the API can query stored events, but the system must not claim live EGX news coverage yet.
-- **Integration status:** these are stacked draft PRs and none of the above is merged into `main`. Existing signal scoring and Telegram recommendations are intentionally not silently changed by the indicator/news evidence work. M61 historical-data acceptance remains active, so no trading edge or predictive accuracy is established.
+- **Current news source boundary:** main now includes the normalized point-in-time event contract, SQLite storage, provider-neutral ingestion service, authenticated events API, and an RSS/Atom adapter (see docs/NEWS_INGESTION.md). The adapter is activated only when an operator explicitly configures an HTTPS feed. No verified official EGX feed or reuse/retention terms are currently accepted/configured; therefore the code supports a configured feed but must not claim official or comprehensive live EGX disclosure coverage.
+- **Integration status:** technical indicator/candlestick/Fibonacci/Elliott evidence and dashboard integration landed through merged PR #364; news event storage and ingestion landed through #353 and #361, and RSS/Atom infrastructure/API is present on main. Existing signal scoring and Telegram recommendations remain intentionally unchanged by these evidence capabilities. M61 is paused by owner request on 2026-10-28; no trading edge or predictive accuracy is established.
 
 ## 3. Proposed capability catalogue
 
@@ -267,3 +267,14 @@ PR #359 provides confirmed swing-point detection with right-bar confirmation and
 PR #353 contains point-in-time news-event metadata and durable SQLite storage/querying; PR #361 adds a provider-neutral ingestion orchestration port and has passed CI. No live news source has yet been selected, licensed, configured, or verified, and company matching/event impact interpretation are not complete. The Telegram opportunity-delivery chain (PRs #346, #348, #349, #351, #352, and #358) and session opportunity ledger (PR #356) have passing CI on their reviewed heads, but remain open and have not been released as a complete end-to-end product.
 
 Before release, refresh and verify every dependent PR against its latest base, consolidate API/dashboard changes, validate full Telegram lifecycle and server-side entitlements end-to-end, connect the finalized session calendar/report flow, select and verify licensed news providers, complete the owner dashboard/personal portfolio and payment reconciliation design, and pass accepted historical backtesting. M61 historical-data acceptance remains a release blocker for profitability/performance claims. All listed PRs remain proposals until reviewed and explicitly approved for merge; CI success alone does not constitute release acceptance.
+
+
+## 2.3 Status reconciliation — 2026-10-28
+
+The older inventory above is historical and predates the merged integration. The current main branch exposes technical-indicator history through the authenticated analysis API and dashboard. Core calculations include SMA/EMA, RSI, MACD, ADX/DMI, ATR, Bollinger Bands, Stochastic, CCI, Ichimoku, OBV/MFI, candlestick patterns, Fibonacci retracements/extensions, confirmed swing structure, and deterministic Elliott impulse candidates, subject to input history and data-quality constraints.
+
+Remaining non-M61 work is an end-to-end audit of calculation semantics, warm-up/unavailable states, point-in-time anchor timing, serialization/persistence compatibility, authenticated API contracts, and frontend empty/error states. The feature list above is not itself proof that each calculation is correct for every market edge case; targeted regression tests and CI remain the acceptance boundary.
+
+News ingestion is implemented as an explicit operator-triggered RSS/Atom flow. Automatic polling, session-finalization scheduling, a verified official EGX feed, legal/source-rights review, and automatic post-session Telegram reports are not complete. Do not enable a source or claim coverage until the feed's provenance, terms, attribution, stability, and symbol coverage have been verified.
+
+M61 is paused by owner request. Historical backtesting and profitability validation are outside this current execution slice and remain incomplete.
