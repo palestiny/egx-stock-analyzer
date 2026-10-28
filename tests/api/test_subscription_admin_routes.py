@@ -86,6 +86,16 @@ def test_subscription_admin_routes_create_plan_pending_subscription_and_audited_
         headers=auth(),
     ).json()["status"] == "ACTIVE"
     assert store.latest_for_user(user_id).status.value == "ACTIVE"
+    audit_response = client.get(
+        f"/api/v1/owner/subscriptions/{subscription_id}/events",
+        headers=auth(),
+    )
+    assert audit_response.status_code == 200
+    assert [event["event"] for event in audit_response.json()["events"]] == [
+        "SUBSCRIPTION_CREATED",
+        "STATUS_TRANSITION",
+    ]
+    assert audit_response.json()["events"][1]["reason"] == "Operator verified pilot access"
 
     with sqlite3.connect(store._database_path) as connection:
         events = connection.execute(
