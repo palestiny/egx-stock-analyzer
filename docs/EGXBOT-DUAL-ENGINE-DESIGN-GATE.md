@@ -36,16 +36,16 @@ Reviewed on `main`:
 
 - `app/application/analysis/daily_market_analysis.py`: runs analysis over supplied per-symbol price bars and stores results; it is a daily analysis orchestration boundary, not proof of a continuously running intraday scanner.
 - `app/application/analysis/rank_market_opportunities.py`: ranks BUY/WATCH opportunities using existing quality scores. Its ranking order is existing behavior and must not be silently reinterpreted as a new momentum/liquidity score.
-- `app/application/signals/generate_signal.py`: generates a versioned `breakout-trend` signal from a saved analysis result, including entry zone, invalidation, targets and evidence; it returns no signal when the saved analysis date/current price is unavailable.
+- `app/application/signals/generate_signal.py`: generates a versioned `breakout-trend` signal from a saved analysis result, including entry zone, invalidation, targets and evidence; it returns no signal when the saved analysis date/current price is unavailable. **Timestamp gap found:** it currently sets both `generated_at` and `data_timestamp` to midnight UTC on `analysis_date`, not the actual provider bar timestamp. Do not present this as the exact market-observation time; preserve this as a P1 correctness gap until provenance is carried through the analysis record.
 - `app/application/signals/lifecycle_orchestrator.py`: persists lifecycle transitions, publishes alerts, records terminal outcomes and supports invalidation when supporting evidence changes.
 - `app/application/alerts/publish_signal_opportunity.py`, `DispatchSignalAlertOutbox`, SQLite outbox and delivery stores: provide publication/delivery foundations. PR #416 adds a passing contract test for publication to an entitled Telegram recipient with idempotent replay.
 - `app/application/reporting/change_detection.py`: detects changes in classification, scores, current price and nearby support/resistance between saved analysis snapshots.
 - Session opportunity ledger/report builder, SQLite snapshot store and authenticated API exist; automatic end-of-session scheduling and Telegram report delivery are not yet proven end-to-end.
-- `app/infrastructure/runtime.py` composes these capabilities and uses Yahoo Finance adapters. This does not establish that every required EGX instrument has reliable, licensed, sufficiently fresh intraday volume/order-book data.
+- `app/infrastructure/runtime.py` composes these capabilities and uses Yahoo Finance adapters. `YahooFinanceHistoryClient.history()` currently requests `interval="1d"`, so the inspected adapter path is daily-bar-only. This does not establish that every required EGX instrument has reliable, licensed, sufficiently fresh intraday volume/order-book data.
 
 ## 4. Important gaps before implementation is eligible
 
-1. **Market data contract:** document actual provider, EGX instrument coverage, supported timeframes, volume semantics, currency, timestamps/timezone, delay, corrections, rate limits and licensing. Reject stale, missing, malformed or future-dated observations according to explicit configuration.
+1. **Market data contract:** document actual provider, EGX instrument coverage, supported timeframes, volume semantics, currency, timestamps/timezone, delay, corrections, rate limits and licensing. Reject stale, missing, malformed or future-dated observations according to explicit configuration. Carry the actual last eligible `PriceBar.timestamp` through analysis persistence into `Signal.data_timestamp`; do not synthesize it from a date.
 2. **Intraday eligibility:** no intraday recommendation mode until data granularity/freshness and Cairo exchange session boundaries are verified. Daily-only data can support a daily/swing view but cannot establish an intraday tape.
 3. **Volume/liquidity evidence:** use relative volume and traded value only where comparable historical bars exist. Do not claim order-book imbalance, buyer/seller aggression, smart-money accumulation or distribution without the required trade/order data.
 4. **Strategy definitions:** define intraday and swing entry/exit conditions, expiry, confirmation, stop/target behavior and duplicate-signal policy in separate versioned documents. This gate does not invent or change those rules.
@@ -69,7 +69,7 @@ Reviewed on `main`:
 
 ### E0 — Data and contract audit
 
-Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamps, delay and licensing. Add/verify data-freshness/provenance contracts before strategy changes.
+Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamps, delay and licensing. Fix the observed timestamp-provenance gap: daily adapter returns timestamped bars, but analysis persistence currently stores only `analysis_date`, and `GenerateSignal` synthesizes `data_timestamp` as midnight UTC on that date. Add/verify data-freshness/provenance contracts before strategy changes.
 
 **Acceptance:** a test matrix covers fresh, delayed, stale, missing, malformed, corrected and future-dated bars; unsupported intraday input cannot produce a real-time-labelled alert.
 
