@@ -135,3 +135,25 @@ class Subscription:
 def _require_aware(value: datetime, field_name: str) -> None:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field_name} must be timezone-aware")
+
+@dataclass(frozen=True)
+class SubscriptionEvent:
+    event_id: int
+    subscription_id: UUID
+    actor: str
+    event: str
+    reason: str
+    occurred_at: datetime
+    previous_status: SubscriptionStatus | None
+    new_status: SubscriptionStatus
+
+    def __post_init__(self) -> None:
+        if self.event_id < 1:
+            raise ValueError("event_id must be positive")
+        _require_aware(self.occurred_at, "occurred_at")
+        if not self.actor.strip():
+            raise ValueError("event actor is required")
+        if not self.event.strip():
+            raise ValueError("event type is required")
+        if not self.reason.strip():
+            raise ValueError("event reason is required")
