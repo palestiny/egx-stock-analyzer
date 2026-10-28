@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.application.signals.track_record import TrackRecordStore
+from app.domain.signals.outcome import SignalOutcomeRecord
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
@@ -44,14 +45,14 @@ class BuildSessionOpportunityLedger:
             if record.recorded_at <= generated_at:
                 records_by_signal.setdefault(record.signal_id, []).append(record)
 
-        outcomes = {}
-        for outcome in self._track_record.all():
-            if outcome.observed_at.tzinfo is None or outcome.observed_at.utcoffset() is None:
+        outcomes: dict[UUID, SignalOutcomeRecord] = {}
+        for outcome_record in self._track_record.all():
+            if outcome_record.observed_at.tzinfo is None or outcome_record.observed_at.utcoffset() is None:
                 raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
-            if outcome.data_timestamp.tzinfo is None or outcome.data_timestamp.utcoffset() is None:
+            if outcome_record.data_timestamp.tzinfo is None or outcome_record.data_timestamp.utcoffset() is None:
                 raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
-            if outcome.observed_at <= generated_at:
-                outcomes[outcome.signal_id] = outcome
+            if outcome_record.observed_at <= generated_at:
+                outcomes[outcome_record.signal_id] = outcome_record
         entries: list[SessionOpportunityEntry] = []
         for signal_id, history in records_by_signal.items():
             if not history:
