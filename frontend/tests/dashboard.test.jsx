@@ -275,6 +275,8 @@ describe("Dashboard", () => {
       analysis_date_status: "PARTIAL",
       latest_analysis_date: "2026-10-27",
       analysis_dates_by_symbol: { EGAL: "2026-10-27", IEEC: null },
+      as_of_date: "2026-10-28",
+      snapshot_age_calendar_days_by_symbol: { EGAL: 1, IEEC: null },
       undated_symbols: ["IEEC"],
       bullish_breadth_percent: "50.00",
       bearish_pressure_percent: "50.00",
@@ -300,6 +302,8 @@ describe("Dashboard", () => {
     expect(panel).toHaveTextContent("2026-10-27");
     expect(panel).toHaveTextContent("EGAL snapshot date");
     expect(panel).toHaveTextContent("IEEC snapshot date");
+    expect(panel).toHaveTextContent("1 calendar days old");
+    expect(panel).toHaveTextContent("Age unknown");
     expect(panel).toHaveTextContent("Saved analyses with unknown dates: IEEC");
     expect(panel).toHaveTextContent("Downtrend");
     expect(panel).toHaveTextContent("25.00 pts");
