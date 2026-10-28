@@ -156,8 +156,15 @@ def create_subscription_admin_router(
         subscription_store = configured_store()
         _require_aware(payload.starts_at, "starts_at")
         _require_aware(payload.expires_at, "expires_at")
+        plan_id = payload.plan_id.strip()
+        plan = subscription_store.get_plan(plan_id, payload.plan_version)
+        if plan is None:
+            raise HTTPException(status_code=422, detail="Subscription plan version does not exist")
+        if not plan.active:
+            raise HTTPException(status_code=409, detail="Inactive subscription plans cannot be provisioned")
+
         now = datetime.now(timezone.utc)
-        actor = str(identity.user_id) if identity.user_id is not None else "operator"
+        actor = identity.subject.strip() or "operator"
         reason = payload.reason.strip()
         if not reason:
             raise HTTPException(status_code=422, detail="reason is required")
@@ -165,15 +172,15 @@ def create_subscription_admin_router(
             subscription = Subscription(
                 subscription_id=uuid4(),
                 user_id=payload.user_id,
-                plan_id=payload.plan_id.strip(),
+                plan_id=plan_id,
                 plan_version=payload.plan_version,
                 status=SubscriptionStatus.PENDING,
                 created_at=now,
                 starts_at=payload.starts_at,
                 expires_at=payload.expires_at,
                 updated_at=now,
-                payment_provider=payload.payment_provider,
-                payment_reference=payload.payment_reference,
+                payment_provider=payload.payment_provider.strip() if payload.payment_provider else None,
+                payment_reference=payload.payment_reference.strip() if payload.payment_reference else None,
             )
             subscription_store.create(subscription, actor=actor, reason=reason)
         except ValueError as error:
