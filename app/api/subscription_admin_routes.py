@@ -42,7 +42,7 @@ class SubscriptionPlanPayload(BaseModel):
     version: int = Field(ge=1)
     display_name: str = Field(min_length=1, max_length=200)
     entitlements: list[PlanEntitlementPayload]
-    active: bool = True
+    active: bool = False
     created_at: datetime | None = None
 
 
