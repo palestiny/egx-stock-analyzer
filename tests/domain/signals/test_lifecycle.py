@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
+import pytest
+
 from app.domain.signals.lifecycle import SignalMarketState, transition_signal
 from app.domain.signals.model import (
     PriceZone,
@@ -57,3 +59,21 @@ def test_terminal_signal_does_not_move_back_to_active():
     )
     result = transition_signal(triggered, state("100"))
     assert result.status is SignalStatus.TRIGGERED
+
+
+def test_market_state_requires_timezone_aware_observation_time() -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        SignalMarketState(datetime(2026, 10, 4), Decimal("100"))
+
+
+def test_market_state_rejects_non_finite_or_non_positive_prices() -> None:
+    with pytest.raises(ValueError, match="finite and positive"):
+        SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("NaN"))
+    with pytest.raises(ValueError, match="finite and positive"):
+        SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("0"))
+
+
+def test_market_observation_cannot_precede_signal_generation() -> None:
+    earlier = SignalMarketState(datetime(2026, 10, 2, tzinfo=timezone.utc), Decimal("100"))
+    with pytest.raises(ValueError, match="cannot precede"):
+        transition_signal(make_signal(), earlier)
