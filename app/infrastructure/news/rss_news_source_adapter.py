@@ -159,19 +159,27 @@ class RssNewsSourceAdapter:
         return tuple(child for child in root if child.tag.rsplit("}", 1)[-1].lower() == "item")
 
     @staticmethod
-    def _child_text(entry: ET.Element, name: str) -> str:
-        child = entry.find(name)
-        if child is None:
-            child = entry.find(f"{_ATOM_NAMESPACE}{name}")
+    def _child_by_local_name(entry: ET.Element, name: str) -> ET.Element | None:
+        expected = name.casefold()
+        return next(
+            (
+                child
+                for child in entry
+                if child.tag.rsplit("}", 1)[-1].casefold() == expected
+            ),
+            None,
+        )
+
+    @classmethod
+    def _child_text(cls, entry: ET.Element, name: str) -> str:
+        child = cls._child_by_local_name(entry, name)
         if child is None:
             return ""
         return "".join(child.itertext()).strip()
 
-    @staticmethod
-    def _entry_link(entry: ET.Element) -> str:
-        link = entry.find("link")
-        if link is None:
-            link = entry.find(f"{_ATOM_NAMESPACE}link")
+    @classmethod
+    def _entry_link(cls, entry: ET.Element) -> str:
+        link = cls._child_by_local_name(entry, "link")
         if link is None:
             return ""
         href = link.attrib.get("href")
