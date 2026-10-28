@@ -21,6 +21,10 @@ The system currently supports:
 - explainable technical scanners, including a pre-breakout momentum/volume watchlist based on saved analysis snapshots;
 - per-symbol trend regime and historical risk diagnostics, including volatility and observed drawdown;
 - market breadth and heuristic stress pulse with explicit snapshot coverage and missing-symbol reporting;
+- a broad technical-indicator evidence API and dashboard, including moving averages, momentum/volatility indicators, candlestick patterns, Fibonacci structure, confirmed swing points, and advisory Elliott Wave candidates when sufficient valid history exists;
+- normalized point-in-time news-event storage, authenticated querying, and operator-triggered RSS/Atom ingestion for an explicitly configured feed (no official EGX feed is enabled or verified by default);
+- durable signal history/outcomes, alert outbox, recipient-targeted Telegram opportunity delivery, account-linking foundations, and server-side entitlement checks;
+- a point-in-time session opportunity ledger, persisted manual report snapshots, and owner operations/dashboard views;
 - breakout-evidence quality scoring and per-opportunity regime/risk context without silently changing existing opportunity ranking;
 - backtest risk metrics including profit factor, trade-sequence drawdown, average win/loss, and consecutive win/loss streaks;
 - automated analysis execution;
@@ -36,6 +40,12 @@ The system currently supports:
 - bounded workflow history queries including state/time filters and cross-execution history;
 - a read-only SQLite inspection tool;
 - CI for Python unit/integration tests on Python 3.12, frontend tests/build/lint, high-severity dependency audits, scoped type checks, coverage threshold, and container builds.
+
+## Current Execution Status
+
+As of 2026-10-28, M61 — Backtesting & Strategy Validation is paused at the owner's request while non-M61 product and engineering gaps are addressed. M61 remains incomplete: the repository does not claim that Strategy v0 has been validated against an accepted real historical dataset, and no profitability conclusion should be inferred from exploratory diagnostics.
+
+Crash Radar remains a heuristic over saved analysis snapshots, not a crash probability or trading signal. News ingestion requires an operator-configured feed with verified provenance and permitted reuse terms. Session reports are currently point-in-time/manual snapshots; automatic exchange-session finalization and Telegram distribution are not complete. Subscription billing and payment reconciliation are not production-complete, and no payment gateway or paid plan is selected.
 
 ## Architecture
 
