@@ -191,10 +191,20 @@ class EgxTelegramBot:
                         if isinstance(message, dict):
                             try:
                                 await self.handle_message(message)
-                            except (httpx.HTTPError, RuntimeError):
-                                LOGGER.exception("Failed to process Telegram update")
-                except (httpx.HTTPError, RuntimeError, ValueError):
-                    LOGGER.exception("Telegram polling request failed")
+                            except (httpx.HTTPError, RuntimeError) as error:
+                                # Telegram request URLs contain the bot token; never log
+                                # exception text or tracebacks from this transport path.
+                                LOGGER.error(
+                                    "Failed to process Telegram update (error_type=%s)",
+                                    type(error).__name__,
+                                )
+                except (httpx.HTTPError, RuntimeError, ValueError) as error:
+                    # httpx exceptions may include the Telegram URL, which embeds
+                    # the secret bot token. Log only the exception type.
+                    LOGGER.error(
+                        "Telegram polling request failed (error_type=%s)",
+                        type(error).__name__,
+                    )
                     await asyncio.sleep(max(poll_seconds, 2.0))
         finally:
             await self.close()
@@ -226,8 +236,13 @@ async def main() -> None:
                 "اكتب /health للتأكد من اتصال واجهة التحليل، أو /help لعرض الأوامر.",
             )
         await bot.run()
-    except BaseException:
-        LOGGER.exception("Telegram bot failed during startup or shutdown")
+    except BaseException as error:
+        # Avoid logging traceback/request details that may include the Telegram
+        # bot token in the request URL.
+        LOGGER.error(
+            "Telegram bot failed during startup or shutdown (error_type=%s)",
+            type(error).__name__,
+        )
         raise
     finally:
         await bot.close()
