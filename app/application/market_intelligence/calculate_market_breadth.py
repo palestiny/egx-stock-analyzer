@@ -3,6 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
+from app.application.clock import egx_today
 from app.domain.technical_analysis.momentum import MomentumStatus
 from app.domain.technical_analysis.trend import TrendStatus
 from app.domain.technical_analysis.volume import VolumeStatus
@@ -28,6 +29,8 @@ class MarketBreadthSnapshot:
     undated_symbols: tuple[str, ...] = ()
     analysis_date_status: str = "UNKNOWN"
     latest_analysis_date: date | None = None
+    as_of_date: date | None = None
+    snapshot_age_calendar_days_by_symbol: dict[str, int | None] | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -85,6 +88,10 @@ class MarketBreadthSnapshot:
                 if self.latest_analysis_date is not None
                 else None
             ),
+            "as_of_date": self.as_of_date.isoformat() if self.as_of_date is not None else None,
+            "snapshot_age_calendar_days_by_symbol": (
+                self.snapshot_age_calendar_days_by_symbol or {}
+            ),
             "methodology_version": "stress-heuristic-v1",
             "is_trading_signal": False,
             "methodology": "Stress is a heuristic: 50% downtrend share + 40% negative-momentum share + 10% negative-momentum-with-above-average-volume share. Percentages use analyzed symbols only.",
@@ -113,7 +120,10 @@ def _percent(numerator: int, denominator: int) -> str | None:
 class CalculateMarketBreadth:
     result_store: AnalysisResultStore
 
-    def execute(self, symbols: list[str]) -> MarketBreadthSnapshot:
+    def execute(
+        self, symbols: list[str], *, as_of_date: date | None = None
+    ) -> MarketBreadthSnapshot:
+        reference_date = as_of_date or egx_today()
         normalized = [symbol.strip().upper() for symbol in symbols if symbol.strip()]
         if not normalized:
             raise ValueError("At least one stock symbol is required")
@@ -180,6 +190,10 @@ class CalculateMarketBreadth:
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         known_dates = {value for value in analysis_dates.values() if value is not None}
+        snapshot_ages = {
+            symbol: (reference_date - value).days if value is not None else None
+            for symbol, value in analysis_dates.items()
+        }
         undated_symbols = tuple(
             symbol for symbol, value in analysis_dates.items() if value is None
         )
@@ -210,4 +224,6 @@ class CalculateMarketBreadth:
             undated_symbols=undated_symbols,
             analysis_date_status=analysis_date_status,
             latest_analysis_date=max(known_dates) if known_dates else None,
+            as_of_date=reference_date,
+            snapshot_age_calendar_days_by_symbol=snapshot_ages,
         )
