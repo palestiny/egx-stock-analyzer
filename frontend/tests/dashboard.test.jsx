@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "../src/App";
-import { getAlert, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
+import { getAlert, getNewsEvents, getAnalysisComparison, getAnalysisHistory, getCurrentIdentity, getMarketBreadthStress, getMarketOpportunities, getReport, getStockRegime, getTechnicalScanner, getScheduledWorkflowExecutions, getSnapshotPerformance, recoverScheduledWorkflowExecution } from "../src/api/analysisApi";
 import { clearSessionToken, setSessionToken } from "../src/auth/session";
 
 vi.mock("../src/api/analysisApi", () => ({
   getAlert: vi.fn(),
+  getNewsEvents: vi.fn(),
   getCurrentIdentity: vi.fn(),
   getAnalysisHistory: vi.fn(),
   getAnalysisRun: vi.fn(),
@@ -48,6 +49,7 @@ describe("Dashboard", () => {
     vi.clearAllMocks();
     clearSessionToken();
     setSessionToken("test-token");
+    getNewsEvents.mockResolvedValue({ events: [] });
     getCurrentIdentity.mockResolvedValue({
       subject: "operator",
       user_id: "00000000-0000-0000-0000-000000000001",
@@ -81,6 +83,21 @@ describe("Dashboard", () => {
     expect(getAlert).toHaveBeenCalledWith("EGAL");
     expect(screen.getByText("350.5")).toBeInTheDocument();
     expect(screen.getByText("BUY")).toBeInTheDocument();
+  });
+
+  it("keeps the technical report visible when related-news retrieval fails", async () => {
+    getReport.mockResolvedValue(report);
+    getAlert.mockResolvedValue({ classification: "BUY", stock_quality_score: 85, entry_quality_score: 80 });
+    getNewsEvents.mockRejectedValue(new Error("news store unavailable"));
+
+    await renderAuthenticatedApp();
+    fireEvent.change(screen.getByLabelText("Stock Symbol"), { target: { value: "egal" } });
+    fireEvent.click(screen.getByRole("button", { name: "Load Analysis" }));
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "EGAL" })).toBeInTheDocument());
+    expect(await screen.findByText("news store unavailable")).toBeInTheDocument();
+    expect(screen.getByText("350.5")).toBeInTheDocument();
+    expect(getNewsEvents).toHaveBeenCalledWith("EGAL", 20);
   });
 
   it("loads and renders historical analysis snapshots", async () => {
