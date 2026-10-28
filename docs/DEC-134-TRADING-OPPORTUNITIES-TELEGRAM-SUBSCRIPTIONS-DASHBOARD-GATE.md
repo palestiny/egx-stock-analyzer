@@ -1,6 +1,6 @@
 # DEC-134 — Trading Opportunities, Telegram Distribution, Session Reports, Subscriptions, and Owner Dashboard
 
-**Status:** Partially implemented on `main`; operator subscription API, owner-dashboard controls, and terminal no-recipient Telegram dispatch state are merged; remaining product/policy decisions are still open  
+**Status:** Partially implemented on `main`; operator subscription API, owner-dashboard controls, and terminal no-recipient Telegram dispatch state are merged; remaining end-to-end acceptance and product/policy decisions are still open  
 **Date:** 2026-10-26  
 **Repository:** palestiny/egx-stock-analyzer  
 **Current execution priority:** Non-M61 product and engineering gaps; M61 paused by owner request on 2026-10-28
