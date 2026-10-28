@@ -94,4 +94,31 @@ describe("SubscriptionAdminPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/valid JSON/);
     expect(createPlan).not.toHaveBeenCalled();
   });
+
+  it("does not offer transitions from a terminal subscription status", async () => {
+    const getSubscription = vi.fn().mockResolvedValue({
+      subscription_id: "subscription-terminal",
+      user_id: "user-1",
+      plan_id: "telegram-pilot",
+      plan_version: 1,
+      status: "CANCELLED",
+    });
+    const transitionSubscription = vi.fn();
+    render(
+      <SubscriptionAdminPanel
+        getSubscription={getSubscription}
+        transitionSubscription={transitionSubscription}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Subscription ID"), {
+      target: { value: "subscription-terminal" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Find by subscription ID" }));
+
+    expect(await screen.findByText(/This is a terminal status; no further transitions are allowed\./)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Transition subscription status" })).not.toBeInTheDocument();
+    expect(transitionSubscription).not.toHaveBeenCalled();
+  });
+
 });
