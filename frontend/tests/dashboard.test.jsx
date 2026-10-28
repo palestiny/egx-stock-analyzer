@@ -300,7 +300,7 @@ describe("Dashboard", () => {
     expect(panel).toHaveTextContent("Saved analyses with unknown dates: IEEC");
     expect(panel).toHaveTextContent("Downtrend");
     expect(panel).toHaveTextContent("25.00 pts");
-    expect(panel).toHaveTextContent("Negative momentum + high volume");
+    expect(panel).toHaveTextContent("Negative momentum + above-average volume");
     expect(getMarketBreadthStress).toHaveBeenCalledWith(["EGAL", "IEEC", "COMI"]);
   });
 
