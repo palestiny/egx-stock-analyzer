@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
-from app.domain.technical_analysis.elliott import ElliottWaveCount
+from app.domain.technical_analysis.elliott import ElliottCorrectionCount, ElliottWaveCount
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,7 @@ class TechnicalIndicatorPoint:
     fibonacci_extension_anchor_indices: tuple[int, int, int] | None = None
     fibonacci_extensions: tuple[tuple[Decimal, Decimal], ...] = ()
     elliott_candidates: tuple[ElliottWaveCount, ...] = ()
+    elliott_corrections: tuple[ElliottCorrectionCount, ...] = ()
 
 
 @dataclass(frozen=True)
