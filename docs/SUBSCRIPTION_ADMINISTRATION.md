@@ -51,6 +51,7 @@ Content-Type: application/json
 }
 ```
 
+- The user must already exist in the user directory.
 - `starts_at` and `expires_at` must include a timezone.
 - A new subscription always starts in `PENDING`. Creating it does not grant access.
 - Activation is a separate audited transition: `POST /api/v1/owner/subscriptions/{subscription_id}/transition` with `{"status":"ACTIVE","reason":"..." }`.
