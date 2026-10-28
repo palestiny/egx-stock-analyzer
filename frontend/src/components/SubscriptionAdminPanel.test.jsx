@@ -161,4 +161,22 @@ describe("SubscriptionAdminPanel", () => {
     expect(auditHistory).toHaveTextContent("PENDING → ACTIVE");
   });
 
+
+  it("reads an existing immutable plan version", async () => {
+    const getSubscriptionPlan = vi.fn().mockResolvedValue({
+      plan_id: "telegram-pilot",
+      version: 1,
+      display_name: "Telegram Pilot",
+      active: true,
+      entitlements: [{ code: "telegram_opportunities", enabled: true, limit: 50 }],
+    });
+    render(<SubscriptionAdminPanel getSubscriptionPlan={getSubscriptionPlan} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Find plan version" }));
+
+    await waitFor(() => expect(getSubscriptionPlan).toHaveBeenCalledWith("telegram-pilot", 1));
+    expect(await screen.findByText("Latest result: plan-lookup")).toBeInTheDocument();
+  });
+
+
 });
