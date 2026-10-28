@@ -185,9 +185,9 @@ Old milestone names, old branches, and conversation history must not be treated 
 
 # Next
 
-The active M61 execution step is **real historical dataset acquisition and validation**.
+**Current priority: non-M61 engineering and product gaps. M61 is paused by explicit owner request dated 2026-10-28.** Do not resume historical-data acquisition, backtest evaluation, or performance claims until the owner explicitly resumes M61.
 
-Use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
+Use the temporary execution focus below and `docs/CURRENT_STATE.md` to track verified non-M61 work. When M61 resumes, use `docs/M61-HISTORICAL-DATASET-ACQUISITION-STATUS.md` as the operational checkpoint. No Strategy v0 performance conclusion is valid until an immutable dataset version passes the DEC-130 acceptance checklist.
 
 ## M61 exploratory data is now usable for technical research — 2026-10-20
 
