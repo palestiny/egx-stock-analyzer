@@ -9,12 +9,14 @@
 
 ## Schema
 
-The canonical CSV uses one row per ticker per trading session:
+The canonical CSV uses one row per instrument per trading session. Equity and index bars share the same file while retaining their instrument type and unit:
 
 - `session_date`: exchange session date, ISO `YYYY-MM-DD`.
-- `symbol`: EGX ticker symbol.
-- `open_egp`, `high_egp`, `low_egp`, `close_egp`: source-reported daily OHLC prices in EGP.
-- `volume_thousands_reported`: reported volume normalized to thousands of shares. For example, source-displayed `1.97M` is stored as `1970.00`. The `notes` column preserves the source's displayed unit and value. This remains rounded source data, not an exact share-level tape.
+- `instrument_type`: `equity` or `index`.
+- `symbol`: equity ticker or index symbol.
+- `price_unit`: `EGP` for equity prices and `points` for index levels.
+- `open_value`, `high_value`, `low_value`, `close_value`: source-reported daily OHLC values in the unit identified by `price_unit`.
+- `volume_thousands_reported`: reported volume normalized to thousands where a volume value is supplied. For example, source-displayed `1.97M` is stored as `1970.00`. The `notes` column preserves the source's displayed unit and value. Rounded provider volume is not an exact share-level tape.
 - `change_pct_reported`: source-reported daily percentage change.
 - `traded_value_egp`, `executions_count`: blank when the source did not provide a verified value.
 - `source_name`, `source_url`, `retrieved_at`: provenance.
@@ -27,13 +29,15 @@ The initial seed contains 22 reported daily records for Egypt Aluminum (`EGAL`) 
 Source: https://ng.investing.com/equities/egypt-aluminum-historical-data  
 Original retrieval date: 2026-10-28.
 
-The source displays volume rounded in thousands. Do not reinterpret it as exact share-level volume. The seed does not include verified traded value, execution count, intraday candles, or order-level buy/sell pressure.
+The seed does not include verified traded value, execution count, intraday candles, or order-level buy/sell pressure.
 
 ## Daily collection: 2026-10-29
 
-Added 19 source-reported daily rows for the 2026-10-29 session across these symbols: `ABUK`, `BTFH`, `CANA`, `CIEB`, `COMI`, `DGTZ`, `EGAL`, `EGAS`, `EFIC`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `GRCA`, `IRON`, `MICH`, `SWDY`, `UBEE`, and `VERT`.
+Added 19 source-reported equity rows for the 2026-10-29 session across these symbols: `ABUK`, `BTFH`, `CANA`, `CIEB`, `COMI`, `DGTZ`, `EGAL`, `EGAS`, `EFIC`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `GRCA`, `IRON`, `MICH`, `SWDY`, `UBEE`, and `VERT`.
 
-All new rows cite the corresponding Investing.com historical-data page. Collection timestamp recorded in the rows: `2026-10-29T19:53:01+03:00`. The historical pages did not consistently state quote latency, so `delay_status` says latency was not stated. Traded value and execution counts remain blank because verified per-symbol values were not available from the cited pages.
+Added four index rows in the same archive: `EGX30`, `EGX30CAP`, `EGX33`, and `EGXNBFINTECH`. Index values are explicitly labeled in points rather than EGP. Where an index page displayed volume, the source value was preserved in notes and normalized in the volume column; the interpretation of index-page volume has not been independently verified.
+
+All new rows cite the corresponding Investing.com historical-data page. Collection timestamp recorded in the rows: `2026-10-29T19:53:01+03:00`. The historical pages did not consistently state quote latency, so `delay_status` says latency was not stated. Traded value and execution counts remain blank because verified per-instrument values were not available from the cited pages.
 
 ### Data-quality exceptions retained transparently
 
@@ -45,7 +49,7 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 ## Collection and validation rules
 
 1. Append to `egx_daily_history.csv`; preserve historical records and original source values.
-2. Validate dates, ticker symbols, numeric ranges, OHLC consistency, units, source attribution, and duplicate keys `(session_date, symbol)`.
+2. Validate dates, instrument types, symbols, price units, numeric ranges, OHLC consistency, volume units, source attribution, and duplicate keys `(session_date, symbol)`.
 3. Keep source values even when inconsistent only if the row is explicitly flagged for review; never silently repair or invent OHLC fields.
 4. Keep unknown fields blank and explain why; never fabricate missing market data.
 5. Keep daily bars separate from intraday data. OHLCV alone does not prove buy/sell flow or order-flow imbalance.
@@ -55,8 +59,8 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 
 ## Current coverage status
 
-- Total records in this archive after the 2026-10-29 collection: 41.
-- Records for 2026-10-29: 19 across 19 listed symbols.
+- Total records after the 2026-10-29 collection: 45.
+- Records for 2026-10-29: 23 across 19 equity symbols and 4 index symbols.
 - Historical seed records through 2026-10-28: 22 for EGAL.
 - Full EGX-listed universe: not included.
 - Verified traded value and execution counts: not included in the daily seed rows.
