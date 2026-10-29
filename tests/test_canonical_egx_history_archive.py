@@ -123,6 +123,6 @@ def test_each_record_keeps_source_provenance_and_quality_labels():
 
 def test_archive_documentation_preserves_known_data_limitations():
     documentation = README_PATH.read_text(encoding="utf-8")
-    assert "not an exact share count" in documentation
+    assert "not an exact share-level volume" in documentation
     assert "Cross-source reconciliation remains pending" in documentation
     assert "not accepted as a production feed" in documentation
