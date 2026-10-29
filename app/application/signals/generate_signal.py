@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.application.analysis.result_store import AnalysisResultStore
@@ -26,23 +26,26 @@ class GenerateSignal:
         record = self.result_store.get_record(normalized)
         if record is None:
             return None
-        # An undated saved snapshot cannot support a trustworthy signal timestamp.
-        # Do not replace missing provenance with today's date.
+        # A dated snapshot alone is not sufficient: the source-bar timestamp
+        # must survive analysis and persistence so stale or unknown provenance
+        # cannot be disguised as midnight UTC on the analysis date.
         if record.analysis_date is None:
             return None
 
         result = record.result
+        data_timestamp = getattr(result, "data_timestamp", None)
+        if data_timestamp is None:
+            return None
+        if data_timestamp.tzinfo is None or data_timestamp.utcoffset() is None:
+            return None
+
         entry = result.entry_context
         current_price = entry.current_price
         if current_price is None:
             return None
         current = current_price.value
         technical = result.technical_analysis
-        now = datetime.combine(
-            record.analysis_date,
-            time.min,
-            tzinfo=timezone.utc,
-        )
+        generated_at = datetime.now(timezone.utc)
 
         resistance = entry.nearest_resistance
         support = entry.nearest_support
@@ -90,7 +93,7 @@ class GenerateSignal:
             symbol=normalized,
             direction=direction,
             status=SignalStatus.ACTIVE,
-            generated_at=now,
+            generated_at=generated_at,
             timeframe=str(technical.timeframe.value),
             entry_zone=PriceZone(current - half, current + half),
             invalidation=invalidation,
@@ -100,5 +103,5 @@ class GenerateSignal:
             evidence=tuple(evidence),
             strategy_id="breakout-trend",
             strategy_version="1.0",
-            data_timestamp=now,
+            data_timestamp=data_timestamp,
         )

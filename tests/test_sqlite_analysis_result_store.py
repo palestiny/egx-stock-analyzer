@@ -116,6 +116,16 @@ def test_serializer_round_trips_complete_analysis_result():
     assert restored == result
 
 
+def test_serializer_round_trips_source_bar_timestamp():
+    source_timestamp = datetime(2026, 10, 3, 12, 30, tzinfo=timezone.utc)
+    result = replace(make_result(), data_timestamp=source_timestamp)
+
+    restored = deserialize_analysis_result(serialize_analysis_result(result))
+
+    assert restored == result
+    assert restored.data_timestamp == source_timestamp
+
+
 def test_serializer_rejects_unsupported_version():
     result = serialize_analysis_result(make_result())
 
