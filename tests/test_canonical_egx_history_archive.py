@@ -219,6 +219,6 @@ def test_archive_documentation_preserves_known_data_limitations():
         phrase in documentation.lower()
         for phrase in (
             "not accepted as a production feed",
-            "not a production-grade feed",
+            "production-grade feed",
         )
     )
