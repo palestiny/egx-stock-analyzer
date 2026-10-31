@@ -67,7 +67,7 @@ The implementation must preserve the current behavior that an entitlement revoke
 
 ## 6. Retry policy is a separate decision
 
-This design deliberately does not select numeric lease duration, transport timeout, retry delay, backoff multiplier, maximum attempts, or exhaustion state. Those values require an explicit operational policy and must be configuration-driven where appropriate.
+Owner-approved lease rule (2026-10-31): derive the per-recipient lease duration from the effective Telegram transport timeout at runtime as **2 × the configured transport timeout**. Do not introduce a separately hard-coded lease duration. The transport timeout remains governed by its actual configuration. Retry delay, backoff multiplier, maximum attempts, and exhaustion state remain unselected and must be configuration-driven where appropriate.
 
 Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timezone-aware UTC instants. A FAILED record is not immediately retryable unless its scheduled time is due. Retry exhaustion must be explicit and observable, not an unbounded retry loop.
 
@@ -98,11 +98,11 @@ Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timez
 Implementation may begin only after the owner accepts:
 
 1. ~~Whether `DELIVERY_UNKNOWN` is manually reconciled or automatically retried.~~ **DECIDED:** manual reconciliation; no automatic resend for ambiguous outcomes.
-2. Operational lease/transport timeout relationship.
+2. ~~Operational lease/transport timeout relationship.~~ **DECIDED:** lease duration is 2 × the effective configured Telegram transport timeout.
 3. Retry schedule, maximum attempts, and terminal exhaustion behavior.
 4. Whether operator tooling is required for resolving unknown outcomes.
 
-Implementation may proceed with the accepted manual-reconciliation policy for `DELIVERY_UNKNOWN`. Numeric lease duration, transport timeout relationship, retry schedule, maximum attempts, and exhaustion behavior remain open and must not be guessed. Do not claim exactly-once delivery.
+Implementation may proceed with the accepted manual-reconciliation policy for `DELIVERY_UNKNOWN`. The lease/timeout relationship is approved: lease = 2 × effective transport timeout. Retry schedule, maximum attempts, and exhaustion behavior remain open and must not be guessed. Do not claim exactly-once delivery.
 
 
 ## 9. Additional code-review findings — 2026-10-31
