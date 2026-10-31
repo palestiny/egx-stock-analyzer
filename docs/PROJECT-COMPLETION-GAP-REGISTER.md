@@ -56,6 +56,8 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Add/verify contract tests for revised version, invalidation, expiry, target/stop observations, duplicate dispatch, transient failure/retry/recovery, retry exhaustion, no linked recipients and entitlement changes.
 - [x] Trace lifecycle composition: `SignalLifecycleOrchestrator` is constructed in `app/infrastructure/runtime.py`, but the inspected opportunity publication API route calls only `GenerateSignal` and `PublishSignalOpportunity`; it does not invoke lifecycle processing. Automatic target/invalidation observation is therefore not evidenced.
 - [x] Record the missing observation integration and required price/data/expiry/revision decisions in `docs/SIGNAL-LIFECYCLE-OBSERVATION-INTEGRATION-DESIGN-GATE.md`.
+- [x] Confirm per-user opportunity history is not yet evidenced: signal history is global by signal identity, and recipient delivery rows do not provide a user-scoped lifecycle history/read model.
+- [ ] Implement an authorized per-user opportunity history/read model with immutable publication versions and lifecycle states after the observation/revision contract is approved.
 - [ ] Implement and prove end-to-end re-evaluation only after the observation-price, crossing, data-eligibility, expiry and revision semantics in that gate are resolved.
 - [ ] Preserve original published rationale and price levels; keep hypothetical opportunity outcomes separate from actual portfolio P&L.
 - [ ] No change to scoring thresholds or automatic recommendation policy without a separately accepted decision.
