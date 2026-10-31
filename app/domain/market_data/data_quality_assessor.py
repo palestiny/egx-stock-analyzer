@@ -1,4 +1,5 @@
 from collections import Counter
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.domain.market_data.data_quality import (
@@ -14,9 +15,14 @@ class DataQualityAssessor:
     @staticmethod
     def assess(
         observations: list[RawPriceBarObservation],
+        as_of: datetime | None = None,
     ) -> tuple[DataQualityAssessment, ...]:
         if not observations:
             return ()
+
+        assessment_time = as_of or datetime.now(timezone.utc)
+        if assessment_time.tzinfo is None or assessment_time.utcoffset() is None:
+            raise ValueError("as_of must be timezone-aware")
 
         identities = [
             (observation.stock_id, observation.timeframe, observation.timestamp)
@@ -50,6 +56,10 @@ class DataQualityAssessor:
                 ):
                     issues.append(
                         DataQualityIssue(DataQualityIssueCode.INVALID_TIMESTAMP)
+                    )
+                elif observation.timestamp > assessment_time:
+                    issues.append(
+                        DataQualityIssue(DataQualityIssueCode.FUTURE_TIMESTAMP)
                     )
 
             numeric_values = (
@@ -103,6 +113,7 @@ class DataQualityAssessor:
                 DataQualityIssueCode.MISSING_VALUE,
                 DataQualityIssueCode.INVALID_VALUE,
                 DataQualityIssueCode.INVALID_TIMESTAMP,
+                DataQualityIssueCode.FUTURE_TIMESTAMP,
                 DataQualityIssueCode.OHLC_INCONSISTENCY,
             }
 
