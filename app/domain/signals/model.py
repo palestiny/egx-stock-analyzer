@@ -25,6 +25,8 @@ class PriceZone:
     upper: Decimal
 
     def __post_init__(self) -> None:
+        if not self.lower.is_finite() or not self.upper.is_finite():
+            raise ValueError("price-zone bounds must be finite")
         if self.lower <= 0 or self.upper <= 0:
             raise ValueError("price-zone bounds must be positive")
         if self.lower > self.upper:
@@ -37,6 +39,8 @@ class Target:
     label: str
 
     def __post_init__(self) -> None:
+        if not self.price.is_finite():
+            raise ValueError("target price must be finite")
         if self.price <= 0:
             raise ValueError("target price must be positive")
         if not self.label.strip():
@@ -50,6 +54,8 @@ class SignalEvidence:
     weight: Decimal = Decimal("1")
 
     def __post_init__(self) -> None:
+        if not self.weight.is_finite():
+            raise ValueError("evidence weight must be finite")
         if not self.kind.strip():
             raise ValueError("evidence kind is required")
         if not self.description.strip():
@@ -76,6 +82,18 @@ class Signal:
     data_timestamp: datetime
 
     def __post_init__(self) -> None:
+        for field_name, timestamp in (
+            ("generated_at", self.generated_at),
+            ("data_timestamp", self.data_timestamp),
+        ):
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+        if not self.invalidation.is_finite():
+            raise ValueError("invalidation must be finite")
+        if not self.confidence.is_finite():
+            raise ValueError("confidence must be finite")
+        if not self.risk_score.is_finite():
+            raise ValueError("risk score must be finite")
         if not self.symbol.strip():
             raise ValueError("symbol is required")
         if not self.timeframe.strip():
