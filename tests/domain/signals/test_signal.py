@@ -75,3 +75,50 @@ def test_signal_rejects_future_data_timestamp() -> None:
 def test_price_zone_rejects_reversed_bounds() -> None:
     with pytest.raises(ValueError):
         PriceZone(Decimal("132"), Decimal("130"))
+
+
+@pytest.mark.parametrize(
+    "lower,upper",
+    [
+        (Decimal("NaN"), Decimal("132")),
+        (Decimal("130"), Decimal("Infinity")),
+        (Decimal("-Infinity"), Decimal("132")),
+    ],
+)
+def test_price_zone_rejects_non_finite_bounds(lower: Decimal, upper: Decimal) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        PriceZone(lower, upper)
+
+
+@pytest.mark.parametrize("price", [Decimal("NaN"), Decimal("Infinity"), Decimal("-Infinity")])
+def test_target_rejects_non_finite_price(price: Decimal) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        Target(price, "TP1")
+
+
+@pytest.mark.parametrize("weight", [Decimal("NaN"), Decimal("Infinity"), Decimal("-Infinity")])
+def test_signal_evidence_rejects_non_finite_weight(weight: Decimal) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        SignalEvidence("volume", "Volume confirmation", weight)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("invalidation", Decimal("NaN")),
+        ("invalidation", Decimal("Infinity")),
+        ("confidence", Decimal("NaN")),
+        ("confidence", Decimal("Infinity")),
+        ("risk_score", Decimal("NaN")),
+        ("risk_score", Decimal("Infinity")),
+    ],
+)
+def test_signal_rejects_non_finite_numeric_fields(field: str, value: Decimal) -> None:
+    with pytest.raises(ValueError, match="finite"):
+        make_signal(**{field: value})
+
+
+@pytest.mark.parametrize("field", ["generated_at", "data_timestamp"])
+def test_signal_requires_timezone_aware_timestamps(field: str) -> None:
+    with pytest.raises(ValueError, match="timezone-aware"):
+        make_signal(**{field: datetime(2026, 10, 4, 10, 0)})
