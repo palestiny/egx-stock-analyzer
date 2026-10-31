@@ -88,6 +88,8 @@ class BuildSessionOpportunityLedger:
                 market_proxy_return=outcome.realized_return if outcome is not None else None,
                 market_proxy_r=outcome.realized_r if outcome is not None else None,
                 outcome_observed_at=outcome.observed_at if outcome is not None else None,
+                source_data_timestamp=original.data_timestamp,
+                outcome_data_timestamp=outcome.data_timestamp if outcome is not None else None,
             ))
 
         entries.sort(key=lambda item: (item.publication_time, item.symbol, str(item.signal_id)))
