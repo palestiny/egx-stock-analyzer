@@ -1,12 +1,12 @@
+from typing import Protocol
+
+
 class TelegramDeliveryRejected(RuntimeError):
     """Telegram definitively rejected a send request; retry is a policy decision."""
 
 
 class TelegramDeliveryOutcomeUnknown(RuntimeError):
     """The request may have reached Telegram, so automatic resend is unsafe."""
-
-
-from typing import Protocol
 
 
 class TelegramMessageSender(Protocol):
