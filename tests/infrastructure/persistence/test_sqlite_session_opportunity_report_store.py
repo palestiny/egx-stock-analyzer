@@ -22,14 +22,17 @@ def report(
     unresolved_count: int = 0,
     opportunities: tuple[SessionOpportunityEntry, ...] = (),
 ) -> SessionOpportunityLedgerReport:
+    items = tuple(opportunities)
     return SessionOpportunityLedgerReport(
         session_date=date(2026, 10, 26),
         generated_at=generated_at,
         exchange_timezone="Africa/Cairo",
         methodology_version="session-opportunity-ledger-v1",
-        opportunities=tuple(opportunities),
+        opportunities=items,
         unresolved_count=unresolved_count,
-        resolved_proxy_count=0,
+        resolved_proxy_count=sum(
+            item.market_proxy_outcome is not None for item in items
+        ),
     )
 
 
