@@ -105,6 +105,14 @@ class SignalAlertDeliveryStore(Protocol):
     ) -> bool: ...
 
     def recover_expired_claims(self, *, now: datetime) -> int: ...
+    def list_for_user(
+        self,
+        user_id: UUID,
+        channel: str,
+        *,
+        limit: int = 100,
+    ) -> tuple[SignalAlertDeliveryRecord, ...]: ...
+
 
     def mark_delivered(
         self,
