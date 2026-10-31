@@ -148,11 +148,16 @@ def test_assessment_is_deterministic():
     assert first == second
 
 
-
 def test_future_timestamp_is_invalid_when_after_assessment_time():
     as_of = datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
     result = DataQualityAssessor.assess(
-        [observation(timestamp=datetime(2026, 9, 16, 12, 0, 1, tzinfo=timezone.utc))],
+        [
+            observation(
+                timestamp=datetime(
+                    2026, 9, 16, 12, 0, 1, tzinfo=timezone.utc
+                )
+            )
+        ],
         as_of=as_of,
     )
 
