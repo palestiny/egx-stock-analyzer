@@ -176,3 +176,18 @@ def test_telegram_provider_treats_server_error_as_ambiguous():
 
     with pytest.raises(TelegramDeliveryOutcomeUnknown, match="outcome is unknown"):
         provider.send_message("recipient-chat-42", "Message")
+
+
+def test_telegram_provider_treats_unconfirmed_success_response_as_ambiguous():
+    provider = TelegramNotificationProvider(
+        TOKEN,
+        CHAT_ID,
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda _: httpx.Response(200, json={"description": "missing ok flag"})
+            )
+        ),
+    )
+
+    with pytest.raises(TelegramDeliveryOutcomeUnknown, match="did not confirm acceptance"):
+        provider.send_message("recipient-chat-42", "Message")
