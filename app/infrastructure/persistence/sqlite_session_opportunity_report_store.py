@@ -114,6 +114,8 @@ class SQLiteSessionOpportunityReportStore:
                     "market_proxy_return": str(item.market_proxy_return) if item.market_proxy_return is not None else None,
                     "market_proxy_r": str(item.market_proxy_r) if item.market_proxy_r is not None else None,
                     "outcome_observed_at": item.outcome_observed_at.isoformat() if item.outcome_observed_at else None,
+                    "source_data_timestamp": item.source_data_timestamp.isoformat() if item.source_data_timestamp else None,
+                    "outcome_data_timestamp": item.outcome_data_timestamp.isoformat() if item.outcome_data_timestamp else None,
                 }
                 for item in report.opportunities
             ],
