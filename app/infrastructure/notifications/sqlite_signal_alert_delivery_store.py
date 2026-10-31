@@ -180,7 +180,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 UPDATE signal_alert_deliveries
                 SET status = ?, claim_token = ?, lease_until = ?, updated_at = ?
                 WHERE event_id = ? AND user_id = ? AND channel = ?
-                  AND status IN (?, ?)
+                  AND status = ?
                 """,
                 (
                     SignalAlertDeliveryStatus.CLAIMED.value,
@@ -189,7 +189,6 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                     now_text,
                     *key,
                     SignalAlertDeliveryStatus.PENDING.value,
-                    SignalAlertDeliveryStatus.FAILED.value,
                 ),
             )
             return cursor.rowcount == 1
