@@ -240,3 +240,26 @@ def test_store_migrates_existing_delivery_table_without_rewriting_rows(tmp_path)
     assert record.attempts == 1
     assert record.claim_token is None
     assert record.lease_until is None
+
+
+def test_expired_claim_token_cannot_complete_even_before_recovery_runs(tmp_path) -> None:
+    store = SQLiteSignalAlertDeliveryStore(tmp_path / "expired-token.db")
+    event_id, user_id, token = uuid4(), uuid4(), uuid4()
+    store.create_pending(event_id, user_id, "telegram", now=NOW)
+
+    assert store.claim(
+        event_id, user_id, "telegram", claim_token=token,
+        now=NOW, lease_until=NOW + timedelta(seconds=5),
+    )
+    assert store.mark_sending(
+        event_id, user_id, "telegram", claim_token=token, now=NOW,
+    )
+    assert store.complete_delivered(
+        event_id, user_id, "telegram", claim_token=token,
+        now=NOW + timedelta(seconds=6),
+    ) is False
+
+    assert store.recover_expired_claims(now=NOW + timedelta(seconds=6)) == 1
+    record = store.get(event_id, user_id, "telegram")
+    assert record is not None
+    assert record.status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
