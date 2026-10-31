@@ -16,6 +16,7 @@ class SignalAlertDeliveryStatus(StrEnum):
     SUPPRESSED = "SUPPRESSED"
     DELIVERY_UNKNOWN = "DELIVERY_UNKNOWN"
     NOT_DELIVERED = "NOT_DELIVERED"
+    RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class SignalAlertDeliveryRecord:
     last_error: str | None = None
     claim_token: UUID | None = None
     lease_until: datetime | None = None
+    next_attempt_at: datetime | None = None
 
 
 class SignalAlertDeliveryStore(Protocol):
