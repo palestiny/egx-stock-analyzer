@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.application.security.identity import AuthenticatedIdentity
-from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_store import (
-    SQLiteTelegramDeliveryReconciliationStore,
+from app.application.alerts.telegram_delivery_reconciliation import (
+    TelegramDeliveryReconciliationStore,
 )
 
 
