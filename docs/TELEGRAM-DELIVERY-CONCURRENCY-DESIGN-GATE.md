@@ -1,6 +1,6 @@
 # Telegram Delivery Concurrency — Design Gate
 
-**Status:** Proposed technical design; implementation not authorized by this document alone  
+**Status:** Owner-approved policy for ambiguous outcomes; concurrency implementation design remains subject to code-level verification  
 **Scope:** Per-recipient Telegram delivery ownership and recovery  
 **Out of scope:** Retry timing/attempt limits, opportunity expiry, subscription policy, message content, scoring, automatic trading
 
@@ -76,7 +76,7 @@ Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timez
 - **Conservative/manual resolution:** do not auto-resend; expose the event/recipient for operator reconciliation. Lowest duplicate risk, but can leave a message undelivered.
 - **At-least-once automatic retry:** retry after a configured delay and disclose duplicate risk. Better delivery recovery, but duplicates are possible.
 
-No option is selected here.
+**Owner decision (2026-10-31):** Select conservative/manual resolution. A `DELIVERY_UNKNOWN` record is not automatically resent. It remains visible for operator reconciliation. Definite transport failures remain eligible for a separately configured retry policy.
 
 ## 7. Required tests before implementation acceptance
 
@@ -97,12 +97,12 @@ No option is selected here.
 
 Implementation may begin only after the owner accepts:
 
-1. Whether `DELIVERY_UNKNOWN` is manually reconciled or automatically retried (and with what duplicate-risk disclosure).
+1. ~~Whether `DELIVERY_UNKNOWN` is manually reconciled or automatically retried.~~ **DECIDED:** manual reconciliation; no automatic resend for ambiguous outcomes.
 2. Operational lease/transport timeout relationship.
 3. Retry schedule, maximum attempts, and terminal exhaustion behavior.
 4. Whether operator tooling is required for resolving unknown outcomes.
 
-Until then, retain the current production behavior and report the concurrency gap honestly. Do not claim exactly-once delivery.
+Implementation may proceed with the accepted manual-reconciliation policy for `DELIVERY_UNKNOWN`. Numeric lease duration, transport timeout relationship, retry schedule, maximum attempts, and exhaustion behavior remain open and must not be guessed. Do not claim exactly-once delivery.
 
 
 ## 9. Additional code-review findings — 2026-10-31
