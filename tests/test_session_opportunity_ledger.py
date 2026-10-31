@@ -90,30 +90,24 @@ def test_report_requires_timezone_aware_generation_time() -> None:
         builder.execute(date(2026, 10, 26), generated_at=datetime(2026, 10, 26, 13))
 
 
-def test_report_rejects_naive_signal_outcome_timestamps() -> None:
-    history = InMemorySignalHistoryStore()
-    track = InMemoryTrackRecordStore()
-    naive_observed_at = datetime(2026, 10, 26, 12)
-    track.record(SignalOutcomeRecord(
-        signal_id=uuid4(),
-        symbol="EGAL",
-        outcome=SignalOutcome.INVALIDATED,
-        direction=SignalDirection.BUY,
-        observed_at=naive_observed_at,
-        entry_price=Decimal("101"),
-        exit_price=Decimal("95"),
-        realized_return=Decimal("-0.0594"),
-        realized_r=Decimal("-1"),
-        invalidation=Decimal("95"),
-        target_label=None,
-        strategy_id="trend-breakout",
-        strategy_version="1",
-        data_timestamp=datetime(2026, 10, 26, 11),
-    ))
-    builder = BuildSessionOpportunityLedger(history, track)
-
+def test_signal_outcome_rejects_naive_observation_timestamp() -> None:
     with pytest.raises(ValueError, match="observed_at.*timezone-aware"):
-        builder.execute(date(2026, 10, 26), generated_at=dt(13))
+        SignalOutcomeRecord(
+            signal_id=uuid4(),
+            symbol="EGAL",
+            outcome=SignalOutcome.INVALIDATED,
+            direction=SignalDirection.BUY,
+            observed_at=datetime(2026, 10, 26, 12),
+            entry_price=Decimal("101"),
+            exit_price=Decimal("95"),
+            realized_return=Decimal("-0.0594"),
+            realized_r=Decimal("-1"),
+            invalidation=Decimal("95"),
+            target_label=None,
+            strategy_id="trend-breakout",
+            strategy_version="1",
+            data_timestamp=datetime(2026, 10, 26, 11, tzinfo=timezone.utc),
+        )
 
 
 def test_report_excludes_signal_generated_after_snapshot_cutoff() -> None:

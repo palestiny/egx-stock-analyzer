@@ -34,6 +34,17 @@ class SignalOutcomeRecord:
     def __post_init__(self) -> None:
         if not self.symbol.strip():
             raise ValueError("symbol is required")
+
+        for field_name, value in (
+            ("entry_price", self.entry_price),
+            ("exit_price", self.exit_price),
+            ("invalidation", self.invalidation),
+            ("realized_return", self.realized_return),
+            ("realized_r", self.realized_r),
+        ):
+            if not value.is_finite():
+                raise ValueError(f"{field_name} must be finite")
+
         if self.entry_price <= 0 or self.exit_price <= 0:
             raise ValueError("prices must be positive")
         if self.invalidation <= 0:
@@ -46,5 +57,13 @@ class SignalOutcomeRecord:
             raise ValueError("target label is required for target hits")
         if self.outcome is SignalOutcome.INVALIDATED and self.target_label is not None:
             raise ValueError("target label must be absent for invalidation")
+
+        for field_name, timestamp in (
+            ("observed_at", self.observed_at),
+            ("data_timestamp", self.data_timestamp),
+        ):
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+                raise ValueError(f"{field_name} must be timezone-aware")
+
         if self.data_timestamp > self.observed_at:
             raise ValueError("data timestamp cannot be later than observation")
