@@ -1,6 +1,6 @@
 # Telegram Delivery Concurrency — Design Gate
 
-**Status:** Owner-approved policy for ambiguous outcomes; concurrency implementation design remains subject to code-level verification  
+**Status:** Owner-approved policy implemented and merged through PRs #428–#429; definite-failure retry policy remains open  
 **Scope:** Per-recipient Telegram delivery ownership and recovery  
 **Out of scope:** Retry timing/attempt limits, opportunity expiry, subscription policy, message content, scoring, automatic trading
 
@@ -116,3 +116,20 @@ A second pass over the dispatcher and SQLite outbox confirms additional behavior
 - The current `attempts` field is incremented on completion (`mark_delivered` / `mark_failed`), not when an attempt is claimed or initiated. It therefore cannot reliably count crashes between claim and completion without changing its documented meaning or adding a separate attempt/claim counter.
 
 These are verified observations of the current implementation, not a proposed operational policy. In particular, this document does not choose automatic retry for ambiguous outcomes or a numeric retry budget.
+
+
+## 10. Implementation closeout — 2026-10-31
+
+The concurrency and ambiguous-outcome requirements above have been implemented and merged:
+
+- PR #428: atomic SQLite per-recipient claims using `BEGIN IMMEDIATE`, opaque claim-token fencing, runtime lease = 2 × the effective configured Telegram transport timeout, expired `CLAIMED` recovery to `PENDING`, and expired `SENDING` recovery to `DELIVERY_UNKNOWN`.
+- PR #428: Telegram definite rejection is distinguished from ambiguous timeout/connection/server outcomes. `DELIVERY_UNKNOWN` is never automatically resent. Event finalization respects active recipient ownership and unresolved outcomes.
+- PR #429: operator-only unresolved listing, audited manual reconciliation, and terminal `NOT_DELIVERED` outcome. No manual resend/requeue endpoint was added.
+- PR #430: operator runbook documents safe investigation and reconciliation.
+
+Verification:
+- PR #428 main CI run #41189366403 passed all five jobs.
+- PR #429 main CI run #41191307763 passed all five jobs.
+- PR #430 exact-head CI run #41191550843 passed all five jobs; post-merge main CI for its merge commit is tracked separately.
+
+The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. Retry schedule, backoff, maximum attempts, and exhaustion behavior for definite `FAILED` outcomes remain unapproved. Do not auto-retry `FAILED` or resend `DELIVERY_UNKNOWN` until the applicable policy is explicitly approved and implemented. Exactly-once delivery is not guaranteed.
