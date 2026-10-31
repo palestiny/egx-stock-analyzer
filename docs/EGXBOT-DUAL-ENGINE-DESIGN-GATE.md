@@ -2,7 +2,7 @@
 
 **Status:** Owner-approved product direction; implementation design gate, not a claim of completed trading capability.  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `4733e9237495789ebceba9113567e42b7b6abf6d` (PR #433).  
+**Baseline:** `main` at `7a2eb51fcca871e9037a53f113e7769de406eb65` (PR #436).  
 **Owner-approved constraints:** separate intraday and swing engines; delayed/daily data; alerts for new opportunities and material changes; manual execution only; M61/backtesting remains paused.
 
 ## 1. Product objective
@@ -48,6 +48,11 @@ Reviewed on `main`:
 ## 4. Important gaps before implementation is eligible
 
 1. **Market data contract:** document actual provider, EGX instrument coverage, supported timeframes, volume semantics, currency, timestamps/timezone, delay, corrections, rate limits and licensing. Reject stale, missing, malformed or future-dated observations according to an explicitly sourced completed-session policy. The source-bar timestamp is now carried through `StockAnalysisResult.data_timestamp`, analysis persistence and `Signal.data_timestamp` (PR #418); verify provider timezone semantics and implement the remaining freshness gate.
+1a. **Provider candidates researched (2026-10-31; not yet approved):**
+   - **EGID:** its official site identifies EGID as a fully owned EGX subsidiary and the authorized EGX market-data provider. Its published feed API Swagger lists delayed market-watch, market-depth, symbol-history, symbol-trades, index-history and market-status endpoints. Its contact page lists `marketdata@egidegypt.com` and `commercial@egidegypt.com`. Publicly visible material does not establish a right to redistribute data inside a paid third-party product, an API price, SLA, complete symbol/timeframe coverage, retention rights or historical depth. Treat EGID as the first provider to approach, not as already licensed for this product. Sources: https://www.egidegypt.com/ ; https://ticker.egidegypt.com/index.html ; https://www.egidegypt.com/contact-us.html .
+   - **DirectFN:** its public delayed-feed description advertises B2B/web-service delivery and fields including bid/ask, last trade, OHLC, volume, turnover and VWAP; its data-feed page describes real-time, delayed, end-of-day and historical products. Public pages do not establish product-specific EGX entitlements, pricing, commercial redistribution rights, or exact API coverage. Treat as a secondary quote candidate pending written terms. Sources: https://www.directfn.com.eg/delayed.aspx ; https://www.directfn.com.eg/data_feed.aspx .
+   - **Decision:** do not switch adapters, scrape public pages, or use a public demo as a production feed. Obtain written answers on permitted internal use versus redistribution, display rights, storage/history, user counts, delayed/live entitlements, intraday granularity, instrument coverage, corrections, rate limits, uptime/support and cost. Compare proposals before selecting a vendor.
+
 2. **Intraday eligibility:** no intraday recommendation mode until data granularity/freshness and Cairo exchange session boundaries are verified. Daily-only data can support a daily/swing view but cannot establish an intraday tape.
 3. **Volume/liquidity evidence:** use relative volume and traded value only where comparable historical bars exist. Do not claim order-book imbalance, buyer/seller aggression, smart-money accumulation or distribution without the required trade/order data.
 4. **Strategy definitions:** define intraday and swing entry/exit conditions, expiry, confirmation, stop/target behavior and duplicate-signal policy in separate versioned documents. This gate does not invent or change those rules.
@@ -71,7 +76,7 @@ Reviewed on `main`:
 
 ### E0 — Data and contract audit
 
-Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamp/timezone semantics, delay and licensing. The timestamp-provenance propagation gap was fixed by PR #418; verify the adapter's naive-timestamp assumption, then implement completed-session freshness and source-coverage contracts before strategy changes.
+Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamp/timezone semantics, delay and licensing. The timestamp-provenance propagation gap was fixed by PR #418; verify the adapter's naive-timestamp assumption, then implement completed-session freshness and source-coverage contracts before strategy changes. PR #435 now schedules the recurring configured analysis on EGX's Sunday–Thursday weekdays; official holidays remain unmodelled and must come from a verified exchange calendar. PR #436 records Yahoo/yfinance commercial-use and redistribution as a blocker. EGID is the first provider to approach for written terms and coverage; DirectFN is a secondary candidate, not an approved source.
 
 **Acceptance:** a test matrix covers fresh, delayed, stale, missing, malformed, corrected and future-dated bars; unsupported intraday input cannot produce a real-time-labelled alert. Freshness expectations must be derived from an approved EGX session calendar/source, not an arbitrary calendar-day threshold.
 
@@ -107,8 +112,11 @@ Complete release checklist, API/UI smoke-test matrix, secrets/configuration chec
 - No claim of profitability, calibrated win probability, or completed backtesting.
 - M61/backtesting remains paused.
 
-## 8. Current CI evidence at design time
+## 8. Current CI and merge evidence — 2026-10-31
 
-- Main before PR #416: run #40737429875 on `d925ec2aa0ce8f8e8b96623bc033a5beef68b0a4` succeeded across unit tests, integration tests, frontend tests, dependency audit and container build.
-- PR #416: run #40737685273 on exact head `3928e24cc9df092424ce9257e7d1d5f5034b29ca` succeeded across all five jobs and was squash-merged as `2498bd98a848a37d3e2a4c47df9bb603339fe423`.
-- Post-merge main run #40748408269 for the merge SHA was queued when this document was drafted. It must be checked before treating the merged baseline as CI-green.
+- PR #433 updated the non-M61 policy/readiness baseline. Its post-merge main run #41198751442 passed all five jobs.
+- PR #434 corrected the EGXBot data-readiness evidence: source-bar timestamp propagation already exists through analysis persistence, while Yahoo remains daily-only and naive upstream timestamps are normalized as UTC without verified upstream timezone semantics. Its post-merge main run #41199285240 passed all five jobs.
+- PR #435 corrected the recurring schedule to EGX Sunday–Thursday weekdays and added integration coverage. Exact-head CI #41201163061 passed all five jobs; merge commit `c94b0c71db296341aae5f156edf6d3a913bd210c`. Official exchange holidays are not modelled.
+- PR #436 recorded the Yahoo/yfinance commercial-use and redistribution blocker. Exact-head CI #41201286183 passed all five jobs; merge commit `7a2eb51fcca871e9037a53f113e7769de406eb65`.
+- Post-merge main CI after PR #435 was cancelled during the subsequent PR #436 push; the cumulative post-merge main run #41201727754 for PR #436 is still running. Check it before declaring the latest main baseline fully verified.
+- PR #437 updates the completion register and this design gate; its exact-head CI is running.
