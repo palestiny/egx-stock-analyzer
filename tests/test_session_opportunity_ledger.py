@@ -71,12 +71,16 @@ def test_report_reconstructs_state_as_of_generation_time() -> None:
     assert early.total_count == 1
     assert early.opportunities[0].current_status is SignalStatus.ACTIVE
     assert early.opportunities[0].market_proxy_outcome is None
+    assert early.opportunities[0].source_data_timestamp == dt(7)
+    assert early.opportunities[0].outcome_data_timestamp is None
     assert early.unresolved_count == 1
 
     final = builder.execute(date(2026, 10, 26), generated_at=dt(13))
     assert final.opportunities[0].current_status is SignalStatus.INVALIDATED
     assert final.opportunities[0].market_proxy_outcome is SignalOutcome.INVALIDATED
     assert final.opportunities[0].market_proxy_return == Decimal("-0.0594")
+    assert final.opportunities[0].source_data_timestamp == dt(7)
+    assert final.opportunities[0].outcome_data_timestamp == dt(12)
     assert final.resolved_proxy_count == 1
     assert final.unresolved_count == 0
     assert final.opportunities[0].original_targets == (
