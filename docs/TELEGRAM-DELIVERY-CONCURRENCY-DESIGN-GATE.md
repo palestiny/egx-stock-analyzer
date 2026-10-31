@@ -1,6 +1,6 @@
 # Telegram Delivery Concurrency — Design Gate
 
-**Status:** DEC-136 implementation merged through PRs #428–#430; DEC-137 implementation is in progress on `feat/telegram-bounded-definite-retries`  
+**Status:** DEC-136 and DEC-137 implementations merged through PRs #428–#432; PR #432 exact-head CI passed, post-merge main CI run #41197870758 is pending final unit-test completion  
 **Scope:** Per-recipient Telegram delivery ownership and recovery  
 **Out of scope:** Opportunity expiry, subscription policy, message content, scoring, automatic trading
 
@@ -132,7 +132,7 @@ Verification:
 - PR #429 main CI run #41191307763 passed all five jobs.
 - PR #430 exact-head CI run #41191550843 passed all five jobs; post-merge main CI for its merge commit is tracked separately.
 
-The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. DEC-137 is approved and its implementation is being verified on the active feature branch. `DELIVERY_UNKNOWN` remains manual-only. Exactly-once delivery is not guaranteed.
+The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. DEC-137 implementation is merged in PR #432. Its exact-head CI run #41197542121 passed all five jobs; post-merge main CI run #41197870758 is pending final unit-test completion. `DELIVERY_UNKNOWN` remains manual-only. Exactly-once delivery is not guaranteed.
 
 
 ## 11. Owner-approved definite-failure retry policy — DEC-137 (2026-10-31)
@@ -150,4 +150,4 @@ Only provider-confirmed definite failures are retryable. Policy:
 - `DELIVERY_UNKNOWN` is never automatically retried; DEC-136 manual reconciliation remains mandatory.
 - No automatic resend for `DELIVERED`, `NOT_DELIVERED`, or `RETRY_EXHAUSTED`.
 
-This decision is approved; implementation and tests are still required. The 15-minute cap does not increase the three-attempt budget. Exactly-once delivery is not guaranteed.
+This decision is approved and implemented in PR #432. Tests cover durable scheduling across store restart, due-only dispatch, the two retry delays, third-attempt exhaustion, and operator reconciliation. Exact-head CI run #41197542121 passed all five jobs; post-merge main CI run #41197870758 is pending final unit-test completion. The 15-minute cap does not increase the three-attempt budget. Exactly-once delivery is not guaranteed.
