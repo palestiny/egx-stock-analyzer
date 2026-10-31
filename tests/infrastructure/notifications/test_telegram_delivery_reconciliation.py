@@ -88,6 +88,10 @@ def test_confirmed_not_delivered_becomes_terminal_and_does_not_requeue(tmp_path)
     assert record is not None and record.status.value == "NOT_DELIVERED"
     assert record.claim_token is None
     assert record.lease_until is None
+    assert deliveries.claim(
+        event_id, user_id, "telegram", claim_token=uuid4(),
+        now=NOW, lease_until=NOW.replace(minute=1),
+    ) is False
     assert store.list_unresolved() == ()
 
 
