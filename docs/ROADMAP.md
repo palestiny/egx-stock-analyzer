@@ -8,6 +8,20 @@
 
 # Current Position
 
+## Non-M61 engineering checkpoint — 2026-10-31
+
+The latest non-M61 implementation increment merged:
+- PR #418: preserve the source price-bar timestamp in analysis/signal output.
+- PR #420: add offline integrity/provenance-structure tests for the canonical EGX daily archive.
+- PR #421: append the 2026-10-29 daily session (19 equities and 4 indices) and generalize the archive schema to distinguish equity EGP prices from index points.
+
+The canonical archive currently contains 45 rows (22 EGAL seed rows plus 23 rows for 2026-10-29). Its known data-quality exceptions remain visible: MICH and FAIT OHLC inconsistencies on 2026-10-29, plus an EGAL source-revision conflict for 2026-10-28. These values are not silently repaired or overwritten.
+
+**Verification boundary:** PR-head CI passed for #420 and #421 before merge. Main-branch workflows for the merge commits were still running at the time of this update; verify those before claiming post-merge CI success. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
+
+The previous design proposals #342, #344, and #347 are closed unmerged; they are not accepted owner decisions. Their policy questions remain unresolved. Do not implement Crash Radar thresholds/score suppression/alerts, commercial pricing/payment, or automated session finalization/distribution by inference. M61 remains paused by explicit owner request.
+
+
 ## M61 — Backtesting & Strategy Validation Design Gate
 
 **Status:** ⏸ Paused by owner request on 2026-10-28 — no M61 implementation or data-acquisition work until explicitly resumed
