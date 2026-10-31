@@ -45,8 +45,9 @@ def test_orchestrator_coordinates_transition_alert_and_outcome():
     orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
 
     signal = make_signal()
-    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
-    state = SignalMarketState(observed_at, Decimal("110"), observed_at)
+    observed_at = datetime(2026, 10, 4, 10, tzinfo=timezone.utc)
+    data_timestamp = datetime(2026, 10, 4, 9, 55, tzinfo=timezone.utc)
+    state = SignalMarketState(observed_at, Decimal("110"), data_timestamp)
     result = orchestrator.process(signal, state, entry_price=Decimal("100"))
 
     assert result.changed is True
@@ -60,8 +61,9 @@ def test_orchestrator_coordinates_transition_alert_and_outcome():
     assert outcome.target_label == "T1"
     assert outcome.realized_return == Decimal("0.10")
     assert outcome.realized_r == Decimal("2")
-    assert outcome.data_timestamp == state.data_timestamp
+    assert outcome.data_timestamp == data_timestamp
     assert outcome.data_timestamp != signal.data_timestamp
+    assert outcome.data_timestamp != state.observed_at
     assert history.history(result.signal_id)[-1].event == "STATUS_TRIGGERED"
 
 
