@@ -323,7 +323,7 @@ Add regime analytics, strategy registry, personalized watchlists, public methodo
 11. **Plan limits:** which features, delays, watchlists, and message frequencies belong to Free/Plus/Pro?
 12. **Payments:** launch countries/currencies and which gateway should be evaluated?
 13. **Portfolio:** manual entries/import first, or broker integration later?
-14. **Session report:** one final report after data finalization, or preliminary clearly labeled plus final?
+14. **Session report — RESOLVED 2026-10-31 in DEC-135:** one canonical report per completed Cairo-time EGX session; idempotent generation; corrections create traceable versions and must not duplicate distribution. Scheduling and delivery remain engineering acceptance items.
 15. **Publishing authority:** fully automatic under approved rules, operator approval for every opportunity, or hybrid?
 16. **Performance transparency:** publish full cohort statistics to everyone, or reserve detailed analytics for paid tiers while keeping limitations truthful for all users?
 
