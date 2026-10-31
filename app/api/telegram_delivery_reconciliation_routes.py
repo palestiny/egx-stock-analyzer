@@ -19,7 +19,7 @@ class ReconcileTelegramDeliveryRequest(BaseModel):
 
 def create_telegram_delivery_reconciliation_router(
     *,
-    store: SQLiteTelegramDeliveryReconciliationStore | None,
+    store: TelegramDeliveryReconciliationStore | None,
     require_operator,
 ) -> APIRouter:
     router = APIRouter()
