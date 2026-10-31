@@ -13,7 +13,7 @@ from app.api.market_intelligence_routes import create_market_intelligence_router
 
 from app.api.user_management_routes import create_user_management_router
 from app.api.telegram_delivery_reconciliation_routes import create_telegram_delivery_reconciliation_router
-from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_store import SQLiteTelegramDeliveryReconciliationStore
+from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
@@ -164,7 +164,7 @@ def create_app(
     telegram_webhook_secret: str | None = None,
     subscription_store: SubscriptionStore | None = None,
     user_store: UserStore | None = None,
-    telegram_delivery_reconciliation_store: SQLiteTelegramDeliveryReconciliationStore | None = None,
+    telegram_delivery_reconciliation_store: TelegramDeliveryReconciliationStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
