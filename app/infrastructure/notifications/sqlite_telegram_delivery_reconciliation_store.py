@@ -56,7 +56,7 @@ class SQLiteTelegramDeliveryReconciliationStore:
             rows = connection.execute(
                 """
                 SELECT event_id, user_id, channel, status, attempts,
-                       created_at, updated_at, last_error
+                       created_at, updated_at
                 FROM signal_alert_deliveries
                 WHERE status IN ('FAILED', 'DELIVERY_UNKNOWN')
                 ORDER BY updated_at ASC, event_id, user_id
@@ -72,7 +72,6 @@ class SQLiteTelegramDeliveryReconciliationStore:
             "attempts": int(row[4]),
             "created_at": str(row[5]),
             "updated_at": str(row[6]),
-            "last_error": str(row[7]) if row[7] is not None else None,
         } for row in rows)
 
     def reconcile(
@@ -97,7 +96,7 @@ class SQLiteTelegramDeliveryReconciliationStore:
             raise ValueError("channel is required")
         targets = {
             "CONFIRMED_DELIVERED": "DELIVERED",
-            "CONFIRMED_NOT_DELIVERED": "FAILED",
+            "CONFIRMED_NOT_DELIVERED": "NOT_DELIVERED",
         }
         if outcome not in targets:
             raise ValueError("unsupported reconciliation outcome")
