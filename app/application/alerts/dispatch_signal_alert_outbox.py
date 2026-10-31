@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.application.alerts.outbox import AlertOutbox, AlertOutboxRecord
 from app.application.alerts.signal_snapshot import snapshot_signal
@@ -15,7 +15,10 @@ from app.application.alerts.telegram_delivery_store import (
 from app.application.notifications.telegram_account_linking import (
     LinkedTelegramAccount,
 )
-from app.application.notifications.telegram_message_sender import TelegramMessageSender
+from app.application.notifications.telegram_message_sender import (
+    TelegramDeliveryRejected,
+    TelegramMessageSender,
+)
 from app.application.signals.store import SignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementDecision
 from app.domain.alerts.model import AlertSignalSnapshot
@@ -80,7 +83,13 @@ class DispatchSignalAlertOutbox:
             raise ValueError("now must be timezone-aware")
         if limit < 1:
             raise ValueError("limit must be positive")
+        timeout_seconds = self._transport.timeout_seconds
+        if timeout_seconds <= 0:
+            raise ValueError("Telegram transport timeout must be positive")
 
+        # A process restart may leave pre-send claims or in-flight sends behind.
+        # Only pre-send claims are safe to reclaim; an expired send becomes unknown.
+        self._deliveries.recover_expired_claims(now=now)
         events = self._outbox.pending(limit)
         recipients = self._recipients.list_linked_accounts()
         delivered = 0
@@ -92,8 +101,6 @@ class DispatchSignalAlertOutbox:
 
         for record in events:
             if not recipients:
-                # Preserve the existing no-replay behavior without misreporting
-                # the event as delivered. This terminal state is visible to operators.
                 self._outbox.mark_suppressed_no_recipients(
                     record.event.event_id,
                     "no linked Telegram recipients at dispatch time",
@@ -104,12 +111,14 @@ class DispatchSignalAlertOutbox:
 
             event_failed = False
             event_had_delivery = False
+            event_has_unresolved_delivery = False
             processed_events += 1
             signal_snapshot = record.event.signal_snapshot
             if signal_snapshot is None:
                 signal_record = self._history.get(record.event.signal_id)
                 if signal_record is not None:
                     signal_snapshot = snapshot_signal(signal_record.signal)
+
             for recipient in recipients:
                 existing = self._deliveries.get(
                     record.event.event_id,
@@ -121,6 +130,14 @@ class DispatchSignalAlertOutbox:
                     continue
                 if existing is not None and existing.status is SignalAlertDeliveryStatus.SUPPRESSED:
                     continue
+                if existing is not None and existing.status in {
+                    SignalAlertDeliveryStatus.CLAIMED,
+                    SignalAlertDeliveryStatus.SENDING,
+                    SignalAlertDeliveryStatus.FAILED,
+                    SignalAlertDeliveryStatus.DELIVERY_UNKNOWN,
+                }:
+                    event_has_unresolved_delivery = True
+                    continue
 
                 if existing is None:
                     self._deliveries.create_pending(
@@ -131,14 +148,19 @@ class DispatchSignalAlertOutbox:
                     )
                 user = self._users.get(recipient.user_id)
                 if user is None or not user.can_access_protected_resources():
-                    self._deliveries.mark_suppressed(
+                    suppression = self._deliveries.mark_suppressed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         "user_inactive_or_missing",
                         now=now,
                     )
-                    suppressed += 1
+                    if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
+                        suppressed += 1
+                    elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
                     continue
 
                 decision = self._entitlements.evaluate(
@@ -147,53 +169,114 @@ class DispatchSignalAlertOutbox:
                     now=now,
                 )
                 if not decision.allowed:
-                    self._deliveries.mark_suppressed(
+                    suppression = self._deliveries.mark_suppressed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         decision.reason,
                         now=now,
                     )
-                    suppressed += 1
+                    if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
+                        suppressed += 1
+                    elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
                     continue
 
                 if signal_snapshot is None:
-                    self._deliveries.mark_failed(
+                    failure = self._deliveries.mark_failed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         "signal history unavailable",
                         now=now,
                     )
-                    failed += 1
-                    event_failed = True
+                    if failure.status is SignalAlertDeliveryStatus.FAILED:
+                        failed += 1
+                        event_failed = True
+                    elif failure.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
+                    continue
+
+                claim_token = uuid4()
+                lease_until = now + timedelta(seconds=timeout_seconds * 2)
+                claimed = self._deliveries.claim(
+                    record.event.event_id,
+                    recipient.user_id,
+                    self.CHANNEL,
+                    claim_token=claim_token,
+                    now=now,
+                    lease_until=lease_until,
+                )
+                if not claimed:
+                    event_has_unresolved_delivery = True
+                    continue
+                if not self._deliveries.mark_sending(
+                    record.event.event_id,
+                    recipient.user_id,
+                    self.CHANNEL,
+                    claim_token=claim_token,
+                    now=now,
+                ):
+                    event_has_unresolved_delivery = True
                     continue
 
                 message = self._format_message(record, signal_snapshot)
                 try:
                     self._transport.send_message(recipient.chat_id, message)
-                except Exception as error:
-                    # Transport exception strings can contain sensitive request details.
-                    self._deliveries.mark_failed(
+                except TelegramDeliveryRejected as error:
+                    # The provider explicitly rejected the request. This is distinct
+                    # from a timeout/connection loss whose remote outcome is unknown.
+                    completed = self._deliveries.complete_failed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
-                        f"transport error: {error.__class__.__name__}",
+                        f"transport rejected: {error.__class__.__name__}",
+                        claim_token=claim_token,
                         now=now,
                     )
-                    failed += 1
-                    event_failed = True
+                    if completed:
+                        failed += 1
+                        event_failed = True
+                    else:
+                        event_has_unresolved_delivery = True
+                    continue
+                except Exception as error:
+                    # Unknown is the safe default for unclassified exceptions after
+                    # crossing the network-send boundary; never auto-resend it.
+                    self._deliveries.mark_delivery_unknown(
+                        record.event.event_id,
+                        recipient.user_id,
+                        self.CHANNEL,
+                        f"transport outcome unknown: {error.__class__.__name__}",
+                        claim_token=claim_token,
+                        now=now,
+                    )
+                    event_has_unresolved_delivery = True
                     continue
 
-                self._deliveries.mark_delivered(
+                completed = self._deliveries.complete_delivered(
                     record.event.event_id,
                     recipient.user_id,
                     self.CHANNEL,
+                    claim_token=claim_token,
                     now=now,
                 )
-                delivered += 1
-                event_had_delivery = True
+                if completed:
+                    delivered += 1
+                    event_had_delivery = True
+                else:
+                    # The provider returned success but the worker no longer owns
+                    # the lease. Do not overwrite a newer owner's state.
+                    event_has_unresolved_delivery = True
 
+            # Another worker or an ambiguous remote outcome may still own/affect a
+            # recipient. Do not finalize the event while that work is unresolved.
+            if event_has_unresolved_delivery:
+                continue
             if event_failed:
                 self._outbox.mark_failed(
                     record.event.event_id,

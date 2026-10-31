@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 from app.domain.reporting.alerts import AlertCandidate
+from app.application.notifications.telegram_message_sender import TelegramDeliveryOutcomeUnknown
 from app.infrastructure.notifications.telegram_provider import (
     TelegramNotificationProvider,
     TelegramNotificationProviderError,
@@ -87,7 +88,7 @@ def test_telegram_provider_maps_timeout_without_exposing_token():
         client=httpx.Client(transport=httpx.MockTransport(handler)),
     )
 
-    with pytest.raises(TelegramNotificationProviderError, match="timed out") as error:
+    with pytest.raises(TelegramDeliveryOutcomeUnknown, match="timed out") as error:
         provider.send(make_candidate(), "telegram")
 
     assert TOKEN not in str(error.value)
@@ -156,3 +157,37 @@ def test_telegram_provider_does_not_echo_token_from_provider_error():
         provider.send_message("recipient-chat-42", "Message")
 
     assert TOKEN not in str(error.value)
+
+
+def test_telegram_provider_exposes_effective_timeout_for_claim_lease():
+    provider = TelegramNotificationProvider(TOKEN, CHAT_ID, timeout=7.5)
+    assert provider.timeout_seconds == 7.5
+    provider.close()
+
+
+def test_telegram_provider_treats_server_error_as_ambiguous():
+    provider = TelegramNotificationProvider(
+        TOKEN,
+        CHAT_ID,
+        client=httpx.Client(
+            transport=httpx.MockTransport(lambda _: httpx.Response(503))
+        ),
+    )
+
+    with pytest.raises(TelegramDeliveryOutcomeUnknown, match="outcome is unknown"):
+        provider.send_message("recipient-chat-42", "Message")
+
+
+def test_telegram_provider_treats_unconfirmed_success_response_as_ambiguous():
+    provider = TelegramNotificationProvider(
+        TOKEN,
+        CHAT_ID,
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda _: httpx.Response(200, json={"description": "missing ok flag"})
+            )
+        ),
+    )
+
+    with pytest.raises(TelegramDeliveryOutcomeUnknown, match="did not confirm acceptance"):
+        provider.send_message("recipient-chat-42", "Message")
