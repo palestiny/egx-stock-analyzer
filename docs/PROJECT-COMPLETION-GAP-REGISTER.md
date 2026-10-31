@@ -23,10 +23,10 @@ This register separates verified implementation from incomplete acceptance and d
 
 ## Non-M61 work remaining
 
-### P0 — Verify post-PR-#416 main CI
+### P0 — Verify latest merged main CI
 
-- [ ] Check post-merge main run #40748408269 for exact merge SHA `2498bd98a848a37d3e2a4c47df9bb603339fe423` across unit tests, integration tests, frontend tests, dependency audit, and container build.
-- [ ] If any check fails, inspect the failing job and fix the root cause in a scoped PR; do not infer a green state from the PR branch run.
+- [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490 (unit, integration, frontend, dependency audit, container build).
+- [ ] After the current documentation PR is merged, verify its main-branch CI before updating the main baseline.
 
 ### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
@@ -56,7 +56,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 ### P1 — Subscription and commercial boundary (manual entitlement policy accepted in DEC-135; billing deferred)
 
-- [ ] Keep current operator-managed activation explicitly manual until payment policy is approved.
+- [ ] Keep operator-managed activation manual and auditable; do not treat manual provisioning or payment metadata as proof of payment.
 - [ ] Before gateway implementation, record owner decisions for pricing/tiers, payment provider, checkout, trusted webhook verification, idempotency, refunds/chargebacks, cancellation and reconciliation.
 - [ ] Verify server-side entitlement enforcement across API and Telegram, including expired/pending/cancelled subscriptions and replayed or out-of-order provider events.
 - [ ] Do not treat `payment_provider` or `payment_reference` metadata as verified payment.
@@ -68,14 +68,7 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Implement configurable monitored universe and completed-session freshness evaluation.
 - [ ] Mark stale/missing/insufficient coverage explicitly; preserve explainability and avoid automatic alerts.
 
-Historical owner-decision questions (now resolved by DEC-135):
-- Universe ownership (fixed EGX30, broad EGX universe, or operator-configured universe).
-- Freshness threshold and handling of unknown dates.
-- Minimum coverage and whether to suppress the composite score when evidence is insufficient.
-- Daily history persistence, retention and correction policy.
-- Notification thresholds/hysteresis, audience, rate limits and recovery/suppression behavior.
-
-Until accepted, preserve the existing 50/40/10 heuristic, show coverage/freshness and limitations, and do not call it a crash probability or trading signal.
+DEC-135 resolves the owner-policy baseline. Preserve the existing 50/40/10 heuristic; do not change score semantics, enable alerts, or call the score a crash probability or trading signal. The detailed implementation and evidence tasks remain open.
 
 ### P1 — News/source policy gate (official-source-only policy accepted in DEC-135; source-specific terms verification remains open)
 
