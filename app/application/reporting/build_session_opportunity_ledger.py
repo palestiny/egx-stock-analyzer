@@ -58,7 +58,14 @@ class BuildSessionOpportunityLedger:
             if not history:
                 continue
             history.sort(key=lambda item: (item.recorded_at, item.event))
-            original_record = history[0]
+            publication_records = [
+                item
+                for item in history
+                if item.event in {"PUBLISHED", "PUBLISHED_VERSION"}
+            ]
+            if not publication_records:
+                continue
+            original_record = publication_records[0]
             current_record = history[-1]
             original = original_record.signal
             current = current_record.signal
@@ -70,7 +77,7 @@ class BuildSessionOpportunityLedger:
                 raise ValueError("signal data timestamps must be timezone-aware")
             if original.data_timestamp > generated_at:
                 continue
-            if original.generated_at.astimezone(self._timezone).date() != session_date:
+            if original_record.recorded_at.astimezone(self._timezone).date() != session_date:
                 continue
 
             outcome = outcomes.get(signal_id)
