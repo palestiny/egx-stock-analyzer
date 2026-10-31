@@ -9,6 +9,7 @@ from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
 from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStatus
 from app.application.notifications.telegram_account_linking import LinkedTelegramAccount
+from app.application.notifications.telegram_message_sender import TelegramDeliveryRejected
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
 from app.domain.alerts.model import AlertEvent, AlertEventType
@@ -47,14 +48,20 @@ class FakeRecipients:
 
 
 class FakeTransport:
-    def __init__(self, failures: int = 0):
+    timeout_seconds = 10.0
+
+    def __init__(self, failures: int = 0, ambiguous_failures: int = 0):
         self.failures = failures
+        self.ambiguous_failures = ambiguous_failures
         self.sent = []
 
     def send_message(self, chat_id: str, message: str) -> None:
+        if self.ambiguous_failures:
+            self.ambiguous_failures -= 1
+            raise TimeoutError("sensitive request details must not be persisted")
         if self.failures:
             self.failures -= 1
-            raise TimeoutError("sensitive request details must not be persisted")
+            raise TelegramDeliveryRejected("provider rejected request")
         self.sent.append((chat_id, message))
 
 
@@ -98,6 +105,7 @@ def setup_dispatch(
     accounts,
     *,
     failures: int = 0,
+    ambiguous_failures: int = 0,
     entitled_users=(),
     inactive_users=(),
     expired_users=(),
@@ -145,7 +153,7 @@ def setup_dispatch(
             actor="test-billing",
             reason="Verified test subscription",
         )
-    transport = FakeTransport(failures=failures)
+    transport = FakeTransport(failures=failures, ambiguous_failures=ambiguous_failures)
     dispatcher = DispatchSignalAlertOutbox(
         outbox=outbox,
         recipients=FakeRecipients(accounts),
@@ -414,3 +422,30 @@ def test_dispatch_suppresses_expired_subscription_before_telegram_send(tmp_path)
     assert delivery.status is SignalAlertDeliveryStatus.SUPPRESSED
     assert delivery.last_error == "no_eligible_plan"
     assert outbox.get(event.event_id).status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
+
+
+def test_ambiguous_transport_outcome_is_not_automatically_retried(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-ambiguous")],
+        ambiguous_failures=1,
+        entitled_users=(user_id,),
+    )
+
+    first = dispatcher.execute(now=NOW)
+    delivery = deliveries.get(event.event_id, user_id, "telegram")
+    assert first.recipients_delivered == 0
+    assert first.recipients_failed == 0
+    assert delivery is not None
+    assert delivery.status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
+    assert transport.sent == []
+
+    second = dispatcher.execute(now=NOW + timedelta(minutes=1))
+    assert second.events_processed == 1
+    assert transport.sent == []
+    assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
+    # Unknown delivery keeps the event unresolved rather than falsely suppressing
+    # or marking it delivered.
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
