@@ -1,12 +1,12 @@
 # Project Completion Gap Register
 
 **Status:** Active non-M61 engineering/acceptance register  
-**Updated:** 2026-10-28  
-**Baseline:** `main` includes PR #416 squash merge `2498bd98a848a37d3e2a4c47df9bb603339fe423`; post-merge CI run #40748408269 was queued at this update.  
+**Updated:** 2026-10-31  
+**Baseline:** `main` at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` (PR #422); main CI run #41185546490 passed all five jobs.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
-This register separates verified implementation from incomplete acceptance and decisions. A module, endpoint, or passing unit test alone does not prove an end-to-end user capability is complete.
+This register separates verified implementation from incomplete acceptance and decisions. A module, endpoint, or passing unit test alone does not prove an end-to-end user capability is complete. Owner policy baseline DEC-135 was accepted on 2026-10-31; policy approval does not mark the related engineering acceptance items complete.
 
 ## Verified merged foundations
 
@@ -28,7 +28,7 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Check post-merge main run #40748408269 for exact merge SHA `2498bd98a848a37d3e2a4c47df9bb603339fe423` across unit tests, integration tests, frontend tests, dependency audit, and container build.
 - [ ] If any check fails, inspect the failing job and fix the root cause in a scoped PR; do not infer a green state from the PR branch run.
 
-### P1 — EGXBot market-data readiness and dual engines
+### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
 - [ ] Inventory actual Yahoo Finance adapter behavior, EGX symbol coverage, supported bar intervals, timestamps, data delay, corrections, rate limits and licensing/terms.
 - [ ] Implement and test an explicit data freshness/provenance gate; suppress or clearly mark stale/insufficient data rather than producing a current-session actionable claim.
@@ -37,7 +37,7 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Define relative volume/traded-value evidence from available bars; do not claim order-book imbalance or smart-money activity without suitable underlying data.
 - [ ] Record rationale, data timestamp, strategy version, entry conditions, invalidation, targets and expiry on every published opportunity.
 
-### P1 — Opportunity lifecycle and Telegram delivery acceptance
+### P1 — Opportunity lifecycle and Telegram delivery acceptance (owner policy accepted in DEC-135)
 
 - [x] Verify publication -> durable outbox -> entitled linked recipient -> Telegram transport with idempotent replay via PR #416 contract test.
 - [ ] Add/verify contract tests for revised version, invalidation, expiry, target/stop observations, duplicate dispatch, transient failure/retry/recovery, retry exhaustion, no linked recipients and entitlement changes.
@@ -45,7 +45,7 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Preserve original published rationale and price levels; keep hypothetical opportunity outcomes separate from actual portfolio P&L.
 - [ ] No change to scoring thresholds or automatic recommendation policy without a separately accepted decision.
 
-### P1 — Session reports
+### P1 — Session reports (owner policy accepted in DEC-135)
 
 - [x] Historical snapshot builder excludes signals whose `generated_at` or `data_timestamp` is after the requested report cutoff; timezone-aware timestamp validation is covered by tests (PR #414).
 - [ ] Trace session report API, store, owner dashboard, scheduler and Telegram delivery composition.
@@ -54,16 +54,21 @@ This register separates verified implementation from incomplete acceptance and d
 - [ ] Add end-to-end tests for scheduled generation, duplicate scheduler invocation, missing data, delayed signals, timezone/session boundaries and delivery failure.
 - [ ] Until scheduling and delivery are proven by integration tests or workflow evidence, describe reports as API/manual, not automatic.
 
-### P1 — Subscription and commercial boundary
+### P1 — Subscription and commercial boundary (manual entitlement policy accepted in DEC-135; billing deferred)
 
 - [ ] Keep current operator-managed activation explicitly manual until payment policy is approved.
 - [ ] Before gateway implementation, record owner decisions for pricing/tiers, payment provider, checkout, trusted webhook verification, idempotency, refunds/chargebacks, cancellation and reconciliation.
 - [ ] Verify server-side entitlement enforcement across API and Telegram, including expired/pending/cancelled subscriptions and replayed or out-of-order provider events.
 - [ ] Do not treat `payment_provider` or `payment_reference` metadata as verified payment.
 
-### P1 — Crash Radar policy gate (DEC-133)
+### P1 — Crash Radar policy gate (DEC-133 / DEC-135)
 
-Owner decisions required before changing score semantics:
+[x] Owner policy baseline accepted in DEC-135. Engineering implementation and verification remain open:
+
+- [ ] Implement configurable monitored universe and completed-session freshness evaluation.
+- [ ] Mark stale/missing/insufficient coverage explicitly; preserve explainability and avoid automatic alerts.
+
+Historical owner-decision questions (now resolved by DEC-135):
 - Universe ownership (fixed EGX30, broad EGX universe, or operator-configured universe).
 - Freshness threshold and handling of unknown dates.
 - Minimum coverage and whether to suppress the composite score when evidence is insufficient.
@@ -72,7 +77,7 @@ Owner decisions required before changing score semantics:
 
 Until accepted, preserve the existing 50/40/10 heuristic, show coverage/freshness and limitations, and do not call it a crash probability or trading signal.
 
-### P1 — News/source policy gate
+### P1 — News/source policy gate (official-source-only policy accepted in DEC-135; source-specific terms verification remains open)
 
 - [ ] Review a specific official EGX/company-disclosure source, its terms/licensing, attribution, retention, rate limits, timestamp quality and historical coverage.
 - [ ] Configure only sources whose terms and operational access have been accepted; retain provenance and point-in-time timestamps.
@@ -96,3 +101,16 @@ A work item is complete only when:
 5. docs match shipped behavior and explicitly identify external dependencies or owner decisions.
 
 This register is not a claim that all listed work is implemented. It is the auditable checklist for closing remaining non-M61 gaps without silently inventing product policy.
+
+
+## Owner policy decision update — 2026-10-31 (DEC-135)
+
+The owner accepted the conservative non-M61 product/operational baseline:
+- configurable Crash Radar universe, completed-session freshness and visible coverage limitations, with no automatic alerts;
+- immutable opportunity versions, completed-session re-evaluation, explicit invalidation/expiry, durable auditable Telegram lifecycle, and manual trading only;
+- Cairo-time session reports with idempotent generation and traceable corrections without duplicate distribution;
+- manual audited subscription entitlements; live billing/pricing/refunds remain deferred;
+- official news disclosures only after source access/reuse terms are verified;
+- suppression of actionable output when data is stale, missing, future-dated, or invalid, with explicit reason and coverage.
+
+This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
