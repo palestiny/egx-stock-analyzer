@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `a65612d2f6447dff041699f99e4f879c5a9c4a89` (PR #441). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`; its post-merge main run #41204392179 was still in progress at this register update. PR #441 exact-head CI run #41204283794 passed all five jobs; merge commit `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 was pending at this register update. Earlier verified baseline evidence remains recorded below.  
+**Baseline:** `main` at `d86f418ea927c11755c821a6c1c44c736023ddca` (PR #445). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; post-merge main CI is pending verification. Earlier verified baseline evidence remains recorded below.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -23,6 +23,9 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #438 adds finite-number and timezone/chronology invariants to signal-outcome records; exact-head CI run #41203293617 passed all five jobs. Merge commit: `29f7b6655109e91940159e9bf14be1d9eacbf189`.
 - PR #439 adds finite-number and timezone-aware timestamp invariants to signal domain models; exact-head CI run #41203128989 passed all five jobs. Merge commit: `7f825a08430b354814b5c875b4aa106d0b2131d2`.
 - PR #441 exposes each opportunity's source-data timestamp and the outcome's source-data timestamp in API responses and immutable SQLite snapshots. Exact-head CI run #41204283794 passed all five jobs. Merge commit: `a65612d2f6447dff041699f99e4f879c5a9c4a89`. These are provenance timestamps, not a freshness classification.
+- PR #442 updates this register and the session-report scheduler design gate after PR #441. Exact-head CI run #41204657069 and post-merge main run #41205090278 passed all five jobs. Merge commit: `7a672a890e7334335f90b359dbf2c86d845eda6a`.
+- PR #443 corrects terminal outcome provenance: `SignalMarketState` now carries the actual market-data source timestamp, and terminal `SignalOutcomeRecord.data_timestamp` is populated from that observation rather than signal-generation data. Exact-head CI run #41205688356 passed all five jobs. Merge commit: `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`.
+- PR #445 limits session opportunity reports to signal identities with a `PUBLISHED` or `PUBLISHED_VERSION` event, preserves the first published version as the original snapshot, and assigns the report session by publication time in the exchange timezone. Exact-head CI run #41206339863 passed all five jobs; 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`. Post-merge main CI is pending verification.
 
 ## Non-M61 work remaining
 
@@ -53,7 +56,11 @@ This register separates verified implementation from incomplete acceptance and d
 
 - [x] Verify publication -> durable outbox -> entitled linked recipient -> Telegram transport with idempotent replay via PR #416 contract test.
 - [ ] Add/verify contract tests for revised version, invalidation, expiry, target/stop observations, duplicate dispatch, transient failure/retry/recovery, retry exhaustion, no linked recipients and entitlement changes.
-- [ ] Confirm per-user opportunity history and end-to-end re-evaluation are wired; event enum values or individual services alone are insufficient evidence.
+- [x] Trace lifecycle composition: `SignalLifecycleOrchestrator` is constructed in `app/infrastructure/runtime.py`, but the inspected opportunity publication API route calls only `GenerateSignal` and `PublishSignalOpportunity`; it does not invoke lifecycle processing. Automatic target/invalidation observation is therefore not evidenced.
+- [x] Record the missing observation integration and required price/data/expiry/revision decisions in `docs/SIGNAL-LIFECYCLE-OBSERVATION-INTEGRATION-DESIGN-GATE.md`.
+- [x] Confirm per-user opportunity history is not yet evidenced: signal history is global by signal identity, and recipient delivery rows do not provide a user-scoped lifecycle history/read model.
+- [ ] Implement an authorized per-user opportunity history/read model with immutable publication versions and lifecycle states after the observation/revision contract is approved.
+- [ ] Implement and prove end-to-end re-evaluation only after the observation-price, crossing, data-eligibility, expiry and revision semantics in that gate are resolved.
 - [ ] Preserve original published rationale and price levels; keep hypothetical opportunity outcomes separate from actual portfolio P&L.
 - [ ] No change to scoring thresholds or automatic recommendation policy without a separately accepted decision.
 
