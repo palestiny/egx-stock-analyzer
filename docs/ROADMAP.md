@@ -17,9 +17,9 @@ The latest non-M61 implementation increment merged:
 
 The canonical archive currently contains 45 rows (22 EGAL seed rows plus 23 rows for 2026-10-29). Its known data-quality exceptions remain visible: MICH and FAIT OHLC inconsistencies on 2026-10-29, plus an EGAL source-revision conflict for 2026-10-28. These values are not silently repaired or overwritten.
 
-**Verification boundary:** PR-head CI passed for #420 and #421 before merge. Main-branch workflows for the merge commits were still running at the time of this update; verify those before claiming post-merge CI success. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
+**Verification boundary:** PR-head CI passed for #420 and #421 before merge. PR #422 is now merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`, and main CI run #41185546490 passed all five jobs. This validates the tested code path, not market-data accuracy, full-market coverage, database ingestion, or strategy profitability. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
 
-The previous design proposals #342, #344, and #347 are closed unmerged; they are not accepted owner decisions. Their policy questions remain unresolved. Do not implement Crash Radar thresholds/score suppression/alerts, commercial pricing/payment, or automated session finalization/distribution by inference. M61 remains paused by explicit owner request.
+The previous design proposals #342, #344, and #347 are closed unmerged; they are not themselves accepted owner decisions. Their policy areas are now governed by owner-accepted DEC-135. Do not implement automatic Crash Radar alerts, commercial pricing/payment, or broker execution. Automated session report scheduling/distribution may proceed only within DEC-135 and with tested idempotency, correction, retry, and failure visibility. M61 remains paused by explicit owner request.
 
 
 ## M61 — Backtesting & Strategy Validation Design Gate
@@ -233,3 +233,12 @@ The following product capabilities were merged into `main` after the M61 acquisi
 **M61 is paused by explicit owner request on 2026-10-28. Do not start or continue M61 data acquisition, backtest evaluation, or performance claims until the owner resumes it.**
 
 **Temporary execution focus (outside M61):** close engineering/product gaps in existing capabilities. Work in this order: (1) verify and harden current Crash Radar / Market Breadth & Stress Pulse freshness, coverage, and explainability without changing its scoring formula; (2) finish the technical-analysis/news evidence stack already represented by merged implementation PRs and identify genuinely missing integration; (3) review and close the owner decisions in the trading-opportunity/Telegram/session-report/owner-dashboard design gate before any payment or subscription implementation; (4) complete repository quality, security, dependency, and operational documentation checks. Keep the M61 historical dataset isolated and unchanged during this pause. The public COMI/multi-symbol diagnostics in draft PR #321 are exploratory only and do not satisfy DEC-130 acceptance. Do not use them to claim a validated trading edge. The owner has no paid-data budget; any accepted source must have verifiable storage/research-use rights, point-in-time financial evidence, and an immutable manifest before Strategy v0 evaluation.
+
+
+## Owner-approved non-M61 policy baseline — 2026-10-31 (DEC-135)
+
+The owner accepted the conservative policy baseline for Crash Radar, EGXBot/Telegram opportunity lifecycle, session reports, manual subscription entitlements, official-news provenance, and stale/invalid market-data suppression. The detailed binding decision is recorded in `docs/DECISION_LOG.md` under DEC-135. This resolves policy approval only; it does not declare the related engineering work complete.
+
+Verified repository checkpoint: PR #422 merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`; main CI run #41185546490 passed all five jobs. PR #321 remains open Draft and M61 remains paused.
+
+**Next execution priority:** update the gap register from evidence, then close the accepted non-M61 engineering work in bounded slices: (1) opportunity lifecycle/Telegram failure and recovery contracts; (2) Cairo-session report scheduling/correction/delivery composition; (3) Crash Radar configurable universe/freshness/coverage gates without changing its score formula; (4) official-news source terms and provenance verification; (5) entitlement enforcement across API and Telegram. Keep payment collection/pricing/refunds deferred and do not enable automatic trading or Crash Radar alerts.

@@ -3087,3 +3087,33 @@ Source Acquisition → Preserved Artifacts → Manifest/Checksums → Validation
 No strategy-rule changes, ranking, optimization, portfolio construction, or live execution are introduced by DEC-130.
 
 See docs/DEC-130-M61-HISTORICAL-DATA-ACQUISITION-GATE.md.
+
+
+# DEC-135 — Non-M61 Product and Operational Policy Baseline
+
+**Status:** Accepted by owner  
+**Date:** 2026-10-31
+
+## Context
+
+The non-M61 completion review identified unresolved product and operational policy choices across Crash Radar, EGXBot opportunity lifecycle and Telegram delivery, session reporting, subscriptions, news provenance, and market-data eligibility.
+
+## Decision
+
+The following conservative policies are accepted as the implementation baseline:
+
+1. **Crash Radar:** the monitored universe is operator-configurable. Data freshness is evaluated against completed EGX sessions; after one full completed session without an updated observation, the affected coverage is marked stale. Missing or insufficient coverage is disclosed and must not be represented as complete evidence. Historical persistence is retained with provenance and correction visibility. No automatic Crash Radar alerts are enabled in this baseline.
+2. **EGXBot and Telegram:** every published opportunity version is immutable. Re-evaluation occurs after each completed session. Material changes, invalidation, and expiry are represented as explicit lifecycle events and delivered through the durable, idempotent outbox. Original rationale and levels remain auditable. Trading execution remains manual; no broker execution is authorized.
+3. **Session reports:** use the Cairo exchange timezone and one canonical report per completed session. Generation is idempotent. Corrections create a traceable corrected report/version and must not cause duplicate distribution. Automatic scheduling/distribution may be implemented only with observable failure/retry behavior and tested composition.
+4. **Subscriptions:** entitlement administration remains operator-managed and auditable. Manual provisioning is not proof of payment. Live billing, payment collection, pricing, refunds, and chargeback behavior remain deferred pending separate commercial/provider decisions.
+5. **News:** only official disclosures with verified access and reuse terms may be enabled as accepted sources. Preserve source identity, timestamps, corrections, and provenance. Do not claim complete news coverage.
+6. **Market data and analysis:** stale, missing, future-dated, or invalid data cannot produce an actionable signal. The system must expose the reason and coverage limitations. Intraday claims require verified intraday granularity and freshness; daily observations must not be presented as live intraday evidence.
+
+## Boundaries
+
+- This decision does not resume M61 or authorize historical strategy evaluation.
+- It does not approve a payment provider, pricing, or commercial terms.
+- It does not authorize automatic trading.
+- Existing scoring formulas and thresholds must not be silently changed; any material change requires its own evidence and decision gate.
+- Implementation remains subject to tests, CI, security/authorization checks, and operational verification.
+

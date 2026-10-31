@@ -1,6 +1,6 @@
 # DEC-133 — EGX Crash Radar v2 Design Gate
 
-**Status:** Path C approved; M61 paused by owner request (2026-10-28); remaining Crash Radar policy decisions pending  
+**Status:** Path C and conservative Crash Radar policy baseline accepted in DEC-135 (2026-10-31); implementation and evidence verification remain open  
 **Date:** 2026-10-26  
 **Milestone relationship:** Candidate capability; does not replace the active M61 historical-evidence milestone.
 
@@ -129,3 +129,17 @@ Option C is approved. The remaining decisions (universe, freshness warning/enfor
 The owner has explicitly paused M61 and requested that non-M61 engineering/product gaps be completed first. This does not authorize a data-backed Crash Radar model or change M61 acceptance criteria. The safe first increment is explainability of the existing 50/40/10 heuristic; component explainability is merged through PR #387; per-symbol snapshot-age metadata is proposed in PR #392 and must pass CI before merge. Existing per-symbol analysis-date metadata remains evidence metadata only: it does not prove current prices, define a freshness threshold, or enforce a minimum-coverage policy.
 
 Still open: configured universe/versioning, freshness policy, minimum coverage, score suppression behavior, persistence/retention of daily score history, and whether notifications are allowed. No new thresholds or score changes are authorized by this status refresh.
+
+
+## 11. Owner policy acceptance — 2026-10-31 (DEC-135)
+
+The owner has accepted the following policy baseline, superseding the unresolved policy questions recorded in the historical 2026-10-28 status sections above:
+
+- The monitored universe is operator-configurable and versioned. A caller-supplied/custom universe must be identified as such; it must not be presented as a complete market-wide universe.
+- Freshness is evaluated against completed EGX sessions. After one full completed session without an updated observation, affected evidence is marked stale. Unknown timestamps remain unknown and are never inferred.
+- Missing, stale, or insufficient coverage is explicitly disclosed. Coverage limitations must not be represented as healthy evidence or as a complete market-wide score.
+- Preserve historical observations and score inputs with provenance and correction visibility. Do not silently overwrite corrected source history.
+- Crash Radar remains display-only in this baseline: no automatic alerts or notification thresholds are enabled.
+- Preserve the existing 50/40/10 heuristic. DEC-135 does not authorize changing weights, introducing predictive claims, or treating the score as a crash probability or trading signal.
+
+**Implementation remains open:** configured universe/version persistence, completed-session freshness evaluation, stale/missing coverage behavior, history/correction handling, API/UI contract tests, and end-to-end CI must be implemented and verified. The one-session freshness boundary must be evaluated using the actual EGX calendar/session completion source; do not approximate a completed session using elapsed wall-clock time. M61 remains paused.
