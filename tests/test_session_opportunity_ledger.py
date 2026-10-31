@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
@@ -81,6 +82,9 @@ def test_report_reconstructs_state_as_of_generation_time() -> None:
     assert final.opportunities[0].market_proxy_return == Decimal("-0.0594")
     assert final.opportunities[0].source_data_timestamp == dt(7)
     assert final.opportunities[0].outcome_data_timestamp == dt(12)
+    response = SessionOpportunityLedgerResponse.from_report(final)
+    assert response["opportunities"][0]["source_data_timestamp"] == dt(7).isoformat()
+    assert response["opportunities"][0]["outcome_data_timestamp"] == dt(12).isoformat()
     assert final.resolved_proxy_count == 1
     assert final.unresolved_count == 0
     assert final.opportunities[0].original_targets == (
