@@ -1,6 +1,6 @@
 # DEC-134 — Trading Opportunities, Telegram Distribution, Session Reports, Subscriptions, and Owner Dashboard
 
-**Status:** Partially implemented on `main`; operator subscription API, owner-dashboard controls, and terminal no-recipient Telegram dispatch state are merged; remaining end-to-end acceptance and product/policy decisions are still open  
+**Status:** Partially implemented on `main`; conservative non-M61 policy baseline accepted in DEC-135 (2026-10-31); engineering acceptance and remaining product decisions remain open  
 **Date:** 2026-10-26  
 **Repository:** palestiny/egx-stock-analyzer  
 **Current execution priority:** Non-M61 product and engineering gaps; M61 paused by owner request on 2026-10-28
@@ -9,7 +9,7 @@
 
 Define the product direction without silently changing current analytical, alert-delivery, or roadmap behavior. The goal is to evolve EGX Stock Analyzer into an explainable EGX opportunity-monitoring platform with a Telegram bot, post-session reports, subscription plans, and an owner dashboard.
 
-This is a design proposal, not implementation approval. M61 is paused by explicit owner request as of 2026-10-28; no live historical performance, future profit, or brokerage execution is implied.
+This document remains the design and implementation acceptance gate. DEC-135 accepts the conservative policies explicitly listed below; it does not declare their implementation complete or authorize live historical performance claims, future profit, or brokerage execution. M61 is paused by explicit owner request.
 
 ## 2. Verified Existing Foundation and Limits
 
@@ -311,19 +311,21 @@ Add regime analytics, strategy registry, personalized watchlists, public methodo
 ## 13. Owner Decisions Required
 
 1. **M61 priority — RESOLVED 2026-10-28:** owner explicitly paused M61 and requested completion of non-M61 gaps first. M61 remains incomplete and its evidence gate is unchanged.
-2. **Initial universe:** EGX30, current configured universe, or a versioned broad EGX universe?
-3. **Timeframes:** daily only initially, or daily plus intraday? Intraday liquidity claims require suitable licensed data.
-4. **Entry semantics:** publish a watch setup before trigger, wait for candle-close confirmation, or support both as separate states?
-5. **Evaluation granularity:** daily OHLCV first, or reliable intraday bars/ticks? This changes claims about exact fills and target/stop ordering.
-6. **Direction:** long-only first, or include short scenarios? No brokerage execution is assumed.
-7. **Duration:** fixed horizon buckets or strategy-specific estimated bar ranges?
-8. **Telegram packaging:** public/free channel plus private subscriber bot, or private bot conversations for all tiers?
-9. **Plan limits:** which features, delays, watchlists, and message frequencies belong to Free/Plus/Pro?
-10. **Payments:** launch countries/currencies and which gateway should be evaluated?
-11. **Portfolio:** manual entries/import first, or broker integration later?
-12. **Session report:** one final report after data finalization, or preliminary clearly labeled plus final?
-13. **Publishing authority:** fully automatic under approved rules, operator approval for every opportunity, or hybrid?
-14. **Performance transparency:** publish full cohort statistics to everyone, or reserve detailed analytics for paid tiers while keeping limitations truthful for all users?
+2. **DEC-135 policy baseline — RESOLVED 2026-10-31:** immutable published opportunity versions; re-evaluation after each completed session; explicit invalidation/expiry events; durable auditable Telegram delivery; manual trading only; Cairo-time idempotent session reports with traceable corrections/no duplicate distribution; manual audited entitlements with billing/pricing/refunds deferred; official news only after access/reuse terms are verified; and suppression of actionable output for stale/missing/future/invalid data.
+3. **Crash Radar policy — RESOLVED 2026-10-31 in DEC-135:** operator-configurable universe, completed-session freshness, visible coverage limitations, preserved provenance/corrections, no automatic alerts; preserve existing score formula.
+4. **Initial universe:** EGX30, current configured universe, or a versioned broad EGX universe?
+5. **Timeframes:** daily only initially, or daily plus intraday? Intraday liquidity claims require suitable licensed data.
+6. **Entry semantics:** publish a watch setup before trigger, wait for candle-close confirmation, or support both as separate states?
+7. **Evaluation granularity:** daily OHLCV first, or reliable intraday bars/ticks? This changes claims about exact fills and target/stop ordering.
+8. **Direction:** long-only first, or include short scenarios? No brokerage execution is assumed.
+9. **Duration:** fixed horizon buckets or strategy-specific estimated bar ranges?
+10. **Telegram packaging:** public/free channel plus private subscriber bot, or private bot conversations for all tiers?
+11. **Plan limits:** which features, delays, watchlists, and message frequencies belong to Free/Plus/Pro?
+12. **Payments:** launch countries/currencies and which gateway should be evaluated?
+13. **Portfolio:** manual entries/import first, or broker integration later?
+14. **Session report:** one final report after data finalization, or preliminary clearly labeled plus final?
+15. **Publishing authority:** fully automatic under approved rules, operator approval for every opportunity, or hybrid?
+16. **Performance transparency:** publish full cohort statistics to everyone, or reserve detailed analytics for paid tiers while keeping limitations truthful for all users?
 
 ## 14. Proposed Defaults — Not Yet Accepted
 
@@ -343,8 +345,8 @@ This gate does not authorize changing Crash Radar scoring, changing existing BUY
 
 ## 16. Decision Record
 
-**Status:** Draft. Decision 1 (M61 pause) is accepted on 2026-10-28; remaining product-policy decisions in Section 13 are still open.  
-**Next step:** resolve the remaining universe/timeframe, entry semantics, publishing authority, Telegram packaging, and subscription/payment scope; then split approved work into small design-gated milestones.
+**Status:** Partially accepted. M61 pause and DEC-135 policy baseline are accepted. Remaining product decisions in Section 13 (including universe/timeframe and entry semantics) remain open; billing/pricing/refunds are explicitly deferred.  
+**Next step:** implement the accepted policy baseline in bounded, testable increments while preserving unresolved strategy/product choices as separate gates.
 
 
 ## 17. Implementation Status — 2026-10-27
@@ -391,3 +393,20 @@ The earlier status notes above are historical snapshots. The current GitHub main
 The session-report feature is not end-to-end complete: automated scheduling/finalization and Telegram distribution remain unimplemented until the exchange calendar, data-finalization cutoff, stale/missing-data behavior, and provisional-versus-final policy are accepted. The existing UI report is a manual snapshot, not a certified final session report. Account linking and recipient delivery must be verified against current main behavior rather than inferred from older PR statuses.
 
 M61 is paused by the owner as of 2026-10-28. No historical performance conclusion or source acceptance is implied. Remaining policy decisions in Section 13 stay open; this status refresh does not authorize payment gateway selection, prices, paid entitlements, or unreviewed lifecycle semantics.
+
+
+## 19. Owner-approved policy reconciliation — 2026-10-31 (DEC-135)
+
+The owner accepted the conservative baseline for opportunity lifecycle, Telegram delivery, session reports, subscriptions, news, and data-quality eligibility. The binding details are in `docs/DECISION_LOG.md` under DEC-135.
+
+Implementation consequences:
+- Published opportunity versions remain immutable; after each completed EGX session, evaluate lifecycle transitions and emit explicit, auditable invalidation/expiry/update events. No silent price-level edits and no broker execution.
+- Telegram delivery uses the durable outbox and per-recipient idempotency; failure/recovery, duplicate dispatch, entitlement changes, and operator visibility still require complete integration evidence.
+- Session reports use `Africa/Cairo`, one canonical report per completed session, idempotent generation, and traceable corrected versions without duplicate distribution. Automatic scheduling/distribution must expose retries and failures.
+- Subscription entitlement administration remains manual and audited. No payment gateway, pricing, payment collection, refunds, or chargebacks are approved.
+- News ingestion may enable only official disclosures after the specific source's access and reuse terms are verified; do not claim complete coverage.
+- Stale, missing, future-dated, or invalid data blocks actionable output and exposes the reason and coverage limitation.
+
+The policy acceptance does not resolve the remaining choices in Section 13 (initial opportunity universe, daily/intraday scope, entry semantics, evaluation granularity, duration/horizon, Telegram packaging, or publishing authority). Those remain explicit gates. Existing `SignalStatus.TRIGGERED` semantics must not be reinterpreted. The current domain has an `EXPIRED` value, but no approved expiry timestamp/horizon contract is yet wired; implementation must define that contract in a separate reviewed increment before automatically expiring opportunities.
+
+M61 remains paused. This gate does not authorize historical strategy validation, paid data, automatic trading, or claims of profitability.
