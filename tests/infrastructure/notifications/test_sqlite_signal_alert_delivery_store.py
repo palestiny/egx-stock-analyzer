@@ -265,3 +265,32 @@ def test_expired_claim_token_cannot_complete_even_before_recovery_runs(tmp_path)
     record = store.get(event_id, user_id, "telegram")
     assert record is not None
     assert record.status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
+
+
+def test_unfenced_updates_cannot_overwrite_a_live_send_claim(tmp_path) -> None:
+    store = SQLiteSignalAlertDeliveryStore(tmp_path / "no-overwrite.db")
+    event_id, user_id, token = uuid4(), uuid4(), uuid4()
+    store.create_pending(event_id, user_id, "telegram", now=NOW)
+    assert store.claim(
+        event_id, user_id, "telegram", claim_token=token,
+        now=NOW, lease_until=NOW + timedelta(seconds=20),
+    )
+    assert store.mark_sending(
+        event_id, user_id, "telegram", claim_token=token, now=NOW,
+    )
+
+    suppressed = store.mark_suppressed(
+        event_id, user_id, "telegram", "stale entitlement check",
+        now=NOW + timedelta(seconds=1),
+    )
+    failed = store.mark_failed(
+        event_id, user_id, "telegram", "stale failure update",
+        now=NOW + timedelta(seconds=1),
+    )
+
+    assert suppressed.status is SignalAlertDeliveryStatus.SENDING
+    assert failed.status is SignalAlertDeliveryStatus.SENDING
+    assert store.complete_delivered(
+        event_id, user_id, "telegram", claim_token=token,
+        now=NOW + timedelta(seconds=2),
+    )
