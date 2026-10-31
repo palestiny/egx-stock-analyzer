@@ -133,6 +133,7 @@ class DispatchSignalAlertOutbox:
                 if existing is not None and existing.status in {
                     SignalAlertDeliveryStatus.CLAIMED,
                     SignalAlertDeliveryStatus.SENDING,
+                    SignalAlertDeliveryStatus.FAILED,
                     SignalAlertDeliveryStatus.DELIVERY_UNKNOWN,
                 }:
                     event_has_unresolved_delivery = True
