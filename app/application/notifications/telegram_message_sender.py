@@ -6,7 +6,10 @@ class TelegramDeliveryOutcomeUnknown(RuntimeError):
     """The request may have reached Telegram, so automatic resend is unsafe."""
 
 
-class TelegramMessageSender:
+from typing import Protocol
+
+
+class TelegramMessageSender(Protocol):
     """Application-facing transport port for a prepared Telegram message.
 
     Implementations expose the effective request timeout so the dispatcher can
