@@ -84,6 +84,7 @@ def create_application(
         session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
         subscription_store=getattr(runtime, "subscription_store", None),
         user_store=getattr(runtime, "user_store", None),
+        telegram_delivery_reconciliation_store=getattr(runtime, "telegram_delivery_reconciliation_store", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
         telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
