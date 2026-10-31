@@ -106,13 +106,17 @@ class TelegramNotificationProvider(NotificationProvider):
                 "Telegram returned an invalid response; delivery outcome is unknown"
             ) from None
 
-        if body.get("ok") is not True:
+        if body.get("ok") is False:
             description = body.get("description")
             detail = str(description) if description else "provider rejected the request"
             if self._bot_token in detail:
                 detail = "provider rejected the request"
             raise TelegramNotificationProviderError(
                 f"Telegram rejected the request: {detail}"
+            )
+        if body.get("ok") is not True:
+            raise TelegramDeliveryOutcomeUnknown(
+                "Telegram response did not confirm acceptance; delivery outcome is unknown"
             )
 
     def close(self) -> None:
