@@ -15,6 +15,7 @@ class SignalAlertDeliveryStatus(StrEnum):
     FAILED = "FAILED"
     SUPPRESSED = "SUPPRESSED"
     DELIVERY_UNKNOWN = "DELIVERY_UNKNOWN"
+    NOT_DELIVERED = "NOT_DELIVERED"
 
 
 @dataclass(frozen=True)
