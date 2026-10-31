@@ -14,10 +14,11 @@ The repository currently has these separate capabilities:
 - `DispatchSignalAlertOutbox` handles per-recipient Telegram delivery, entitlements, retry/reconciliation, and durable recipient state.
 - `SignalLifecycleOrchestrator` can transition a supplied signal using a supplied `SignalMarketState`, record a terminal market-proxy outcome, and publish a lifecycle alert event.
 - `SignalLifecycleOrchestrator` is constructed in `app/infrastructure/runtime.py` and exposed on the runtime object.
+- `SQLiteSignalHistoryStore` records signal-level history keyed by signal identity; it does not model a user's saved/acknowledged opportunity list. The Telegram delivery store tracks recipient delivery state, which is not equivalent to a per-user opportunity lifecycle/history read model.
 
 The inspected API publication route `POST /api/v1/opportunities/{symbol}/publish` calls `GenerateSignal` and `PublishSignalOpportunity`. It does not call `SignalLifecycleOrchestrator.process` or `invalidate_for_evidence_change`. No completed end-to-end observation path has been evidenced that supplies fresh market observations to the lifecycle service after analysis updates.
 
-Therefore the repository must not currently describe target-hit/stop/invalidation monitoring as an automatically operating end-to-end feature. The presence of the domain transition and a constructed orchestrator is not proof of active observation.
+Therefore the repository must not currently describe target-hit/stop/invalidation monitoring as an automatically operating end-to-end feature, or claim a complete per-user opportunity history. The presence of the domain transition, a constructed orchestrator, or per-recipient delivery rows is not proof of active observation or a user-facing lifecycle read model.
 
 ## 2. Owner-approved constraints
 
@@ -75,7 +76,7 @@ After owner decisions and provider/session verification, implement a dedicated a
 - Multiple workers cannot apply the same observation twice.
 - Recipient delivery uses existing claim fencing, entitlement checks, retry exhaustion, and manual unknown-outcome reconciliation.
 - A delivered recipient is never resent on event replay; an ambiguous send is not automatically resent.
-- Per-user history/read model accurately distinguishes PUBLISHED, TRIGGERED, INVALIDATED, EXPIRED, and CLOSED.
+- Per-user history/read model accurately distinguishes PUBLISHED, TRIGGERED, INVALIDATED, EXPIRED, and CLOSED, with authorization preventing cross-user disclosure.
 
 ### End-to-end evidence
 - Persisted analysis → eligible observation → active opportunity → lifecycle transition → outcome provenance → durable alert → entitled linked Telegram recipient.
