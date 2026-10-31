@@ -127,11 +127,9 @@ def setup_dispatch(
     )
     subscription_users = set(entitled_users) | set(expired_users)
     for user_id in subscription_users:
-        expires_at = (
-            NOW - timedelta(seconds=1)
-            if user_id in expired_users
-            else NOW + timedelta(days=30)
-        )
+        is_expired = user_id in expired_users
+        starts_at = NOW - timedelta(days=30) if is_expired else NOW
+        expires_at = NOW - timedelta(seconds=1) if is_expired else NOW + timedelta(days=30)
         subscriptions.create(
             Subscription(
                 subscription_id=uuid4(),
@@ -140,7 +138,7 @@ def setup_dispatch(
                 plan_version=1,
                 status=SubscriptionStatus.ACTIVE,
                 created_at=NOW,
-                starts_at=NOW,
+                starts_at=starts_at,
                 expires_at=expires_at,
                 updated_at=NOW,
             ),
