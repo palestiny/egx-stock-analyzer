@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-10-31 (post-merge CI still running)  
+**Last reviewed:** 2026-10-31 (PR #422 main CI passed)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -427,3 +427,10 @@ Remaining release gates are unchanged:
 - Issue #141 remote branch deletion still requires a manual GitHub UI/local Git operation because the connected integration does not expose branch deletion.
 
 This is an implementation/status record, not a declaration that all release gates are closed.
+
+
+## Owner-approved non-M61 policy baseline — 2026-10-31
+
+DEC-135 is accepted by the owner. The accepted policies cover configurable Crash Radar universe and completed-session freshness with visible coverage/no automatic alerts; immutable EGXBot opportunity versions with completed-session re-evaluation, explicit invalidation/expiry, durable auditable Telegram delivery and manual trading only; Cairo-time idempotent session reports with traceable corrections/no duplicate distribution; manual audited subscription entitlements with billing/pricing/refunds deferred; official news disclosures only after access/reuse terms are verified; and no actionable signals from stale, missing, future-dated, or invalid data.
+
+**Implementation boundary:** policy acceptance does not prove feature completion. The completion gap register remains authoritative for outstanding integration, tests, source-rights checks, and operational evidence. PR #422 is merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`; main CI run #41185546490 passed all five jobs. M61 remains paused; PR #321 remains open Draft and is not authorized for merge.
