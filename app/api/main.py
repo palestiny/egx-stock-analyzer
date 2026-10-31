@@ -33,10 +33,12 @@ from app.api.market_analysis_execution_response import MarketAnalysisExecutionRe
 from app.api.market_opportunity_view_response import MarketOpportunityViewResponse
 from app.api.stock_research_response import StockResearchResponse
 from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
+from app.api.user_opportunity_notification_response import UserOpportunityNotificationResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
 from app.application.reporting.session_opportunity_report_store import SessionOpportunityReportStore
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.reporting.calculate_snapshot_performance import (
@@ -155,6 +157,7 @@ def create_app(
     generate_signal: GenerateSignal | None = None,
     publish_signal_opportunity: PublishSignalOpportunity | None = None,
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
+    get_user_opportunity_notifications: GetUserOpportunityNotifications | None = None,
     get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
     session_opportunity_report_store: SessionOpportunityReportStore | None = None,
     news_event_store: NewsEventStore | None = None,
@@ -729,6 +732,35 @@ def create_app(
             "recipients_delivered": result.recipients_delivered,
             "recipients_suppressed": result.recipients_suppressed,
             "recipients_failed": result.recipients_failed,
+        }
+
+    @app.get("/api/v1/me/opportunity-notifications")
+    def get_my_opportunity_notifications(
+        limit: int = 50,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_user_opportunity_notifications is None:
+            raise HTTPException(
+                status_code=503,
+                detail="User opportunity notifications are not configured",
+            )
+        if identity.user_id is None:
+            raise HTTPException(status_code=403, detail="Authenticated user identity is required")
+        if limit < 1 or limit > 200:
+            raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+        try:
+            notifications = get_user_opportunity_notifications.execute(
+                identity.user_id,
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return {
+            "items": [
+                UserOpportunityNotificationResponse.from_notification(item)
+                for item in notifications
+            ],
+            "limit": limit,
         }
 
     @app.get("/api/v1/opportunities")
