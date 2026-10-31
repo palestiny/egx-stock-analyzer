@@ -1,5 +1,7 @@
 from dataclasses import replace
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -449,3 +451,49 @@ def test_ambiguous_transport_outcome_is_not_automatically_retried(tmp_path) -> N
     # Unknown delivery keeps the event unresolved rather than falsely suppressing
     # or marking it delivered.
     assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
+
+
+def test_concurrent_dispatcher_does_not_finalize_event_while_other_worker_sends(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, outbox, deliveries, _transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-concurrent")],
+        entitled_users=(user_id,),
+    )
+
+    class BlockingTransport:
+        timeout_seconds = 10.0
+
+        def __init__(self):
+            self.started = Event()
+            self.release = Event()
+            self.calls = 0
+            self.sent = []
+
+        def send_message(self, chat_id: str, message: str) -> None:
+            self.calls += 1
+            self.started.set()
+            if not self.release.wait(timeout=5):
+                raise TimeoutError("test transport release timed out")
+            self.sent.append((chat_id, message))
+
+    transport = BlockingTransport()
+    dispatcher._transport = transport
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first_worker = pool.submit(dispatcher.execute, now=NOW)
+        assert transport.started.wait(timeout=3)
+
+        second = dispatcher.execute(now=NOW + timedelta(seconds=1))
+        assert second.events_processed == 1
+        assert second.recipients_delivered == 0
+        assert transport.calls == 1
+        assert outbox.get(event.event_id).status is AlertOutboxStatus.PENDING
+
+        transport.release.set()
+        first = first_worker.result(timeout=5)
+
+    assert first.recipients_delivered == 1
+    assert len(transport.sent) == 1
+    assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.DELIVERED
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.DELIVERED
