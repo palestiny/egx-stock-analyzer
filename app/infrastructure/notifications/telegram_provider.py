@@ -5,10 +5,14 @@ from typing import Any
 import httpx
 
 from app.application.notifications.provider import NotificationProvider
+from app.application.notifications.telegram_message_sender import (
+    TelegramDeliveryOutcomeUnknown,
+    TelegramDeliveryRejected,
+)
 from app.domain.reporting.alerts import AlertCandidate
 
 
-class TelegramNotificationProviderError(RuntimeError):
+class TelegramNotificationProviderError(TelegramDeliveryRejected):
     """Raised when Telegram notification delivery cannot be completed."""
 
 
@@ -39,6 +43,10 @@ class TelegramNotificationProvider(NotificationProvider):
         self._timeout = timeout
         self._client = client or httpx.Client(timeout=timeout)
         self._owns_client = client is None
+
+    @property
+    def timeout_seconds(self) -> float:
+        return self._timeout
 
     def send(self, candidate: AlertCandidate, channel: str) -> None:
         if channel.strip().lower() != self.CHANNEL:
@@ -72,26 +80,30 @@ class TelegramNotificationProvider(NotificationProvider):
                 timeout=self._timeout,
             )
         except httpx.TimeoutException:
-            # Do not chain transport exceptions: their request URL contains the bot token.
-            raise TelegramNotificationProviderError(
-                "Telegram request timed out"
+            # Telegram may have accepted the request before the client timed out.
+            raise TelegramDeliveryOutcomeUnknown(
+                "Telegram request timed out; delivery outcome is unknown"
             ) from None
         except httpx.RequestError as error:
-            # Never expose the underlying exception/request URL in logs or tracebacks.
-            raise TelegramNotificationProviderError(
-                f"Telegram request failed: {error.__class__.__name__}"
+            # Connection loss can happen after the remote side accepted the request.
+            raise TelegramDeliveryOutcomeUnknown(
+                f"Telegram request outcome unknown: {error.__class__.__name__}"
             ) from None
 
+        if response.status_code >= 500:
+            raise TelegramDeliveryOutcomeUnknown(
+                f"Telegram returned HTTP {response.status_code}; delivery outcome is unknown"
+            )
         if response.status_code >= 400:
             raise TelegramNotificationProviderError(
-                f"Telegram request failed with HTTP status {response.status_code}"
+                f"Telegram rejected the request with HTTP status {response.status_code}"
             )
 
         try:
             body: dict[str, Any] = response.json()
         except ValueError:
-            raise TelegramNotificationProviderError(
-                "Telegram returned an invalid response"
+            raise TelegramDeliveryOutcomeUnknown(
+                "Telegram returned an invalid response; delivery outcome is unknown"
             ) from None
 
         if body.get("ok") is not True:
