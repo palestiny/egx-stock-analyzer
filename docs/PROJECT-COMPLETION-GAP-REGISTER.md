@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `4733e9237495789ebceba9113567e42b7b6abf6d` (PR #433). PR #432 post-merge main CI run #41197870758 passed all five jobs; PR #433 exact-head CI run #41198262173 passed all five jobs. Post-merge CI for PR #433 is being checked separately.  
+**Baseline:** `main` at `7a2eb51fcca871e9037a53f113e7769de406eb65` (PR #436). PR #433 post-merge main CI run #41198751442 passed all five jobs; PR #434 post-merge main CI run #41199285240 passed all five jobs. PR #435 and #436 exact-head CI each passed all five jobs; their post-merge main runs #41201662798 and #41201727754 are pending/in progress at this register update.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -33,13 +33,18 @@ This register separates verified implementation from incomplete acceptance and d
 
 - [x] Inspect current adapter path: `YahooFinanceHistoryClient.history()` requests daily bars only (`interval="1d"`); `YahooFinanceAdapter` maps `{stock.symbol}.CA`, carries OHLCV and normalizes naive timestamps as UTC. This is code behavior, not verified provider timezone semantics, delay, coverage, rate limits or reuse rights.
 - [x] Verify source-bar timestamp is carried into `StockAnalysisResult.data_timestamp` and serialized with analysis snapshots; `GenerateSignal` suppresses output if timestamp is absent or timezone-naive (PR #418 and current main code).
-- [ ] Verify EGX symbol coverage, actual timestamp/timezone semantics, data delay, corrections, rate limits and licensing/terms.
+- [ ] Verify EGX symbol coverage, actual timestamp/timezone semantics, data delay, corrections and rate limits.
+- [x] Record Yahoo Finance/yfinance commercial-use and redistribution restriction as an explicit blocker in PR #436. Do not redistribute Yahoo-derived data or expose it to paid/subscriber users until exact applicable terms and written permissions are verified.
+- [ ] Select and verify a market-data provider whose contract explicitly permits the intended commercial API use and redistribution, if the product will serve third-party/subscriber users.
 - [ ] **Commercial-use blocker:** current implementation uses the unofficial `yfinance` client against Yahoo Finance. The yfinance project describes the Yahoo Finance API as intended for personal use; Yahoo Finance Help says its information must not be redistributed; Yahoo's terms restrict commercial reuse absent explicit permission. Do not expose, redistribute, cache for third-party access, or build paid/subscriber-facing features on Yahoo-derived data until the exact applicable Yahoo product terms and written permissions are verified. Prefer a market-data provider offering an explicit commercial redistribution/API licence for a sellable product. References: https://ranaroussi.github.io/yfinance/ ; https://help.yahoo.com/kb/SLN2310.html ; https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html .
 - [ ] Implement and test an explicit completed-session freshness/provenance gate; current validation rejects future/invalid observations but does not classify stale daily bars. Do not invent a calendar or freshness cutoff before its source/semantics are established.
 - [ ] Introduce separate, versioned intraday and swing strategy boundaries without silently changing existing scoring or trade rules.
 - [ ] Keep intraday strategy output suppressed or explicitly observational until suitable intraday data freshness/granularity is verified; daily bars must not be presented as live intraday evidence.
 - [ ] Define relative volume/traded-value evidence from available bars; do not claim order-book imbalance or smart-money activity without suitable underlying data.
 - [ ] Record rationale, data timestamp, strategy version, entry conditions, invalidation, targets and expiry on every published opportunity.
+
+- [x] PR #435 aligns recurring configured market-analysis scheduling with the EGX regular Sunday–Thursday trading weekdays and skips Friday/Saturday. Exact-head CI run #41201163061 passed all five jobs; merge commit `c94b0c71db296341aae5f156edf6d3a913bd210c`. This weekly rule does not model official exchange holidays.
+- [ ] Add a verified EGX exchange holiday/session calendar before claiming holiday-aware scheduling or completed-session freshness. The current weekday schedule is not a substitute for the official calendar.
 
 ### P1 — Opportunity lifecycle and Telegram delivery acceptance (owner policy accepted in DEC-135)
 
