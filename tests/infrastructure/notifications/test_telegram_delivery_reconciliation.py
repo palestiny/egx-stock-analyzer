@@ -72,7 +72,7 @@ def test_reconciliation_is_atomic_audited_and_not_repeatable_after_resolution(tm
     assert len(store.list_audit()) == 1
 
 
-def test_confirmed_not_delivered_remains_failed_and_does_not_requeue(tmp_path):
+def test_confirmed_not_delivered_becomes_terminal_and_does_not_requeue(tmp_path):
     deliveries, store, event_id, user_id = make_delivery(tmp_path)
 
     result = store.reconcile(
@@ -83,12 +83,12 @@ def test_confirmed_not_delivered_remains_failed_and_does_not_requeue(tmp_path):
         now=NOW,
     )
 
-    assert result.new_status == "FAILED"
+    assert result.new_status == "NOT_DELIVERED"
     record = deliveries.get(event_id, user_id, "telegram")
-    assert record is not None and record.status.value == "FAILED"
+    assert record is not None and record.status.value == "NOT_DELIVERED"
     assert record.claim_token is None
     assert record.lease_until is None
-    assert store.list_unresolved()[0]["status"] == "FAILED"
+    assert store.list_unresolved() == ()
 
 
 def test_reconciliation_rejects_missing_actor_reason_and_bad_page(tmp_path):
