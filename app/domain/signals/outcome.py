@@ -58,11 +58,11 @@ class SignalOutcomeRecord:
         if self.outcome is SignalOutcome.INVALIDATED and self.target_label is not None:
             raise ValueError("target label must be absent for invalidation")
 
-        for field_name, value in (
+        for field_name, timestamp in (
             ("observed_at", self.observed_at),
             ("data_timestamp", self.data_timestamp),
         ):
-            if value.tzinfo is None or value.utcoffset() is None:
+            if timestamp.tzinfo is None or timestamp.utcoffset() is None:
                 raise ValueError(f"{field_name} must be timezone-aware")
 
         if self.data_timestamp > self.observed_at:
