@@ -293,7 +293,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 SET status = ?, attempts = attempts + 1, updated_at = ?,
                     last_error = ?, claim_token = NULL, lease_until = NULL
                 WHERE event_id = ? AND user_id = ? AND channel = ?
-                  AND status = ? AND claim_token = ?
+                  AND status = ? AND claim_token = ? AND lease_until > ?
                 """,
                 (
                     status.value,
@@ -304,6 +304,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                     self._normalize_channel(channel),
                     SignalAlertDeliveryStatus.SENDING.value,
                     str(claim_token),
+                    self._timestamp(now),
                 ),
             )
         return cursor.rowcount == 1
