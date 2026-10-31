@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `c0448e796328c805ccc544d0e7f72083da5ce3e4` (PR #430); PR #429 main CI run #41191307763 passed all five jobs, and PR #430 branch CI run #41191550843 passed all five jobs. Verify the post-#430 main workflow before treating the latest main commit as fully CI-verified.  
+**Baseline:** `main` at `93984f481cfbfeb19411f8230f03442a494702bc` (PR #432). Post-merge main CI run #41197870758 is being checked; do not mark the commit fully CI-verified until all five jobs complete successfully.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -109,7 +109,7 @@ The owner accepted the conservative non-M61 product/operational baseline:
 This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
 
 
-### Telegram concurrency, ambiguous outcomes, and bounded definite retries — DEC-136/DEC-137 (DEC-136 merged; DEC-137 implementation under verification)
+### Telegram concurrency, ambiguous outcomes, and bounded definite retries — DEC-136/DEC-137 (implementation merged; post-merge verification pending)
 
 - [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
 - [x] PR #428: atomic per-recipient SQLite claim/lease, opaque claim-token fencing, safe expired-CLAIMED recovery, and expired-SENDING transition to `DELIVERY_UNKNOWN`.
@@ -118,7 +118,8 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] PR #430: operator runbook with authenticated API examples, evidence requirements, and escalation guidance.
 - [x] Owner decision: derive lease duration at runtime as 2 × the effective configured Telegram transport timeout.
 - [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; deterministic bounded ±10% jitter; terminal `RETRY_EXHAUSTED`.
-- [ ] Verify and merge DEC-137 implementation: durable UTC scheduling, due-only atomic retry claims, account/entitlement re-evaluation, exhaustion visibility, audited reconciliation, and regression tests. Active branch: `feat/telegram-bounded-definite-retries`.
+- [x] PR #432 merged DEC-137 implementation: durable UTC scheduling, due-only atomic retry claims, account/entitlement re-evaluation, exhaustion visibility, audited reconciliation, and regression tests. Merge commit `93984f481cfbfeb19411f8230f03442a494702bc`; exact-head CI run #41197542121 passed all five jobs.
+- [ ] Verify post-merge main CI run #41197870758; at last check, four jobs passed and `unit-tests (3.12)` was still running.
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
-DEC-136 implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. DEC-137 is approved; implementation is being verified on the active feature branch and is not complete until exact-head CI passes and the PR is merged. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+DEC-136 and DEC-137 implementations are merged. This is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. PR #432 exact-head CI passed all five jobs in run #41197542121; post-merge main CI run #41197870758 must pass before the merge commit is considered fully verified. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
