@@ -210,7 +210,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     assert len(transport.sent) == 1
 
 
-def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path) -> None:
+def test_dispatch_does_not_retry_definite_failure_before_retry_policy_is_approved(tmp_path) -> None:
     first_user = uuid4()
     second_user = uuid4()
     dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
@@ -227,18 +227,22 @@ def test_dispatch_retries_failed_recipient_without_resending_successes(tmp_path)
     assert first.recipients_delivered == 1
     assert first.recipients_failed == 1
     assert outbox.get(event.event_id).status.value == "FAILED"
+    assert len(transport.sent) == 1
 
     second = dispatcher.execute(now=NOW + timedelta(minutes=1))
-    assert second.recipients_delivered == 1
+    assert second.recipients_delivered == 0
     assert second.recipients_failed == 0
-    assert len(transport.sent) == 2
+    assert second.events_processed == 1
+    assert len(transport.sent) == 1
     records = [
         deliveries.get(event.event_id, first_user, "telegram"),
         deliveries.get(event.event_id, second_user, "telegram"),
     ]
-    assert all(record.status is SignalAlertDeliveryStatus.DELIVERED for record in records)
-    assert sorted(record.attempts for record in records) == [1, 2]
-    assert outbox.get(event.event_id).status.value == "DELIVERED"
+    assert sorted(record.status for record in records) == sorted(
+        (SignalAlertDeliveryStatus.DELIVERED, SignalAlertDeliveryStatus.FAILED)
+    )
+    assert sorted(record.attempts for record in records) == [1, 1]
+    assert outbox.get(event.event_id).status.value == "FAILED"
 
 
 def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
