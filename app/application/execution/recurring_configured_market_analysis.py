@@ -13,6 +13,9 @@ from app.application.execution.scheduler import Scheduler
 
 
 CAIRO_TIMEZONE = ZoneInfo("Africa/Cairo")
+# Python weekday(): Monday=0 ... Sunday=6. EGX's regular trading week is
+# Sunday through Thursday; Friday and Saturday are the weekly weekend.
+EGX_TRADING_WEEKDAYS = frozenset({6, 0, 1, 2, 3})
 
 
 class Clock(Protocol):
@@ -28,7 +31,11 @@ class OccurrenceIdentity:
 
 
 class RecurringConfiguredMarketAnalysis:
-    """Own recurring market-analysis policy while delegating timing to Scheduler."""
+    """Schedule recurring market analysis on EGX trading weekdays.
+
+    Official exchange holidays are not inferred here; they require a separately
+    maintained and verified exchange-calendar source.
+    """
 
     def __init__(
         self,
@@ -74,7 +81,7 @@ class RecurringConfiguredMarketAnalysis:
         if candidate <= now:
             candidate += timedelta(days=1)
 
-        while candidate.weekday() >= 5:
+        while candidate.weekday() not in EGX_TRADING_WEEKDAYS:
             candidate += timedelta(days=1)
 
         return candidate
