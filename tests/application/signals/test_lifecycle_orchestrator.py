@@ -72,9 +72,8 @@ def test_reprocessing_same_observation_is_idempotent():
     orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
 
     signal = make_signal()
-    state = SignalMarketState(
-        datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("110")
-    )
+    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    state = SignalMarketState(observed_at, Decimal("110"), observed_at)
 
     first = orchestrator.process(signal, state, entry_price=Decimal("100"))
     second = orchestrator.process(signal, state, entry_price=Decimal("100"))
