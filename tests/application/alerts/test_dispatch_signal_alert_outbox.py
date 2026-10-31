@@ -34,6 +34,9 @@ from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutb
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import (
     SQLiteSignalAlertDeliveryStore,
 )
+from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_store import (
+    SQLiteTelegramDeliveryReconciliationStore,
+)
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 
