@@ -17,9 +17,9 @@ The latest non-M61 implementation increment merged:
 
 The canonical archive currently contains 45 rows (22 EGAL seed rows plus 23 rows for 2026-10-29). Its known data-quality exceptions remain visible: MICH and FAIT OHLC inconsistencies on 2026-10-29, plus an EGAL source-revision conflict for 2026-10-28. These values are not silently repaired or overwritten.
 
-**Verification boundary:** PR-head CI passed for #420 and #421 before merge. Main-branch workflows for the merge commits were still running at the time of this update; verify those before claiming post-merge CI success. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
+**Verification boundary:** PR-head CI passed for #420 and #421 before merge. PR #422 is now merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`, and main CI run #41185546490 passed all five jobs. This validates the tested code path, not market-data accuracy, full-market coverage, database ingestion, or strategy profitability. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
 
-The previous design proposals #342, #344, and #347 are closed unmerged; they are not accepted owner decisions. Their policy questions remain unresolved. Do not implement Crash Radar thresholds/score suppression/alerts, commercial pricing/payment, or automated session finalization/distribution by inference. M61 remains paused by explicit owner request.
+The previous design proposals #342, #344, and #347 are closed unmerged; they are not themselves accepted owner decisions. Their policy areas are now governed by owner-accepted DEC-135. Do not implement automatic Crash Radar alerts, commercial pricing/payment, or broker execution. Automated session report scheduling/distribution may proceed only within DEC-135 and with tested idempotency, correction, retry, and failure visibility. M61 remains paused by explicit owner request.
 
 
 ## M61 — Backtesting & Strategy Validation Design Gate
