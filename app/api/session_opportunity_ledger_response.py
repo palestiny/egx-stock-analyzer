@@ -43,6 +43,14 @@ class SessionOpportunityLedgerResponse:
                         item.outcome_observed_at.isoformat()
                         if item.outcome_observed_at is not None else None
                     ),
+                    "source_data_timestamp": (
+                        item.source_data_timestamp.isoformat()
+                        if item.source_data_timestamp is not None else None
+                    ),
+                    "outcome_data_timestamp": (
+                        item.outcome_data_timestamp.isoformat()
+                        if item.outcome_data_timestamp is not None else None
+                    ),
                 }
                 for item in report.opportunities
             ],

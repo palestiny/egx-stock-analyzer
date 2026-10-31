@@ -22,6 +22,8 @@ class SessionOpportunityEntry:
     market_proxy_return: Decimal | None
     market_proxy_r: Decimal | None
     outcome_observed_at: datetime | None
+    source_data_timestamp: datetime | None = None
+    outcome_data_timestamp: datetime | None = None
 
 
 @dataclass(frozen=True)
