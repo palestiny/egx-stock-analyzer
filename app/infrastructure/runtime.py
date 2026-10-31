@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.news.ingestion import NewsIngestionService
 from app.domain.news.event import NewsSourceType
@@ -88,6 +89,7 @@ class InfrastructureRuntime:
     telegram_account_linking: TelegramAccountLinkingService | None = None
     telegram_account_link_store: SQLiteTelegramAccountLinkStore | None = None
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None
+    get_user_opportunity_notifications: GetUserOpportunityNotifications | None = None
     publish_signal_opportunity: PublishSignalOpportunity | None = None
     signal_alert_delivery_store: SQLiteSignalAlertDeliveryStore | None = None
     telegram_delivery_reconciliation_store: SQLiteTelegramDeliveryReconciliationStore | None = None
@@ -249,6 +251,10 @@ def create_infrastructure_runtime(
     telegram_account_link_store = SQLiteTelegramAccountLinkStore(config.analysis_database_path)
     telegram_account_linking = TelegramAccountLinkingService(telegram_account_link_store)
     signal_alert_delivery_store = SQLiteSignalAlertDeliveryStore(config.analysis_database_path)
+    get_user_opportunity_notifications = GetUserOpportunityNotifications(
+        deliveries=signal_alert_delivery_store,
+        outbox=signal_alert_outbox,
+    )
     telegram_delivery_reconciliation_store = SQLiteTelegramDeliveryReconciliationStore(config.analysis_database_path)
     telegram_notification_provider = (
         TelegramNotificationProvider(
@@ -338,6 +344,7 @@ def create_infrastructure_runtime(
         telegram_account_linking=telegram_account_linking,
         telegram_account_link_store=telegram_account_link_store,
         dispatch_signal_alert_outbox=dispatch_signal_alert_outbox,
+        get_user_opportunity_notifications=get_user_opportunity_notifications,
         publish_signal_opportunity=publish_signal_opportunity,
         signal_alert_delivery_store=signal_alert_delivery_store,
         telegram_delivery_reconciliation_store=telegram_delivery_reconciliation_store,
