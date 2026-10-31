@@ -89,6 +89,6 @@ After owner decisions and provider/session verification, implement a dedicated a
 
 The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
 
-PR #443 proposes adding the source-data timestamp to `SignalMarketState` and recording that timestamp on terminal outcomes. Its exact-head CI is still pending at the time of this gate update. If merged, it will correct provenance for callers that supply a state; it will not itself create an automatic observation pipeline.
+PR #443 adds the source-data timestamp to `SignalMarketState` and records that timestamp on terminal outcomes; its exact-head CI run #41205688356 passed all five jobs and merge commit is `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`. This corrects provenance for callers that supply a state; it does not itself create an automatic observation pipeline.
 
 M61/backtesting remains paused and is outside this gate.
