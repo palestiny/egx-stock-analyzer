@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` (PR #422); main CI run #41185546490 passed all five jobs.  
+**Baseline:** `main` at `c0448e796328c805ccc544d0e7f72083da5ce3e4` (PR #430); PR #429 main CI run #41191307763 passed all five jobs, and PR #430 branch CI run #41191550843 passed all five jobs. Verify the post-#430 main workflow before treating the latest main commit as fully CI-verified.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -26,7 +26,7 @@ This register separates verified implementation from incomplete acceptance and d
 ### P0 — Verify latest merged main CI
 
 - [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490 (unit, integration, frontend, dependency audit, container build).
-- [ ] After the current documentation PR is merged, verify its main-branch CI before updating the main baseline.
+- [x] PR #430 merged the Telegram delivery operator runbook; its exact-head CI run #41191550843 passed all five jobs. Post-merge main CI for `c0448e796328c805ccc544d0e7f72083da5ce3e4` remains to be verified.
 
 ### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
@@ -109,14 +109,15 @@ The owner accepted the conservative non-M61 product/operational baseline:
 This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
 
 
-### Telegram concurrency and ambiguous outcomes — DEC-136 (owner-approved policy)
+### Telegram concurrency and ambiguous outcomes — DEC-136 (implementation merged; retry policy open)
 
 - [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
-- [ ] Implement atomic per-recipient claim/lease with claim-token fencing and safe recovery of pre-send claims.
-- [ ] Distinguish definite transport rejection/failure from ambiguous timeout/connection loss; persist unknown outcomes separately.
-- [ ] Add operator-visible listing and audited resolution for unknown deliveries before calling the workflow operationally complete.
+- [x] PR #428: atomic per-recipient SQLite claim/lease, opaque claim-token fencing, safe expired-CLAIMED recovery, and expired-SENDING transition to `DELIVERY_UNKNOWN`.
+- [x] PR #428: distinguish definite Telegram rejection from ambiguous timeout/connection/server outcomes; preserve unknown outcomes without automatic resend.
+- [x] PR #429: operator-only unresolved-delivery listing, audited manual reconciliation, and terminal `NOT_DELIVERED` handling.
+- [x] PR #430: operator runbook with authenticated API examples, evidence requirements, and escalation guidance.
 - [x] Owner decision: derive lease duration at runtime as 2 × the effective configured Telegram transport timeout.
-- [ ] Define definite-failure retry schedule, attempt budget, and exhaustion behavior; these remain open.
-- [ ] Add race, stale-owner, worker-crash, restart, partial-recipient, entitlement-revocation, timeout ambiguity, and migration tests.
+- [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; bounded jitter; terminal `RETRY_EXHAUSTED`. Implementation, durable scheduling, and tests remain open. `FAILED` is not automatically retried.
+- [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
-The accepted policy is a decision closure only. The current implementation still lacks claim ownership and still maps transport exceptions to FAILED; do not represent DEC-136 as implemented.
+Implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. Definite-failure retry policy is approved in DEC-137; implementation, durable scheduling, exhaustion visibility, and tests remain open. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.

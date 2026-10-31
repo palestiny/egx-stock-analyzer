@@ -8,7 +8,7 @@
 
 # Current Position
 
-## Non-M61 engineering checkpoint — 2026-10-31
+## Non-M61 engineering checkpoint — 2026-10-31 (updated after PRs #428–#430)
 
 The latest non-M61 implementation increment merged:
 - PR #418: preserve the source price-bar timestamp in analysis/signal output.
@@ -241,4 +241,6 @@ The owner accepted the conservative policy baseline for Crash Radar, EGXBot/Tele
 
 Verified repository checkpoint: PR #422 merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`; main CI run #41185546490 passed all five jobs. PR #321 remains open Draft and M61 remains paused.
 
-**Next execution priority:** update the gap register from evidence, then close the accepted non-M61 engineering work in bounded slices: (1) opportunity lifecycle/Telegram failure and recovery contracts; (2) Cairo-session report scheduling/correction/delivery composition; (3) Crash Radar configurable universe/freshness/coverage gates without changing its score formula; (4) official-news source terms and provenance verification; (5) entitlement enforcement across API and Telegram. Keep payment collection/pricing/refunds deferred and do not enable automatic trading or Crash Radar alerts.
+**Latest verified non-M61 progress — 2026-10-31:** PR #428 merged atomic Telegram recipient claims and ambiguous-outcome handling; PR #429 merged operator-only audited reconciliation; PR #430 merged the operator runbook. PR #429 main CI run #41191307763 passed all five jobs. PR #430 branch CI run #41191550843 passed all five jobs; post-merge main CI for the new main commit still requires verification.
+
+**Next execution priority:** continue from the updated gap register. The Telegram retry policy for definite failures is the immediate owner decision gate: attempt budget, delay/backoff, and exhaustion behavior remain unapproved. In parallel, close the Cairo-session report scheduling/correction/delivery composition, Crash Radar configurable-universe/freshness/coverage implementation without changing 50/40/10, official-news source-rights/provenance verification, and entitlement enforcement across API and Telegram. Keep payment collection/pricing/refunds deferred; do not enable automatic trading or Crash Radar alerts. PRs #342/#344/#347 are historical proposals superseded by the accepted DEC-135 policy baseline, not active owner-decision gates.

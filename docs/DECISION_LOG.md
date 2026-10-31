@@ -3141,3 +3141,31 @@ A definite transport failure remains distinct and may be eligible for a separate
 - Operator visibility and an auditable manual resolution path are required before this behavior can be considered operationally complete.
 - This decision does not select lease duration, transport timeout, retry delay, maximum attempts, or exhaustion behavior.
 - Exactly-once Telegram delivery is not claimed.
+
+
+## DEC-137 — Bounded retries for definite Telegram delivery failures
+
+**Status:** Accepted by owner  
+**Date:** 2026-10-31
+
+### Context
+Telegram delivery failures explicitly rejected by the provider are distinct from ambiguous outcomes. Retrying every failure immediately risks bursts and unbounded attempts; treating an ambiguous outcome as a definite failure risks duplicate messages.
+
+### Decision
+Apply the following bounded retry policy only to definite, confirmed delivery failures:
+
+- Maximum attempts: **3 total send attempts**, including the initial attempt.
+- Retry after attempt 1: **1 minute**.
+- Retry after attempt 2: **5 minutes**.
+- Maximum scheduled delay: **15 minutes**.
+- Apply bounded jitter to scheduled delays to avoid synchronized retry bursts.
+- After the third definite failure, transition to terminal **`RETRY_EXHAUSTED`**, visible to operators and available for audited manual reconciliation.
+- Persist each next-attempt instant durably in UTC; dispatch only when it is due.
+- Re-evaluate account status and entitlement immediately before every retry.
+- Never automatically retry **`DELIVERY_UNKNOWN`**. It remains subject to DEC-136 manual reconciliation.
+- Do not resend `DELIVERED`, `NOT_DELIVERED`, or `RETRY_EXHAUSTED` recipients automatically.
+
+The 15-minute cap is a ceiling, not an instruction to retry more than three times. No automatic retry is permitted after exhaustion.
+
+### Consequences
+The retry budget is finite and auditable. A worker restart must preserve the scheduled retry instant and attempt count. Operator reconciliation remains distinct from automatic retry, and exactly-once delivery is not claimed.
