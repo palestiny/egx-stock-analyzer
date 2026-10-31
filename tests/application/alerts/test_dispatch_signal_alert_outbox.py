@@ -213,7 +213,7 @@ def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     assert len(transport.sent) == 1
 
 
-def test_dispatch_does_not_retry_definite_failure_before_retry_policy_is_approved(tmp_path) -> None:
+def test_definite_failure_retries_only_when_durable_due_time_arrives(tmp_path) -> None:
     first_user = uuid4()
     second_user = uuid4()
     dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
@@ -229,23 +229,65 @@ def test_dispatch_does_not_retry_definite_failure_before_retry_policy_is_approve
     first = dispatcher.execute(now=NOW)
     assert first.recipients_delivered == 1
     assert first.recipients_failed == 1
-    assert outbox.get(event.event_id).status.value == "FAILED"
+    failed_record = deliveries.get(event.event_id, first_user, "telegram")
+    assert failed_record.status is SignalAlertDeliveryStatus.FAILED
+    assert failed_record.attempts == 1
+    assert failed_record.next_attempt_at is not None
+    assert timedelta(seconds=54) <= failed_record.next_attempt_at - NOW <= timedelta(seconds=66)
     assert len(transport.sent) == 1
 
-    second = dispatcher.execute(now=NOW + timedelta(minutes=1))
-    assert second.recipients_delivered == 0
-    assert second.recipients_failed == 0
-    assert second.events_processed == 1
+    early = dispatcher.execute(now=failed_record.next_attempt_at - timedelta(seconds=1))
+    assert early.recipients_delivered == 0
+    assert early.recipients_failed == 0
     assert len(transport.sent) == 1
-    records = [
-        deliveries.get(event.event_id, first_user, "telegram"),
-        deliveries.get(event.event_id, second_user, "telegram"),
-    ]
-    assert sorted(record.status for record in records) == sorted(
-        (SignalAlertDeliveryStatus.DELIVERED, SignalAlertDeliveryStatus.FAILED)
+    assert deliveries.get(event.event_id, first_user, "telegram").status is SignalAlertDeliveryStatus.FAILED
+
+    due = dispatcher.execute(now=failed_record.next_attempt_at)
+    retried = deliveries.get(event.event_id, first_user, "telegram")
+    assert due.recipients_delivered == 1
+    assert retried.status is SignalAlertDeliveryStatus.DELIVERED
+    assert retried.attempts == 2
+    assert retried.next_attempt_at is None
+    assert len(transport.sent) == 2
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.DELIVERED
+
+
+def test_third_definite_failure_exhausts_retries_and_is_never_resent(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-exhausted")],
+        failures=3,
+        entitled_users=(user_id,),
     )
-    assert sorted(record.attempts for record in records) == [1, 1]
-    assert outbox.get(event.event_id).status.value == "FAILED"
+
+    first = dispatcher.execute(now=NOW)
+    first_record = deliveries.get(event.event_id, user_id, "telegram")
+    assert first.recipients_failed == 1
+    assert first_record.attempts == 1
+    assert first_record.next_attempt_at is not None
+
+    second = dispatcher.execute(now=first_record.next_attempt_at)
+    second_record = deliveries.get(event.event_id, user_id, "telegram")
+    assert second.recipients_failed == 1
+    assert second_record.status is SignalAlertDeliveryStatus.FAILED
+    assert second_record.attempts == 2
+    assert second_record.next_attempt_at is not None
+    assert timedelta(minutes=4, seconds=30) <= second_record.next_attempt_at - first_record.next_attempt_at <= timedelta(minutes=5, seconds=30)
+
+    third = dispatcher.execute(now=second_record.next_attempt_at)
+    exhausted = deliveries.get(event.event_id, user_id, "telegram")
+    assert third.recipients_failed == 1
+    assert exhausted.status is SignalAlertDeliveryStatus.RETRY_EXHAUSTED
+    assert exhausted.attempts == 3
+    assert exhausted.next_attempt_at is None
+    assert len(transport.sent) == 0
+
+    replay = dispatcher.execute(now=second_record.next_attempt_at + timedelta(minutes=20))
+    assert replay.events_processed == 1
+    assert len(transport.sent) == 0
+    assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.RETRY_EXHAUSTED
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.FAILED
 
 
 def test_dispatch_fails_closed_when_no_plan_grants_access(tmp_path) -> None:
