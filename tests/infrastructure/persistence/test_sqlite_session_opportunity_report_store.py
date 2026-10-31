@@ -5,7 +5,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.reporting.session_opportunity_ledger import SessionOpportunityEntry, SessionOpportunityLedgerReport
+from app.domain.reporting.session_opportunity_ledger import (
+    SessionOpportunityEntry,
+    SessionOpportunityLedgerReport,
+)
 from app.domain.signals.model import SignalStatus
 from app.domain.signals.outcome import SignalOutcome
 from app.infrastructure.persistence.sqlite_session_opportunity_report_store import (
@@ -13,7 +16,12 @@ from app.infrastructure.persistence.sqlite_session_opportunity_report_store impo
 )
 
 
-def report(generated_at: datetime, *, unresolved_count: int = 0, opportunities=()) -> SessionOpportunityLedgerReport:
+def report(
+    generated_at: datetime,
+    *,
+    unresolved_count: int = 0,
+    opportunities: tuple[SessionOpportunityEntry, ...] = (),
+) -> SessionOpportunityLedgerReport:
     return SessionOpportunityLedgerReport(
         session_date=date(2026, 10, 26),
         generated_at=generated_at,
@@ -97,7 +105,7 @@ def test_session_report_store_rejects_naive_timestamps(tmp_path) -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
         store.get_latest(date(2026, 10, 26), as_of=datetime(2026, 10, 26))
 
- 
+
 
 def test_session_report_store_persists_source_and_outcome_data_timestamps(tmp_path) -> None:
     store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
