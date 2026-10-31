@@ -93,7 +93,15 @@ def make_event(signal_id, signal: Signal | None = None) -> AlertEvent:
     )
 
 
-def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), inactive_users=()):
+def setup_dispatch(
+    tmp_path,
+    accounts,
+    *,
+    failures: int = 0,
+    entitled_users=(),
+    inactive_users=(),
+    expired_users=(),
+):
     database = tmp_path / "dispatch.db"
     history = InMemorySignalHistoryStore()
     signal = make_signal()
@@ -117,7 +125,13 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), 
             created_at=NOW,
         )
     )
-    for user_id in entitled_users:
+    subscription_users = set(entitled_users) | set(expired_users)
+    for user_id in subscription_users:
+        expires_at = (
+            NOW - timedelta(seconds=1)
+            if user_id in expired_users
+            else NOW + timedelta(days=30)
+        )
         subscriptions.create(
             Subscription(
                 subscription_id=uuid4(),
@@ -127,7 +141,7 @@ def setup_dispatch(tmp_path, accounts, *, failures: int = 0, entitled_users=(), 
                 status=SubscriptionStatus.ACTIVE,
                 created_at=NOW,
                 starts_at=NOW,
-                expires_at=NOW + timedelta(days=30),
+                expires_at=expires_at,
                 updated_at=NOW,
             ),
             actor="test-billing",
@@ -380,3 +394,25 @@ def test_published_opportunity_reaches_entitled_telegram_recipient_once(tmp_path
     assert "Update: COMI opportunity published from price-action v1" in transport.sent[0][1]
     assert outbox.get(publication.event_id).status is AlertOutboxStatus.DELIVERED
 
+
+
+def test_dispatch_suppresses_expired_subscription_before_telegram_send(tmp_path) -> None:
+    expired_user = uuid4()
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(expired_user, "chat-expired")],
+        expired_users=(expired_user,),
+    )
+
+    result = dispatcher.execute(now=NOW)
+
+    assert result.events_processed == 1
+    assert result.recipients_delivered == 0
+    assert result.recipients_suppressed == 1
+    assert result.recipients_failed == 0
+    assert transport.sent == []
+    delivery = deliveries.get(event.event_id, expired_user, "telegram")
+    assert delivery is not None
+    assert delivery.status is SignalAlertDeliveryStatus.SUPPRESSED
+    assert delivery.last_error == "no_eligible_plan"
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.SUPPRESSED_NO_ELIGIBLE_RECIPIENTS
