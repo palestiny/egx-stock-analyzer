@@ -501,3 +501,33 @@ def test_concurrent_dispatcher_does_not_finalize_event_while_other_worker_sends(
     assert len(transport.sent) == 1
     assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.DELIVERED
     assert outbox.get(event.event_id).status is AlertOutboxStatus.DELIVERED
+
+
+
+def test_manually_confirmed_non_delivery_finalizes_event_without_resending(tmp_path) -> None:
+    user_id = uuid4()
+    dispatcher, outbox, deliveries, transport, event, _history = setup_dispatch(
+        tmp_path,
+        [LinkedTelegramAccount(user_id, "chat-manually-not-delivered")],
+        entitled_users=(user_id,),
+    )
+    deliveries.create_pending(event.event_id, user_id, "telegram", now=NOW)
+    deliveries.mark_failed(
+        event.event_id, user_id, "telegram", "definite provider rejection", now=NOW,
+    )
+    reconciliation = SQLiteTelegramDeliveryReconciliationStore(tmp_path / "dispatch.db")
+    reconciliation.reconcile(
+        event.event_id, user_id, "telegram",
+        outcome="CONFIRMED_NOT_DELIVERED",
+        actor_subject="operator",
+        reason="Verified recipient did not receive the message",
+        now=NOW,
+    )
+
+    result = dispatcher.execute(now=NOW + timedelta(minutes=1))
+
+    assert result.recipients_delivered == 0
+    assert result.recipients_failed == 0
+    assert transport.sent == []
+    assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.NOT_DELIVERED
+    assert outbox.get(event.event_id).status is AlertOutboxStatus.FAILED
