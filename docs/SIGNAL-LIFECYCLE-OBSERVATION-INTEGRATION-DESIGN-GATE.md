@@ -38,7 +38,7 @@ Do not infer these from generic price fields:
 4. **Observation cadence:** Whether evaluation runs after every accepted analysis result, once after a completed session, or on a separately licensed intraday feed. Do not use an in-process timer as a substitute for durable scheduling.
 5. **Expiry policy:** Define `expires_at`, valid session/timeframe semantics, and what causes EXPIRED. The status enum contains EXPIRED/CLOSED, but the current transition function only transitions ACTIVE to TRIGGERED or INVALIDATED; no expiry duration or close policy is inferred here.
 6. **Revision semantics:** Which changes in entry zone, invalidation, targets, direction, timeframe, evidence, confidence, or strategy version constitute a new version versus invalidation of the prior published setup. Preserve lineage and avoid duplicate Telegram notifications.
-7. **Outcome price semantics:** Define how gaps through invalidation and target overshoots are recorded. A stop threshold, observed close, and executable fill are different values. Never call a market-proxy return an executed result.
+7. **Entry and outcome price semantics:** Define the hypothetical entry basis used by `process(entry_price=...)` (for example, a documented zone rule or first eligible observation), and how gaps through invalidation and target overshoots are recorded. A published entry zone, assumed entry, stop threshold, observed close, and executable fill are different values. Never call a market-proxy return an executed result.
 8. **Recovery and operations:** Define durable observation identity/cursor, duplicate handling, late corrections, replay, missed-run reconciliation, and operator-visible failures.
 
 ## 4. Recommended application flow
