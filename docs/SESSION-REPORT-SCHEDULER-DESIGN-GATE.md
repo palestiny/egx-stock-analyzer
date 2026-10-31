@@ -11,6 +11,7 @@ The repository currently contains:
 
 - `BuildSessionOpportunityLedger`, which builds a point-in-time report for a supplied EGX session date and timezone-aware `generated_at` cutoff.
 - `SQLiteSessionOpportunityReportStore`, which persists immutable snapshots and supports latest-as-of reads.
+- PR #441 exposes each opportunity's original signal source-data timestamp and the outcome observation's source-data timestamp in API responses and immutable snapshots. These are provenance timestamps only; they do not classify data as fresh or stale.
 - Authenticated API routes for building, persisting, and reading reports.
 - Telegram infrastructure and durable delivery machinery for signal-opportunity notifications.
 
