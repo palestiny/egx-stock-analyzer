@@ -8,7 +8,8 @@ from uuid import UUID
 from app.application.alerts.telegram_delivery_reconciliation import (
     TelegramDeliveryReconciliation,
     TelegramDeliveryReconciliationStore,
-)\nfrom app.infrastructure.persistence.sqlite_connection import connect_sqlite
+)
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
 class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationStore):
