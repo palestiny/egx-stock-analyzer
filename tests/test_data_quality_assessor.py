@@ -146,3 +146,50 @@ def test_assessment_is_deterministic():
     second = DataQualityAssessor.assess(observations)
 
     assert first == second
+
+
+
+def test_future_timestamp_is_invalid_when_after_assessment_time():
+    as_of = datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
+    result = DataQualityAssessor.assess(
+        [observation(timestamp=datetime(2026, 9, 16, 12, 0, 1, tzinfo=timezone.utc))],
+        as_of=as_of,
+    )
+
+    assert result[0].status is DataQualityStatus.INVALID
+    assert DataQualityIssueCode.FUTURE_TIMESTAMP in {
+        issue.code for issue in result[0].issues
+    }
+
+
+def test_timestamp_equal_to_assessment_time_is_not_future():
+    as_of = datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
+    result = DataQualityAssessor.assess(
+        [observation(timestamp=as_of)],
+        as_of=as_of,
+    )
+
+    assert result[0].status is DataQualityStatus.VALID
+    assert result[0].issues == ()
+
+
+def test_future_timestamp_comparison_respects_timezone_offsets():
+    as_of = datetime(2026, 9, 16, 12, tzinfo=timezone.utc)
+    timestamp = datetime.fromisoformat("2026-09-16T15:00:01+03:00")
+    result = DataQualityAssessor.assess(
+        [observation(timestamp=timestamp)],
+        as_of=as_of,
+    )
+
+    assert result[0].status is DataQualityStatus.INVALID
+    assert DataQualityIssueCode.FUTURE_TIMESTAMP in {
+        issue.code for issue in result[0].issues
+    }
+
+
+def test_naive_assessment_time_is_rejected():
+    with pytest.raises(ValueError, match="as_of must be timezone-aware"):
+        DataQualityAssessor.assess(
+            [observation()],
+            as_of=datetime(2026, 9, 16, 12),
+        )
