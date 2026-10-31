@@ -148,14 +148,19 @@ class DispatchSignalAlertOutbox:
                     )
                 user = self._users.get(recipient.user_id)
                 if user is None or not user.can_access_protected_resources():
-                    self._deliveries.mark_suppressed(
+                    suppression = self._deliveries.mark_suppressed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         "user_inactive_or_missing",
                         now=now,
                     )
-                    suppressed += 1
+                    if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
+                        suppressed += 1
+                    elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
                     continue
 
                 decision = self._entitlements.evaluate(
@@ -164,26 +169,36 @@ class DispatchSignalAlertOutbox:
                     now=now,
                 )
                 if not decision.allowed:
-                    self._deliveries.mark_suppressed(
+                    suppression = self._deliveries.mark_suppressed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         decision.reason,
                         now=now,
                     )
-                    suppressed += 1
+                    if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
+                        suppressed += 1
+                    elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
                     continue
 
                 if signal_snapshot is None:
-                    self._deliveries.mark_failed(
+                    failure = self._deliveries.mark_failed(
                         record.event.event_id,
                         recipient.user_id,
                         self.CHANNEL,
                         "signal history unavailable",
                         now=now,
                     )
-                    failed += 1
-                    event_failed = True
+                    if failure.status is SignalAlertDeliveryStatus.FAILED:
+                        failed += 1
+                        event_failed = True
+                    elif failure.status is SignalAlertDeliveryStatus.DELIVERED:
+                        event_had_delivery = True
+                    else:
+                        event_has_unresolved_delivery = True
                     continue
 
                 claim_token = uuid4()
