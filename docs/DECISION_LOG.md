@@ -3087,3 +3087,27 @@ Source Acquisition → Preserved Artifacts → Manifest/Checksums → Validation
 No strategy-rule changes, ranking, optimization, portfolio construction, or live execution are introduced by DEC-130.
 
 See docs/DEC-130-M61-HISTORICAL-DATA-ACQUISITION-GATE.md.
+
+
+# DEC-136 — Ambiguous Telegram Delivery Requires Manual Reconciliation
+
+**Status:** Accepted by owner  
+**Date:** 2026-10-31
+
+### Context
+
+Telegram is an external side effect and does not share a transaction with the local SQLite database. A timeout, connection loss, or worker crash after send initiation cannot prove whether Telegram accepted the message. Automatically retrying such an outcome can produce a duplicate.
+
+### Decision
+
+A per-recipient delivery whose outcome is ambiguous after the send boundary is crossed must enter `DELIVERY_UNKNOWN` and must **not** be automatically resent. It remains visible for explicit operator reconciliation.
+
+A definite transport failure remains distinct and may be eligible for a separately configured retry policy. The implementation must not classify every transport exception as a definite failure without examining the transport contract.
+
+### Consequences
+
+- The dispatcher must distinguish pre-send recoverable claims from in-flight sends.
+- Expired pre-send claims may be safely reclaimed; expired in-flight claims become `DELIVERY_UNKNOWN`.
+- Operator visibility and an auditable manual resolution path are required before this behavior can be considered operationally complete.
+- This decision does not select lease duration, transport timeout, retry delay, maximum attempts, or exhaustion behavior.
+- Exactly-once Telegram delivery is not claimed.
