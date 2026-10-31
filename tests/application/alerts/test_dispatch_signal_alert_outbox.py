@@ -234,6 +234,11 @@ def test_definite_failure_retries_only_when_durable_due_time_arrives(tmp_path) -
     assert failed_record.attempts == 1
     assert failed_record.next_attempt_at is not None
     assert timedelta(seconds=54) <= failed_record.next_attempt_at - NOW <= timedelta(seconds=66)
+    reloaded = SQLiteSignalAlertDeliveryStore(tmp_path / "dispatch.db").get(
+        event.event_id, first_user, "telegram",
+    )
+    assert reloaded is not None
+    assert reloaded.next_attempt_at == failed_record.next_attempt_at
     assert len(transport.sent) == 1
 
     early = dispatcher.execute(now=failed_record.next_attempt_at - timedelta(seconds=1))
