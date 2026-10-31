@@ -45,9 +45,8 @@ def test_orchestrator_coordinates_transition_alert_and_outcome():
     orchestrator = SignalLifecycleOrchestrator(history, alerts, track_record)
 
     signal = make_signal()
-    state = SignalMarketState(
-        datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("110")
-    )
+    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    state = SignalMarketState(observed_at, Decimal("110"), observed_at)
     result = orchestrator.process(signal, state, entry_price=Decimal("100"))
 
     assert result.changed is True
@@ -61,6 +60,8 @@ def test_orchestrator_coordinates_transition_alert_and_outcome():
     assert outcome.target_label == "T1"
     assert outcome.realized_return == Decimal("0.10")
     assert outcome.realized_r == Decimal("2")
+    assert outcome.data_timestamp == state.data_timestamp
+    assert outcome.data_timestamp != signal.data_timestamp
     assert history.history(result.signal_id)[-1].event == "STATUS_TRIGGERED"
 
 
@@ -101,7 +102,11 @@ def test_sell_outcome_uses_direction_aware_return_and_r():
 
     result = orchestrator.process(
         signal,
-        SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("90")),
+        SignalMarketState(
+            datetime(2026, 10, 4, tzinfo=timezone.utc),
+            Decimal("90"),
+            datetime(2026, 10, 4, tzinfo=timezone.utc),
+        ),
         entry_price=Decimal("100"),
     )
 
@@ -236,6 +241,7 @@ def test_orchestrator_rejects_non_finite_entry_price() -> None:
             SignalMarketState(
                 datetime(2026, 10, 4, tzinfo=timezone.utc),
                 Decimal("100"),
+                datetime(2026, 10, 4, tzinfo=timezone.utc),
             ),
             entry_price=Decimal("NaN"),
         )
@@ -254,6 +260,7 @@ def test_orchestrator_rejects_pre_generation_observation_before_writing_history(
             SignalMarketState(
                 datetime(2026, 10, 2, tzinfo=timezone.utc),
                 Decimal("100"),
+                datetime(2026, 10, 2, tzinfo=timezone.utc),
             ),
             entry_price=Decimal("100"),
         )
