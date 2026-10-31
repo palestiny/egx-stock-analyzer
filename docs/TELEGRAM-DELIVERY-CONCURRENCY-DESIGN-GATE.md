@@ -67,7 +67,7 @@ The implementation must preserve the current behavior that an entitlement revoke
 
 ## 6. Retry policy is a separate decision
 
-Owner-approved lease rule (2026-10-31): derive the per-recipient lease duration from the effective Telegram transport timeout at runtime as **2 × the configured transport timeout**. Do not introduce a separately hard-coded lease duration. The transport timeout remains governed by its actual configuration. Retry delay, backoff multiplier, maximum attempts, and exhaustion state remain unselected and must be configuration-driven where appropriate.
+Owner-approved lease rule (2026-10-31): derive the per-recipient lease duration from the effective Telegram transport timeout at runtime as **2 × the configured transport timeout**. Do not introduce a separately hard-coded lease duration. The transport timeout remains governed by its actual configuration. Retry timing, attempt budget, and exhaustion behavior are now selected by owner decision DEC-137 below.
 
 Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timezone-aware UTC instants. A FAILED record is not immediately retryable unless its scheduled time is due. Retry exhaustion must be explicit and observable, not an unbounded retry loop.
 
@@ -91,7 +91,7 @@ Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timez
 - One worker processing an event does not cause another worker to finalize it as no-eligible-recipient.
 - Transport timeout/connection loss produces the documented ambiguous outcome.
 - Migration preserves existing records and status semantics.
-- Retry scheduling, backoff, exhaustion, and manual/automatic unknown-outcome handling are tested against the separately accepted retry policy.
+- Retry scheduling, bounded jitter, attempt exhaustion, and manual/automatic unknown-outcome handling must be tested against DEC-137 and DEC-136.
 
 ## 8. Acceptance gate
 
@@ -102,7 +102,7 @@ Implementation may begin only after the owner accepts:
 3. Retry schedule, maximum attempts, and terminal exhaustion behavior.
 4. Whether operator tooling is required for resolving unknown outcomes.
 
-Implementation may proceed with the accepted manual-reconciliation policy for `DELIVERY_UNKNOWN`. The lease/timeout relationship is approved: lease = 2 × effective transport timeout. Retry schedule, maximum attempts, and exhaustion behavior remain open and must not be guessed. Do not claim exactly-once delivery.
+Implementation may proceed under DEC-136 and DEC-137: `DELIVERY_UNKNOWN` is manual-only; lease = 2 × effective transport timeout; definite failures receive at most three total attempts with 1-minute then 5-minute retry delays, a 15-minute cap, bounded jitter, and terminal `RETRY_EXHAUSTED`. Do not claim exactly-once delivery.
 
 
 ## 9. Additional code-review findings — 2026-10-31
@@ -133,3 +133,21 @@ Verification:
 - PR #430 exact-head CI run #41191550843 passed all five jobs; post-merge main CI for its merge commit is tracked separately.
 
 The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. Retry schedule, backoff, maximum attempts, and exhaustion behavior for definite `FAILED` outcomes remain unapproved. Do not auto-retry `FAILED` or resend `DELIVERY_UNKNOWN` until the applicable policy is explicitly approved and implemented. Exactly-once delivery is not guaranteed.
+
+
+## 11. Owner-approved definite-failure retry policy — DEC-137 (2026-10-31)
+
+Only provider-confirmed definite failures are retryable. Policy:
+
+- 3 total attempts including the initial send.
+- Retry delay after attempt 1: 1 minute.
+- Retry delay after attempt 2: 5 minutes.
+- Maximum scheduled delay: 15 minutes.
+- Bounded jitter is applied to avoid synchronized retry bursts.
+- Persist `next_attempt_at` in UTC; do not dispatch before it is due.
+- After attempt 3 fails definitively, persist terminal `RETRY_EXHAUSTED` for operator visibility and audited reconciliation.
+- Re-check recipient active status and entitlement before each retry.
+- `DELIVERY_UNKNOWN` is never automatically retried; DEC-136 manual reconciliation remains mandatory.
+- No automatic resend for `DELIVERED`, `NOT_DELIVERED`, or `RETRY_EXHAUSTED`.
+
+This decision is approved; implementation and tests are still required. The 15-minute cap does not increase the three-attempt budget. Exactly-once delivery is not guaranteed.
