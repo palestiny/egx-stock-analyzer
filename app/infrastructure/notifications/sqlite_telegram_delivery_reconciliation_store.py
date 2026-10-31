@@ -46,9 +46,9 @@ class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationSt
             rows = connection.execute(
                 """
                 SELECT event_id, user_id, channel, status, attempts,
-                       created_at, updated_at
+                       created_at, updated_at, next_attempt_at
                 FROM signal_alert_deliveries
-                WHERE status IN ('FAILED', 'DELIVERY_UNKNOWN')
+                WHERE status IN ('FAILED', 'DELIVERY_UNKNOWN', 'RETRY_EXHAUSTED')
                 ORDER BY updated_at ASC, event_id, user_id
                 LIMIT ? OFFSET ?
                 """,
@@ -62,6 +62,7 @@ class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationSt
             "attempts": int(row[4]),
             "created_at": str(row[5]),
             "updated_at": str(row[6]),
+            "next_attempt_at": str(row[7]) if row[7] is not None else None,
         } for row in rows)
 
     def reconcile(
@@ -103,14 +104,14 @@ class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationSt
             if row is None:
                 raise LookupError("delivery record not found")
             previous_status = str(row[0])
-            if previous_status not in {"FAILED", "DELIVERY_UNKNOWN"}:
+            if previous_status not in {"FAILED", "DELIVERY_UNKNOWN", "RETRY_EXHAUSTED"}:
                 raise ValueError("delivery record is not eligible for manual reconciliation")
             new_status = targets[outcome]
             cursor = connection.execute(
                 """
                 UPDATE signal_alert_deliveries
                 SET status = ?, updated_at = ?, last_error = ?,
-                    claim_token = NULL, lease_until = NULL
+                    claim_token = NULL, lease_until = NULL, next_attempt_at = NULL
                 WHERE event_id = ? AND user_id = ? AND channel = ?
                   AND status = ?
                 """,

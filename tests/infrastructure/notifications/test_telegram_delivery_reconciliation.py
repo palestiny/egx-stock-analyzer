@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -166,3 +166,45 @@ def test_reconciliation_api_requires_operator_authentication(tmp_path):
     with TestClient(app) as client:
         response = client.get("/api/v1/management/telegram-deliveries/unresolved")
     assert response.status_code == 401
+
+
+def test_retry_exhausted_is_listed_and_can_be_manually_reconciled(tmp_path):
+    path = tmp_path / "telegram-reconciliation.db"
+    deliveries = SQLiteSignalAlertDeliveryStore(path)
+    event_id, user_id = uuid4(), uuid4()
+    deliveries.create_pending(event_id, user_id, "telegram", now=NOW)
+    store = SQLiteTelegramDeliveryReconciliationStore(path)
+    # Simulate the three fenced send attempts using the same durable store API.
+    for attempt in range(1, 4):
+        current = deliveries.get(event_id, user_id, "telegram")
+        dispatch_at = current.next_attempt_at or NOW
+        token = uuid4()
+        assert deliveries.claim(
+            event_id, user_id, "telegram", claim_token=token,
+            now=dispatch_at, lease_until=dispatch_at + timedelta(minutes=1),
+        )
+        assert deliveries.mark_sending(
+            event_id, user_id, "telegram", claim_token=token, now=dispatch_at,
+        )
+        assert deliveries.complete_failed(
+            event_id, user_id, "telegram", "provider rejected",
+            claim_token=token, now=dispatch_at,
+        )
+    record = deliveries.get(event_id, user_id, "telegram")
+    assert record.status.value == "RETRY_EXHAUSTED"
+    assert record.attempts == 3
+    unresolved = store.list_unresolved()
+    assert len(unresolved) == 1
+    assert unresolved[0]["status"] == "RETRY_EXHAUSTED"
+
+    result = store.reconcile(
+        event_id, user_id, "telegram",
+        outcome="CONFIRMED_NOT_DELIVERED",
+        actor_subject="operator-789",
+        reason="Verified final non-delivery after retry exhaustion",
+        now=NOW,
+    )
+    assert result.previous_status == "RETRY_EXHAUSTED"
+    assert result.new_status == "NOT_DELIVERED"
+    assert store.list_unresolved() == ()
+    assert len(store.list_audit()) == 1

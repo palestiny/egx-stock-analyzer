@@ -130,13 +130,15 @@ class DispatchSignalAlertOutbox:
                     continue
                 if existing is not None and existing.status is SignalAlertDeliveryStatus.SUPPRESSED:
                     continue
-                if existing is not None and existing.status is SignalAlertDeliveryStatus.NOT_DELIVERED:
+                if existing is not None and existing.status in {
+                    SignalAlertDeliveryStatus.NOT_DELIVERED,
+                    SignalAlertDeliveryStatus.RETRY_EXHAUSTED,
+                }:
                     event_failed = True
                     continue
                 if existing is not None and existing.status in {
                     SignalAlertDeliveryStatus.CLAIMED,
                     SignalAlertDeliveryStatus.SENDING,
-                    SignalAlertDeliveryStatus.FAILED,
                     SignalAlertDeliveryStatus.DELIVERY_UNKNOWN,
                 }:
                     event_has_unresolved_delivery = True

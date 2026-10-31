@@ -109,7 +109,7 @@ The owner accepted the conservative non-M61 product/operational baseline:
 This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
 
 
-### Telegram concurrency and ambiguous outcomes — DEC-136 (implementation merged; retry policy open)
+### Telegram concurrency, ambiguous outcomes, and bounded definite retries — DEC-136/DEC-137 (DEC-136 merged; DEC-137 implementation under verification)
 
 - [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
 - [x] PR #428: atomic per-recipient SQLite claim/lease, opaque claim-token fencing, safe expired-CLAIMED recovery, and expired-SENDING transition to `DELIVERY_UNKNOWN`.
@@ -117,7 +117,8 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] PR #429: operator-only unresolved-delivery listing, audited manual reconciliation, and terminal `NOT_DELIVERED` handling.
 - [x] PR #430: operator runbook with authenticated API examples, evidence requirements, and escalation guidance.
 - [x] Owner decision: derive lease duration at runtime as 2 × the effective configured Telegram transport timeout.
-- [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; bounded jitter; terminal `RETRY_EXHAUSTED`. Implementation, durable scheduling, and tests remain open. `FAILED` is not automatically retried.
+- [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; deterministic bounded ±10% jitter; terminal `RETRY_EXHAUSTED`.
+- [ ] Verify and merge DEC-137 implementation: durable UTC scheduling, due-only atomic retry claims, account/entitlement re-evaluation, exhaustion visibility, audited reconciliation, and regression tests. Active branch: `feat/telegram-bounded-definite-retries`.
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
-Implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. Definite-failure retry policy is approved in DEC-137; implementation, durable scheduling, exhaustion visibility, and tests remain open. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+DEC-136 implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. DEC-137 is approved; implementation is being verified on the active feature branch and is not complete until exact-head CI passes and the PR is merged. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.

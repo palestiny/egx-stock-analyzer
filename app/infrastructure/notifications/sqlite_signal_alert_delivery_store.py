@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -40,6 +41,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                     last_error TEXT NULL,
                     claim_token TEXT NULL,
                     lease_until TEXT NULL,
+                    next_attempt_at TEXT NULL,
                     PRIMARY KEY(event_id, user_id, channel)
                 )
                 """
@@ -57,6 +59,10 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
             if "lease_until" not in columns:
                 connection.execute(
                     "ALTER TABLE signal_alert_deliveries ADD COLUMN lease_until TEXT NULL"
+                )
+            if "next_attempt_at" not in columns:
+                connection.execute(
+                    "ALTER TABLE signal_alert_deliveries ADD COLUMN next_attempt_at TEXT NULL"
                 )
             connection.execute(
                 """
@@ -82,7 +88,8 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
             row = connection.execute(
                 """
                 SELECT event_id, user_id, channel, status, attempts,
-                    created_at, updated_at, last_error, claim_token, lease_until
+                    created_at, updated_at, last_error, claim_token, lease_until,
+                    next_attempt_at
                 FROM signal_alert_deliveries
                 WHERE event_id = ? AND user_id = ? AND channel = ?
                 """,
@@ -178,9 +185,13 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
             cursor = connection.execute(
                 """
                 UPDATE signal_alert_deliveries
-                SET status = ?, claim_token = ?, lease_until = ?, updated_at = ?
+                SET status = ?, claim_token = ?, lease_until = ?,
+                    next_attempt_at = NULL, updated_at = ?
                 WHERE event_id = ? AND user_id = ? AND channel = ?
-                  AND status = ?
+                  AND (status = ? OR (
+                      status = ? AND attempts < 3
+                      AND next_attempt_at IS NOT NULL AND next_attempt_at <= ?
+                  ))
                 """,
                 (
                     SignalAlertDeliveryStatus.CLAIMED.value,
@@ -189,6 +200,8 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                     now_text,
                     *key,
                     SignalAlertDeliveryStatus.PENDING.value,
+                    SignalAlertDeliveryStatus.FAILED.value,
+                    now_text,
                 ),
             )
             return cursor.rowcount == 1
@@ -250,10 +263,54 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
     ) -> bool:
         if not error.strip():
             raise ValueError("delivery error is required")
-        return self._complete_claimed(
-            event_id, user_id, channel, claim_token=claim_token,
-            status=SignalAlertDeliveryStatus.FAILED, now=now, error=error.strip(),
-        )
+        self._require_aware(now, "now")
+        key = (str(event_id), str(user_id), self._normalize_channel(channel))
+        now_text = self._timestamp(now)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                """
+                SELECT attempts FROM signal_alert_deliveries
+                WHERE event_id = ? AND user_id = ? AND channel = ?
+                  AND status = ? AND claim_token = ? AND lease_until > ?
+                """,
+                (*key, SignalAlertDeliveryStatus.SENDING.value, str(claim_token), now_text),
+            ).fetchone()
+            if row is None:
+                return False
+            attempts = int(row[0])
+            if attempts >= 3:
+                status = SignalAlertDeliveryStatus.RETRY_EXHAUSTED
+                next_attempt_text = None
+            else:
+                status = SignalAlertDeliveryStatus.FAILED
+                delay = self._retry_delay_seconds(event_id, user_id, attempts)
+                next_attempt_text = self._timestamp(now + timedelta(seconds=delay))
+            cursor = connection.execute(
+                """
+                UPDATE signal_alert_deliveries
+                SET status = ?, updated_at = ?, last_error = ?,
+                    claim_token = NULL, lease_until = NULL, next_attempt_at = ?
+                WHERE event_id = ? AND user_id = ? AND channel = ?
+                  AND status = ? AND claim_token = ? AND lease_until > ?
+                """,
+                (
+                    status.value, now_text, error.strip(), next_attempt_text,
+                    *key, SignalAlertDeliveryStatus.SENDING.value, str(claim_token), now_text,
+                ),
+            )
+        return cursor.rowcount == 1
+
+    @staticmethod
+    def _retry_delay_seconds(event_id: UUID, user_id: UUID, attempts: int) -> int:
+        base_seconds = {1: 60, 2: 300}.get(attempts)
+        if base_seconds is None:
+            raise ValueError("retry delay is defined only after attempts one and two")
+        digest = hashlib.sha256(f"{event_id}:{user_id}:{attempts}".encode()).digest()
+        # Stable bounded jitter (±10%) avoids synchronized bursts and keeps tests deterministic.
+        jitter_basis_points = int.from_bytes(digest[:4], "big") % 2001 - 1000
+        delay = round(base_seconds * (1 + jitter_basis_points / 10000))
+        return min(900, max(1, delay))
 
     def mark_delivery_unknown(
         self,
@@ -290,7 +347,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 """
                 UPDATE signal_alert_deliveries
                 SET status = ?, updated_at = ?, last_error = ?,
-                    claim_token = NULL, lease_until = NULL
+                    claim_token = NULL, lease_until = NULL, next_attempt_at = NULL
                 WHERE event_id = ? AND user_id = ? AND channel = ?
                   AND status = ? AND claim_token = ? AND lease_until > ?
                 """,
@@ -409,7 +466,8 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
             connection.execute(
                 """
                 UPDATE signal_alert_deliveries
-                SET status = ?, attempts = attempts + ?, updated_at = ?, last_error = ?
+                SET status = ?, attempts = attempts + ?, updated_at = ?, last_error = ?,
+                    next_attempt_at = NULL
                 WHERE event_id = ? AND user_id = ? AND channel = ?
                   AND status IN (?, ?)
                 """,
@@ -457,4 +515,5 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
             last_error=str(row[7]) if row[7] is not None else None,
             claim_token=UUID(str(row[8])) if row[8] is not None else None,
             lease_until=datetime.fromisoformat(str(row[9])) if row[9] is not None else None,
+            next_attempt_at=datetime.fromisoformat(str(row[10])) if row[10] is not None else None,
         )
