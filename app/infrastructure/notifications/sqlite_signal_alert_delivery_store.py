@@ -412,17 +412,20 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 UPDATE signal_alert_deliveries
                 SET status = ?, attempts = attempts + ?, updated_at = ?, last_error = ?
                 WHERE event_id = ? AND user_id = ? AND channel = ?
+                  AND status IN (?, ?)
                 """,
                 (
                     status.value, int(increment_attempts), self._timestamp(now),
                     last_error, str(event_id), str(user_id), normalized_channel,
+                    SignalAlertDeliveryStatus.PENDING.value,
+                    SignalAlertDeliveryStatus.FAILED.value,
                 ),
             )
-            if cursor.rowcount != 1:
-                raise LookupError("Signal alert delivery record was not found")
         record = self.get(event_id, user_id, normalized_channel)
         if record is None:
-            raise RuntimeError("Signal alert delivery record disappeared")
+            raise LookupError("Signal alert delivery record was not found")
+        # A concurrent dispatcher may already own or have completed this row.
+        # Legacy, unfenced transitions must never overwrite that newer state.
         return record
 
     @staticmethod
