@@ -8,16 +8,19 @@
 
 # Current Position
 
-## Non-M61 engineering checkpoint — 2026-10-31 (updated after PRs #428–#430)
+## Non-M61 engineering checkpoint — 2026-10-31 (updated after PRs #428–#433)
 
 The latest non-M61 implementation increment merged:
-- PR #418: preserve the source price-bar timestamp in analysis/signal output.
+- PR #418: preserve the source price-bar timestamp in analysis/signal output; current code carries it through analysis persistence into `Signal.data_timestamp` and suppresses signal creation when it is missing or timezone-naive.
+- PR #428–#430: Telegram recipient atomic claims, operator reconciliation, and operator runbook.
+- PR #432: bounded retries for definite Telegram failures under DEC-137.
+- PR #433: align the completion register and Telegram concurrency design gate with the merged implementation.
 - PR #420: add offline integrity/provenance-structure tests for the canonical EGX daily archive.
 - PR #421: append the 2026-10-29 daily session (19 equities and 4 indices) and generalize the archive schema to distinguish equity EGP prices from index points.
 
 The canonical archive currently contains 45 rows (22 EGAL seed rows plus 23 rows for 2026-10-29). Its known data-quality exceptions remain visible: MICH and FAIT OHLC inconsistencies on 2026-10-29, plus an EGAL source-revision conflict for 2026-10-28. These values are not silently repaired or overwritten.
 
-**Verification boundary:** PR-head CI passed for #420 and #421 before merge. PR #422 is now merged at `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64`, and main CI run #41185546490 passed all five jobs. This validates the tested code path, not market-data accuracy, full-market coverage, database ingestion, or strategy profitability. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability.
+**Verification boundary:** PR #432 post-merge main CI run #41197870758 passed all five jobs. PR #433 exact-head CI run #41198262173 passed all five jobs and was merged at `4733e9237495789ebceba9113567e42b7b6abf6d`; post-merge main CI run #41198751442 remains in progress. PR #422 main CI run #41185546490 also passed all five jobs. This validates the tested code path, not market-data accuracy, full-market coverage, database ingestion, or strategy profitability. The archive validation tests establish structural consistency only, not market-data accuracy, complete EGX coverage, application database ingestion, or strategy profitability. The Yahoo Finance adapter currently requests daily bars only; actual EGX symbol coverage, upstream timestamp/timezone semantics, freshness/delay, corrections, rate limits and reuse terms remain unverified. A completed-session freshness gate is still required before actionable output.
 
 The previous design proposals #342, #344, and #347 are closed unmerged; they are not themselves accepted owner decisions. Their policy areas are now governed by owner-accepted DEC-135. Do not implement automatic Crash Radar alerts, commercial pricing/payment, or broker execution. Automated session report scheduling/distribution may proceed only within DEC-135 and with tested idempotency, correction, retry, and failure visibility. M61 remains paused by explicit owner request.
 

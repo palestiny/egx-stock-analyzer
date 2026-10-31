@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `93984f481cfbfeb19411f8230f03442a494702bc` (PR #432). Post-merge main CI run #41197870758 is being checked; do not mark the commit fully CI-verified until all five jobs complete successfully.  
+**Baseline:** `main` at `4733e9237495789ebceba9113567e42b7b6abf6d` (PR #433). PR #432 post-merge main CI run #41197870758 passed all five jobs; PR #433 exact-head CI run #41198262173 passed all five jobs. Post-merge CI for PR #433 is being checked separately.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -25,13 +25,16 @@ This register separates verified implementation from incomplete acceptance and d
 
 ### P0 — Verify latest merged main CI
 
-- [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490 (unit, integration, frontend, dependency audit, container build).
-- [x] PR #430 merged the Telegram delivery operator runbook; its exact-head CI run #41191550843 passed all five jobs. Post-merge main CI for `c0448e796328c805ccc544d0e7f72083da5ce3e4` remains to be verified.
+- [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490.
+- [x] PR #432 merge commit `93984f481cfbfeb19411f8230f03442a494702bc` passed all five post-merge main jobs in run #41197870758.
+- [x] PR #433 exact-head CI run #41198262173 passed all five jobs before merge. Its merge commit is `4733e9237495789ebceba9113567e42b7b6abf6d`; post-merge main CI run #41198751442 must complete before this newest main commit is marked fully verified.
 
 ### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
-- [ ] Inventory actual Yahoo Finance adapter behavior, EGX symbol coverage, supported bar intervals, timestamps, data delay, corrections, rate limits and licensing/terms.
-- [ ] Implement and test an explicit data freshness/provenance gate; suppress or clearly mark stale/insufficient data rather than producing a current-session actionable claim.
+- [x] Inspect current adapter path: `YahooFinanceHistoryClient.history()` requests daily bars only (`interval="1d"`); `YahooFinanceAdapter` maps `{stock.symbol}.CA`, carries OHLCV and normalizes naive timestamps as UTC. This is code behavior, not verified provider timezone semantics, delay, coverage, rate limits or reuse rights.
+- [x] Verify source-bar timestamp is carried into `StockAnalysisResult.data_timestamp` and serialized with analysis snapshots; `GenerateSignal` suppresses output if timestamp is absent or timezone-naive (PR #418 and current main code).
+- [ ] Verify EGX symbol coverage, actual timestamp/timezone semantics, data delay, corrections, rate limits and licensing/terms.
+- [ ] Implement and test an explicit completed-session freshness/provenance gate; current validation rejects future/invalid observations but does not classify stale daily bars. Do not invent a calendar or freshness cutoff before its source/semantics are established.
 - [ ] Introduce separate, versioned intraday and swing strategy boundaries without silently changing existing scoring or trade rules.
 - [ ] Keep intraday strategy output suppressed or explicitly observational until suitable intraday data freshness/granularity is verified; daily bars must not be presented as live intraday evidence.
 - [ ] Define relative volume/traded-value evidence from available bars; do not claim order-book imbalance or smart-money activity without suitable underlying data.
@@ -109,7 +112,7 @@ The owner accepted the conservative non-M61 product/operational baseline:
 This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
 
 
-### Telegram concurrency, ambiguous outcomes, and bounded definite retries — DEC-136/DEC-137 (implementation merged; post-merge verification pending)
+### Telegram concurrency, ambiguous outcomes, and bounded definite retries — DEC-136/DEC-137 (implementation merged and verified)
 
 - [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
 - [x] PR #428: atomic per-recipient SQLite claim/lease, opaque claim-token fencing, safe expired-CLAIMED recovery, and expired-SENDING transition to `DELIVERY_UNKNOWN`.
@@ -119,7 +122,7 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] Owner decision: derive lease duration at runtime as 2 × the effective configured Telegram transport timeout.
 - [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; deterministic bounded ±10% jitter; terminal `RETRY_EXHAUSTED`.
 - [x] PR #432 merged DEC-137 implementation: durable UTC scheduling, due-only atomic retry claims, account/entitlement re-evaluation, exhaustion visibility, audited reconciliation, and regression tests. Merge commit `93984f481cfbfeb19411f8230f03442a494702bc`; exact-head CI run #41197542121 passed all five jobs.
-- [ ] Verify post-merge main CI run #41197870758; at last check, four jobs passed and `unit-tests (3.12)` was still running.
+- [x] Post-merge main CI run #41197870758 passed all five jobs.
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
-DEC-136 and DEC-137 implementations are merged. This is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. PR #432 exact-head CI passed all five jobs in run #41197542121; post-merge main CI run #41197870758 must pass before the merge commit is considered fully verified. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-head CI run #41197542121 and post-merge main CI run #41197870758, each passing all five jobs. This is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.

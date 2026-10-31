@@ -1,8 +1,8 @@
 # EGXBot Dual-Engine Design Gate
 
 **Status:** Owner-approved product direction; implementation design gate, not a claim of completed trading capability.  
-**Updated:** 2026-10-28  
-**Baseline:** `main` merge commit `2498bd98a848a37d3e2a4c47df9bb603339fe423` (PR #416).  
+**Updated:** 2026-10-31  
+**Baseline:** `main` at `4733e9237495789ebceba9113567e42b7b6abf6d` (PR #433).  
 **Owner-approved constraints:** separate intraday and swing engines; delayed/daily data; alerts for new opportunities and material changes; manual execution only; M61/backtesting remains paused.
 
 ## 1. Product objective
@@ -36,7 +36,9 @@ Reviewed on `main`:
 
 - `app/application/analysis/daily_market_analysis.py`: runs analysis over supplied per-symbol price bars and stores results; it is a daily analysis orchestration boundary, not proof of a continuously running intraday scanner.
 - `app/application/analysis/rank_market_opportunities.py`: ranks BUY/WATCH opportunities using existing quality scores. Its ranking order is existing behavior and must not be silently reinterpreted as a new momentum/liquidity score.
-- `app/application/signals/generate_signal.py`: generates a versioned `breakout-trend` signal from a saved analysis result, including entry zone, invalidation, targets and evidence; it returns no signal when the saved analysis date/current price is unavailable. **Timestamp gap found:** it currently sets both `generated_at` and `data_timestamp` to midnight UTC on `analysis_date`, not the actual provider bar timestamp. Do not present this as the exact market-observation time; preserve this as a P1 correctness gap until provenance is carried through the analysis record.
+- `app/application/signals/generate_signal.py`: generates a versioned `breakout-trend` signal from a saved analysis result, including entry zone, invalidation, targets and evidence. It requires a timezone-aware `result.data_timestamp`; missing or naive provenance suppresses signal generation. `generated_at` is the signal creation instant, while `data_timestamp` is the source-bar instant.
+- `app/application/analysis/stock_analysis.py`: `StockAnalysisPipeline` sets `data_timestamp` to the maximum timestamp among the supplied price bars. `StockAnalysisResult` serialization persists this field, with a backward-compatible `None` default for older snapshots. PR #418 addressed the former synthetic-midnight timestamp gap.
+- `app/infrastructure/market_data/yahoo_finance.py`: `YahooFinanceHistoryClient.history()` explicitly requests `interval="1d"`; this adapter is daily-only. `YahooFinanceAdapter._timestamp()` treats naive provider timestamps as UTC. That normalization is implemented, but whether the upstream Yahoo Finance timestamp is actually UTC or represents an exchange-local date has not yet been verified. Do not infer provider timezone or data delay from the adapter code.
 - `app/application/signals/lifecycle_orchestrator.py`: persists lifecycle transitions, publishes alerts, records terminal outcomes and supports invalidation when supporting evidence changes.
 - `app/application/alerts/publish_signal_opportunity.py`, `DispatchSignalAlertOutbox`, SQLite outbox and delivery stores: provide publication/delivery foundations. PR #416 adds a passing contract test for publication to an entitled Telegram recipient with idempotent replay.
 - `app/application/reporting/change_detection.py`: detects changes in classification, scores, current price and nearby support/resistance between saved analysis snapshots.
@@ -45,7 +47,7 @@ Reviewed on `main`:
 
 ## 4. Important gaps before implementation is eligible
 
-1. **Market data contract:** document actual provider, EGX instrument coverage, supported timeframes, volume semantics, currency, timestamps/timezone, delay, corrections, rate limits and licensing. Reject stale, missing, malformed or future-dated observations according to explicit configuration. Carry the actual last eligible `PriceBar.timestamp` through analysis persistence into `Signal.data_timestamp`; do not synthesize it from a date.
+1. **Market data contract:** document actual provider, EGX instrument coverage, supported timeframes, volume semantics, currency, timestamps/timezone, delay, corrections, rate limits and licensing. Reject stale, missing, malformed or future-dated observations according to an explicitly sourced completed-session policy. The source-bar timestamp is now carried through `StockAnalysisResult.data_timestamp`, analysis persistence and `Signal.data_timestamp` (PR #418); verify provider timezone semantics and implement the remaining freshness gate.
 2. **Intraday eligibility:** no intraday recommendation mode until data granularity/freshness and Cairo exchange session boundaries are verified. Daily-only data can support a daily/swing view but cannot establish an intraday tape.
 3. **Volume/liquidity evidence:** use relative volume and traded value only where comparable historical bars exist. Do not claim order-book imbalance, buyer/seller aggression, smart-money accumulation or distribution without the required trade/order data.
 4. **Strategy definitions:** define intraday and swing entry/exit conditions, expiry, confirmation, stop/target behavior and duplicate-signal policy in separate versioned documents. This gate does not invent or change those rules.
@@ -69,9 +71,9 @@ Reviewed on `main`:
 
 ### E0 — Data and contract audit
 
-Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamps, delay and licensing. Fix the observed timestamp-provenance gap: daily adapter returns timestamped bars, but analysis persistence currently stores only `analysis_date`, and `GenerateSignal` synthesizes `data_timestamp` as midnight UTC on that date. Add/verify data-freshness/provenance contracts before strategy changes.
+Inventory actual data adapters/configuration and tests. Record provider coverage, bar timeframes, timestamp/timezone semantics, delay and licensing. The timestamp-provenance propagation gap was fixed by PR #418; verify the adapter's naive-timestamp assumption, then implement completed-session freshness and source-coverage contracts before strategy changes.
 
-**Acceptance:** a test matrix covers fresh, delayed, stale, missing, malformed, corrected and future-dated bars; unsupported intraday input cannot produce a real-time-labelled alert.
+**Acceptance:** a test matrix covers fresh, delayed, stale, missing, malformed, corrected and future-dated bars; unsupported intraday input cannot produce a real-time-labelled alert. Freshness expectations must be derived from an approved EGX session calendar/source, not an arbitrary calendar-day threshold.
 
 ### E1 — Dual strategy boundaries
 
