@@ -1,8 +1,8 @@
 # Telegram Delivery Concurrency — Design Gate
 
-**Status:** Owner-approved policy implemented and merged through PRs #428–#429; definite-failure retry policy remains open  
+**Status:** DEC-136 implementation merged through PRs #428–#430; DEC-137 implementation is in progress on `feat/telegram-bounded-definite-retries`  
 **Scope:** Per-recipient Telegram delivery ownership and recovery  
-**Out of scope:** Retry timing/attempt limits, opportunity expiry, subscription policy, message content, scoring, automatic trading
+**Out of scope:** Opportunity expiry, subscription policy, message content, scoring, automatic trading
 
 ## 1. Verified current behavior
 
@@ -65,11 +65,11 @@ Recovery of an expired `CLAIMED` record is safe to return to `PENDING`, because 
 
 The implementation must preserve the current behavior that an entitlement revoked or expired before a retry suppresses that recipient rather than sending.
 
-## 6. Retry policy is a separate decision
+## 6. Retry policy — DEC-137
 
 Owner-approved lease rule (2026-10-31): derive the per-recipient lease duration from the effective Telegram transport timeout at runtime as **2 × the configured transport timeout**. Do not introduce a separately hard-coded lease duration. The transport timeout remains governed by its actual configuration. Retry timing, attempt budget, and exhaustion behavior are now selected by owner decision DEC-137 below.
 
-Retry scheduling must be durable (`next_attempt_at` or equivalent) and use timezone-aware UTC instants. A FAILED record is not immediately retryable unless its scheduled time is due. Retry exhaustion must be explicit and observable, not an unbounded retry loop.
+Retry scheduling is implemented on the active feature branch using durable UTC `next_attempt_at`. A FAILED record is not retryable until its scheduled instant is due. Retry exhaustion is represented by `RETRY_EXHAUSTED` and remains operator-visible.
 
 `DELIVERY_UNKNOWN` requires a separately approved handling policy. Options:
 
@@ -99,7 +99,7 @@ Implementation may begin only after the owner accepts:
 
 1. ~~Whether `DELIVERY_UNKNOWN` is manually reconciled or automatically retried.~~ **DECIDED:** manual reconciliation; no automatic resend for ambiguous outcomes.
 2. ~~Operational lease/transport timeout relationship.~~ **DECIDED:** lease duration is 2 × the effective configured Telegram transport timeout.
-3. Retry schedule, maximum attempts, and terminal exhaustion behavior.
+3. Retry schedule, maximum attempts, and terminal exhaustion behavior are resolved by DEC-137.
 4. Whether operator tooling is required for resolving unknown outcomes.
 
 Implementation may proceed under DEC-136 and DEC-137: `DELIVERY_UNKNOWN` is manual-only; lease = 2 × effective transport timeout; definite failures receive at most three total attempts with 1-minute then 5-minute retry delays, a 15-minute cap, bounded jitter, and terminal `RETRY_EXHAUSTED`. Do not claim exactly-once delivery.
@@ -132,7 +132,7 @@ Verification:
 - PR #429 main CI run #41191307763 passed all five jobs.
 - PR #430 exact-head CI run #41191550843 passed all five jobs; post-merge main CI for its merge commit is tracked separately.
 
-The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. Retry schedule, backoff, maximum attempts, and exhaustion behavior for definite `FAILED` outcomes remain unapproved. Do not auto-retry `FAILED` or resend `DELIVERY_UNKNOWN` until the applicable policy is explicitly approved and implemented. Exactly-once delivery is not guaranteed.
+The initial observations in sections 1 and 9 describe the pre-implementation baseline and are historical, not current behavior. DEC-137 is approved and its implementation is being verified on the active feature branch. `DELIVERY_UNKNOWN` remains manual-only. Exactly-once delivery is not guaranteed.
 
 
 ## 11. Owner-approved definite-failure retry policy — DEC-137 (2026-10-31)
@@ -143,7 +143,7 @@ Only provider-confirmed definite failures are retryable. Policy:
 - Retry delay after attempt 1: 1 minute.
 - Retry delay after attempt 2: 5 minutes.
 - Maximum scheduled delay: 15 minutes.
-- Bounded jitter is applied to avoid synchronized retry bursts.
+- Apply deterministic bounded jitter of ±10% to each scheduled delay to avoid synchronized retry bursts; the stable event/recipient/attempt-derived value keeps retries consistent across process restarts.
 - Persist `next_attempt_at` in UTC; do not dispatch before it is due.
 - After attempt 3 fails definitively, persist terminal `RETRY_EXHAUSTED` for operator visibility and audited reconciliation.
 - Re-check recipient active status and entitlement before each retry.
