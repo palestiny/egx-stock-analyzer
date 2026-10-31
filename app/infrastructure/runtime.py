@@ -18,6 +18,7 @@ from app.application.reporting.build_session_opportunity_ledger import BuildSess
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
+from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_store import SQLiteTelegramDeliveryReconciliationStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
@@ -89,6 +90,7 @@ class InfrastructureRuntime:
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None
     publish_signal_opportunity: PublishSignalOpportunity | None = None
     signal_alert_delivery_store: SQLiteSignalAlertDeliveryStore | None = None
+    telegram_delivery_reconciliation_store: SQLiteTelegramDeliveryReconciliationStore | None = None
     telegram_webhook_secret: str | None = None
     news_event_store: SQLiteNewsEventStore | None = None
     news_ingestion_service: NewsIngestionService | None = None
@@ -247,6 +249,7 @@ def create_infrastructure_runtime(
     telegram_account_link_store = SQLiteTelegramAccountLinkStore(config.analysis_database_path)
     telegram_account_linking = TelegramAccountLinkingService(telegram_account_link_store)
     signal_alert_delivery_store = SQLiteSignalAlertDeliveryStore(config.analysis_database_path)
+    telegram_delivery_reconciliation_store = SQLiteTelegramDeliveryReconciliationStore(config.analysis_database_path)
     telegram_notification_provider = (
         TelegramNotificationProvider(
             config.telegram_bot_token,
@@ -337,6 +340,7 @@ def create_infrastructure_runtime(
         dispatch_signal_alert_outbox=dispatch_signal_alert_outbox,
         publish_signal_opportunity=publish_signal_opportunity,
         signal_alert_delivery_store=signal_alert_delivery_store,
+        telegram_delivery_reconciliation_store=telegram_delivery_reconciliation_store,
         telegram_webhook_secret=config.telegram_webhook_secret,
         news_event_store=news_event_store,
         news_ingestion_service=news_ingestion_service,
