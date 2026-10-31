@@ -96,3 +96,15 @@ A work item is complete only when:
 5. docs match shipped behavior and explicitly identify external dependencies or owner decisions.
 
 This register is not a claim that all listed work is implemented. It is the auditable checklist for closing remaining non-M61 gaps without silently inventing product policy.
+
+
+### Telegram concurrency and ambiguous outcomes — DEC-136 (owner-approved policy)
+
+- [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
+- [ ] Implement atomic per-recipient claim/lease with claim-token fencing and safe recovery of pre-send claims.
+- [ ] Distinguish definite transport rejection/failure from ambiguous timeout/connection loss; persist unknown outcomes separately.
+- [ ] Add operator-visible listing and audited resolution for unknown deliveries before calling the workflow operationally complete.
+- [ ] Define and configure lease/transport timeout relationship, definite-failure retry schedule, attempt budget, and exhaustion behavior; numeric values remain open.
+- [ ] Add race, stale-owner, worker-crash, restart, partial-recipient, entitlement-revocation, timeout ambiguity, and migration tests.
+
+The accepted policy is a decision closure only. The current implementation still lacks claim ownership and still maps transport exceptions to FAILED; do not represent DEC-136 as implemented.
