@@ -48,6 +48,7 @@ def test_report_reconstructs_state_as_of_generation_time() -> None:
     track = InMemoryTrackRecordStore()
     signal = make_signal()
     created = history.record(signal, "CREATED", dt(8))
+    history.record(signal, "PUBLISHED", dt(9))
     invalidated = replace(signal, status=SignalStatus.INVALIDATED)
     history.record(invalidated, "STATUS_INVALIDATED", dt(12))
     track.record(SignalOutcomeRecord(
@@ -75,6 +76,7 @@ def test_report_reconstructs_state_as_of_generation_time() -> None:
     assert early.opportunities[0].source_data_timestamp == dt(7)
     assert early.opportunities[0].outcome_data_timestamp is None
     assert early.unresolved_count == 1
+    assert early.opportunities[0].publication_time == dt(9)
 
     final = builder.execute(date(2026, 10, 26), generated_at=dt(13))
     assert final.opportunities[0].current_status is SignalStatus.INVALIDATED
@@ -118,13 +120,65 @@ def test_signal_outcome_rejects_naive_observation_timestamp() -> None:
         )
 
 
-def test_report_excludes_signal_generated_after_snapshot_cutoff() -> None:
+def test_report_excludes_publication_after_snapshot_cutoff() -> None:
     history = InMemorySignalHistoryStore()
     future_signal = replace(make_signal(), generated_at=dt(11))
-    history.record(future_signal, "CREATED", dt(9))
+    history.record(future_signal, "PUBLISHED", dt(12))
     builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
 
     report = builder.execute(date(2026, 10, 26), generated_at=dt(10))
 
     assert report.total_count == 0
     assert report.unresolved_count == 0
+
+
+def test_report_excludes_created_signal_that_was_never_published() -> None:
+    history = InMemorySignalHistoryStore()
+    signal = make_signal()
+    history.record(signal, "CREATED", dt(8))
+    builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
+
+    report = builder.execute(date(2026, 10, 26), generated_at=dt(13))
+
+    assert report.total_count == 0
+
+
+def test_report_uses_publication_date_not_signal_generation_date() -> None:
+    history = InMemorySignalHistoryStore()
+    signal = replace(
+        make_signal(),
+        generated_at=datetime(2026, 10, 25, 10, tzinfo=timezone.utc),
+        data_timestamp=datetime(2026, 10, 25, 9, tzinfo=timezone.utc),
+    )
+    history.record(signal, "PUBLISHED", dt(8))
+    builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
+
+    publication_session = builder.execute(date(2026, 10, 26), generated_at=dt(13))
+    generation_session = builder.execute(date(2026, 10, 25), generated_at=dt(13))
+
+    assert publication_session.total_count == 1
+    assert publication_session.opportunities[0].publication_time == dt(8)
+    assert generation_session.total_count == 0
+
+
+
+def test_report_preserves_original_publication_and_latest_version_state() -> None:
+    history = InMemorySignalHistoryStore()
+    original = make_signal()
+    history.record(original, "PUBLISHED", dt(8))
+    revised = replace(
+        original,
+        entry_zone=PriceZone(Decimal("103"), Decimal("105")),
+        evidence=(SignalEvidence("trend", "revised evidence"),),
+    )
+    history.record(revised, "PUBLISHED_VERSION", dt(10))
+    builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
+
+    report = builder.execute(date(2026, 10, 26), generated_at=dt(13))
+
+    assert report.total_count == 1
+    opportunity = report.opportunities[0]
+    assert opportunity.publication_time == dt(8)
+    assert opportunity.original_entry_lower == Decimal("100")
+    assert opportunity.original_entry_upper == Decimal("102")
+    assert opportunity.current_evidence == ("revised evidence",)
