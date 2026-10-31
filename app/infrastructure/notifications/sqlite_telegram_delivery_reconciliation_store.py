@@ -1,28 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from app.infrastructure.persistence.sqlite_connection import connect_sqlite
+from app.application.alerts.telegram_delivery_reconciliation import (\n    TelegramDeliveryReconciliation,\n    TelegramDeliveryReconciliationStore,\n)\nfrom app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
-@dataclass(frozen=True)
-class TelegramDeliveryReconciliation:
-    event_id: UUID
-    user_id: UUID
-    channel: str
-    previous_status: str
-    new_status: str
-    outcome: str
-    actor_subject: str
-    reason: str
-    occurred_at: datetime
-
-
-class SQLiteTelegramDeliveryReconciliationStore:
+class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationStore):
     """Operator-only reconciliation with an atomic state change and audit append."""
 
     def __init__(self, database_path: str | Path) -> None:
