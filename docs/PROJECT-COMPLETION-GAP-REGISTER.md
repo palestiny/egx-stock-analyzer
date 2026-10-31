@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-10-31  
-**Baseline:** `main` at `7a2eb51fcca871e9037a53f113e7769de406eb65` (PR #436). PR #433 post-merge main CI run #41198751442 passed all five jobs; PR #434 post-merge main CI run #41199285240 passed all five jobs. PR #435 and #436 exact-head CI each passed all five jobs; their post-merge main runs #41201662798 and #41201727754 are pending/in progress at this register update.  
+**Baseline:** `main` at `7f825a08430b354814b5c875b4aa106d0b2131d2` (PR #439). PR #438 merge commit `29f7b6655109e91940159e9bf14be1d9eacbf189`; post-merge push CI run #41203635263 was in progress at this register update. PR #439 merge commit `7f825a08430b354814b5c875b4aa106d0b2131d2`; post-merge push CI run #41203662977 was queued at this register update. Both PR exact-head CI runs passed all five jobs. Earlier verified baseline evidence remains recorded below.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -20,6 +20,8 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #416 adds a passing contract test for publication through durable outbox to an entitled linked Telegram recipient with idempotent replay. This proves that tested path only, not all lifecycle states or production scheduling.
 - `docs/RELEASE-READINESS-CHECKLIST.md` exists as a checklist template, not a declaration of production readiness.
 - EGXBot approved design constraints and implementation gates are recorded in `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
+- PR #438 adds finite-number and timezone/chronology invariants to signal-outcome records; exact-head CI run #41203293617 passed all five jobs. Merge commit: `29f7b6655109e91940159e9bf14be1d9eacbf189`.
+- PR #439 adds finite-number and timezone-aware timestamp invariants to signal domain models; exact-head CI run #41203128989 passed all five jobs. Merge commit: `7f825a08430b354814b5c875b4aa106d0b2131d2`.
 
 ## Non-M61 work remaining
 
@@ -57,8 +59,9 @@ This register separates verified implementation from incomplete acceptance and d
 ### P1 — Session reports (owner policy accepted in DEC-135)
 
 - [x] Historical snapshot builder excludes signals whose `generated_at` or `data_timestamp` is after the requested report cutoff; timezone-aware timestamp validation is covered by tests (PR #414).
-- [ ] Trace session report API, store, owner dashboard, scheduler and Telegram delivery composition.
-- [ ] Verify a durable end-of-session trigger using Cairo exchange timezone, with idempotency, rerun/correction semantics and operational failure visibility.
+- [x] Trace session report API, store, runtime/lifespan composition, existing scheduler contracts, and Telegram delivery boundaries; confirmed the report builder/store/API are composed but no automatic session-report scheduler is wired.
+- [x] Record the missing scheduling design gate and required calendar/time/correction/delivery decisions in `docs/SESSION-REPORT-SCHEDULER-DESIGN-GATE.md`.
+- [ ] Implement the durable end-of-session trigger only after the authoritative EGX session/holiday calendar, completed-session cutoff, and deployment/worker ownership are established; the design gate recommends a durable occurrence ledger and worker.
 - [ ] Verify report contents include session summary, opportunities published during the session, status changes/invalidation, resolved versus unresolved outcomes, source freshness and methodology limitations.
 - [ ] Add end-to-end tests for scheduled generation, duplicate scheduler invocation, missing data, delayed signals, timezone/session boundaries and delivery failure.
 - [ ] Until scheduling and delivery are proven by integration tests or workflow evidence, describe reports as API/manual, not automatic.
