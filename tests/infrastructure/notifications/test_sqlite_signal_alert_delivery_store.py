@@ -294,3 +294,20 @@ def test_unfenced_updates_cannot_overwrite_a_live_send_claim(tmp_path) -> None:
         event_id, user_id, "telegram", claim_token=token,
         now=NOW + timedelta(seconds=2),
     )
+
+
+def test_failed_delivery_is_not_claimable_without_retry_policy(tmp_path) -> None:
+    store = SQLiteSignalAlertDeliveryStore(tmp_path / "failed-gated.db")
+    event_id, user_id = uuid4(), uuid4()
+    store.create_pending(event_id, user_id, "telegram", now=NOW)
+    failed = store.mark_failed(
+        event_id, user_id, "telegram", "definite rejection", now=NOW,
+    )
+    assert failed.status is SignalAlertDeliveryStatus.FAILED
+
+    assert store.claim(
+        event_id, user_id, "telegram", claim_token=uuid4(),
+        now=NOW + timedelta(seconds=1),
+        lease_until=NOW + timedelta(seconds=21),
+    ) is False
+    assert store.get(event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.FAILED
