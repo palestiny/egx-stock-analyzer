@@ -107,3 +107,15 @@ The owner accepted the conservative non-M61 product/operational baseline:
 - suppression of actionable output when data is stale, missing, future-dated, or invalid, with explicit reason and coverage.
 
 This acceptance closes the owner-policy decision gate, not the implementation checklist. All engineering, integration, source-rights, and operational verification items above remain open until evidenced. M61 remains paused and PR #321 remains open Draft and untouched.
+
+
+### Telegram concurrency and ambiguous outcomes — DEC-136 (owner-approved policy)
+
+- [x] Owner decision: ambiguous outcome after send initiation becomes `DELIVERY_UNKNOWN`; do not automatically resend; require operator reconciliation.
+- [ ] Implement atomic per-recipient claim/lease with claim-token fencing and safe recovery of pre-send claims.
+- [ ] Distinguish definite transport rejection/failure from ambiguous timeout/connection loss; persist unknown outcomes separately.
+- [ ] Add operator-visible listing and audited resolution for unknown deliveries before calling the workflow operationally complete.
+- [ ] Define and configure lease/transport timeout relationship, definite-failure retry schedule, attempt budget, and exhaustion behavior; numeric values remain open.
+- [ ] Add race, stale-owner, worker-crash, restart, partial-recipient, entitlement-revocation, timeout ambiguity, and migration tests.
+
+The accepted policy is a decision closure only. The current implementation still lacks claim ownership and still maps transport exceptions to FAILED; do not represent DEC-136 as implemented.
