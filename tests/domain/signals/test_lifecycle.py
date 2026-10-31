@@ -34,7 +34,8 @@ def make_signal(direction: SignalDirection = SignalDirection.BUY) -> Signal:
 
 
 def state(price: str) -> SignalMarketState:
-    return SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal(price))
+    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    return SignalMarketState(observed_at, Decimal(price), observed_at)
 
 
 def test_buy_signal_triggers_at_target():
@@ -63,17 +64,41 @@ def test_terminal_signal_does_not_move_back_to_active():
 
 def test_market_state_requires_timezone_aware_observation_time() -> None:
     with pytest.raises(ValueError, match="timezone-aware"):
-        SignalMarketState(datetime(2026, 10, 4), Decimal("100"))
+        SignalMarketState(
+            datetime(2026, 10, 4), Decimal("100"),
+            datetime(2026, 10, 4, tzinfo=timezone.utc),
+        )
 
 
 def test_market_state_rejects_non_finite_or_non_positive_prices() -> None:
     with pytest.raises(ValueError, match="finite and positive"):
-        SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("NaN"))
+        SignalMarketState(
+            datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("NaN"),
+            datetime(2026, 10, 4, tzinfo=timezone.utc),
+        )
     with pytest.raises(ValueError, match="finite and positive"):
-        SignalMarketState(datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("0"))
+        SignalMarketState(
+            datetime(2026, 10, 4, tzinfo=timezone.utc), Decimal("0"),
+            datetime(2026, 10, 4, tzinfo=timezone.utc),
+        )
 
 
 def test_market_observation_cannot_precede_signal_generation() -> None:
-    earlier = SignalMarketState(datetime(2026, 10, 2, tzinfo=timezone.utc), Decimal("100"))
+    earlier_at = datetime(2026, 10, 2, tzinfo=timezone.utc)
+    earlier = SignalMarketState(earlier_at, Decimal("100"), earlier_at)
     with pytest.raises(ValueError, match="cannot precede"):
         transition_signal(make_signal(), earlier)
+
+ 
+
+def test_market_state_requires_timezone_aware_data_timestamp() -> None:
+    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    with pytest.raises(ValueError, match="data_timestamp must be timezone-aware"):
+        SignalMarketState(observed_at, Decimal("100"), datetime(2026, 10, 4))
+
+
+def test_market_state_rejects_data_timestamp_after_observation() -> None:
+    observed_at = datetime(2026, 10, 4, tzinfo=timezone.utc)
+    future_data = datetime(2026, 10, 4, 0, 1, tzinfo=timezone.utc)
+    with pytest.raises(ValueError, match="cannot be later"):
+        SignalMarketState(observed_at, Decimal("100"), future_data)

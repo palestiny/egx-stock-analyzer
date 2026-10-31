@@ -11,10 +11,15 @@ from app.domain.signals.model import Signal, SignalStatus
 class SignalMarketState:
     observed_at: datetime
     price: Decimal
+    data_timestamp: datetime
 
     def __post_init__(self) -> None:
         if self.observed_at.tzinfo is None or self.observed_at.utcoffset() is None:
             raise ValueError("observed_at must be timezone-aware")
+        if self.data_timestamp.tzinfo is None or self.data_timestamp.utcoffset() is None:
+            raise ValueError("data_timestamp must be timezone-aware")
+        if self.data_timestamp > self.observed_at:
+            raise ValueError("data_timestamp cannot be later than observed_at")
         if not self.price.is_finite() or self.price <= 0:
             raise ValueError("observed price must be finite and positive")
 

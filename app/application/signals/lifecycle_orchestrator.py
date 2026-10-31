@@ -257,5 +257,5 @@ class SignalLifecycleOrchestrator:
             target_label=target_label,
             strategy_id=signal.strategy_id,
             strategy_version=signal.strategy_version,
-            data_timestamp=signal.data_timestamp,
+            data_timestamp=state.data_timestamp,
         )
