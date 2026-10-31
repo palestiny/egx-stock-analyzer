@@ -1,11 +1,12 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
 import pytest
 
-from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.domain.signals.model import SignalDirection
+from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 
 
 def test_outcome_requires_valid_reproducibility_metadata():
@@ -44,12 +45,19 @@ def test_outcome_rejects_zero_r():
 
 @pytest.mark.parametrize(
     "field_name",
-    ("entry_price", "exit_price", "invalidation", "realized_return", "realized_r"),
+    (
+        "entry_price",
+        "exit_price",
+        "invalidation",
+        "realized_return",
+        "realized_r",
+    ),
 )
-@pytest.mark.parametrize("invalid_value", (Decimal("NaN"), Decimal("Infinity"), Decimal("-Infinity")))
+@pytest.mark.parametrize(
+    "invalid_value",
+    (Decimal("NaN"), Decimal("Infinity"), Decimal("-Infinity")),
+)
 def test_outcome_rejects_non_finite_decimal_values(field_name, invalid_value):
-    from dataclasses import replace
-
     now = datetime(2026, 10, 7, tzinfo=timezone.utc)
     valid = SignalOutcomeRecord(
         signal_id=uuid4(),
@@ -73,8 +81,6 @@ def test_outcome_rejects_non_finite_decimal_values(field_name, invalid_value):
 
 @pytest.mark.parametrize("field_name", ("observed_at", "data_timestamp"))
 def test_outcome_requires_timezone_aware_timestamps(field_name):
-    from dataclasses import replace
-
     now = datetime(2026, 10, 7, tzinfo=timezone.utc)
     valid = SignalOutcomeRecord(
         signal_id=uuid4(),
@@ -97,8 +103,6 @@ def test_outcome_requires_timezone_aware_timestamps(field_name):
 
 
 def test_outcome_rejects_data_timestamp_after_observation():
-    from dataclasses import replace
-
     now = datetime(2026, 10, 7, tzinfo=timezone.utc)
     valid = SignalOutcomeRecord(
         signal_id=uuid4(),
