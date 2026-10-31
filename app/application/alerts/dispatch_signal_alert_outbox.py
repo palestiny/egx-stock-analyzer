@@ -16,7 +16,6 @@ from app.application.notifications.telegram_account_linking import (
     LinkedTelegramAccount,
 )
 from app.application.notifications.telegram_message_sender import (
-    TelegramDeliveryOutcomeUnknown,
     TelegramDeliveryRejected,
     TelegramMessageSender,
 )
