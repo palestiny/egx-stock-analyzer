@@ -48,6 +48,7 @@ def completed_result():
 
 
 def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
+    # Friday evening must advance to the next EGX trading day: Sunday.
     clock = FakeClock(datetime(2026, 9, 18, 20, 0, tzinfo=CAIRO))
     scheduler: Scheduler = FakeScheduler()
     scheduled_operation = Mock()
@@ -67,7 +68,8 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
     )
 
     recurring.start()
-    clock.current = datetime(2026, 9, 18, 21, 0, tzinfo=CAIRO)
+    assert scheduler.scheduled[0][0] == datetime(2026, 9, 20, 21, 0, tzinfo=CAIRO)
+    clock.current = datetime(2026, 9, 20, 21, 0, tzinfo=CAIRO)
     scheduler.scheduled[0][1]()
 
     import sqlite3
@@ -83,6 +85,6 @@ def test_recurring_occurrence_is_persisted_through_durable_workflow(tmp_path):
     assert state == "completed"
     assert analysis_state == "completed"
     assert delivery_state == "completed"
-    assert occurrence_id == "11111111-1111-1111-1111-111111111111:2026-09-18:21:00:00"
+    assert occurrence_id == "11111111-1111-1111-1111-111111111111:2026-09-20:21:00:00"
 
-    scheduled_operation.execute.assert_called_once_with(date(2026, 9, 18))
+    scheduled_operation.execute.assert_called_once_with(date(2026, 9, 20))
