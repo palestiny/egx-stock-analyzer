@@ -13,6 +13,7 @@ class DataQualityIssueCode(Enum):
     MISSING_VALUE = "missing_value"
     INVALID_VALUE = "invalid_value"
     INVALID_TIMESTAMP = "invalid_timestamp"
+    FUTURE_TIMESTAMP = "future_timestamp"
     DUPLICATE_OBSERVATION = "duplicate_observation"
     OHLC_INCONSISTENCY = "ohlc_inconsistency"
 
@@ -20,7 +21,6 @@ class DataQualityIssueCode(Enum):
 @dataclass(frozen=True)
 class DataQualityIssue:
     code: DataQualityIssueCode
-
 
 
 @dataclass(frozen=True)
