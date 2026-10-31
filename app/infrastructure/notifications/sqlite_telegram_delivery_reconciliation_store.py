@@ -5,7 +5,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from app.application.alerts.telegram_delivery_reconciliation import (\n    TelegramDeliveryReconciliation,\n    TelegramDeliveryReconciliationStore,\n)\nfrom app.infrastructure.persistence.sqlite_connection import connect_sqlite
+from app.application.alerts.telegram_delivery_reconciliation import (
+    TelegramDeliveryReconciliation,
+    TelegramDeliveryReconciliationStore,
+)\nfrom app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
 class SQLiteTelegramDeliveryReconciliationStore(TelegramDeliveryReconciliationStore):
