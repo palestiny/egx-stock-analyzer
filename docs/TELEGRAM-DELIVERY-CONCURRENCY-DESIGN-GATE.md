@@ -103,3 +103,16 @@ Implementation may begin only after the owner accepts:
 4. Whether operator tooling is required for resolving unknown outcomes.
 
 Until then, retain the current production behavior and report the concurrency gap honestly. Do not claim exactly-once delivery.
+
+
+## 9. Additional code-review findings — 2026-10-31
+
+A second pass over the dispatcher and SQLite outbox confirms additional behavior that the implementation must address:
+
+- `SQLiteAlertOutbox.pending()` returns both `PENDING` and `FAILED` records. There is no persisted `next_attempt_at`, backoff schedule, or maximum-attempt/exhaustion filter in this path. Each invocation of the dispatcher can therefore make a FAILED event eligible again immediately.
+- `DispatchSignalAlertOutbox.execute()` catches every `Exception` raised by `send_message()` and records the recipient as `FAILED`. The current contract does not distinguish a definite remote rejection from an ambiguous timeout/connection loss after Telegram may have accepted the message.
+- The event-level outbox is marked FAILED when any recipient fails, while recipient-level successes are retained as DELIVERED. This supports partial-recipient replay, but event-level retry eligibility is not itself sufficient to decide which recipient may be sent again.
+- Event-level terminal suppression must be guarded against concurrent recipient work. A worker that sees no completed delivery must not mark the event as having no eligible recipients while another worker owns a valid claim.
+- The current `attempts` field is incremented on completion (`mark_delivered` / `mark_failed`), not when an attempt is claimed or initiated. It therefore cannot reliably count crashes between claim and completion without changing its documented meaning or adding a separate attempt/claim counter.
+
+These are verified observations of the current implementation, not a proposed operational policy. In particular, this document does not choose automatic retry for ambiguous outcomes or a numeric retry budget.
