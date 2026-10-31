@@ -407,7 +407,7 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
         self._require_aware(now, "now")
         normalized_channel = self._normalize_channel(channel)
         with self._connect() as connection:
-            cursor = connection.execute(
+            connection.execute(
                 """
                 UPDATE signal_alert_deliveries
                 SET status = ?, attempts = attempts + ?, updated_at = ?, last_error = ?
