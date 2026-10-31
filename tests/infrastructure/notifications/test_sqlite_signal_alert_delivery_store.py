@@ -147,6 +147,8 @@ def test_claim_token_fences_stale_worker_completion(tmp_path) -> None:
     assert store.mark_sending(
         event_id, user_id, "telegram", claim_token=first_token, now=NOW,
     )
+    sending_record = store.get(event_id, user_id, "telegram")
+    assert sending_record is not None and sending_record.attempts == 1
     assert store.mark_delivery_unknown(
         event_id, user_id, "telegram", "ambiguous transport result",
         claim_token=first_token, now=NOW + timedelta(seconds=1),
