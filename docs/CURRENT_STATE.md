@@ -1,10 +1,19 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last verified:** 2026-10-28  
+**Last reviewed:** 2026-10-31 (post-merge CI still running)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
+
+### Latest repository updates — 2026-10-31
+
+- PR #418 merged the source-bar timestamp preservation fix. The follow-up timestamp tests were repaired on the branch before merge. Main CI for the merge commit is still running; do not mark the merge CI-verified until it completes.
+- PR #420 merged offline structural/provenance validation for the canonical daily archive. It validates schema, ISO dates, normalized symbols, unique session/symbol keys, positive finite OHLC, explicitly flagged inconsistencies, numeric optional values, and source/quality metadata. It does not validate source price accuracy, full-market coverage, database ingestion, or profitability.
+- PR #421 merged the 2026-10-29 archive update: 19 equities and 4 indices, using explicit equity/index units. The canonical archive now contains 45 rows: 22 EGAL seed rows plus 23 rows for 2026-10-29. MICH and FAIT remain flagged for OHLC review; the EGAL 2026-10-28 source revision conflict remains unresolved. Main CI for the latest merge commit is pending.
+- The archive is a repository-owned research snapshot, not a verified production feed and not evidence of complete EGX coverage or database ingestion.
+- M61 remains paused by owner request. No historical strategy evaluation or profitability claim is authorized.
+
 
 **Execution status (2026-10-28):** M61 is paused; continue non-M61 work only until the owner explicitly resumes M61. This is a priority change, not a change to the historical-data acceptance criteria.
 
