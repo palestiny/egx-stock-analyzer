@@ -1,19 +1,25 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-10-31 (PR #422 main CI passed)  
+**Last reviewed:** 2026-10-31 (main at `d86f418ea927c11755c821a6c1c44c736023ddca`; PR #445 exact-head CI passed; post-merge main CI pending)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
 
 ### Latest repository updates — 2026-10-31
 
-- PR #418 merged the source-bar timestamp preservation fix. The follow-up timestamp tests were repaired on the branch before merge. Main CI for the merge commit is still running; do not mark the merge CI-verified until it completes.
-- PR #420 merged offline structural/provenance validation for the canonical daily archive. It validates schema, ISO dates, normalized symbols, unique session/symbol keys, positive finite OHLC, explicitly flagged inconsistencies, numeric optional values, and source/quality metadata. It does not validate source price accuracy, full-market coverage, database ingestion, or profitability.
-- PR #421 merged the 2026-10-29 archive update: 19 equities and 4 indices, using explicit equity/index units. The canonical archive now contains 45 rows: 22 EGAL seed rows plus 23 rows for 2026-10-29. MICH and FAIT remain flagged for OHLC review; the EGAL 2026-10-28 source revision conflict remains unresolved. Main CI for the latest merge commit is pending.
-- The archive is a repository-owned research snapshot, not a verified production feed and not evidence of complete EGX coverage or database ingestion.
-- M61 remains paused by owner request. No historical strategy evaluation or profitability claim is authorized.
-
+- PR #420 merged offline structural/provenance validation for the canonical daily archive. It checks the schema, ISO session dates, normalized symbols, unique `(session_date, symbol)` keys, positive finite OHLC, explicitly flagged inconsistencies, optional numeric fields, and source/quality metadata. This does not establish source-price accuracy, full EGX coverage, database ingestion, or profitability.
+- PR #421 merged the 2026-10-29 archive update. The canonical CSV contains 45 rows: 22 EGAL seed rows plus 23 rows for 19 equities and 4 indices. It has 41 equity rows and 4 index rows, no duplicate keys, two explicitly flagged OHLC inconsistencies (MICH and FAIT), and one unresolved EGAL source-revision conflict for 2026-10-28. The archive is a partial, source-attributed research snapshot, not a verified production feed.
+- PR #435 aligned recurring analysis with the EGX Sunday–Thursday trading week. Friday and Saturday are skipped; official exchange holidays are not modeled by this rule.
+- PR #436 recorded Yahoo Finance/yfinance commercial-use and redistribution restrictions as a blocker. Do not expose Yahoo-derived data to paid/subscriber users until the applicable terms and written permissions are verified.
+- PR #437 documented EGID and DirectFN as provider candidates to investigate; neither provider is approved or integrated.
+- PR #439 added finite-number and timezone-aware timestamp invariants to signal domain models.
+- PR #441 exposes signal-source and outcome-source timestamps in session-opportunity API responses and immutable report snapshots. These are provenance timestamps, not freshness classifications.
+- PR #443 corrected terminal outcome provenance so the outcome carries the actual market observation's source-data timestamp, not the original signal-generation timestamp.
+- PR #445 merged the session-ledger publication-scope fix. Reports now exclude CREATED-only signals, use the first PUBLISHED/PUBLISHED_VERSION event as the original opportunity snapshot, and assign the report session by publication time in the configured exchange timezone. Exact-head CI run #4777 passed all five jobs: 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`. Post-merge main CI has not yet been verified.
+- PR #444 remains open and documents the missing end-to-end lifecycle observation path and the decisions required before connecting market observations to target/invalidation transitions. Its documentation branch is being refreshed after PR #445.
+- Current `main` post-merge CI for PR #443 passed all five jobs in run #41206028998. Do not infer the post-merge CI result for PR #445 from its successful PR-head run.
+- M61 remains paused by owner request. PR #321 is still a draft and is not accepted strategy-performance evidence.
 
 **Execution status (2026-10-28):** M61 is paused; continue non-M61 work only until the owner explicitly resumes M61. This is a priority change, not a change to the historical-data acceptance criteria.
 
