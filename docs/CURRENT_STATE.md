@@ -427,3 +427,8 @@ Remaining release gates are unchanged:
 - Issue #141 remote branch deletion still requires a manual GitHub UI/local Git operation because the connected integration does not expose branch deletion.
 
 This is an implementation/status record, not a declaration that all release gates are closed.
+
+
+## Telegram delivery concurrency decision — 2026-10-31 (DEC-136)
+
+The owner approved conservative handling of ambiguous Telegram sends: persist `DELIVERY_UNKNOWN`, do not automatically resend, and require operator reconciliation. Definite failures remain a separate retry category. This is a policy decision, not an implementation claim. The current dispatcher still lacks atomic per-recipient claims and does not yet distinguish ambiguous transport exceptions from definite failures. Lease/timeout and definite-failure retry values remain open. See `docs/TELEGRAM-DELIVERY-CONCURRENCY-DESIGN-GATE.md` and PR #425.
