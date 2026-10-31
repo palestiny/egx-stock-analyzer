@@ -117,7 +117,7 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] PR #429: operator-only unresolved-delivery listing, audited manual reconciliation, and terminal `NOT_DELIVERED` handling.
 - [x] PR #430: operator runbook with authenticated API examples, evidence requirements, and escalation guidance.
 - [x] Owner decision: derive lease duration at runtime as 2 × the effective configured Telegram transport timeout.
-- [ ] Define definite-failure retry schedule, attempt budget, and exhaustion behavior; these remain open. `FAILED` is not automatically retried.
+- [x] Owner approved DEC-137: 3 total attempts; 1-minute then 5-minute retry delays; 15-minute cap; bounded jitter; terminal `RETRY_EXHAUSTED`. Implementation, durable scheduling, and tests remain open. `FAILED` is not automatically retried.
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
-Implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. Definite-failure retry policy is still unapproved and must not be invented. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+Implementation is merged, but this is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. Definite-failure retry policy is approved in DEC-137; implementation, durable scheduling, exhaustion visibility, and tests remain open. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
