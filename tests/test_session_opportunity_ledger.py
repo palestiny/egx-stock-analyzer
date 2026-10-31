@@ -159,3 +159,26 @@ def test_report_uses_publication_date_not_signal_generation_date() -> None:
     assert publication_session.total_count == 1
     assert publication_session.opportunities[0].publication_time == dt(8)
     assert generation_session.total_count == 0
+
+
+
+def test_report_preserves_original_publication_and_latest_version_state() -> None:
+    history = InMemorySignalHistoryStore()
+    original = make_signal()
+    history.record(original, "PUBLISHED", dt(8))
+    revised = replace(
+        original,
+        entry_zone=PriceZone(Decimal("103"), Decimal("105")),
+        evidence=(SignalEvidence("trend", "revised evidence"),),
+    )
+    history.record(revised, "PUBLISHED_VERSION", dt(10))
+    builder = BuildSessionOpportunityLedger(history, InMemoryTrackRecordStore())
+
+    report = builder.execute(date(2026, 10, 26), generated_at=dt(13))
+
+    assert report.total_count == 1
+    opportunity = report.opportunities[0]
+    assert opportunity.publication_time == dt(8)
+    assert opportunity.original_entry_lower == Decimal("100")
+    assert opportunity.original_entry_upper == Decimal("102")
+    assert opportunity.current_evidence == ("revised evidence",)
