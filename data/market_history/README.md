@@ -68,3 +68,18 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 - OHLC exceptions requiring review: MICH and FAIT for 2026-10-29.
 - Historical provider revision conflict: EGAL for 2026-10-28.
 - Database ingestion: not established by this archive alone.
+
+
+## Daily collection: 2026-11-01
+
+Added **30 source-reported daily rows** to the canonical CSV for the 2026-11-01 session: 20 equities (`ABUK`, `BTFH`, `CANA`, `CIEB`, `COMI`, `DGTZ`, `EGAL`, `EGAS`, `EFIC`, `EFIH`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `GRCA`, `IRON`, `MICH`, `SWDY`, `UBEE`, `VERT`) and 10 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGSHTS`, `EGX100EWI`, `EGX70EWI`). This expands index coverage while keeping all rows in the same canonical CSV.
+
+Collection timestamp recorded in these rows: `2026-11-01T19:40:41+02:00`. Source: the corresponding Investing.com historical-data page recorded on each row. All volume values are normalized to thousands while `notes` preserves the provider-displayed unit. Volume displayed for indices is retained only as source-reported metadata; its interpretation as an index-level volume measure is not independently verified. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
+
+### Data-quality exceptions retained transparently
+
+- `VERT` (2026-11-01): the historical-data table reports close 4.050 and volume 224.90K, while another Investing.com quote result reported 4.130 and 177.65K. The historical-table values were retained and the row is marked `source_conflict_review`.
+- `EGX30`, `EGX30CAP`, and `EGX33` (2026-11-01): Investing.com result variants disagree on one or more OHLC/volume fields. The values from the selected NG historical-data result are preserved, marked `source_conflict_review`, and must be reconciled before using these rows for high-confidence index analytics.
+- `EGXNBFINTECH`: no verifiable 2026-11-01 historical bar was available from the retrieved page/search results, so no row was fabricated. This symbol remains unupdated for this session.
+- The archive remains partial-market coverage, not the complete EGX-listed universe. The new `EFIH` row and additional index rows extend coverage but do not establish full-market completeness.
+- No intraday data, execution tape, or buy/sell order-flow inference was added.
