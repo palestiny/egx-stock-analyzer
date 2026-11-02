@@ -59,7 +59,9 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 
 ## Current coverage status
 
-- Total records after the 2026-10-29 collection: 45.
+- Total records in the current collection branch after the 2026-11-02 update: 107.
+- Records for 2026-11-02: 32 across 21 equity symbols and 11 index symbols.
+- Records for 2026-11-01: 30 across 20 equity symbols and 10 index symbols.
 - Records for 2026-10-29: 23 across 19 equity symbols and 4 index symbols.
 - Historical seed records through 2026-10-28: 22 for EGAL.
 - Full EGX-listed universe: not included.
@@ -83,3 +85,23 @@ Collection timestamp recorded in these rows: `2026-11-01T19:40:41+02:00`. Source
 - `EGXNBFINTECH`: no verifiable 2026-11-01 historical bar was available from the retrieved page/search results, so no row was fabricated. This symbol remains unupdated for this session.
 - The archive remains partial-market coverage, not the complete EGX-listed universe. The new `EFIH` row and additional index rows extend coverage but do not establish full-market completeness.
 - No intraday data, execution tape, or buy/sell order-flow inference was added.
+
+
+## Daily collection: 2026-11-02
+
+Added **32 source-reported daily rows** for the 2026-11-02 session to the same canonical CSV: 21 equities (`ABUK`, `ALUM`, `AMER`, `ATQA`, `BTFH`, `CIEB`, `COMI`, `DSCW`, `EGAL`, `EGAS`, `EFIC`, `EFIH`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `MFPC`, `MICH`, `OIH`, `SWDY`, `VERT`) and 11 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGX70EWI`, `EGX100EWI`, `FTWIEGY`, `EGBULM`). This is partial-market coverage, not a complete EGX universe.
+
+Collection timestamp recorded in these rows: `2026-11-02T19:08:12+02:00`. Every row contains the individual historical-data source URL, retrieval timestamp, daily data type, and an explicit delay-status note. Source-displayed volume was normalized to thousands in `volume_thousands_reported`; the notes retain the provider-displayed unit. For index rows, source-displayed volume is retained as reported metadata only; its interpretation as an index-level volume measure is not independently verified. Where the source did not display volume, the field remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
+
+### Data-quality exceptions retained transparently
+
+- `ABUK` (2026-11-02): source-reported open=84.55 is below source-reported low=84.60. Values were preserved and the row is marked `ohlc_inconsistency_review`.
+- `ETEL` (2026-11-02): source-reported open=117.82 is below source-reported low=118.00. Values were preserved and the row is marked `ohlc_inconsistency_review`.
+- `EGX100EWI` (2026-11-02): source-reported open=22,410.52 is below source-reported low=22,426.26. Values were preserved and the row is marked `ohlc_inconsistency_review`.
+- `CIEB` (2026-11-02): the selected global Investing.com historical result reports close=22.50 and volume=220.37K; another regional Investing.com result reports close=22.48 and volume=315.61K. The selected row is marked `source_conflict_review`.
+- `ELEC` (2026-11-02): Investing.com regional results disagree materially on close and volume (including 1.490/21.89M, 1.500/27.67M, and 1.520/4.06M). The selected global result is retained and marked `source_conflict_review`.
+- `FAIT` (2026-11-02): Investing.com regional results disagree (including 43.60/3.66K and 42.50/16.13K). The selected Polish result is retained and marked `source_conflict_review`.
+- `EGX30` (2026-11-02): two retrieved Investing.com result variants disagree on close and volume. The selected NG historical result is retained and marked `source_conflict_review`; do not use it as a reconciled benchmark observation.
+- The retrieved results did not provide a verifiable 2026-11-02 daily row for some previously tracked symbols, including `DGTZ`, `GRCA`, `IRON`, `UBEE`, and `EGXNBFINTECH`. No row was fabricated for them. Absence from this collection does not imply zero trading or suspension.
+- The dataset still does not cover every EGX-listed security. No intraday bars, trade tape, executions, or order-level buy/sell-flow inference were added.
+
