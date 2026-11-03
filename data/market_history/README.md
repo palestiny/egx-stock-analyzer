@@ -105,3 +105,18 @@ Collection timestamp recorded in these rows: `2026-11-02T19:08:12+02:00`. Every 
 - The retrieved results did not provide a verifiable 2026-11-02 daily row for some previously tracked symbols, including `DGTZ`, `GRCA`, `IRON`, `UBEE`, and `EGXNBFINTECH`. No row was fabricated for them. Absence from this collection does not imply zero trading or suspension.
 - The dataset still does not cover every EGX-listed security. No intraday bars, trade tape, executions, or order-level buy/sell-flow inference were added.
 
+## Daily collection: 2026-11-03
+
+Added **29 source-reported daily rows** for the 2026-11-03 session to the canonical CSV: 18 equities (`ABUK`, `ALUM`, `AMER`, `ATQA`, `BTFH`, `COMI`, `DSCW`, `EGAL`, `EGAS`, `EGCH`, `EFIH`, `ETEL`, `FWRY`, `MBSC`, `MFPC`, `MICH`, `OIH`, `VERT`) and 11 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGX70EWI`, `EGX100EWI`, `FTWIEGY`, `EGBULM`). This remains partial coverage, not the complete EGX-listed universe.
+
+Collection timestamp recorded in the new rows: `2026-11-03T19:11:18+02:00`. Each row contains its individual Investing.com historical-data URL, retrieval timestamp, daily-bar type, price unit, delay-status note, and quality status. The source displayed volume was normalized to thousands in `volume_thousands_reported`; `notes` preserves the source-displayed volume and unit. For index rows, any displayed volume is retained as source-reported metadata only; interpretation as index-level volume is not independently verified. Where a source did not show volume, the field remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
+
+### Data-quality exceptions and omissions
+
+- `EGBASC` (2026-11-03): the selected source table reports open=4623.49 and high=4585.49, an internally inconsistent OHLC bar. These source values were preserved and the row is marked `ohlc_inconsistency_review`; no field was silently corrected.
+- `EGX30` (2026-11-03): retrieved Investing.com regional result variants disagree on close and/or volume (including closes 49,255.66 and 49,160.37). The selected NG historical-table values were retained and the row is marked `source_conflict_review`; reconcile before treating it as a high-confidence benchmark observation.
+- `EFIC` was not added for 2026-11-03 because retrieved results for the same historical page conflicted materially (including close 136.40 / volume 55.65K versus close 133.04 / volume 36.25K). A source value was not selected by guesswork.
+- A verifiable 2026-11-03 row was not obtained during this run for `CIEB`, `ELEC`, and `SWDY`; no rows were fabricated. This does not imply zero trading or suspension.
+- The collection includes daily historical bars only. No intraday bars, execution tape, traded-value estimates, execution counts, or order-level buy/sell-flow inference were added.
+- The archive now contains **136 data rows** across the seeded EGAL history and collected sessions through 2026-11-03. This is a version-controlled GitHub archive; it does not prove that data has been loaded into the application database.
+
