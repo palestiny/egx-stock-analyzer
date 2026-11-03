@@ -114,6 +114,7 @@ Collection timestamp recorded in the new rows: `2026-11-03T19:11:18+02:00`. Each
 ### Data-quality exceptions and omissions
 
 - `EGBASC` (2026-11-03): the selected source table reports open=4623.49 and high=4585.49, an internally inconsistent OHLC bar. These source values were preserved and the row is marked `ohlc_inconsistency_review`; no field was silently corrected.
+- `COMI` (2026-11-03): the source reports open=121.40 and low=121.51, an internally inconsistent OHLC bar. Values were preserved and the row is marked `ohlc_inconsistency_review`.
 - `EGX30` (2026-11-03): retrieved Investing.com regional result variants disagree on close and/or volume (including closes 49,255.66 and 49,160.37). The selected NG historical-table values were retained and the row is marked `source_conflict_review`; reconcile before treating it as a high-confidence benchmark observation.
 - `EFIC` was not added for 2026-11-03 because retrieved results for the same historical page conflicted materially (including close 136.40 / volume 55.65K versus close 133.04 / volume 36.25K). A source value was not selected by guesswork.
 - A verifiable 2026-11-03 row was not obtained during this run for `CIEB`, `ELEC`, and `SWDY`; no rows were fabricated. This does not imply zero trading or suspension.
