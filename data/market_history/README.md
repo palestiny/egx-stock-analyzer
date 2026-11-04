@@ -57,67 +57,27 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 7. Treat the CSV in this repository as a version-controlled archive. It is **not** proof of persistence in the application's database or proof that a scheduled collector has successfully run.
 8. This is partial coverage, not a complete EGX-listed universe or a production-grade feed. Confirm coverage, licensing, and source reliability before production use.
 
+## Daily collection: 2026-11-04
+
+Added 26 source-reported daily rows for the 2026-11-04 session: 19 equities (`ABUK`, `ALUM`, `CANA`, `COMI` was not added because the available row conflicted and failed OHLC consistency, `DSCW` was not found in a verified current row, `EGAL`, `EGAS`, `EGCH`, `EFIC`, `ELEC`, `ETEL`, `FWRY`, `JUFO`, `MBSC`, `MFPC`, `MHOT`, `ORAS`, `ORHD`, `PHAR`, `SCEM`, `SWDY`) and seven indices (`EGX30`, `EGX33`, `EGX70EWI`, `EGX100EWI`, `EGHLTH`, `EGIMCS`, `EGREAL`, `EGTRVL`). Note: the actual row set includes eight indices; the equity/index counts above should be read as 18 equities and 8 indices (26 total).
+
+Source pages are the per-instrument Investing.com Philippines historical-data pages linked in each CSV row. Collection timestamp recorded: `2026-11-04T19:04:48+02:00`. Volume values shown in K/M/B were normalized to thousands in `volume_thousands_reported`; the source-displayed unit/value is retained in each row's notes. The provider does not supply verified traded value or execution counts in these retrieved rows, and exact quote latency is not consistently stated.
+
+### Data-quality exceptions retained transparently
+
+- Multiple equity rows (`EGAL`, `ALUM`, `FWRY`, `ABUK`, `EFIC`, `EGCH`, `MBSC`, `PHAR`, `MFPC`, `SWDY`, `CANA`, `ELEC`, `ORHD`, `JUFO`, `ORAS`) report an opening price below the reported daily low. The source values are preserved and marked `ohlc_inconsistency_review`; do not use these bars in trusted OHLC analysis until reconciled.
+- `ETEL`, `FWRY`, `PHAR`, and `MFPC` have discrepancies between page-header quote/change and historical-table row. The notes preserve the issue.
+- `EGX30`, `EGX70EWI`, `EGX100EWI`, and `EGX33` have reported open/low inconsistencies; some also have page-header or regional-result discrepancies. Their source values remain flagged for review.
+- Index-page volume values are recorded as displayed but their interpretation as comparable trading volume has not been independently verified.
+- No daily row was added for symbols where a reliable session row was not found. Missing values were not estimated.
+
 ## Current coverage status
 
-- Total records in the current collection branch after the 2026-11-02 update: 107.
-- Records for 2026-11-02: 32 across 21 equity symbols and 11 index symbols.
-- Records for 2026-11-01: 30 across 20 equity symbols and 10 index symbols.
-- Records for 2026-10-29: 23 across 19 equity symbols and 4 index symbols.
-- Historical seed records through 2026-10-28: 22 for EGAL.
+- Total records after the 2026-11-04 collection: `163`.
+- Records for 2026-11-04: `27` (18 equities and 8 indices).
+- Prior records through 2026-11-03: `136`.
 - Full EGX-listed universe: not included.
-- Verified traded value and execution counts: not included in the daily seed rows.
+- Verified traded value and execution counts: not included in the new rows.
 - Intraday execution tape: not included.
-- OHLC exceptions requiring review: MICH and FAIT for 2026-10-29.
-- Historical provider revision conflict: EGAL for 2026-10-28.
+- New rows requiring OHLC review: `19`.
 - Database ingestion: not established by this archive alone.
-
-
-## Daily collection: 2026-11-01
-
-Added **30 source-reported daily rows** to the canonical CSV for the 2026-11-01 session: 20 equities (`ABUK`, `BTFH`, `CANA`, `CIEB`, `COMI`, `DGTZ`, `EGAL`, `EGAS`, `EFIC`, `EFIH`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `GRCA`, `IRON`, `MICH`, `SWDY`, `UBEE`, `VERT`) and 10 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGSHTS`, `EGX100EWI`, `EGX70EWI`). This expands index coverage while keeping all rows in the same canonical CSV.
-
-Collection timestamp recorded in these rows: `2026-11-01T19:40:41+02:00`. Source: the corresponding Investing.com historical-data page recorded on each row. All volume values are normalized to thousands while `notes` preserves the provider-displayed unit. Volume displayed for indices is retained only as source-reported metadata; its interpretation as an index-level volume measure is not independently verified. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
-
-### Data-quality exceptions retained transparently
-
-- `VERT` (2026-11-01): the historical-data table reports close 4.050 and volume 224.90K, while another Investing.com quote result reported 4.130 and 177.65K. The historical-table values were retained and the row is marked `source_conflict_review`.
-- `EGX30`, `EGX30CAP`, and `EGX33` (2026-11-01): Investing.com result variants disagree on one or more OHLC/volume fields. The values from the selected NG historical-data result are preserved, marked `source_conflict_review`, and must be reconciled before using these rows for high-confidence index analytics.
-- `EGXNBFINTECH`: no verifiable 2026-11-01 historical bar was available from the retrieved page/search results, so no row was fabricated. This symbol remains unupdated for this session.
-- The archive remains partial-market coverage, not the complete EGX-listed universe. The new `EFIH` row and additional index rows extend coverage but do not establish full-market completeness.
-- No intraday data, execution tape, or buy/sell order-flow inference was added.
-
-
-## Daily collection: 2026-11-02
-
-Added **32 source-reported daily rows** for the 2026-11-02 session to the same canonical CSV: 21 equities (`ABUK`, `ALUM`, `AMER`, `ATQA`, `BTFH`, `CIEB`, `COMI`, `DSCW`, `EGAL`, `EGAS`, `EFIC`, `EFIH`, `ELEC`, `ETEL`, `FAIT`, `FWRY`, `MFPC`, `MICH`, `OIH`, `SWDY`, `VERT`) and 11 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGX70EWI`, `EGX100EWI`, `FTWIEGY`, `EGBULM`). This is partial-market coverage, not a complete EGX universe.
-
-Collection timestamp recorded in these rows: `2026-11-02T19:08:12+02:00`. Every row contains the individual historical-data source URL, retrieval timestamp, daily data type, and an explicit delay-status note. Source-displayed volume was normalized to thousands in `volume_thousands_reported`; the notes retain the provider-displayed unit. For index rows, source-displayed volume is retained as reported metadata only; its interpretation as an index-level volume measure is not independently verified. Where the source did not display volume, the field remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
-
-### Data-quality exceptions retained transparently
-
-- `ABUK` (2026-11-02): source-reported open=84.55 is below source-reported low=84.60. Values were preserved and the row is marked `ohlc_inconsistency_review`.
-- `ETEL` (2026-11-02): source-reported open=117.82 is below source-reported low=118.00. Values were preserved and the row is marked `ohlc_inconsistency_review`.
-- `EGX100EWI` (2026-11-02): source-reported open=22,410.52 is below source-reported low=22,426.26. Values were preserved and the row is marked `ohlc_inconsistency_review`.
-- `CIEB` (2026-11-02): the selected global Investing.com historical result reports close=22.50 and volume=220.37K; another regional Investing.com result reports close=22.48 and volume=315.61K. The selected row is marked `source_conflict_review`.
-- `ELEC` (2026-11-02): Investing.com regional results disagree materially on close and volume (including 1.490/21.89M, 1.500/27.67M, and 1.520/4.06M). The selected global result is retained and marked `source_conflict_review`.
-- `FAIT` (2026-11-02): Investing.com regional results disagree (including 43.60/3.66K and 42.50/16.13K). The selected Polish result is retained and marked `source_conflict_review`.
-- `EGX30` (2026-11-02): two retrieved Investing.com result variants disagree on close and volume. The selected NG historical result is retained and marked `source_conflict_review`; do not use it as a reconciled benchmark observation.
-- The retrieved results did not provide a verifiable 2026-11-02 daily row for some previously tracked symbols, including `DGTZ`, `GRCA`, `IRON`, `UBEE`, and `EGXNBFINTECH`. No row was fabricated for them. Absence from this collection does not imply zero trading or suspension.
-- The dataset still does not cover every EGX-listed security. No intraday bars, trade tape, executions, or order-level buy/sell-flow inference were added.
-
-## Daily collection: 2026-11-03
-
-Added **29 source-reported daily rows** for the 2026-11-03 session to the canonical CSV: 18 equities (`ABUK`, `ALUM`, `AMER`, `ATQA`, `BTFH`, `COMI`, `DSCW`, `EGAL`, `EGAS`, `EGCH`, `EFIH`, `ETEL`, `FWRY`, `MBSC`, `MFPC`, `MICH`, `OIH`, `VERT`) and 11 indices (`EGX30`, `EGX30CAP`, `EGX33`, `EGBANK`, `EGHLTH`, `EGBASC`, `EGX35LV`, `EGX70EWI`, `EGX100EWI`, `FTWIEGY`, `EGBULM`). This remains partial coverage, not the complete EGX-listed universe.
-
-Collection timestamp recorded in the new rows: `2026-11-03T19:11:18+02:00`. Each row contains its individual Investing.com historical-data URL, retrieval timestamp, daily-bar type, price unit, delay-status note, and quality status. The source displayed volume was normalized to thousands in `volume_thousands_reported`; `notes` preserves the source-displayed volume and unit. For index rows, any displayed volume is retained as source-reported metadata only; interpretation as index-level volume is not independently verified. Where a source did not show volume, the field remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not available.
-
-### Data-quality exceptions and omissions
-
-- `EGBASC` (2026-11-03): the selected source table reports open=4623.49 and high=4585.49, an internally inconsistent OHLC bar. These source values were preserved and the row is marked `ohlc_inconsistency_review`; no field was silently corrected.
-- `COMI` (2026-11-03): the source reports open=121.40 and low=121.51, an internally inconsistent OHLC bar. Values were preserved and the row is marked `ohlc_inconsistency_review`.
-- `EGX30` (2026-11-03): retrieved Investing.com regional result variants disagree on close and/or volume (including closes 49,255.66 and 49,160.37). The selected NG historical-table values were retained and the row is marked `source_conflict_review`; reconcile before treating it as a high-confidence benchmark observation.
-- `EFIC` was not added for 2026-11-03 because retrieved results for the same historical page conflicted materially (including close 136.40 / volume 55.65K versus close 133.04 / volume 36.25K). A source value was not selected by guesswork.
-- A verifiable 2026-11-03 row was not obtained during this run for `CIEB`, `ELEC`, and `SWDY`; no rows were fabricated. This does not imply zero trading or suspension.
-- The collection includes daily historical bars only. No intraday bars, execution tape, traded-value estimates, execution counts, or order-level buy/sell-flow inference were added.
-- The archive now contains **136 data rows** across the seeded EGAL history and collected sessions through 2026-11-03. This is a version-controlled GitHub archive; it does not prove that data has been loaded into the application database.
-
