@@ -59,25 +59,25 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 
 ## Daily collection: 2026-11-04
 
-Added 26 source-reported daily rows for the 2026-11-04 session: 19 equities (`ABUK`, `ALUM`, `CANA`, `COMI` was not added because the available row conflicted and failed OHLC consistency, `DSCW` was not found in a verified current row, `EGAL`, `EGAS`, `EGCH`, `EFIC`, `ELEC`, `ETEL`, `FWRY`, `JUFO`, `MBSC`, `MFPC`, `MHOT`, `ORAS`, `ORHD`, `PHAR`, `SCEM`, `SWDY`) and seven indices (`EGX30`, `EGX33`, `EGX70EWI`, `EGX100EWI`, `EGHLTH`, `EGIMCS`, `EGREAL`, `EGTRVL`). Note: the actual row set includes eight indices; the equity/index counts above should be read as 18 equities and 8 indices (26 total).
+Added 27 source-reported daily rows for the 2026-11-04 session: 19 equities (`ABUK`, `ALUM`, `CANA`, `EGAL`, `EGAS`, `EGCH`, `EFIC`, `ELEC`, `ETEL`, `FWRY`, `JUFO`, `MBSC`, `MFPC`, `MHOT`, `ORAS`, `ORHD`, `PHAR`, `SCEM`, `SWDY`) and eight indices (`EGX30`, `EGX33`, `EGX70EWI`, `EGX100EWI`, `EGHLTH`, `EGIMCS`, `EGREAL`, `EGTRVL`).
 
 Source pages are the per-instrument Investing.com Philippines historical-data pages linked in each CSV row. Collection timestamp recorded: `2026-11-04T19:04:48+02:00`. Volume values shown in K/M/B were normalized to thousands in `volume_thousands_reported`; the source-displayed unit/value is retained in each row's notes. The provider does not supply verified traded value or execution counts in these retrieved rows, and exact quote latency is not consistently stated.
 
 ### Data-quality exceptions retained transparently
 
-- Multiple equity rows (`EGAL`, `ALUM`, `FWRY`, `ABUK`, `EFIC`, `EGCH`, `MBSC`, `PHAR`, `MFPC`, `SWDY`, `CANA`, `ELEC`, `ORHD`, `JUFO`, `ORAS`) report an opening price below the reported daily low. The source values are preserved and marked `ohlc_inconsistency_review`; do not use these bars in trusted OHLC analysis until reconciled.
+- Fifteen equity rows (`EGAL`, `ALUM`, `FWRY`, `ABUK`, `EFIC`, `EGCH`, `MBSC`, `PHAR`, `MFPC`, `SWDY`, `CANA`, `ELEC`, `ORHD`, `JUFO`, `ORAS`) report an opening price below the reported daily low. The source values are preserved and marked `ohlc_inconsistency_review`; do not use these bars in trusted OHLC analysis until reconciled.
 - `ETEL`, `FWRY`, `PHAR`, and `MFPC` have discrepancies between page-header quote/change and historical-table row. The notes preserve the issue.
-- `EGX30`, `EGX70EWI`, `EGX100EWI`, and `EGX33` have reported open/low inconsistencies; some also have page-header or regional-result discrepancies. Their source values remain flagged for review.
+- Four indices (`EGX30`, `EGX70EWI`, `EGX100EWI`, `EGX33`) have reported open/low inconsistencies; some also have page-header or regional-result discrepancies. Their source values remain flagged for review.
 - Index-page volume values are recorded as displayed but their interpretation as comparable trading volume has not been independently verified.
 - No daily row was added for symbols where a reliable session row was not found. Missing values were not estimated.
 
 ## Current coverage status
 
-- Total records after the 2026-11-04 collection: `163`.
-- Records for 2026-11-04: `27` (18 equities and 8 indices).
-- Prior records through 2026-11-03: `136`.
+- Total records after the 2026-11-04 collection: 163.
+- Records for 2026-11-04: 27 (19 equities and 8 indices).
+- Prior records through 2026-11-03: 136.
 - Full EGX-listed universe: not included.
 - Verified traded value and execution counts: not included in the new rows.
 - Intraday execution tape: not included.
-- New rows requiring OHLC review: `19`.
+- New rows requiring OHLC review: 19.
 - Database ingestion: not established by this archive alone.
