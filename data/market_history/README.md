@@ -84,16 +84,16 @@ Source pages are the per-instrument Investing.com Philippines historical-data pa
 
 ## Daily collection: 2026-11-05
 
-Added 19 source-reported daily rows for the 2026-11-05 session to the canonical CSV: 13 equities (`ABUK`, `EGAL`, `ETEL`, `COMI`, `ELEC`, `RAYA`, `PHDC`, `ACAP`, `RACC`, `CCAP`, `HDBK`, `EFID`, `FWRY`) and six indices (`EGX30`, `EGX30CAP`, `SHARIAH`, `EGREAL`, `EGX70EWI`, `EGX100EWI`).
+Added 23 source-reported daily rows for the 2026-11-05 session to the canonical CSV: 17 equities (`ABUK`, `ADIB`, `ACAP`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `SHARIAH`, `EGREAL`, `EGX70EWI`, `EGX100EWI`).
 
 Collection timestamp recorded in the rows: `2026-11-05T19:52:01+02:00`. All observations are daily historical table rows, not intraday candles. Volume displayed in K/M/B was normalized to thousands in `volume_thousands_reported`; the source-displayed unit is recorded in the notes. Traded value and execution counts are blank because verified per-instrument values were not available from the historical pages. Exact quote latency is not stated consistently by the provider.
 
 ### Data-quality exceptions retained transparently
 
-- `ABUK`, `ETEL`, `COMI`, `RAYA`, and `FWRY` have differing values across localized Investing.com historical pages for the same date. The CSV preserves the selected page's values and marks each row `source_conflict_review`; do not silently average or overwrite them.
+- `ABUK`, `ETEL`, `COMI`, `RAYA`, `FWRY`, and `ADIB` have differing values across localized Investing.com historical pages for the same date. The CSV preserves the selected page's values and marks each row `source_conflict_review`; do not silently average or overwrite them.
 - `EGX30` is stored from a localized daily historical row with internally consistent OHLC. Its close and +0.99% change agree with same-day Egyptian market reporting; other localized provider pages disagree on the opening value and/or volume. The row remains marked `source_conflict_review`.
 - `EGX30CAP` has a localized-page disagreement on close/open/volume and is marked `source_conflict_review`.
-- `ABUK`, `ETEL`, `COMI`, `RAYA`, `ACAP`, and `RACC` have source-reported opens below their reported lows. Their source values are retained and each row is marked `ohlc_inconsistency_review`; source-conflicting rows also retain `source_conflict_review`.
+- `ABUK`, `ETEL`, `COMI`, `RAYA`, `ACAP`, `RACC`, and `TMGH` have source-reported opens below their reported lows. Their source values are retained and each row is marked `ohlc_inconsistency_review`; source-conflicting rows also retain `source_conflict_review`.
 - `EGX70EWI` has a provider-reported open below its reported low and conflicting localized-page closes. The source values are retained and the row is marked `source_conflict_review;ohlc_inconsistency_review`.
 - `EGX100EWI` has a provider-reported open below its reported low; the selected close also differs from same-day Egyptian market reporting. The source values are retained and the row is marked `source_conflict_review;ohlc_inconsistency_review`.
 - `EGAL`, `ELEC`, `PHDC`, `ACAP`, `RACC`, `CCAP`, `HDBK`, `EFID`, `SHARIAH`, and `EGREAL` are recorded from the retrieved historical page rows without a second full historical OHLCV source reconciliation. This is not equivalent to exchange-certified data.
