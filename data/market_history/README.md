@@ -73,13 +73,14 @@ Source pages are the per-instrument Investing.com Philippines historical-data pa
 
 ## Current coverage status
 
-- Total records after the 2026-11-04 collection: 163.
+- Total records after the 2026-11-05 collection: 186.
+- Records for 2026-11-05: 23 (17 equities and 6 indices).
 - Records for 2026-11-04: 27 (19 equities and 8 indices).
 - Prior records through 2026-11-03: 136.
 - Full EGX-listed universe: not included.
 - Verified traded value and execution counts: not included in the new rows.
 - Intraday execution tape: not included.
-- New rows requiring OHLC review: 19.
+- 2026-11-04 rows requiring OHLC review: 19; 2026-11-05 rows requiring OHLC review: 9.
 - Database ingestion: not established by this archive alone.
 
 ## Daily collection: 2026-11-05
