@@ -24,12 +24,15 @@ The canonical CSV uses one row per instrument per trading session. Equity and in
 
 ## Initial seed
 
-The initial seed contains 22 reported daily records for Egypt Aluminum (`EGAL`) from 2026-09-28 through 2026-10-28, migrated from the previous date-specific seed.
+The canonical archive contains 22 reported daily records for Egypt Aluminum (`EGAL`) from 2026-09-28 through 2026-10-28. The recorded source attribution and numeric precision are retained in the archive.
 
 Source: https://ng.investing.com/equities/egypt-aluminum-historical-data  
 Original retrieval date: 2026-10-28.
 
 The seed does not include verified traded value, execution count, intraday candles, or order-level buy/sell pressure.
+
+**Migration verification caveat (2026-11-06):** The specifically named source file `data/market_history/egal_daily_2026-09-28_to_2026-10-28.csv` is absent from both the current `main` tree and the collection branch tree. GitHub also returns no commit history for that exact path on the collection branch. The 22 EGAL rows are present in the canonical CSV, but row-for-row equivalence with the named legacy file cannot be independently verified from the repository. PR #447 does not delete that file; it is not present in either checked tree. Recover the original from its prior working copy or backup and compare all fields before treating the migration audit as closed. No missing values have been reconstructed.
+
 
 ## Daily collection: 2026-10-29
 
@@ -51,11 +54,12 @@ All new rows cite the corresponding Investing.com historical-data page. Collecti
 1. Append to `egx_daily_history.csv`; preserve historical records and original source values.
 2. Validate dates, instrument types, symbols, price units, numeric ranges, OHLC consistency, volume units, source attribution, and duplicate keys `(session_date, symbol)`.
 3. Keep source values even when inconsistent only if the row is explicitly flagged for review; never silently repair or invent OHLC fields.
-4. Keep unknown fields blank and explain why; never fabricate missing market data.
-5. Keep daily bars separate from intraday data. OHLCV alone does not prove buy/sell flow or order-flow imbalance.
-6. Record each source's retrieval time and delay/price type only when known; otherwise label it unverified.
-7. Treat the CSV in this repository as a version-controlled archive. It is **not** proof of persistence in the application's database or proof that a scheduled collector has successfully run.
-8. This is partial coverage, not a complete EGX-listed universe or a production-grade feed. Confirm coverage, licensing, and source reliability before production use.
+4. `quality_status` carries one primary label. When OHLC geometry is inconsistent, use exactly `ohlc_inconsistency_review`; record any concurrent provider/source conflict details in `notes` rather than concatenating multiple labels.
+5. Keep unknown fields blank and explain why; never fabricate missing market data.
+6. Keep daily bars separate from intraday data. OHLCV alone does not prove buy/sell flow or order-flow imbalance.
+7. Record each source's retrieval time and delay/price type only when known; otherwise label it unverified.
+8. Treat the CSV in this repository as a version-controlled archive. It is **not** proof of persistence in the application's database or proof that a scheduled collector has successfully run.
+9. This is partial coverage, not a complete EGX-listed universe or a production-grade feed. Confirm coverage, licensing, and source reliability before production use.
 
 ## Daily collection: 2026-11-04
 
