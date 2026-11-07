@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime
 from threading import RLock
 from typing import Callable, Protocol, TypeVar
 
@@ -17,7 +18,7 @@ T = TypeVar("T")
 class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
     def record_signal(
-        self, signal: Signal, event: str, recorded_at
+        self, signal: Signal, event: str, recorded_at: datetime
     ) -> SignalRecord: ...
     def record_outcome(self, outcome: SignalOutcomeRecord) -> None: ...
     def publish_alert(self, event: AlertEvent) -> None: ...
