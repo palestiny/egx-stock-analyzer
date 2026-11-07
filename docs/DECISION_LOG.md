@@ -3169,3 +3169,11 @@ The 15-minute cap is a ceiling, not an instruction to retry more than three time
 
 ### Consequences
 The retry budget is finite and auditable. A worker restart must preserve the scheduled retry instant and attempt count. Operator reconciliation remains distinct from automatic retry, and exactly-once delivery is not claimed.
+
+
+## DEC-138 — Completed Daily OHLC Swing Opportunity Observation Semantics
+
+**Status:** Accepted by owner  
+**Date:** 2026-11-07
+
+Completed daily OHLC candles are the only eligible observations for Swing target/invalidation transitions. High touching the target records target reach; Low touching invalidation records invalidation. If both are touched in one candle, invalidation wins because OHLC does not reveal intrabar order. Persist candle identity/timestamp, provider provenance, OHLC evidence, policy version, and transition identity. Reprocessing the same candle is idempotent. Corrections must be explicit and auditable; they must not silently rewrite prior lifecycle events. This does not resolve EGX calendar/provider completion, freshness, entry basis, expiry, or revision lineage. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md`.
