@@ -161,7 +161,7 @@ DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-hea
 - [x] Rollback proof: PR #452 added failure injection after history, outcome, and outbox writes; all participating stores are verified empty after rollback.
 - [x] Restart recovery: PR #454 reconstructs the dispatcher and persistent SQLite stores after restart, delivers a pending outbox event, and proves a subsequent dispatcher does not redeliver it.
 - [x] Transport boundary: PR #454 verifies lifecycle rows are visible from a separate SQLite connection before the fake Telegram transport is invoked.
-- [x] PR #454 exact-head CI passed all five jobs. Post-merge main CI run #42399538146: dependency audit, integration tests, frontend tests, and container build passed at last inspection; unit tests remained in progress. Do not mark post-merge main CI fully green until that job completes.
+- [x] PR #454 exact-head CI passed all five jobs. Post-merge main CI run #42399538146 completed successfully with all five jobs.
 - [ ] Automatic observation integration remains open: no accepted application use case currently connects persisted analysis observations to `SignalLifecycleOrchestrator.process` / `invalidate_for_evidence_change`.
 - [ ] Observation identity/deduplication, provider timestamp semantics, eligible completed-bar rules, price selection, OHLC crossing precedence, expiry, revision/version behavior, entry-price basis, and missed-observation reconciliation remain gated by explicit decisions and source verification.
 - [ ] A user-facing per-user lifecycle history/read model remains distinct from the existing Telegram notification feed and is not yet complete.
