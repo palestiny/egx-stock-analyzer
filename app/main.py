@@ -80,6 +80,7 @@ def create_application(
         generate_signal=GenerateSignal(runtime.application_runtime.result_store),
         publish_signal_opportunity=getattr(runtime, "publish_signal_opportunity", None),
         dispatch_signal_alert_outbox=getattr(runtime, "dispatch_signal_alert_outbox", None),
+        get_user_opportunity_notifications=getattr(runtime, "get_user_opportunity_notifications", None),
         get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
         session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
         subscription_store=getattr(runtime, "subscription_store", None),

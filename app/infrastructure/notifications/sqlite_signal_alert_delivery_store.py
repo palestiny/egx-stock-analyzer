@@ -76,6 +76,12 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 ON signal_alert_deliveries(status, lease_until)
                 """
             )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_signal_alert_delivery_user_timeline
+                ON signal_alert_deliveries(user_id, channel, created_at DESC, event_id)
+                """
+            )
 
     def get(
         self,
@@ -96,6 +102,31 @@ class SQLiteSignalAlertDeliveryStore(SignalAlertDeliveryStore):
                 (str(event_id), str(user_id), normalized_channel),
             ).fetchone()
         return self._to_record(row) if row else None
+
+    def list_for_user(
+        self,
+        user_id: UUID,
+        channel: str,
+        *,
+        limit: int = 100,
+    ) -> tuple[SignalAlertDeliveryRecord, ...]:
+        if limit < 1 or limit > 500:
+            raise ValueError("limit must be between 1 and 500")
+        normalized_channel = self._normalize_channel(channel)
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT event_id, user_id, channel, status, attempts,
+                    created_at, updated_at, last_error, claim_token, lease_until,
+                    next_attempt_at
+                FROM signal_alert_deliveries
+                WHERE user_id = ? AND channel = ?
+                ORDER BY created_at DESC, event_id DESC
+                LIMIT ?
+                """,
+                (str(user_id), normalized_channel, limit),
+            ).fetchall()
+        return tuple(self._to_record(row) for row in rows)
 
     def create_pending(
         self,

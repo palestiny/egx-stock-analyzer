@@ -311,3 +311,29 @@ def test_failed_delivery_is_not_claimable_without_retry_policy(tmp_path) -> None
         lease_until=NOW + timedelta(seconds=21),
     ) is False
     assert store.get(event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.FAILED
+
+
+def test_list_for_user_is_scoped_by_user_and_channel_and_newest_first(tmp_path) -> None:
+    store = SQLiteSignalAlertDeliveryStore(tmp_path / "user-history.db")
+    owner, other = uuid4(), uuid4()
+    older, newer, other_event, other_channel = uuid4(), uuid4(), uuid4(), uuid4()
+    store.create_pending(older, owner, "telegram", now=NOW)
+    store.create_pending(newer, owner, "telegram", now=NOW + timedelta(minutes=1))
+    store.create_pending(other_event, other, "telegram", now=NOW + timedelta(minutes=2))
+    store.create_pending(other_channel, owner, "email", now=NOW + timedelta(minutes=3))
+
+    records = store.list_for_user(owner, "TELEGRAM", limit=10)
+
+    assert [record.event_id for record in records] == [newer, older]
+    assert all(record.user_id == owner for record in records)
+    assert all(record.channel == "telegram" for record in records)
+
+
+def test_list_for_user_validates_limit(tmp_path) -> None:
+    store = SQLiteSignalAlertDeliveryStore(tmp_path / "user-history-limit.db")
+    user_id = uuid4()
+
+    with pytest.raises(ValueError, match="between 1 and 500"):
+        store.list_for_user(user_id, "telegram", limit=0)
+    with pytest.raises(ValueError, match="between 1 and 500"):
+        store.list_for_user(user_id, "telegram", limit=501)
