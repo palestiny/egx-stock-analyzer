@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Integration gap confirmed; observation and market-data semantics must be accepted before wiring  
+**Status:** Integration gap confirmed; daily OHLC crossing semantics accepted; data eligibility and runtime wiring remain open  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -34,7 +34,7 @@ Therefore the repository must not currently describe target-hit/stop/invalidatio
 Do not infer these from generic price fields:
 
 1. **Observation price semantics:** Which value is authoritative for transition: daily close, last trade, or a bar's high/low? The current analysis result exposes a current-price value, but its use as a completed-bar close or intraday last trade must be verified per provider and timeframe.
-2. **Crossing semantics:** Whether a target or invalidation is considered crossed by close-only, OHLC range, or another documented rule. If one candle spans both target and invalidation, the current domain rule prioritizes invalidation because intrabar path is unknown; owner must confirm that conservative behavior for the product.
+2. **Crossing semantics — DEC-138 accepted:** Evaluate only completed daily OHLC candles. `High >= target` records target reach; `Low <= invalidation` records invalidation. If both are touched in one candle, invalidation wins because OHLC cannot establish intrabar order. Persist candle identity/timestamp, provenance, OHLC evidence, policy version, and transition identity; duplicate candle replay is idempotent. Corrections must be explicit and auditable, not silent rewrites. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md`.
 3. **Data eligibility:** What constitutes a completed/usable bar, how corrections are handled, and how stale, future-dated, duplicated, or missing observations are rejected. This depends on provider timestamp semantics and an approved EGX session calendar.
 4. **Observation cadence:** Whether evaluation runs after every accepted analysis result, once after a completed session, or on a separately licensed intraday feed. Do not use an in-process timer as a substitute for durable scheduling.
 5. **Expiry policy:** Define `expires_at`, valid session/timeframe semantics, and what causes EXPIRED. The status enum contains EXPIRED/CLOSED, but the current transition function only transitions ACTIVE to TRIGGERED or INVALIDATED; no expiry duration or close policy is inferred here.
@@ -85,7 +85,7 @@ After owner decisions and provider/session verification, implement a dedicated a
 
 ## 6. Gate decision
 
-**Current result: GAP — do not claim automatic lifecycle monitoring.**
+**Current result: GAP — do not claim automatic lifecycle monitoring.** DEC-138 resolves the Swing daily-OHLC crossing rule only; it does not authorize runtime monitoring until provider/session eligibility, freshness, idempotent persistence, recovery, and end-to-end delivery are implemented and verified.
 
 The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
 
@@ -104,3 +104,10 @@ M61/backtesting remains paused and is outside this gate.
 These changes close the atomic persistence, rollback, restart-recovery, and tested transport-boundary acceptance items. They do **not** close automatic observation integration.
 
 M61/backtesting remains paused and is outside this gate.
+
+
+## 8. Owner decision update — 2026-11-07 (DEC-138)
+
+The owner accepted completed daily OHLC semantics for Swing opportunities: High touching target means target reached; Low touching invalidation means invalidated; if both occur in the same completed candle, invalidation takes precedence. The decision also requires persisted source-candle identity/timestamp, provider provenance, OHLC evidence, policy version, idempotent replay, and explicit auditable correction handling. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md`.
+
+This closes only the crossing-semantics decision. Provider completion guarantees, EGX session calendar, stale/future/corrected data eligibility, observation cadence/recovery, entry basis, expiry, revision lineage, and user-facing history remain open. Automatic monitoring remains unimplemented until the end-to-end acceptance path passes.
