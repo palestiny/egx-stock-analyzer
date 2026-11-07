@@ -52,7 +52,7 @@ After owner decisions and provider/session verification, implement a dedicated a
 4. If the setup's supporting evidence materially changed, apply the approved revision/invalidation policy. A missing candidate or failed analysis must not invalidate the existing opportunity.
 5. Construct `SignalMarketState` from the verified observation price and its actual source-data timestamp. Keep source-data time separate from processing/observation time.
 6. Apply the pure domain transition and create an immutable lifecycle event with a stable idempotency key derived from signal version and source observation identity.
-7. Persist transition, outcome, and alert intent through a reviewed durable transaction/outbox boundary. The current separate history, outcome, and outbox stores do not share one transaction; do not claim cross-store atomicity.
+7. Persist transition, outcome, and alert intent through `SQLiteSignalLifecycleUnitOfWork`. The history, outcome, and alert outbox stores must share one SQLite database; the unit of work uses one connection and `BEGIN IMMEDIATE` so these writes commit or roll back together. Telegram network delivery remains outside this transaction.
 8. Dispatch the lifecycle alert through the existing per-recipient Telegram delivery state machine. Preserve delivered-recipient suppression and manual-only handling for ambiguous `DELIVERY_UNKNOWN`.
 9. Expose lifecycle history and outcome provenance through authenticated per-user/operator read models with clear proxy-not-execution wording.
 
@@ -90,5 +90,17 @@ After owner decisions and provider/session verification, implement a dedicated a
 The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
 
 PR #443 adds the source-data timestamp to `SignalMarketState` and records that timestamp on terminal outcomes; its exact-head CI run #41205688356 passed all five jobs and merge commit is `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`. This corrects provenance for callers that supply a state; it does not itself create an automatic observation pipeline.
+
+M61/backtesting remains paused and is outside this gate.
+
+
+## 7. Verified implementation update — 2026-11-07
+
+- PR #450 merged the SQLite lifecycle Unit of Work. It requires the history, outcome, and alert outbox stores to share one database and commits their writes through one connection/transaction.
+- PR #452 added failpoint coverage after history writes, outcome persistence, and outbox insertion; each injected failure verifies rollback across the participating stores.
+- PR #454 merged persistent-history dispatcher-restart coverage and a transport-boundary test. The restart test reconstructs the dispatcher and its SQLite-backed stores, proves a pending event is delivered after restart, and proves a second dispatcher does not redeliver it. The transport-boundary test verifies the committed lifecycle rows are visible to a separate SQLite connection before the fake Telegram transport is invoked.
+- PR #454 exact-head CI passed all five jobs. Post-merge `main` run #42399538146 is still in progress; its latest observed state has dependency audit, integration tests, frontend tests, and container build passed, while unit tests are still running.
+
+These changes close the atomic persistence, rollback, restart-recovery, and tested transport-boundary acceptance items. They do **not** close automatic observation integration.
 
 M61/backtesting remains paused and is outside this gate.
