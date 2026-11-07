@@ -10,6 +10,7 @@ from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
     InMemorySignalLifecycleUnitOfWork,
+    SignalLifecycleTransaction,
     SignalLifecycleUnitOfWork,
 )
 from app.application.signals.store import InMemorySignalHistoryStore, SignalHistoryStore
@@ -66,7 +67,7 @@ class SignalLifecycleOrchestrator:
         if state.observed_at < signal.generated_at:
             raise ValueError("market observation cannot precede signal generation")
 
-        def persist(transaction) -> SignalLifecycleResult:
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult:
             latest = transaction.latest(signal.symbol)
             if (
                 latest is not None
@@ -139,7 +140,7 @@ class SignalLifecycleOrchestrator:
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
             raise ValueError("observed_at must be timezone-aware")
 
-        def persist(transaction) -> SignalLifecycleResult | None:
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
             latest = transaction.latest(candidate.symbol)
             if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
                 return None
