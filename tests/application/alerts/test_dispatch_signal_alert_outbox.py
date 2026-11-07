@@ -34,6 +34,7 @@ from app.domain.subscriptions.model import (
 )
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import (
@@ -119,9 +120,10 @@ def setup_dispatch(
     entitled_users=(),
     inactive_users=(),
     expired_users=(),
+    history_store=None,
 ):
     database = tmp_path / "dispatch.db"
-    history = InMemorySignalHistoryStore()
+    history = history_store or InMemorySignalHistoryStore()
     signal = make_signal()
     signal_record = history.record(signal, "CREATED", NOW)
     event = make_event(signal_record.signal_id, signal)
@@ -596,6 +598,7 @@ def test_pending_outbox_event_is_delivered_after_process_restart(tmp_path) -> No
         tmp_path,
         accounts,
         entitled_users=(user_id,),
+        history_store=SQLiteSignalHistoryStore(tmp_path / "dispatch.db"),
     )
 
     # Simulate a process stop after the event was committed but before dispatch.
@@ -606,7 +609,7 @@ def test_pending_outbox_event_is_delivered_after_process_restart(tmp_path) -> No
         recipients=FakeRecipients(accounts),
         deliveries=SQLiteSignalAlertDeliveryStore(database),
         users=SQLiteUserStore(database),
-        history=history,
+        history=SQLiteSignalHistoryStore(database),
         entitlements=EntitlementEvaluator(SQLiteSubscriptionStore(database)),
         transport=restarted_transport,
     )
@@ -630,7 +633,7 @@ def test_pending_outbox_event_is_delivered_after_process_restart(tmp_path) -> No
         recipients=FakeRecipients(accounts),
         deliveries=SQLiteSignalAlertDeliveryStore(database),
         users=SQLiteUserStore(database),
-        history=history,
+        history=SQLiteSignalHistoryStore(database),
         entitlements=EntitlementEvaluator(SQLiteSubscriptionStore(database)),
         transport=second_transport,
     )
