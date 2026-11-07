@@ -1,7 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
-from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 import pytest
@@ -15,9 +15,9 @@ from app.domain.signals.model import (
     SignalStatus,
     Target,
 )
-from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.domain.signals.lifecycle import SignalMarketState
+from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
@@ -254,3 +254,62 @@ def test_sqlite_evidence_invalidation_commits_history_and_alert_without_outcome(
     assert history.history(created.signal_id)[-1].event == "EVIDENCE_CHANGED_INVALIDATED"
     assert len(outbox.pending()) == 1
     assert track_record.all() == ()
+
+
+
+@pytest.mark.parametrize(
+    "failure_stage",
+    ("after_history", "after_outcome", "after_outbox"),
+)
+def test_sqlite_lifecycle_rolls_back_at_each_write_boundary(tmp_path, failure_stage):
+    unit_of_work, history, track_record, outbox = make_unit_of_work(
+        tmp_path / f"{failure_stage}.db"
+    )
+    signal = make_signal()
+
+    def persist_until_failure(transaction):
+        created = transaction.record_signal(signal, "CREATED", GENERATED)
+        terminal = replace(signal, status=SignalStatus.TRIGGERED)
+        transaction.record_signal(terminal, "STATUS_TRIGGERED", OBSERVED)
+        if failure_stage == "after_history":
+            raise RuntimeError(f"failure at {failure_stage}")
+
+        transaction.record_outcome(
+            SignalOutcomeRecord(
+                signal_id=created.signal_id,
+                symbol="COMI",
+                outcome=SignalOutcome.TARGET_HIT,
+                direction=SignalDirection.BUY,
+                observed_at=OBSERVED,
+                entry_price=Decimal("100"),
+                exit_price=Decimal("110"),
+                realized_return=Decimal("0.10"),
+                realized_r=Decimal("2"),
+                invalidation=Decimal("95"),
+                target_label="T1",
+                strategy_id="breakout-trend",
+                strategy_version="1.0",
+                data_timestamp=datetime(2026, 10, 4, 9, 55, tzinfo=timezone.utc),
+            )
+        )
+        if failure_stage == "after_outcome":
+            raise RuntimeError(f"failure at {failure_stage}")
+
+        transaction.publish_alert(
+            AlertEvent(
+                event_id=uuid4(),
+                signal_id=created.signal_id,
+                symbol="COMI",
+                event_type=AlertEventType.SIGNAL_TRIGGERED,
+                occurred_at=OBSERVED,
+                message="COMI signal triggered",
+            )
+        )
+        raise RuntimeError(f"failure at {failure_stage}")
+
+    with pytest.raises(RuntimeError, match=f"failure at {failure_stage}"):
+        unit_of_work.execute(persist_until_failure)
+
+    assert history.all_records() == ()
+    assert track_record.all() == ()
+    assert outbox.pending() == ()
