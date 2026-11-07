@@ -7,6 +7,8 @@ from decimal import Decimal
 from uuid import uuid4
 
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.domain.signals.lifecycle import SignalMarketState
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.alerts.outbox import AlertOutboxRecord, AlertOutboxStatus
 from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStatus
@@ -31,6 +33,9 @@ from app.domain.subscriptions.model import (
     SubscriptionStatus,
 )
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
+from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import (
     SQLiteSignalAlertDeliveryStore,
 )
@@ -114,9 +119,10 @@ def setup_dispatch(
     entitled_users=(),
     inactive_users=(),
     expired_users=(),
+    history_store=None,
 ):
     database = tmp_path / "dispatch.db"
-    history = InMemorySignalHistoryStore()
+    history = history_store or InMemorySignalHistoryStore()
     signal = make_signal()
     signal_record = history.record(signal, "CREATED", NOW)
     event = make_event(signal_record.signal_id, signal)
@@ -581,3 +587,159 @@ def test_manually_confirmed_non_delivery_finalizes_event_without_resending(tmp_p
     assert transport.sent == []
     assert deliveries.get(event.event_id, user_id, "telegram").status is SignalAlertDeliveryStatus.NOT_DELIVERED
     assert outbox.get(event.event_id).status is AlertOutboxStatus.FAILED
+
+
+
+def test_pending_outbox_event_is_delivered_after_process_restart(tmp_path) -> None:
+    user_id = uuid4()
+    accounts = [LinkedTelegramAccount(user_id, "chat-restarted")]
+    _dispatcher, _outbox, _deliveries, _first_transport, event, history = setup_dispatch(
+        tmp_path,
+        accounts,
+        entitled_users=(user_id,),
+        history_store=SQLiteSignalHistoryStore(tmp_path / "dispatch.db"),
+    )
+
+    # Simulate a process stop after the event was committed but before dispatch.
+    database = tmp_path / "dispatch.db"
+    restarted_transport = FakeTransport()
+    restarted_dispatcher = DispatchSignalAlertOutbox(
+        outbox=SQLiteAlertOutbox(database),
+        recipients=FakeRecipients(accounts),
+        deliveries=SQLiteSignalAlertDeliveryStore(database),
+        users=SQLiteUserStore(database),
+        history=SQLiteSignalHistoryStore(database),
+        entitlements=EntitlementEvaluator(SQLiteSubscriptionStore(database)),
+        transport=restarted_transport,
+    )
+
+    result = restarted_dispatcher.execute(now=NOW + timedelta(minutes=1))
+
+    assert result.events_processed == 1
+    assert result.recipients_delivered == 1
+    assert len(restarted_transport.sent) == 1
+    assert SQLiteAlertOutbox(database).get(event.event_id).status is AlertOutboxStatus.DELIVERED
+    assert (
+        SQLiteSignalAlertDeliveryStore(database).get(
+            event.event_id, user_id, "telegram"
+        ).status
+        is SignalAlertDeliveryStatus.DELIVERED
+    )
+
+    second_transport = FakeTransport()
+    second_restart_dispatcher = DispatchSignalAlertOutbox(
+        outbox=SQLiteAlertOutbox(database),
+        recipients=FakeRecipients(accounts),
+        deliveries=SQLiteSignalAlertDeliveryStore(database),
+        users=SQLiteUserStore(database),
+        history=SQLiteSignalHistoryStore(database),
+        entitlements=EntitlementEvaluator(SQLiteSubscriptionStore(database)),
+        transport=second_transport,
+    )
+    replay = second_restart_dispatcher.execute(now=NOW + timedelta(minutes=2))
+
+    assert replay.events_processed == 0
+    assert second_transport.sent == []
+
+
+def test_lifecycle_commit_is_visible_before_telegram_transport_is_invoked(tmp_path) -> None:
+    database = tmp_path / "lifecycle-dispatch.db"
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    signal = make_signal()
+    observed_at = NOW + timedelta(minutes=1)
+    lifecycle_result = orchestrator.process(
+        signal,
+        SignalMarketState(
+            observed_at=observed_at,
+            price=Decimal("86"),
+            data_timestamp=observed_at,
+        ),
+        entry_price=Decimal("80"),
+    )
+    assert lifecycle_result.changed is True
+    assert lifecycle_result.outcome_recorded is True
+
+    pending = outbox.pending()
+    assert len(pending) == 1
+    event_id = pending[0].event.event_id
+    user_id = uuid4()
+    users = SQLiteUserStore(database)
+    users.save(User(id=user_id, status=UserStatus.ACTIVE))
+    subscriptions = SQLiteSubscriptionStore(database)
+    subscriptions.save_plan(
+        SubscriptionPlan(
+            plan_id="plus",
+            version=1,
+            display_name="Plus",
+            entitlements=(EntitlementGrant("telegram_opportunities", True, 100),),
+            active=True,
+            created_at=NOW,
+        )
+    )
+    subscriptions.create(
+        Subscription(
+            subscription_id=uuid4(),
+            user_id=user_id,
+            plan_id="plus",
+            plan_version=1,
+            status=SubscriptionStatus.ACTIVE,
+            created_at=NOW,
+            starts_at=NOW,
+            expires_at=NOW + timedelta(days=30),
+            updated_at=NOW,
+        ),
+        actor="test-billing",
+        reason="Verified test subscription",
+    )
+
+    class CommitBoundaryTransport(FakeTransport):
+        def send_message(self, chat_id: str, message: str) -> None:
+            # A separate SQLite connection must acquire a write lock and observe
+            # committed lifecycle records before network delivery begins.
+            with sqlite3.connect(database, timeout=0.1) as connection:
+                connection.execute("BEGIN IMMEDIATE")
+                history_count = connection.execute(
+                    "SELECT COUNT(*) FROM signal_history WHERE signal_id = ? AND event = 'STATUS_TRIGGERED'",
+                    (str(lifecycle_result.signal_id),),
+                ).fetchone()[0]
+                outcome_count = connection.execute(
+                    "SELECT COUNT(*) FROM signal_outcomes WHERE signal_id = ?",
+                    (str(lifecycle_result.signal_id),),
+                ).fetchone()[0]
+                outbox_count = connection.execute(
+                    "SELECT COUNT(*) FROM signal_alert_outbox WHERE event_id = ?",
+                    (str(event_id),),
+                ).fetchone()[0]
+                connection.commit()
+            self.lifecycle_records_visible = (
+                history_count,
+                outcome_count,
+                outbox_count,
+            )
+            super().send_message(chat_id, message)
+
+    transport = CommitBoundaryTransport()
+    dispatcher = DispatchSignalAlertOutbox(
+        outbox=outbox,
+        recipients=FakeRecipients([LinkedTelegramAccount(user_id, "chat-commit-boundary")]),
+        deliveries=SQLiteSignalAlertDeliveryStore(database),
+        users=users,
+        history=history,
+        entitlements=EntitlementEvaluator(subscriptions),
+        transport=transport,
+    )
+
+    result = dispatcher.execute(now=observed_at + timedelta(seconds=1))
+
+    assert result.recipients_delivered == 1
+    assert transport.lifecycle_records_visible == (1, 1, 1)
+    assert len(transport.sent) == 1
