@@ -1,8 +1,8 @@
 # Project Completion Gap Register
 
 **Status:** Active non-M61 engineering/acceptance register  
-**Updated:** 2026-10-31  
-**Baseline:** `main` at `d86f418ea927c11755c821a6c1c44c736023ddca` (PR #445). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; post-merge main CI is pending verification. Earlier verified baseline evidence remains recorded below.  
+**Updated:** 2026-11-07  
+**Baseline:** `main` at `ba03d41d5741856e5cb3ab892172633058b3ffd2` (PR #454). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; post-merge main CI is pending verification. Earlier verified baseline evidence remains recorded below.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -153,3 +153,17 @@ DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-hea
 - PR #450 merged the approved lifecycle-specific SQLite Unit of Work at `71acf708aab4b1e6c3bc87b2a6d1a1b9bc1db4a`. Exact-head CI #42377116040 and post-merge main CI #42377785229 passed all five jobs.
 - PR #452 merged explicit rollback failpoint tests after history, outcome, and outbox writes at `1f6594b74ba6d6814413b325d21c04395180baa2`. Exact-head CI #42377931439 passed all five jobs. Post-merge main CI #42378195751 is pending verification.
 - Remaining lifecycle acceptance: process-restart/dispatcher recovery proof and a focused regression test guarding the no-network-I/O-inside-transaction boundary. Automatic observation wiring and all unresolved source-observation, price, crossing, expiry, revision, and entry-basis policies remain separate gaps.
+
+
+## Lifecycle persistence and recovery closeout — 2026-11-07
+
+- [x] Atomic lifecycle persistence: PR #450 merged `SQLiteSignalLifecycleUnitOfWork`, enforcing a shared SQLite database and one `BEGIN IMMEDIATE` transaction for signal history, optional market-proxy outcome, and durable alert intent. Telegram network I/O is not performed by the transaction.
+- [x] Rollback proof: PR #452 added failure injection after history, outcome, and outbox writes; all participating stores are verified empty after rollback.
+- [x] Restart recovery: PR #454 reconstructs the dispatcher and persistent SQLite stores after restart, delivers a pending outbox event, and proves a subsequent dispatcher does not redeliver it.
+- [x] Transport boundary: PR #454 verifies lifecycle rows are visible from a separate SQLite connection before the fake Telegram transport is invoked.
+- [x] PR #454 exact-head CI passed all five jobs. Post-merge main CI run #42399538146: dependency audit, integration tests, frontend tests, and container build passed at last inspection; unit tests remained in progress. Do not mark post-merge main CI fully green until that job completes.
+- [ ] Automatic observation integration remains open: no accepted application use case currently connects persisted analysis observations to `SignalLifecycleOrchestrator.process` / `invalidate_for_evidence_change`.
+- [ ] Observation identity/deduplication, provider timestamp semantics, eligible completed-bar rules, price selection, OHLC crossing precedence, expiry, revision/version behavior, entry-price basis, and missed-observation reconciliation remain gated by explicit decisions and source verification.
+- [ ] A user-facing per-user lifecycle history/read model remains distinct from the existing Telegram notification feed and is not yet complete.
+
+The persistence/recovery foundation is verified; automatic monitoring and lifecycle product acceptance are not. M61 remains paused and PR #321 remains Draft.
