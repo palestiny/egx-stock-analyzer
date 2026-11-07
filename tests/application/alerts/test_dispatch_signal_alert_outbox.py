@@ -34,7 +34,6 @@ from app.domain.subscriptions.model import (
 )
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
-from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import (
