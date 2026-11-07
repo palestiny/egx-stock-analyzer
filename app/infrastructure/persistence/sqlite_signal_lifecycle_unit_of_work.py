@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
+from uuid import UUID, uuid4
 from pathlib import Path
 from typing import Callable, TypeVar
 
-from app.application.alerts.model import AlertEvent
+from app.domain.alerts.model import AlertEvent
 from app.application.signals.lifecycle_unit_of_work import SignalLifecycleTransaction
 from app.application.signals.store import SignalRecord
 from app.domain.signals.model import Signal
@@ -48,7 +50,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         return self._history._to_record(row) if row else None
 
     def record_signal(
-        self, signal: Signal, event: str, recorded_at
+        self, signal: Signal, event: str, recorded_at: datetime
     ) -> SignalRecord:
         if not event.strip():
             raise ValueError("event is required")
@@ -67,13 +69,9 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             """
             INSERT OR IGNORE INTO signal_identities(
                 signal_id, symbol, strategy_id, strategy_version, generated_at
-            ) VALUES (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) ||
-                      '-4' || substr(lower(hex(randomblob(2))), 2) || '-' ||
-                      substr('89ab', abs(random()) % 4 + 1, 1) ||
-                      substr(lower(hex(randomblob(2))), 2) || '-' ||
-                      lower(hex(randomblob(6))), ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?)
             """,
-            identity,
+            (str(uuid4()), *identity),
         )
         row = self._connection.execute(
             """
@@ -96,9 +94,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             if str(existing[0]) != payload:
                 raise ValueError("different signal event already recorded")
             return SignalRecord(
-                signal_id=self._history._to_record(
-                    (signal_id, event.strip(), recorded_at.isoformat(), payload)
-                ).signal_id,
+                signal_id=UUID(signal_id),
                 signal=signal,
                 recorded_at=recorded_at,
                 event=event.strip(),
@@ -111,9 +107,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             (signal_id, event.strip(), recorded_at.isoformat(), payload),
         )
         return SignalRecord(
-            signal_id=self._history._to_record(
-                (signal_id, event.strip(), recorded_at.isoformat(), payload)
-            ).signal_id,
+            signal_id=UUID(signal_id),
             signal=signal,
             recorded_at=recorded_at,
             event=event.strip(),
