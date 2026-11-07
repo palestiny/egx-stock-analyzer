@@ -1,5 +1,7 @@
 from typing import Any, cast
 
+import pytest
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -81,3 +83,30 @@ def test_breadth_stress_without_configured_or_custom_universe_remains_invalid() 
 
     assert response.status_code == 400
     assert response.json()["detail"] == "At least one stock symbol is required"
+
+
+
+def test_router_rejects_configured_universe_without_version() -> None:
+    with pytest.raises(ValueError, match="symbols and version must be provided together"):
+        build_client(configured_symbols=("COMI",))
+
+
+def test_router_rejects_configured_universe_version_without_symbols() -> None:
+    with pytest.raises(ValueError, match="symbols and version must be provided together"):
+        build_client(configured_version="v1")
+
+
+def test_router_rejects_duplicate_configured_symbols_after_normalization() -> None:
+    with pytest.raises(ValueError, match="duplicate symbols"):
+        build_client(
+            configured_symbols=("COMI", " comi "),
+            configured_version="v1",
+        )
+
+
+def test_router_rejects_empty_configured_symbol_entries() -> None:
+    with pytest.raises(ValueError, match="empty symbol"):
+        build_client(
+            configured_symbols=("COMI", " "),
+            configured_version="v1",
+        )
