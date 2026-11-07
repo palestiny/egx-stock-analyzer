@@ -1,6 +1,6 @@
 # Signal Lifecycle Persistence Atomicity — Design Gate
 
-**Status:** GAP confirmed; recommended design documented, implementation not authorized by this document alone  
+**Status:** Option C approved and implemented in PR #450; rollback failpoints added in PR #452; recovery acceptance remains open  
 **Scope:** Atomic persistence of one lifecycle transition, its market-proxy outcome (when applicable), and its durable alert intent  
 **Related policy:** DEC-135 (immutable opportunity versions, traceable lifecycle events, durable auditable Telegram delivery, manual trading only)  
 **Related gates:** `SIGNAL-LIFECYCLE-OBSERVATION-INTEGRATION-DESIGN-GATE.md`, `TELEGRAM-DELIVERY-CONCURRENCY-DESIGN-GATE.md`  
@@ -14,7 +14,7 @@ The runtime composes all three relevant SQLite adapters with `config.analysis_da
 - `SQLiteTrackRecordStore`
 - `SQLiteAlertOutbox`
 
-They therefore target the same SQLite database file in the standard runtime. However, each adapter opens and commits its own connection/transaction. Sharing a file does **not** make separate transactions atomic.
+They target the same SQLite database file in the standard runtime. PR #450 adds `SQLiteSignalLifecycleUnitOfWork`, which uses one connection and `BEGIN IMMEDIATE` to write lifecycle identity/history, optional outcome, and outbox intent atomically. Independent store APIs still use their own connections for non-lifecycle operations.
 
 The current `SignalLifecycleOrchestrator.process` order is:
 
@@ -37,7 +37,7 @@ The stores are individually idempotent for an identical record and reject confli
 
 The same failure class exists in `invalidate_for_evidence_change`: it publishes the alert before appending history, without a shared transaction. That path intentionally does not create a trade outcome.
 
-**Conclusion:** current behavior must not be described as atomically persisting lifecycle transition, outcome, and alert intent. Telegram delivery is a later external side effect and must remain outside the SQLite transaction.
+**Historical conclusion (pre-PR #450):** separate adapter commits did not provide cross-store atomicity. **Current implementation:** the standard lifecycle orchestrator now commits history, optional market-proxy outcome, and alert outbox intent in one SQLite transaction. Telegram delivery remains a later external side effect.
 
 ## 2. Invariants required
 
@@ -137,12 +137,18 @@ The existing `entry_price` parameter also requires a stable, documented basis be
 6. Run full CI; inspect PR-head and post-merge main runs separately.
 7. Update the observation integration gate only to mark the persistence boundary complete; do not mark automatic observation complete until its independent policy requirements pass.
 
-## 7. Gate decision
+## 7. Gate decision and implementation evidence
 
-**Current result: GAP — atomic lifecycle persistence is not implemented.**
+**Owner decision:** Option C was explicitly approved on 2026-11-07.
 
-**Recommendation:** approve Option C, a lifecycle-specific SQLite Unit of Work with a single transaction for history + optional outcome + alert outbox. This is the smallest design that satisfies the required durability invariant using the existing database and operational stack.
+**Implementation:** PR #450 merged as `71acf708aab4b1e6c3bc87b2a6d1a1b9bc1db4a`.
 
-This recommendation does **not** authorize implementation of observation cadence, price/crossing semantics, expiry, opportunity revision policy, or entry-price assumptions. Those remain governed by `SIGNAL-LIFECYCLE-OBSERVATION-INTEGRATION-DESIGN-GATE.md` and DEC-135.
+The implementation adds the application Unit of Work contract, an in-memory rollback adapter, and `SQLiteSignalLifecycleUnitOfWork` using one connection and `BEGIN IMMEDIATE`. The standard runtime routes normal lifecycle transitions and evidence-change invalidation through this transaction. Telegram network delivery remains outside it.
+
+**Verification:** PR #450 exact-head CI #42377116040 and post-merge main CI #42377785229 passed all five jobs. PR #452 added failure injection after history, outcome, and outbox writes; exact-head CI #42377931439 passed all five jobs. Post-merge main CI #42378195751 is pending.
+
+**Remaining acceptance:** process-restart/dispatcher recovery proof and a focused regression test that guards the no-network-I/O-inside-transaction boundary. The existing tests cover atomic commit/rollback, individual write failpoints, same-command replay, concurrent replay, evidence-change invalidation, and shared-database enforcement.
+
+This does **not** complete automatic observation cadence, source-observation identity, price/crossing semantics, expiry, opportunity revision policy, or entry-price assumptions. Those remain governed by `SIGNAL-LIFECYCLE-OBSERVATION-INTEGRATION-DESIGN-GATE.md` and DEC-135.
 
 M61 remains paused and untouched.
