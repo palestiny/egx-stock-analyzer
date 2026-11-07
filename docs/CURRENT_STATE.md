@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-07 (main at `ba03d41d5741856e5cb3ab892172633058b3ffd2`; PR #454 merged; exact-head CI passed all five jobs; post-merge main CI run #42399538146 pending Unit Tests)  
+**Last reviewed:** 2026-11-07 (main at `ba03d41d5741856e5cb3ab892172633058b3ffd2`; PR #454 merged; exact-head CI passed all five jobs; post-merge main CI run #42399538146 passed all five jobs)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -11,7 +11,7 @@
 - PR #450 merged atomic lifecycle persistence: history, optional market-proxy outcome, and durable alert intent share one SQLite connection and transaction.
 - PR #452 merged rollback failpoint tests after history, outcome, and outbox writes.
 - PR #454 merged restart-recovery and transport-boundary tests. A pending event is delivered after dispatcher reconstruction and is not redelivered by a second dispatcher. A separate SQLite connection can observe committed lifecycle rows before the Telegram transport is invoked.
-- PR #454 exact-head CI passed all five jobs. Post-merge `main` is `ba03d41d5741856e5cb3ab892172633058b3ffd2`; workflow run #42399538146 is still in progress. At the latest inspection, dependency audit, integration tests, frontend tests, and container build passed; unit tests remained in progress.
+- PR #454 exact-head CI passed all five jobs. Post-merge `main` is `ba03d41d5741856e5cb3ab892172633058b3ffd2`; workflow run #42399538146 completed successfully with all five jobs.
 - Code-path inspection confirms `GenerateSignal` reads the latest persisted analysis result, while `PublishSignalOpportunity` writes publication history/outbox. `SignalLifecycleOrchestrator` is constructed in infrastructure runtime but is not called by those publication or analysis-persistence paths. Automatic observation integration remains unimplemented.
 - The lifecycle gate and completion gap register are being reconciled with the merged atomicity/recovery evidence. Observation price/cadence/eligibility, source identity, crossing precedence, expiry, revision semantics, and entry-price basis remain unresolved; no automatic monitoring claim is authorized.
 - M61 remains paused; PR #321 remains Draft.
