@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -82,7 +83,7 @@ def test_lifecycle_unit_of_work_commits_history_outcome_and_outbox_together(tmp_
         )
         transaction.record_outcome(outcome)
         event = AlertEvent(
-            event_id=__import__("uuid").uuid4(),
+            event_id=uuid4(),
             signal_id=created.signal_id,
             symbol="COMI",
             event_type=AlertEventType.SIGNAL_TRIGGERED,
