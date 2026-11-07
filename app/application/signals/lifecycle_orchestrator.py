@@ -12,8 +12,8 @@ from app.application.signals.lifecycle_unit_of_work import (
     InMemorySignalLifecycleUnitOfWork,
     SignalLifecycleUnitOfWork,
 )
-from app.application.signals.store import SignalHistoryStore
-from app.application.signals.track_record import TrackRecordStore
+from app.application.signals.store import InMemorySignalHistoryStore, SignalHistoryStore
+from app.application.signals.track_record import InMemoryTrackRecordStore, TrackRecordStore
 from app.domain.alerts.model import AlertEvent, AlertEventType
 from app.domain.signals.lifecycle import SignalMarketState, transition_signal
 from app.domain.signals.model import Signal, SignalDirection, SignalStatus
@@ -40,12 +40,19 @@ class SignalLifecycleOrchestrator:
         *,
         unit_of_work: SignalLifecycleUnitOfWork | None = None,
     ) -> None:
-        self._history = history
-        self._alerts = alerts
-        self._track_record = track_record
-        self._unit_of_work = unit_of_work or InMemorySignalLifecycleUnitOfWork(
-            history, alerts, track_record
-        )
+        if unit_of_work is None:
+            if not (
+                isinstance(history, InMemorySignalHistoryStore)
+                and isinstance(alerts, InMemoryAlertPublisher)
+                and isinstance(track_record, InMemoryTrackRecordStore)
+            ):
+                raise ValueError(
+                    "durable lifecycle stores require an explicit atomic unit of work"
+                )
+            unit_of_work = InMemorySignalLifecycleUnitOfWork(
+                history, alerts, track_record
+            )
+        self._unit_of_work = unit_of_work
 
     def process(
         self,
