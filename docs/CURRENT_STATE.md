@@ -445,3 +445,12 @@ DEC-135 is accepted by the owner. The accepted policies cover configurable Crash
 ## Telegram delivery concurrency decision — 2026-10-31 (DEC-136)
 
 The owner approved conservative handling of ambiguous Telegram sends: persist `DELIVERY_UNKNOWN`, do not automatically resend, and require operator reconciliation. Definite failures remain a separate retry category. This is a policy decision, not an implementation claim. The current dispatcher still lacks atomic per-recipient claims and does not yet distinguish ambiguous transport exceptions from definite failures. The lease rule is approved: runtime lease = 2 × the effective configured Telegram transport timeout. Definite-failure retry schedule, attempt budget, and exhaustion behavior remain open. See `docs/TELEGRAM-DELIVERY-CONCURRENCY-DESIGN-GATE.md`.
+
+
+## Verified continuation — 2026-11-07
+
+- PR #446 merged with the authenticated per-user Telegram opportunity notification feed. It does not provide complete lifecycle history.
+- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`. The single canonical EGX daily-history archive contains 186 source-attributed records through 2026-11-05; PR-head CI run #42263543089 passed all five jobs. Thirty-six rows have reported open below reported low and remain explicitly flagged; this dataset is not clean OHLC evidence, complete market coverage, application database ingestion, or accepted M61 data.
+- Main post-merge CI run #42376408594 is pending; do not mark the merged main commit fully verified until all five jobs pass.
+- Lifecycle persistence atomicity remains a confirmed gap. The recommended SQLite Unit of Work design is in `docs/SIGNAL-LIFECYCLE-PERSISTENCE-ATOMICITY-DESIGN-GATE.md`; implementation requires the owner to accept the architecture direction before behavior changes.
+- M61 remains paused and untouched; PR #321 remains Draft.
