@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import datetime
-from uuid import UUID, uuid4
 from pathlib import Path
 from typing import Callable, TypeVar
+from uuid import UUID, uuid4
 
-from app.domain.alerts.model import AlertEvent
 from app.application.signals.lifecycle_unit_of_work import SignalLifecycleTransaction
 from app.application.signals.store import SignalRecord
+from app.domain.alerts.model import AlertEvent
 from app.domain.signals.model import Signal
 from app.domain.signals.outcome import SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
