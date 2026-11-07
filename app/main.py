@@ -29,6 +29,8 @@ def create_application(
     runtime: InfrastructureRuntime,
     operator_token: str | None = None,
     stock_catalog: StockCatalog | None = None,
+    crash_radar_universe_symbols: tuple[str, ...] = (),
+    crash_radar_universe_version: str | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -91,6 +93,8 @@ def create_application(
         telegram_webhook_secret=getattr(runtime, "telegram_webhook_secret", None),
         news_event_store=getattr(runtime, "news_event_store", None),
         news_ingestion_service=getattr(runtime, "news_ingestion_service", None),
+        crash_radar_universe_symbols=crash_radar_universe_symbols,
+        crash_radar_universe_version=crash_radar_universe_version,
         **create_app_kwargs,
     )
     app.router.lifespan_context = lifespan
@@ -117,6 +121,8 @@ def create_application_from_environment(
         runtime,
         operator_token=config.operator_token,
         stock_catalog=stock_catalog,
+        crash_radar_universe_symbols=config.crash_radar_universe_symbols,
+        crash_radar_universe_version=config.crash_radar_universe_version,
     )
 
 
