@@ -1,6 +1,7 @@
 from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 import pytest
@@ -188,3 +189,68 @@ def test_sqlite_orchestrator_replay_keeps_one_atomic_lifecycle_event(tmp_path):
     assert len(history.history(first.signal_id)) == 2
     assert len(track_record.all()) == 1
     assert len(outbox.pending()) == 1
+
+
+
+def test_sqlite_orchestrator_serializes_concurrent_replays(tmp_path):
+    unit_of_work, history, track_record, outbox = make_unit_of_work(
+        tmp_path / "analysis.db"
+    )
+    signal = make_signal()
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    state = SignalMarketState(
+        observed_at=OBSERVED,
+        price=Decimal("110"),
+        data_timestamp=datetime(2026, 10, 4, 9, 55, tzinfo=timezone.utc),
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = tuple(
+            executor.map(
+                lambda _: orchestrator.process(
+                    signal, state, entry_price=Decimal("100")
+                ),
+                range(2),
+            )
+        )
+
+    assert sum(result.changed for result in results) == 1
+    signal_id = results[0].signal_id
+    assert results[1].signal_id == signal_id
+    assert len(history.history(signal_id)) == 2
+    assert len(track_record.all()) == 1
+    assert len(outbox.pending()) == 1
+
+
+def test_sqlite_evidence_invalidation_commits_history_and_alert_without_outcome(tmp_path):
+    unit_of_work, history, track_record, outbox = make_unit_of_work(
+        tmp_path / "analysis.db"
+    )
+    signal = make_signal()
+    created = history.record(signal, "CREATED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    candidate = replace(
+        signal,
+        evidence=(SignalEvidence("trend", "supporting evidence changed"),),
+    )
+
+    result = orchestrator.invalidate_for_evidence_change(
+        candidate, observed_at=OBSERVED
+    )
+
+    assert result is not None
+    assert result.changed is True
+    assert result.signal_id == created.signal_id
+    assert history.history(created.signal_id)[-1].event == "EVIDENCE_CHANGED_INVALIDATED"
+    assert len(outbox.pending()) == 1
+    assert track_record.all() == ()
