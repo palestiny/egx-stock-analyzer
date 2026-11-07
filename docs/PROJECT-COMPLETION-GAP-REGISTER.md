@@ -144,3 +144,14 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
 DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-head CI run #41197542121 and post-merge main CI run #41197870758, each passing all five jobs. This is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+
+
+### Lifecycle persistence atomicity — design gate recorded (2026-11-07)
+
+- [x] Verify current lifecycle write ordering and SQLite adapter transaction boundaries. The standard runtime uses one database file, but history, optional outcome, and alert outbox writes currently commit through separate connections.
+- [x] Record the failure windows and recommended shared SQLite Unit of Work in `docs/SIGNAL-LIFECYCLE-PERSISTENCE-ATOMICITY-DESIGN-GATE.md`.
+- [ ] Implement one atomic commit for lifecycle history + optional market-proxy outcome + durable alert intent, with rollback/failpoint, replay-conflict, concurrency, and restart tests.
+- [ ] Keep Telegram network dispatch outside the SQLite transaction and preserve DEC-136/DEC-137 delivery behavior.
+- [ ] Do not wire automatic observations or infer expiry/price/crossing/entry semantics until the separate observation integration gate is resolved.
+
+PR #446 adds the authenticated per-user Telegram opportunity notification feed at `GET /api/v1/me/opportunity-notifications`; it is a delivery feed, not a complete lifecycle history. Its five PR-head CI jobs passed before merge (run #41207470500); merge commit `e4d00d070f063843cc433a2f5bf65b8aa3fd0ca0`. Post-merge main CI must be checked independently.
