@@ -1,10 +1,21 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-10-31 (main at `d86f418ea927c11755c821a6c1c44c736023ddca`; PR #445 exact-head CI passed; post-merge main CI pending)  
+**Last reviewed:** 2026-11-07 (main at `71acf708aab4b1e6c3bc87b2a90fe72742372bc7`; PR #450 exact-head CI passed; post-merge main CI pending)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
+
+### Latest repository updates — 2026-11-07
+
+- PR #446 merged the authenticated per-user opportunity-notification feed at `GET /api/v1/me/opportunity-notifications`. This is a recipient delivery feed, not a complete opportunity lifecycle read model.
+- PR #447 merged the canonical source-attributed EGX daily archive with 186 records through the 2026-11-05 session. Thirty-six rows remain flagged because reported open is below reported low; do not treat those rows as clean OHLC evidence without reconciliation.
+- PR #449 merged the lifecycle persistence atomicity design gate and its documentation.
+- PR #450 merged the owner-approved SQLite lifecycle Unit of Work at `71acf708aab4b1e6c3bc87b2a90fe72742372bc7`. The standard runtime now commits signal identity/history, optional market-proxy outcome, and durable alert outbox intent through one connection and `BEGIN IMMEDIATE`. Telegram network delivery remains outside the transaction.
+- PR #450 exact-head CI run #42377116040 passed all five jobs. Post-merge main CI run #42377785229 is still pending; the merged main commit is not yet marked fully verified.
+- Remaining lifecycle acceptance includes explicit failpoints after each individual persistence write, restart/dispatcher recovery proof, and direct verification that Telegram network I/O is outside the transaction. Automatic observation wiring, observation identity, price/crossing semantics, expiry, and entry-price basis remain separate open decisions.
+- M61 remains paused by owner request; PR #321 remains Draft and is not accepted strategy-performance evidence.
+
 
 ### Latest repository updates — 2026-10-31
 
