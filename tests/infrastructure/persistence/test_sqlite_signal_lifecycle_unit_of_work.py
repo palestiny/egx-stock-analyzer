@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -32,7 +33,7 @@ def make_signal() -> Signal:
     return Signal(
         symbol="COMI",
         direction=SignalDirection.BUY,
-        status=SignalStatus.TRIGGERED,
+        status=SignalStatus.ACTIVE,
         generated_at=GENERATED,
         timeframe="DAILY",
         entry_zone=PriceZone(Decimal("99"), Decimal("101")),
@@ -66,7 +67,8 @@ def test_lifecycle_unit_of_work_commits_history_outcome_and_outbox_together(tmp_
 
     def persist(transaction):
         created = transaction.record_signal(signal, "CREATED", GENERATED)
-        transaction.record_signal(signal, "STATUS_TRIGGERED", OBSERVED)
+        terminal = replace(signal, status=SignalStatus.TRIGGERED)
+        transaction.record_signal(terminal, "STATUS_TRIGGERED", OBSERVED)
         outcome = SignalOutcomeRecord(
             signal_id=created.signal_id,
             symbol="COMI",
@@ -110,7 +112,8 @@ def test_lifecycle_unit_of_work_rolls_back_all_writes_on_failure(tmp_path):
 
     def fail_after_all_writes(transaction):
         created = transaction.record_signal(signal, "CREATED", GENERATED)
-        transaction.record_signal(signal, "STATUS_TRIGGERED", OBSERVED)
+        terminal = replace(signal, status=SignalStatus.TRIGGERED)
+        transaction.record_signal(terminal, "STATUS_TRIGGERED", OBSERVED)
         outcome = SignalOutcomeRecord(
             signal_id=created.signal_id,
             symbol="COMI",
