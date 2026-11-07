@@ -176,7 +176,7 @@ def test_from_environment_requires_crash_radar_universe_version(monkeypatch) -> 
 def test_from_environment_rejects_duplicate_crash_radar_symbols(monkeypatch) -> None:
     import pytest
 
-    monkeypatch.setenv("EGX_CRASH_RADAR_SYMBOLS", "COMI,egal")
+    monkeypatch.setenv("EGX_CRASH_RADAR_SYMBOLS", "COMI,comi")
     monkeypatch.setenv("EGX_CRASH_RADAR_UNIVERSE_VERSION", "v1")
 
     with pytest.raises(ValueError, match="duplicate symbols"):
