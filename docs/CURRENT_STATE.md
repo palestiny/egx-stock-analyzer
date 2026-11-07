@@ -445,3 +445,12 @@ DEC-135 is accepted by the owner. The accepted policies cover configurable Crash
 ## Telegram delivery concurrency decision — 2026-10-31 (DEC-136)
 
 The owner approved conservative handling of ambiguous Telegram sends: persist `DELIVERY_UNKNOWN`, do not automatically resend, and require operator reconciliation. Definite failures remain a separate retry category. This is a policy decision, not an implementation claim. The current dispatcher still lacks atomic per-recipient claims and does not yet distinguish ambiguous transport exceptions from definite failures. The lease rule is approved: runtime lease = 2 × the effective configured Telegram transport timeout. Definite-failure retry schedule, attempt budget, and exhaustion behavior remain open. See `docs/TELEGRAM-DELIVERY-CONCURRENCY-DESIGN-GATE.md`.
+
+
+## Non-M61 verification update — 2026-11-07
+
+- PR #444 merged as `601ffb4ae3fd38e525cf4f2b2a6d1a1b9bc1db4a`; its post-merge main CI run #41207357203 passed all five jobs.
+- PR #446 merged as `e4d00d070f063843cc433a2f5bf65b8aa3fd0ca0` after all five exact-head CI jobs passed in run #41207470500. It adds an authenticated Telegram opportunity notification feed at `GET /api/v1/me/opportunity-notifications`; this is not a complete per-user lifecycle history.
+- A focused review confirmed that lifecycle history, optional market-proxy outcome, and alert outbox currently use separate SQLite transactions even though the standard runtime points them at the same database file. A crash can therefore leave partial lifecycle state. The recommended atomic persistence design is documented in `docs/SIGNAL-LIFECYCLE-PERSISTENCE-ATOMICITY-DESIGN-GATE.md`; implementation remains open.
+- Automatic lifecycle observation is still not wired. Price/crossing/data-eligibility/expiry/revision/entry semantics remain governed by the separate observation integration gate.
+- M61 remains paused and untouched; PR #321 remains Draft and is not authorized for merge.
