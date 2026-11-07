@@ -149,7 +149,7 @@ DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-hea
 ## Verified continuation — 2026-11-07
 
 - PR #446 merged: authenticated per-user Telegram opportunity notification feed at `GET /api/v1/me/opportunity-notifications`. This is a recipient delivery feed, not a complete lifecycle history.
-- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`: canonical `data/market_history/egx_daily_history.csv` now contains 186 source-attributed records through the 2026-11-05 session. Exact-head PR CI run #42263543089 passed all five jobs.
-- Data archive limitations remain: partial universe; provider latency/licensing not verified; traded value and executions unavailable; 36 rows have reported open below reported low and are flagged for review. Preserve raw source values; do not use flagged rows as clean OHLC bars without reconciliation. This archive is not application-database ingestion and is not M61 evidence.
-- Post-merge main CI for #447 merge commit is run #42376408594 and is pending verification.
-- Lifecycle history + optional market-proxy outcome + alert outbox still use separate transactions. See the lifecycle persistence atomicity design gate; implementation remains open.
+- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`: canonical `data/market_history/egx_daily_history.csv` contains 186 source-attributed records through the 2026-11-05 session. Thirty-six rows have reported open below reported low and remain flagged; preserve raw values and do not treat them as clean OHLC bars without reconciliation.
+- PR #450 merged the approved lifecycle-specific SQLite Unit of Work at `71acf708aab4b1e6c3bc87b2a6d1a1b9bc1db4a`. Exact-head CI #42377116040 and post-merge main CI #42377785229 passed all five jobs.
+- PR #452 merged explicit rollback failpoint tests after history, outcome, and outbox writes at `1f6594b74ba6d6814413b325d21c04395180baa2`. Exact-head CI #42377931439 passed all five jobs. Post-merge main CI #42378195751 is pending verification.
+- Remaining lifecycle acceptance: process-restart/dispatcher recovery proof and a focused regression test guarding the no-network-I/O-inside-transaction boundary. Automatic observation wiring and all unresolved source-observation, price, crossing, expiry, revision, and entry-basis policies remain separate gaps.
