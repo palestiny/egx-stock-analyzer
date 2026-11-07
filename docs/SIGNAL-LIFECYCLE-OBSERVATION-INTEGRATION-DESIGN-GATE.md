@@ -12,7 +12,7 @@ The repository currently has these separate capabilities:
 - `GenerateSignal` derives an ACTIVE signal from the latest persisted analysis result and carries the analysis source-bar `data_timestamp`.
 - `PublishSignalOpportunity` records a published signal and creates an immutable `SIGNAL_PUBLISHED` alert event in the durable SQLite outbox.
 - `DispatchSignalAlertOutbox` handles per-recipient Telegram delivery, entitlements, retry/reconciliation, and durable recipient state.
-- `SignalLifecycleOrchestrator` can transition a supplied signal using a supplied `SignalMarketState`, record a terminal market-proxy outcome, and publish a lifecycle alert event.
+- `SignalLifecycleOrchestrator` can transition a supplied signal using a supplied `SignalMarketState`, record a terminal market-proxy outcome, and publish a lifecycle alert event. Since PR #450, the standard runtime routes these lifecycle writes through `SQLiteSignalLifecycleUnitOfWork`, which atomically commits history, optional outcome, and outbox intent in one SQLite transaction.
 - `SignalLifecycleOrchestrator` is constructed in `app/infrastructure/runtime.py` and exposed on the runtime object.
 - `SQLiteSignalHistoryStore` records signal-level history keyed by signal identity; it does not model a user's saved/acknowledged opportunity list. The Telegram delivery store tracks recipient delivery state, which is not equivalent to a per-user opportunity lifecycle/history read model.
 
@@ -52,7 +52,7 @@ After owner decisions and provider/session verification, implement a dedicated a
 4. If the setup's supporting evidence materially changed, apply the approved revision/invalidation policy. A missing candidate or failed analysis must not invalidate the existing opportunity.
 5. Construct `SignalMarketState` from the verified observation price and its actual source-data timestamp. Keep source-data time separate from processing/observation time.
 6. Apply the pure domain transition and create an immutable lifecycle event with a stable idempotency key derived from signal version and source observation identity.
-7. Persist transition, outcome, and alert intent through a reviewed durable transaction/outbox boundary. The current separate history, outcome, and outbox stores do not share one transaction; do not claim cross-store atomicity.
+7. Persist transition, outcome, and alert intent through the lifecycle-specific SQLite Unit of Work. PR #450 merged this boundary: one connection and `BEGIN IMMEDIATE` cover history, optional outcome, and outbox intent. Telegram network delivery remains outside the transaction.
 8. Dispatch the lifecycle alert through the existing per-recipient Telegram delivery state machine. Preserve delivered-recipient suppression and manual-only handling for ambiguous `DELIVERY_UNKNOWN`.
 9. Expose lifecycle history and outcome provenance through authenticated per-user/operator read models with clear proxy-not-execution wording.
 
@@ -85,9 +85,9 @@ After owner decisions and provider/session verification, implement a dedicated a
 
 ## 6. Gate decision
 
-**Current result: GAP — do not claim automatic lifecycle monitoring.**
+**Current result: PARTIAL — lifecycle persistence atomicity is implemented; automatic lifecycle monitoring remains a gap.**
 
-The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
+The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator still lack automatic observation integration. The persistence boundary is no longer an open gap: PR #450 merged the SQLite Unit of Work and its exact-head CI run #42377116040 passed all five jobs. The post-merge main CI run #42377785229 is pending verification. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
 
 PR #443 adds the source-data timestamp to `SignalMarketState` and records that timestamp on terminal outcomes; its exact-head CI run #41205688356 passed all five jobs and merge commit is `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`. This corrects provenance for callers that supply a state; it does not itself create an automatic observation pipeline.
 
