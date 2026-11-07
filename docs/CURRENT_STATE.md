@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-10-31 (main at `d86f418ea927c11755c821a6c1c44c736023ddca`; PR #445 exact-head CI passed; post-merge main CI pending)  
+**Last reviewed:** 2026-11-07 (main at `1f6594b74ba6d6814413b325d21c04395180baa2`; PR #452 exact-head CI passed; post-merge main CI pending)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -450,7 +450,10 @@ The owner approved conservative handling of ambiguous Telegram sends: persist `D
 ## Verified continuation — 2026-11-07
 
 - PR #446 merged with the authenticated per-user Telegram opportunity notification feed. It does not provide complete lifecycle history.
-- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`. The single canonical EGX daily-history archive contains 186 source-attributed records through 2026-11-05; PR-head CI run #42263543089 passed all five jobs. Thirty-six rows have reported open below reported low and remain explicitly flagged; this dataset is not clean OHLC evidence, complete market coverage, application database ingestion, or accepted M61 data.
-- Main post-merge CI run #42376408594 is pending; do not mark the merged main commit fully verified until all five jobs pass.
-- Lifecycle persistence atomicity remains a confirmed gap. The recommended SQLite Unit of Work design is in `docs/SIGNAL-LIFECYCLE-PERSISTENCE-ATOMICITY-DESIGN-GATE.md`; implementation requires the owner to accept the architecture direction before behavior changes.
+- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`. The canonical EGX daily-history archive contains 186 source-attributed records through 2026-11-05; 36 rows remain flagged because reported open is below reported low. This is not clean OHLC evidence, complete market coverage, production ingestion, or accepted M61 data.
+- PR #450 merged the approved SQLite lifecycle Unit of Work at `71acf708aab4b1e6c3bc87b2a6d1a1b9bc1db4a`. Exact-head CI #42377116040 and post-merge main CI #42377785229 passed all five jobs.
+- PR #452 merged per-write rollback failpoint tests at `1f6594b74ba6d6814413b325d21c04395180baa2`. Exact-head CI #42377931439 passed all five jobs. Post-merge main CI #42378195751 is pending.
+- Lifecycle history, optional market-proxy outcome, and alert outbox intent now commit through one SQLite connection/transaction. Telegram delivery remains a later external side effect.
+- Remaining lifecycle acceptance: restart/dispatcher recovery proof and a focused regression test that guards the no-network-I/O-inside-transaction boundary.
+- Automatic observation wiring remains incomplete. Observation identity, source/price selection, candle crossing precedence, expiry, opportunity revision, and entry-price basis must be resolved before monitoring is enabled.
 - M61 remains paused and untouched; PR #321 remains Draft.
