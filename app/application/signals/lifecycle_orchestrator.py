@@ -5,10 +5,16 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
+from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
-from app.application.signals.store import SignalHistoryStore
-from app.application.signals.track_record import TrackRecordStore
+from app.application.signals.lifecycle_unit_of_work import (
+    InMemorySignalLifecycleUnitOfWork,
+    SignalLifecycleTransaction,
+    SignalLifecycleUnitOfWork,
+)
+from app.application.signals.store import InMemorySignalHistoryStore, SignalHistoryStore
+from app.application.signals.track_record import InMemoryTrackRecordStore, TrackRecordStore
 from app.domain.alerts.model import AlertEvent, AlertEventType
 from app.domain.signals.lifecycle import SignalMarketState, transition_signal
 from app.domain.signals.model import Signal, SignalDirection, SignalStatus
@@ -25,23 +31,29 @@ class SignalLifecycleResult:
 
 
 class SignalLifecycleOrchestrator:
-    """Coordinate one deterministic lifecycle observation and its side effects.
-
-    The domain transition remains pure. This application boundary is responsible
-    for stable signal identity, lifecycle history, alerts, and terminal outcomes.
-    Side effects use deterministic IDs/idempotent stores so retries do not duplicate
-    an alert or terminal outcome.
-    """
+    """Coordinate a lifecycle observation through one atomic persistence boundary."""
 
     def __init__(
         self,
         history: SignalHistoryStore,
         alerts: AlertPublisher,
         track_record: TrackRecordStore,
+        *,
+        unit_of_work: SignalLifecycleUnitOfWork | None = None,
     ) -> None:
-        self._history = history
-        self._alerts = alerts
-        self._track_record = track_record
+        if unit_of_work is None:
+            if not (
+                isinstance(history, InMemorySignalHistoryStore)
+                and isinstance(alerts, InMemoryAlertPublisher)
+                and isinstance(track_record, InMemoryTrackRecordStore)
+            ):
+                raise ValueError(
+                    "durable lifecycle stores require an explicit atomic unit of work"
+                )
+            unit_of_work = InMemorySignalLifecycleUnitOfWork(
+                history, alerts, track_record
+            )
+        self._unit_of_work = unit_of_work
 
     def process(
         self,
@@ -55,53 +67,62 @@ class SignalLifecycleOrchestrator:
         if state.observed_at < signal.generated_at:
             raise ValueError("market observation cannot precede signal generation")
 
-        latest = self._history.latest(signal.symbol)
-        if (
-            latest is not None
-            and latest.signal.strategy_id == signal.strategy_id
-            and latest.signal.strategy_version == signal.strategy_version
-            and latest.signal.generated_at == signal.generated_at
-        ):
-            signal_id = latest.signal_id
-            current = latest.signal
-        else:
-            created = self._history.record(signal, "CREATED", signal.generated_at)
-            signal_id = created.signal_id
-            current = signal
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult:
+            latest = transaction.latest(signal.symbol)
+            if (
+                latest is not None
+                and latest.signal.strategy_id == signal.strategy_id
+                and latest.signal.strategy_version == signal.strategy_version
+                and latest.signal.generated_at == signal.generated_at
+            ):
+                signal_id = latest.signal_id
+                current = latest.signal
+            else:
+                created = transaction.record_signal(
+                    signal, "CREATED", signal.generated_at
+                )
+                signal_id = created.signal_id
+                current = signal
 
-        transitioned = transition_signal(current, state)
-        if transitioned.status is current.status:
+            transitioned = transition_signal(current, state)
+            if transitioned.status is current.status:
+                return SignalLifecycleResult(
+                    signal_id=signal_id,
+                    signal=current,
+                    changed=False,
+                    outcome_recorded=False,
+                    alert_published=False,
+                )
+
+            outcome = None
+            if transitioned.status in (
+                SignalStatus.TRIGGERED,
+                SignalStatus.INVALIDATED,
+            ):
+                outcome = self._build_outcome(
+                    signal_id, transitioned, state, entry_price
+                )
+
+            event = self._build_alert(
+                signal_id, transitioned, state.observed_at
+            )
+            transaction.record_signal(
+                transitioned,
+                f"STATUS_{transitioned.status.value}",
+                state.observed_at,
+            )
+            if outcome is not None:
+                transaction.record_outcome(outcome)
+            transaction.publish_alert(event)
             return SignalLifecycleResult(
                 signal_id=signal_id,
-                signal=current,
-                changed=False,
-                outcome_recorded=False,
-                alert_published=False,
+                signal=transitioned,
+                changed=True,
+                outcome_recorded=outcome is not None,
+                alert_published=True,
             )
 
-        alert_event = self._build_alert(signal_id, transitioned, state.observed_at)
-        self._alerts.publish(alert_event)
-
-        outcome_recorded = False
-        if transitioned.status in (SignalStatus.TRIGGERED, SignalStatus.INVALIDATED):
-            outcome = self._build_outcome(
-                signal_id, transitioned, state, entry_price
-            )
-            self._track_record.record(outcome)
-            outcome_recorded = True
-
-        self._history.record(
-            transitioned,
-            f"STATUS_{transitioned.status.value}",
-            state.observed_at,
-        )
-        return SignalLifecycleResult(
-            signal_id=signal_id,
-            signal=transitioned,
-            changed=True,
-            outcome_recorded=outcome_recorded,
-            alert_published=True,
-        )
+        return self._unit_of_work.execute(persist)
 
     def invalidate_for_evidence_change(
         self,
@@ -109,41 +130,37 @@ class SignalLifecycleOrchestrator:
         *,
         observed_at: datetime,
     ) -> SignalLifecycleResult | None:
-        """Invalidate an active published setup when its supporting signal changes.
+        """Invalidate an active setup when supporting evidence changes.
 
-        A missing candidate is not treated as contradictory evidence: the caller
-        may be seeing a data outage or incomplete analysis. Evidence invalidation
-        is not recorded as a trade outcome because no market exit was observed.
+        A missing candidate is not treated as contradictory evidence. Evidence
+        invalidation is not a market-proxy outcome because no market exit was observed.
         """
         if candidate is None:
             return None
         if observed_at.tzinfo is None or observed_at.utcoffset() is None:
             raise ValueError("observed_at must be timezone-aware")
 
-        latest = self._history.latest(candidate.symbol)
-        if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
-            return None
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
+            latest = transaction.latest(candidate.symbol)
+            if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
+                return None
 
-        current = latest.signal
-        if not self._supporting_evidence_changed(current, candidate):
-            return SignalLifecycleResult(
-                signal_id=latest.signal_id,
-                signal=current,
-                changed=False,
-                outcome_recorded=False,
-                alert_published=False,
+            current = latest.signal
+            if not self._supporting_evidence_changed(current, candidate):
+                return SignalLifecycleResult(
+                    signal_id=latest.signal_id,
+                    signal=current,
+                    changed=False,
+                    outcome_recorded=False,
+                    alert_published=False,
+                )
+
+            invalidated = replace(current, status=SignalStatus.INVALIDATED)
+            event_id = uuid5(
+                NAMESPACE_URL,
+                f"signal-evidence-change:{latest.signal_id}:{candidate!r}",
             )
-
-        invalidated = replace(current, status=SignalStatus.INVALIDATED)
-        event_id = uuid5(
-            NAMESPACE_URL,
-            (
-                f"signal-evidence-change:{latest.signal_id}:"
-                f"{candidate!r}"
-            ),
-        )
-        self._alerts.publish(
-            AlertEvent(
+            event = AlertEvent(
                 event_id=event_id,
                 signal_id=latest.signal_id,
                 symbol=current.symbol,
@@ -155,19 +172,19 @@ class SignalLifecycleOrchestrator:
                 ),
                 signal_snapshot=snapshot_signal(invalidated),
             )
-        )
-        self._history.record(
-            invalidated,
-            "EVIDENCE_CHANGED_INVALIDATED",
-            observed_at,
-        )
-        return SignalLifecycleResult(
-            signal_id=latest.signal_id,
-            signal=invalidated,
-            changed=True,
-            outcome_recorded=False,
-            alert_published=True,
-        )
+            transaction.record_signal(
+                invalidated, "EVIDENCE_CHANGED_INVALIDATED", observed_at
+            )
+            transaction.publish_alert(event)
+            return SignalLifecycleResult(
+                signal_id=latest.signal_id,
+                signal=invalidated,
+                changed=True,
+                outcome_recorded=False,
+                alert_published=True,
+            )
+
+        return self._unit_of_work.execute(persist)
 
     @staticmethod
     def _supporting_evidence_changed(previous: Signal, candidate: Signal) -> bool:

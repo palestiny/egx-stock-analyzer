@@ -21,6 +21,7 @@ from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutb
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_store import SQLiteTelegramDeliveryReconciliationStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
@@ -210,10 +211,16 @@ def create_infrastructure_runtime(
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
+    signal_lifecycle_unit_of_work = SQLiteSignalLifecycleUnitOfWork(
+        history=signal_history_store,
+        track_record=signal_track_record_store,
+        outbox=signal_alert_outbox,
+    )
     signal_lifecycle_orchestrator = SignalLifecycleOrchestrator(
         history=signal_history_store,
         alerts=signal_alert_outbox,
         track_record=signal_track_record_store,
+        unit_of_work=signal_lifecycle_unit_of_work,
     )
     build_session_opportunity_ledger = BuildSessionOpportunityLedger(
         history=signal_history_store,
