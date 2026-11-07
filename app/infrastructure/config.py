@@ -26,10 +26,23 @@ class InfrastructureConfig:
     news_rss_feed_url: str | None = None
     news_rss_source_name: str = "Configured EGX News Feed"
     news_rss_source_type: str = "other"
+    crash_radar_universe_symbols: tuple[str, ...] = ()
+    crash_radar_universe_version: str | None = None
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
         user_bearer_tokens = _parse_user_bearer_tokens(os.getenv("EGX_USER_TOKENS"))
+        crash_radar_universe_symbols = _parse_symbol_list(
+            os.getenv("EGX_CRASH_RADAR_SYMBOLS")
+        )
+        crash_radar_universe_version = (
+            os.getenv("EGX_CRASH_RADAR_UNIVERSE_VERSION") or ""
+        ).strip() or None
+        if bool(crash_radar_universe_symbols) != bool(crash_radar_universe_version):
+            raise ValueError(
+                "EGX_CRASH_RADAR_SYMBOLS and EGX_CRASH_RADAR_UNIVERSE_VERSION "
+                "must be configured together"
+            )
         return cls(
             analysis_database_path=os.getenv(
                 "EGX_ANALYSIS_DATABASE_PATH",
@@ -68,6 +81,8 @@ class InfrastructureConfig:
             news_rss_source_type=os.getenv(
                 "EGX_NEWS_RSS_SOURCE_TYPE", "other"
             ).strip(),
+            crash_radar_universe_symbols=crash_radar_universe_symbols,
+            crash_radar_universe_version=crash_radar_universe_version,
         )
 
 
@@ -100,6 +115,21 @@ def _parse_user_bearer_tokens(raw: str | None) -> dict[str, UUID]:
         tokens[token] = user_id
 
     return tokens
+
+
+def _parse_symbol_list(raw: str | None) -> tuple[str, ...]:
+    if raw is None or not raw.strip():
+        return ()
+    symbols = tuple(
+        symbol.strip().upper()
+        for symbol in raw.split(",")
+        if symbol.strip()
+    )
+    if not symbols:
+        return ()
+    if len(symbols) != len(set(symbols)):
+        raise ValueError("EGX_CRASH_RADAR_SYMBOLS contains duplicate symbols")
+    return symbols
 
 
 def _parse_bool(raw: str, name: str) -> bool:
