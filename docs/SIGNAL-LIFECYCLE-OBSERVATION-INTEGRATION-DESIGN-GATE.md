@@ -99,7 +99,7 @@ M61/backtesting remains paused and is outside this gate.
 - PR #450 merged the SQLite lifecycle Unit of Work. It requires the history, outcome, and alert outbox stores to share one database and commits their writes through one connection/transaction.
 - PR #452 added failpoint coverage after history writes, outcome persistence, and outbox insertion; each injected failure verifies rollback across the participating stores.
 - PR #454 merged persistent-history dispatcher-restart coverage and a transport-boundary test. The restart test reconstructs the dispatcher and its SQLite-backed stores, proves a pending event is delivered after restart, and proves a second dispatcher does not redeliver it. The transport-boundary test verifies the committed lifecycle rows are visible to a separate SQLite connection before the fake Telegram transport is invoked.
-- PR #454 exact-head CI passed all five jobs. Post-merge `main` run #42399538146 is still in progress; its latest observed state has dependency audit, integration tests, frontend tests, and container build passed, while unit tests are still running.
+- PR #454 exact-head CI passed all five jobs. Post-merge `main` workflow run #42399538146 subsequently completed successfully with all five jobs passed: unit tests (including lint, type-check, and coverage), deterministic integration tests, frontend tests/build/audit, dependency audit, and container build.
 
 These changes close the atomic persistence, rollback, restart-recovery, and tested transport-boundary acceptance items. They do **not** close automatic observation integration.
 
