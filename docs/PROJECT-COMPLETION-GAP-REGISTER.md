@@ -144,3 +144,12 @@ This acceptance closes the owner-policy decision gate, not the implementation ch
 - [x] PR #428 tests cover concurrent claims, stale-token fencing, lease recovery, ambiguous transport outcomes, migration, partial recipient safety, and active-claim protection. PR #429 tests cover audited reconciliation and no-resend terminal resolution.
 
 DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-head CI run #41197542121 and post-merge main CI run #41197870758, each passing all five jobs. This is not exactly-once delivery. `DELIVERY_UNKNOWN` remains manual-only. PR #428 main CI passed in run #41189366403; PR #429 main CI passed all five jobs in run #41191307763.
+
+
+## Verified continuation — 2026-11-07
+
+- PR #446 merged: authenticated per-user Telegram opportunity notification feed at `GET /api/v1/me/opportunity-notifications`. This is a recipient delivery feed, not a complete lifecycle history.
+- PR #447 merged at `8995e8f4d5ef1420ef4d625195d187cb32397679`: canonical `data/market_history/egx_daily_history.csv` now contains 186 source-attributed records through the 2026-11-05 session. Exact-head PR CI run #42263543089 passed all five jobs.
+- Data archive limitations remain: partial universe; provider latency/licensing not verified; traded value and executions unavailable; 36 rows have reported open below reported low and are flagged for review. Preserve raw source values; do not use flagged rows as clean OHLC bars without reconciliation. This archive is not application-database ingestion and is not M61 evidence.
+- Post-merge main CI for #447 merge commit is run #42376408594 and is pending verification.
+- Lifecycle history + optional market-proxy outcome + alert outbox still use separate transactions. See the lifecycle persistence atomicity design gate; implementation remains open.
