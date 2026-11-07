@@ -13,7 +13,7 @@
 - PR #454 merged restart-recovery and transport-boundary tests. A pending event is delivered after dispatcher reconstruction and is not redelivered by a second dispatcher. A separate SQLite connection can observe committed lifecycle rows before the Telegram transport is invoked.
 - PR #454 exact-head CI passed all five jobs. Post-merge `main` is `ba03d41d5741856e5cb3ab892172633058b3ffd2`; workflow run #42399538146 completed successfully with all five jobs.
 - Code-path inspection confirms `GenerateSignal` reads the latest persisted analysis result, while `PublishSignalOpportunity` writes publication history/outbox. `SignalLifecycleOrchestrator` is constructed in infrastructure runtime but is not called by those publication or analysis-persistence paths. Automatic observation integration remains unimplemented.
-- The lifecycle gate and completion gap register are being reconciled with the merged atomicity/recovery evidence. Observation price/cadence/eligibility, source identity, crossing precedence, expiry, revision semantics, and entry-price basis remain unresolved; no automatic monitoring claim is authorized.
+- DEC-138 and DEC-139 now settle the product rules for completed-daily-OHLC crossing, session calendar/timing, provider completion requirements, freshness suppression, OHLC validation, entry/performance separation, 20-eligible-session Swing expiry, immutable revisions, append-only corrections, idempotent replay, and chronological recovery. Provider-specific completion/freshness evidence and the end-to-end runtime integration remain unverified/unimplemented; no automatic monitoring claim is authorized.
 - M61 remains paused; PR #321 remains Draft.
 
 
