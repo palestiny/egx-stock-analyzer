@@ -298,7 +298,9 @@ class SQLiteSessionCalendarRepository:
                     action, previous, target_version, timestamp.isoformat(), actor, audit_reason
                 ),
             )
-            event_id = int(cursor.lastrowid)
+            if cursor.lastrowid is None:
+                raise RuntimeError("SQLite did not return an activation event id")
+            event_id = cursor.lastrowid
         return CalendarActivationEvent(
             event_id, action, previous, target_version, timestamp, actor, audit_reason
         )
