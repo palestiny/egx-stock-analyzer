@@ -8,14 +8,17 @@
 
 # Current Position
 
-## Latest verified non-M61 continuation — 2026-11-07
+## Latest verified non-M61 continuation — 2026-11-09
 
 - PR #450, #452, and #454 are merged. Lifecycle history, optional market-proxy outcome, and alert intent persist through one SQLite transaction; rollback failpoints, dispatcher restart recovery, and the no-network-I/O transaction boundary have explicit tests.
+- PR #455 reconciled the lifecycle monitoring gate with accepted DEC-138/DEC-139 rules. The runtime observation path remains unimplemented; do not claim automatic target/invalidation monitoring.
+- PR #456 merged the operator-configured, versioned Crash Radar universe. It does not prove full EGX coverage or freshness.
+- PR #457 merged the 2026-11-08 archive update: 23 rows (17 equities, 6 indices), 209 total records. Exact-head CI run #4842 passed. The 2 new index OHLC inconsistencies and 2 localized-source conflicts remain explicitly flagged. Post-merge CI for squash commit 7a65ce103b271457c9d609341ea1ffab4934ec1b was not found at review time.
 - PR #454 exact-head CI passed all five jobs. Post-merge main workflow #42399538146 completed successfully with all five jobs.
 - The lifecycle orchestrator remains constructed but is not wired to persisted analysis observations. Automatic target/invalidation monitoring is therefore not implemented or accepted.
 - The lifecycle integration gate records unresolved observation identity, provider timestamp/freshness, completed-bar eligibility, price/crossing, expiry, revision, entry-basis, and missed-observation recovery decisions. Do not infer these rules from generic OHLC/current-price fields.
 - The authenticated Telegram opportunity-notification feed is available, but it is not a complete per-user lifecycle history/read model.
-- PR #447's canonical archive contains 186 source-attributed records through the 2026-11-05 session; 36 rows with reported open below reported low remain flagged and must not be silently repaired or treated as clean OHLC.
+- PR #457's canonical archive contains 209 source-attributed records through the 2026-11-08 session; the 2026-11-08 rows include two flagged index OHLC inconsistencies and two localized-source conflicts. Across the archive, previously flagged inconsistent rows remain excluded from clean OHLC use.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 **Next non-M61 execution focus:** close verified engineering gaps that do not require inventing market-data or trading policy; keep lifecycle integration blocked until its design-gate inputs are accepted and provider/session semantics are verified. Keep Yahoo-derived data out of paid/subscriber-facing distribution until commercial reuse rights are explicitly verified.
