@@ -1,3 +1,5 @@
+import hashlib
+import json
 import sqlite3
 from datetime import date, datetime, timezone
 
@@ -236,8 +238,8 @@ def test_calendar_payload_version_must_match_immutable_row_key(tmp_path):
             "REPLACE(calendar_json, 'egx-v1', 'egx-v2'), sha256 = ? "
             "WHERE version = 'egx-v1'",
             (
-                __import__("hashlib").sha256(
-                    __import__("json").dumps(
+                hashlib.sha256(
+                    json.dumps(
                         {
                             "version": "egx-v2",
                             "timezone": "Africa/Cairo",
