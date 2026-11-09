@@ -18,10 +18,11 @@ class StubStore:
         return self.records.get(symbol)
 
 
-def record(trend, momentum, volume, analysis_date=None):
+def record(trend, momentum, volume, analysis_date=None, data_timestamp=None):
     return SimpleNamespace(
         analysis_date=analysis_date,
         result=SimpleNamespace(
+            data_timestamp=data_timestamp,
             technical_analysis=SimpleNamespace(
                 trend=SimpleNamespace(status=trend),
                 momentum=SimpleNamespace(status=momentum),
@@ -277,3 +278,68 @@ def test_market_breadth_exposes_same_day_and_future_snapshot_ages_without_clampi
         "SAME_DAY": "2026-10-28",
         "FUTURE": "2026-10-30",
     }
+
+
+
+def test_market_breadth_uses_source_bar_timestamp_separately_from_analysis_run_date():
+    result = record(
+        TrendStatus.DOWNTREND,
+        MomentumStatus.NEGATIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 9),
+        data_timestamp=datetime(2026, 11, 5, 14, 30, tzinfo=timezone.utc),
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result})
+    ).execute(["AAA"], as_of_date=date(2026, 11, 9)).to_dict()
+
+    # The analysis was requested on Nov 9, but its latest source bar is Nov 5.
+    assert payload["analysis_dates_by_symbol"] == {"AAA": "2026-11-09"}
+    assert payload["snapshot_age_calendar_days_by_symbol"] == {"AAA": 0}
+    assert payload["source_data_timestamps_by_symbol"] == {
+        "AAA": "2026-11-05T14:30:00+00:00"
+    }
+    assert payload["source_data_dates_by_symbol"] == {"AAA": "2026-11-05"}
+    assert payload["source_data_date_status"] == "CONSISTENT"
+    assert payload["latest_source_data_timestamp"] == "2026-11-05T14:30:00+00:00"
+    assert payload["latest_source_data_date"] == "2026-11-05"
+    assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": 4}
+
+
+def test_market_breadth_normalizes_source_timestamp_to_egx_date():
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 10, 28),
+        data_timestamp=datetime(2026, 10, 27, 22, 30, tzinfo=timezone.utc),
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result})
+    ).execute(["AAA"], as_of_date=date(2026, 10, 28)).to_dict()
+
+    assert payload["source_data_dates_by_symbol"] == {"AAA": "2026-10-28"}
+    assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": 0}
+
+
+def test_market_breadth_does_not_trust_naive_source_timestamps():
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 10, 28),
+        data_timestamp=datetime(2026, 10, 28, 15, 30),
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result})
+    ).execute(["AAA"], as_of_date=date(2026, 10, 28)).to_dict()
+
+    assert payload["source_data_timestamps_by_symbol"] == {"AAA": None}
+    assert payload["source_data_dates_by_symbol"] == {"AAA": None}
+    assert payload["undated_source_data_symbols"] == ["AAA"]
+    assert payload["source_data_date_status"] == "UNKNOWN"
+    assert payload["latest_source_data_timestamp"] is None
+    assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": None}
