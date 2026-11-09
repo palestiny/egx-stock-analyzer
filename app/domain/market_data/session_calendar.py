@@ -29,6 +29,18 @@ class EGXCalendarDay:
     reason: str | None = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.session_date, date) or isinstance(self.session_date, datetime):
+            raise ValueError("Calendar session_date must be a date")
+        if not isinstance(self.status, CalendarDayStatus):
+            raise ValueError("Calendar day status must be a CalendarDayStatus value")
+        if self.session_open is not None and not isinstance(self.session_open, time):
+            raise ValueError("Session open must be a local wall-clock time")
+        if self.session_close is not None and not isinstance(self.session_close, time):
+            raise ValueError("Session close must be a local wall-clock time")
+        if self.closed_at is not None and not isinstance(self.closed_at, datetime):
+            raise ValueError("closed_at must be a datetime")
+        if self.reason is not None and not isinstance(self.reason, str):
+            raise ValueError("Calendar day reason must be text")
         is_trading = self.status in {
             CalendarDayStatus.SCHEDULED,
             CalendarDayStatus.OPEN,
@@ -78,8 +90,20 @@ class EGXSessionCalendar:
     days: tuple[EGXCalendarDay, ...]
 
     def __post_init__(self) -> None:
-        if not self.version.strip():
+        if not isinstance(self.version, str) or not self.version.strip():
             raise ValueError("Calendar version is required")
+        if self.version != self.version.strip():
+            raise ValueError("Calendar version must not have surrounding whitespace")
+        if not isinstance(self.timezone, str) or not self.timezone.strip():
+            raise ValueError("Calendar timezone is required")
+        if not isinstance(self.coverage_start, date) or isinstance(self.coverage_start, datetime):
+            raise ValueError("Calendar coverage_start must be a date")
+        if not isinstance(self.coverage_end, date) or isinstance(self.coverage_end, datetime):
+            raise ValueError("Calendar coverage_end must be a date")
+        if not isinstance(self.days, tuple) or any(
+            not isinstance(day, EGXCalendarDay) for day in self.days
+        ):
+            raise ValueError("Calendar days must be an immutable tuple of EGXCalendarDay records")
         try:
             ZoneInfo(self.timezone)
         except ZoneInfoNotFoundError as error:
@@ -88,15 +112,17 @@ class EGXSessionCalendar:
             raise ValueError("EGX session calendar timezone must be Africa/Cairo")
         if self.coverage_end < self.coverage_start:
             raise ValueError("Calendar coverage end must not precede coverage start")
-        expected_dates = tuple(
-            date.fromordinal(ordinal)
-            for ordinal in range(
-                self.coverage_start.toordinal(),
-                self.coverage_end.toordinal() + 1,
+        expected_day_count = (self.coverage_end - self.coverage_start).days + 1
+        if len(self.days) != expected_day_count:
+            raise ValueError(
+                "Calendar must contain exactly one ordered explicit record for every "
+                "date in its declared coverage"
             )
-        )
-        actual_dates = tuple(day.session_date for day in self.days)
-        if actual_dates != expected_dates:
+        start_ordinal = self.coverage_start.toordinal()
+        if any(
+            day.session_date.toordinal() != start_ordinal + offset
+            for offset, day in enumerate(self.days)
+        ):
             raise ValueError(
                 "Calendar must contain exactly one ordered explicit record for every "
                 "date in its declared coverage"

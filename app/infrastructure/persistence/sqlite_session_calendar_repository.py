@@ -4,10 +4,14 @@ import hashlib
 import hmac
 import json
 import sqlite3
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
+from app.application.market_data.session_calendar_store import (
+    CalendarActivationEvent,
+    StoredCalendarVersion,
+)
 from app.domain.market_data.session_calendar import EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
@@ -16,42 +20,43 @@ class CalendarVersionIntegrityError(RuntimeError):
     """Raised when a persisted calendar payload no longer matches its content hash."""
 
 
-@dataclass(frozen=True)
-class StoredCalendarVersion:
-    version: str
-    calendar: EGXSessionCalendar
-    sha256: str
-    published_at: datetime
-    published_by: str
-    source_reference: str
-    publication_reason: str
-
-
-@dataclass(frozen=True)
-class CalendarActivationEvent:
-    event_id: int
-    action: str
-    previous_version: str | None
-    target_version: str | None
-    occurred_at: datetime
-    performed_by: str
-    reason: str
-
-
 class SQLiteSessionCalendarRepository:
     """Persists immutable calendar versions and an audited active-version pointer."""
 
     def __init__(self, database_path: str | Path) -> None:
-        path = Path(database_path)
-        if str(path) != ":memory:":
+        self._memory_anchor: sqlite3.Connection | None = None
+        self._closed = False
+        if str(database_path) == ":memory:":
+            self._database_path = (
+                f"file:egx_session_calendar_{uuid4().hex}?mode=memory&cache=shared"
+            )
+            self._use_uri = True
+            self._memory_anchor = connect_sqlite(self._database_path, uri=True)
+        else:
+            path = Path(database_path)
             path.parent.mkdir(parents=True, exist_ok=True)
-        self._database_path = str(path)
-        self._initialize()
+            self._database_path = str(path)
+            self._use_uri = False
+        try:
+            self._initialize()
+        except Exception:
+            self.close()
+            raise
 
     def _connect(self) -> sqlite3.Connection:
-        connection = connect_sqlite(self._database_path)
+        if self._closed:
+            raise RuntimeError("Session calendar repository is closed")
+        connection = connect_sqlite(self._database_path, uri=self._use_uri)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        if self._memory_anchor is not None:
+            self._memory_anchor.close()
+            self._memory_anchor = None
+        self._closed = True
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -263,12 +268,19 @@ class SQLiteSessionCalendarRepository:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if target_version is not None:
-                exists = connection.execute(
-                    "SELECT 1 FROM egx_calendar_versions WHERE version = ?",
+                target_row = connection.execute(
+                    """
+                    SELECT version, calendar_json, sha256, published_at,
+                           published_by, source_reference, publication_reason
+                    FROM egx_calendar_versions WHERE version = ?
+                    """,
                     (target_version,),
                 ).fetchone()
-                if exists is None:
+                if target_row is None:
                     raise KeyError(f"Unknown calendar version: {target_version}")
+                # Never activate or roll back to a version whose persisted payload
+                # no longer passes the same integrity checks used by read operations.
+                self._version_from_row(target_row)
             current_row = connection.execute(
                 "SELECT version FROM egx_calendar_active_version WHERE singleton_id = 1"
             ).fetchone()
@@ -287,7 +299,7 @@ class SQLiteSessionCalendarRepository:
                     (target_version,),
                 ).fetchone()
                 if was_active is None:
-                    raise ValueError("Rollback target must have been active previously")
+                    raise ValueError("Rollback target must have been previously active")
             connection.execute(
                 "UPDATE egx_calendar_active_version SET version = ? WHERE singleton_id = 1",
                 (target_version,),
@@ -333,7 +345,12 @@ class SQLiteSessionCalendarRepository:
     @staticmethod
     def _version_from_row(row: tuple) -> StoredCalendarVersion:
         version, payload, digest, published_at, published_by, source, reason = row
-        decoded_payload = json.loads(payload)
+        try:
+            decoded_payload = json.loads(payload)
+        except (json.JSONDecodeError, TypeError) as error:
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar version {version!r} contains invalid JSON"
+            ) from error
         canonical_payload = json.dumps(
             decoded_payload, sort_keys=True, separators=(",", ":")
         )
@@ -342,7 +359,12 @@ class SQLiteSessionCalendarRepository:
             raise CalendarVersionIntegrityError(
                 f"Stored calendar version {version!r} failed its SHA-256 integrity check"
             )
-        calendar = EGXSessionCalendar.from_dict(decoded_payload)
+        try:
+            calendar = EGXSessionCalendar.from_dict(decoded_payload)
+        except (TypeError, ValueError) as error:
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar version {version!r} contains an invalid calendar"
+            ) from error
         if calendar.version != version:
             raise CalendarVersionIntegrityError(
                 f"Stored calendar row {version!r} does not match its payload version"

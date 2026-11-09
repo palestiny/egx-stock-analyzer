@@ -48,12 +48,29 @@ The sample is a schema illustration only, not an asserted historical EGX schedul
 
 ## Deliberately not implemented yet
 
-This domain primitive and persistence adapter do not load operator files, expose authenticated management APIs, schedule jobs, or connect to lifecycle monitoring/Crash Radar. The persistence adapter stores immutable, SHA-256-verified calendar versions and append-only activation/deactivation/rollback audit events, but this PR does not publish or activate any calendar. It does not generate a 2026/2027 calendar from national holidays or infer weekends. It does not prove provider daily-bar completion. The runtime integration remains disabled until operator calendar publication, provider completion attestation, and recovery integration tests are complete.
+This domain primitive and persistence adapter do not load operator files, schedule jobs, or connect to lifecycle monitoring/Crash Radar. The authenticated operator API supports manual publication and read operations only. The persistence adapter stores immutable, SHA-256-verified calendar versions and append-only activation/deactivation/rollback audit events, but no real EGX calendar has been published or activated. The system does not generate a 2026/2027 calendar from national holidays or infer weekends, and it does not prove provider daily-bar completion. Runtime integration remains disabled until an operator-verified calendar can be safely activated under an explicit coverage policy, provider completion attestation is available, and recovery integration tests pass.
 
-## Operator publication controls still required
+## Operator API surface
 
-1. An authenticated operator workflow to publish an immutable calendar version (persistence primitives exist; the API does not yet).
-2. Provenance for each closure/schedule override (official EGX notice reference and operator audit identity).
-3. Validation that the new version covers the active operational horizon without gaps; the operational horizon policy is not yet defined.
-4. An authenticated activation/deactivation/rollback workflow with coverage validation before activation.
-5. Every evaluation must persist the calendar version and session date used.
+The authenticated operator API currently supports:
+
+- `POST /api/v1/owner/session-calendars/versions` to publish a validated immutable version.
+- `GET /api/v1/owner/session-calendars/versions` to list version metadata.
+- `GET /api/v1/owner/session-calendars/versions/{version}` to read a full version.
+- `GET /api/v1/owner/session-calendars/active` to inspect the active version (404 when none is active).
+- `GET /api/v1/owner/session-calendars/activation-events` to inspect the append-only activation audit.
+
+Every route requires operator authorization. The publication actor is taken from the authenticated identity; clients cannot submit or override `published_by`. Publication stores a calendar-level source reference and reason. Per-day evidence references are not yet modeled.
+
+**Audit identity limitation:** the current legacy operator credential resolves to the shared subject `operator` (and the shared legacy operator user ID). Therefore the audit record distinguishes the legacy operator credential class from ordinary users, but it does not identify which human used a shared token. The API rejects blank subjects and never trusts a body-supplied actor, but this is not individual accountability. Before real operational publication, the owner must approve named operator accounts/credentials with an explicit operator permission, or an alternative auditable human-identity mechanism. Do not represent the current shared subject as a unique person.
+
+Activation, deactivation, and rollback are deliberately not exposed through HTTP yet. The operational coverage horizon has not been defined, so there is no safe activation precondition to enforce. Publishing a version does not make it active, and no calendar is currently activated by this implementation.
+
+## Operator controls still required
+
+1. Capture verifiable source provenance for each exceptional closure/session override, not only a calendar-level reference.
+2. Define and validate the active operational horizon; the policy is not yet defined.
+3. Add authenticated activation/deactivation/rollback endpoints only after coverage validation is enforceable.
+4. Every evaluation must persist the calendar version and session date used.
+
+The activation coverage-horizon options and unresolved initial-cursor/bootstrap decision are documented in `docs/EGX-SESSION-CALENDAR-ACTIVATION-DESIGN-GATE.md`.

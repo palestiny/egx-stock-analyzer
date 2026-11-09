@@ -10,6 +10,11 @@ This register separates verified implementation from incomplete acceptance and d
 
 ## Verified merged foundations
 
+
+- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. This is an evidence registry, not yet a publication policy gate or source-authenticity proof.
+- PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
+- PR #467 is the current replacement integration PR for authenticated session-calendar publication/read API and persistent runtime composition. It requires active user ID + durable credential ID and rejects the legacy shared operator token for calendar routes. Exact-head CI run #42633034603 has passed all jobs except the still-running unit-test suite at last review. PR #462 is a stale/conflicting predecessor and must not be merged; close it after #467 merges.
+
 - Technical-analysis stack includes deterministic indicators and price-action evidence, with API/dashboard integration (PR #364 and follow-on integration).
 - News/event ingestion foundations include normalized metadata, SQLite persistence, provider-neutral orchestration, authenticated API, and operator-configured RSS/Atom feeds.
 - Crash Radar exposes explainable components and per-symbol snapshot-date evidence (merged PR #387), while the existing 50/40/10 heuristic remains unvalidated as a crash probability.

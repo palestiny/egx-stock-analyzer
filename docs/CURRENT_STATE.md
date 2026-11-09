@@ -4,6 +4,17 @@
 **Last reviewed:** 2026-11-09 (main at `d171324800027e9b298bfde9529eb5b75c5d8ec1`; PRs #459 and #460 merged. PR #462 remains Draft; the initial exact-head run on `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` had one assertion-only unit-test failure. Follow-ups `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350a` aligned the domain error text and regression assertion; exact-head validation is pending. Main commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` has all five CI jobs passing.)
 **Repository:** palestiny/egx-stock-analyzer
 
+
+### Latest verified continuation — 2026-11-09 (individual operator + calendar API)
+
+- PR #465 merged the immutable per-day calendar evidence registry. Evidence records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry is not yet a publication evidence gate and does not prove source authenticity.
+- PR #466 merged individually attributable operator grants, append-only grant/revoke/bootstrap audit events, durable-credential-aware permission resolution, last-operator protection, and a trusted local first-operator bootstrap.
+- PR #467 is the replacement integration PR, based directly on current main at `11a46034ee0acfb38b6d8d60078501070ee2d20d`. It composes the SQLite session-calendar repository and authenticated API, and requires an active individual operator user plus durable credential. The legacy shared operator token is rejected for calendar administration.
+- PR #467 exact-head workflow #42633034603: dependency audit, integration tests, frontend tests, lint/type-check, and container build passed at the last review; the unit-test suite was still running. Do not merge until that job and the overall exact-head workflow complete successfully.
+- PR #462 is now a stale/conflicting predecessor and must not be merged; PR #467 carries the integrated implementation on current main. Close #462 as superseded after #467 merges.
+- Calendar publication still does not activate a version. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
+- M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
+
 ## 1. Where We Are
 
 ### Latest verified continuation — 2026-11-09 (session calendar)
