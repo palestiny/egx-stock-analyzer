@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
@@ -18,6 +19,7 @@ from app.application.identity.get_user_audit_history import (
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.application.security.authorization import AuthorizationError
 from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.operator_access import OperatorAccessError, OperatorAccessService
 from app.domain.identity.user import UserStatus
 
 
@@ -28,9 +30,64 @@ def create_user_management_router(
     get_user_audit_history: GetUserAuditHistory | None,
     require_authenticated,
     require_operator,
+    operator_access: OperatorAccessService | None = None,
 ) -> APIRouter:
     """Register user and audit routes without owning authentication composition."""
     router = APIRouter()
+
+    class OperatorAccessReasonPayload(BaseModel):
+        reason: str = Field(min_length=1, max_length=500)
+
+    @router.get("/api/v1/operators/access-events")
+    def list_operator_access_events(
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if operator_access is None:
+            raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        events = operator_access.list_events()
+        return {
+            "items": [
+                {
+                    "event_id": event.event_id,
+                    "action": event.action,
+                    "target_user_id": str(event.target_user_id),
+                    "actor_user_id": str(event.actor_user_id) if event.actor_user_id else None,
+                    "actor_credential_id": str(event.actor_credential_id) if event.actor_credential_id else None,
+                    "actor_kind": event.actor_kind,
+                    "reason": event.reason,
+                    "occurred_at": event.occurred_at.isoformat(),
+                }
+                for event in events
+            ]
+        }
+
+    @router.post("/api/v1/operators/{user_id}/grant")
+    def grant_operator_access(
+        user_id: UUID,
+        payload: OperatorAccessReasonPayload,
+        identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if operator_access is None:
+            raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        try:
+            operator_access.grant(identity, user_id, payload.reason)
+        except OperatorAccessError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"user_id": str(user_id), "operator": True}
+
+    @router.post("/api/v1/operators/{user_id}/revoke")
+    def revoke_operator_access(
+        user_id: UUID,
+        payload: OperatorAccessReasonPayload,
+        identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        if operator_access is None:
+            raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        try:
+            operator_access.revoke(identity, user_id, payload.reason)
+        except OperatorAccessError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return {"user_id": str(user_id), "operator": False}
 
     @router.get("/api/v1/management/audit")
     def get_management_audit_report(
