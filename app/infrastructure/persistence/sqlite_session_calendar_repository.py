@@ -268,12 +268,19 @@ class SQLiteSessionCalendarRepository:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             if target_version is not None:
-                exists = connection.execute(
-                    "SELECT 1 FROM egx_calendar_versions WHERE version = ?",
+                target_row = connection.execute(
+                    """
+                    SELECT version, calendar_json, sha256, published_at,
+                           published_by, source_reference, publication_reason
+                    FROM egx_calendar_versions WHERE version = ?
+                    """,
                     (target_version,),
                 ).fetchone()
-                if exists is None:
+                if target_row is None:
                     raise KeyError(f"Unknown calendar version: {target_version}")
+                # Never activate or roll back to a version whose persisted payload
+                # no longer passes the same integrity checks used by read operations.
+                self._version_from_row(target_row)
             current_row = connection.execute(
                 "SELECT version FROM egx_calendar_active_version WHERE singleton_id = 1"
             ).fetchone()
