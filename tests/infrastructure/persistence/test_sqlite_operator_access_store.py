@@ -154,3 +154,22 @@ def test_last_operator_cannot_be_disabled_or_deleted(tmp_path):
     with pytest.raises(sqlite3.IntegrityError, match="last active operator"):
         users.save(User(first, UserStatus.DISABLED))
     assert access.is_operator(first)
+
+
+def test_user_deactivation_revokes_operator_grant_permanently(tmp_path):
+    path = tmp_path / "operators.db"
+    users, _, access, first, second, first_credential, _ = setup_operator_database(path)
+    access.bootstrap_first_operator(first, reason="Initial owner setup")
+    access.grant(
+        second,
+        actor_user_id=first,
+        actor_credential_id=first_credential.id,
+        reason="Add backup operator",
+    )
+
+    users.save(User(second, UserStatus.DISABLED))
+    assert not access.is_operator(second)
+    assert access.list_events()[-1].actor_kind == "SYSTEM_USER_LIFECYCLE"
+
+    users.save(User(second, UserStatus.ACTIVE))
+    assert not access.is_operator(second)
