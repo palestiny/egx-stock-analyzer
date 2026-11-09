@@ -35,6 +35,7 @@ class CalendarDayPayload(BaseModel):
 class CalendarEvidencePayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    evidence_id: UUID | None = None
     session_date: date
     evidence_kind: CalendarEvidenceKind
     source_type: str = Field(min_length=1, max_length=100)
@@ -182,6 +183,7 @@ def create_session_calendar_admin_router(
                 CalendarEvidence.create(
                     calendar_version=calendar.version,
                     session_date=item.session_date,
+                    evidence_id=item.evidence_id,
                     evidence_kind=item.evidence_kind,
                     source_type=item.source_type,
                     source_reference=item.source_reference,
