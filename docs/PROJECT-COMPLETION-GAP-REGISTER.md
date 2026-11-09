@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-09  
-**Baseline:** `main` at `d171324800027e9b298bfde9529eb5b75c5d8ec1` (PRs #459 and #460 merged; post-merge main CI run #42619902277 passed all five jobs). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; its post-merge main state is included in the later PR #454 post-merge main workflow #42399538146, which passed all five jobs. Earlier verified baseline evidence remains recorded below.  
+**Baseline:** `main` at `5cf842d01919f95ce73b984a8b237813db9d2db7` (PR #469 documentation reconciliation merged; on-merge main CI run #42643672050 had 4/5 jobs successful and unit-tests still in progress at review). Historical PR/CI evidence remains recorded below.
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -34,6 +34,40 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #459 merged the explicit, fail-closed EGX session-calendar domain model with contiguous per-day coverage, Africa/Cairo wall-clock times, explicit day states, and completed-session confirmation. No weekend, holiday, or session-time inference is allowed.
 - PR #460 merged immutable SQLite calendar-version persistence, SHA-256 integrity checks, the active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
 - PR #467 merged the individually authenticated operator publication/read API and persistent runtime composition after all five exact-head CI jobs passed. PR #462 is closed unmerged as superseded.
+
+## Calendar evidence publication — atomicity design proposal (2026-11-09)
+
+**Status: PROPOSED — owner approval required; no runtime behavior changed.**
+
+### Problem verified in current implementation
+The calendar-version repository and calendar-evidence repository each manage their own SQLite connections and transaction scopes. Evidence rows reference an already-persisted calendar version, so the current composition cannot guarantee that a version and all required per-day evidence are committed or rolled back as one operation. An API-level pre-check alone would leave a time-of-check/time-of-use gap and could persist a calendar version without its complete evidence set.
+
+### Proposed transaction contract
+1. Begin one write transaction on the calendar database (SQLite `BEGIN IMMEDIATE`).
+2. Validate the individually authenticated operator identity and normalize the requested calendar/evidence payload before writes.
+3. Insert the immutable calendar version using the transaction connection.
+4. Insert immutable evidence records and explicit per-day links using that same connection.
+5. Validate exact date coverage, evidence-kind acceptance rules, source-policy requirements, supersession consistency, and unresolved conflicts against the transaction's pending state.
+6. Commit only when every validation passes. Any exception or failed gate rolls back the version, evidence rows, links, and related audit entries together.
+7. Publication remains distinct from activation. No active-version pointer, activation event, lifecycle cursor, or monitoring state is changed by this transaction.
+
+### Proposed code boundary
+Introduce a narrowly scoped calendar SQLite Unit of Work (UoW) that owns one connection and transaction. Repositories participating in publication receive the UoW connection (or a transaction-scoped repository interface); they must not open independent connections during the operation. Keep ordinary read paths and the existing immutable evidence semantics intact. Avoid a generic cross-domain transaction framework: the initial UoW should be calendar-specific and small.
+
+### Required invariants and tests
+- The calendar version and all per-day evidence/link rows are visible together after commit.
+- Failure after version insert, after any evidence insert, after link creation, and during final policy validation leaves no partial publication state.
+- A second connection cannot observe uncommitted rows.
+- Concurrent publication attempts serialize safely; duplicate/version conflicts fail deterministically without overwriting immutable history.
+- Missing dates, unsupported evidence kinds, conflicting unsuperseded claims, mismatched version/date links, invalid supersession, and unauthorized operators fail closed.
+- Existing published/read API contracts and append-only update/delete protections remain intact.
+- Tests use the production runtime composition and a temporary on-disk SQLite database, not only isolated in-memory repository fakes.
+
+### Decisions intentionally not made by this proposal
+Evidence acceptance by claim type, required primary-source categories, source artifact archival versus stable external references, and deployment bootstrap/recovery remain owner decisions or separate operational gates. The proposal does not assert that a hash proves source authenticity. It does not authorize calendar activation or lifecycle monitoring.
+
+### Rollout and compatibility
+First add the UoW and repository transaction seams with focused tests; then route the publication use case through it. Preserve existing schema and immutable record IDs where possible. If an explicit per-day link table or schema migration is required, document the migration and prove upgrade-from-existing-database behavior before release. Do not silently retrofit existing evidence or infer missing evidence.
 
 ## Non-M61 work remaining
 

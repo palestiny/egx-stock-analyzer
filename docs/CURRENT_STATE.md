@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`; PR #468 documentation reconciliation merged as `81e5d8182ca9876c523cede761f595fbc1d82479`. Post-merge CI for #468 is running; see current GitHub checks.)
+**Last reviewed:** 2026-11-09 (main at `5cf842d01919f95ce73b984a8b237813db9d2db7`; PR #469 merged. Main CI run #42643672050 had 4/5 jobs successful and unit-tests still in progress at review.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
@@ -13,6 +13,13 @@
 - PR #462 is closed unmerged as superseded by #467.
 - Calendar publication remains separate from activation. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
+
+### Calendar publication design — proposed, not yet approved
+
+- Code review confirmed that calendar-version persistence and per-day evidence persistence currently open independent SQLite connections; this prevents a guaranteed all-or-nothing publication transaction.
+- A calendar-specific SQLite Unit of Work proposal is recorded in `docs/EGX-CALENDAR-ATOMIC-PUBLICATION-DESIGN-PROPOSAL.md`. It covers a single `BEGIN IMMEDIATE` boundary, explicit per-day evidence links, fail-closed validation, rollback/concurrency tests, and compatibility.
+- This is documentation only. No runtime implementation was changed and no owner approval is inferred from a generic “continue”.
+- Calendar activation, lifecycle monitoring, Crash Radar freshness enforcement, and M61 remain disabled/paused.
 
 ## 1. Where We Are
 
