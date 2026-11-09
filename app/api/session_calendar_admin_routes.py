@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
 from uuid import UUID
 from sqlite3 import IntegrityError
 
