@@ -172,3 +172,24 @@ def test_calendar_rejects_unknown_timezone() -> None:
             coverage_end=date(2026, 11, 1),
             days=(EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING),),
         )
+
+
+def test_calendar_rejects_close_confirmation_before_configured_close() -> None:
+    with pytest.raises(ValueError, match="cannot precede"):
+        EGXCalendarDay(
+            date(2026, 11, 1),
+            CalendarDayStatus.CLOSED,
+            time(10, 0),
+            time(14, 30),
+            datetime(2026, 11, 1, 14, 29, tzinfo=timezone.utc),
+        )
+
+
+def test_calendar_requires_local_wall_clock_session_times() -> None:
+    with pytest.raises(ValueError, match="Cairo local wall-clock"):
+        EGXCalendarDay(
+            date(2026, 11, 1),
+            CalendarDayStatus.SCHEDULED,
+            time(10, 0, tzinfo=timezone.utc),
+            time(14, 30),
+        )
