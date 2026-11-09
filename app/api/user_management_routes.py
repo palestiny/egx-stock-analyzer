@@ -44,7 +44,7 @@ def create_user_management_router(
     ) -> dict[str, object]:
         if operator_access is None:
             raise HTTPException(status_code=503, detail="Operator access management is not configured")
-        events = operator_access.list_events()
+        events = operator_access.list_events(_identity)
         return {
             "items": [
                 {
