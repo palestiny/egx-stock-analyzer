@@ -299,7 +299,7 @@ class SQLiteSessionCalendarRepository:
                     (target_version,),
                 ).fetchone()
                 if was_active is None:
-                    raise ValueError("Rollback target must have been active previously")
+                    raise ValueError("Rollback target must have been previously active")
             connection.execute(
                 "UPDATE egx_calendar_active_version SET version = ? WHERE singleton_id = 1",
                 (target_version,),
