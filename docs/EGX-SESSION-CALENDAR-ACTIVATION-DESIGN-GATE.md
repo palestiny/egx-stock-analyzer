@@ -19,6 +19,7 @@ Activating a syntactically valid calendar without proving that it covers the dat
 - DEC-139 schedules lifecycle evaluation after the configured session close plus 60 minutes and requires chronological reconciliation of eligible sessions since the durable cursor.
 - Calendar activation is not provider-completion attestation. A calendar cannot prove that a provider's daily OHLC bar is final or complete.
 - Activation, deactivation, and rollback must be auditable and performed by an authenticated operator.
+- The current legacy operator token maps to the shared subject `operator`; it does not establish individual human attribution. Named operator identities or another approved attributable mechanism are required before production operations.
 
 ## 3. Coverage-horizon options
 
@@ -71,13 +72,14 @@ Before adding activation endpoints, implement and test:
 - Initial activation is rejected until the approved bootstrap policy is satisfied.
 - Failed activation and rollback preserve the prior active pointer and append no misleading success event.
 - Concurrent activation attempts serialize; the final pointer and audit events remain consistent.
-- Actor identity comes from the authenticated principal, and non-operators receive 403.
+- Actor identity comes from the authenticated principal, and non-operators receive 403. The publication API test verifies that blank subjects are rejected and client-supplied actor values are forbidden.
+- **Still open:** individual operator accountability. The current legacy operator token is shared and resolves to subject `operator`; do not claim it identifies a human.
 - Activation does not mark provider bars final, does not enable lifecycle monitoring by itself, and does not change Crash Radar scoring.
 
 ## 7. Current implementation boundary
 
 - Immutable calendar persistence, content-hash verification, active pointer, and audit-event primitives are implemented.
-- Authenticated publication and read endpoints are in PR #462.
+- Authenticated publication and read endpoints are in PR #462. They derive the actor from the principal, but the current legacy operator principal is shared rather than person-specific.
 - No real EGX calendar version is published or active.
 - No durable lifecycle evaluation cursor or scheduler is connected to the calendar.
 - Provider finality attestation and per-day source evidence remain open.
