@@ -321,3 +321,19 @@ def test_publication_rejects_version_identifiers_unsafe_for_resource_routes(tmp_
 
     assert response.status_code == 422
     assert store.list_versions() == ()
+
+
+
+def test_publication_normalizes_surrounding_whitespace_in_version_identifier(tmp_path):
+    client, store = make_client(tmp_path)
+    payload = {**calendar_payload(), "version": "  egx-2026-11-v1  "}
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["version"] == "egx-2026-11-v1"
+    assert store.get_version("egx-2026-11-v1") is not None
