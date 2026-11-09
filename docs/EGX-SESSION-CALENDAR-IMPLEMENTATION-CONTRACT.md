@@ -48,7 +48,7 @@ The sample is a schema illustration only, not an asserted historical EGX schedul
 
 ## Deliberately not implemented yet
 
-This domain primitive and persistence adapter do not load operator files, expose authenticated management APIs, schedule jobs, or connect to lifecycle monitoring/Crash Radar. The persistence adapter stores immutable, SHA-256-verified calendar versions and append-only activation/deactivation/rollback audit events, but this PR does not publish or activate any calendar. It does not generate a 2026/2027 calendar from national holidays or infer weekends. It does not prove provider daily-bar completion. The runtime integration remains disabled until operator calendar publication, provider completion attestation, and recovery integration tests are complete.
+This domain primitive and persistence adapter do not load operator files, schedule jobs, or connect to lifecycle monitoring/Crash Radar. The authenticated operator API supports manual publication and read operations only. The persistence adapter stores immutable, SHA-256-verified calendar versions and append-only activation/deactivation/rollback audit events, but no real EGX calendar has been published or activated. The system does not generate a 2026/2027 calendar from national holidays or infer weekends, and it does not prove provider daily-bar completion. Runtime integration remains disabled until an operator-verified calendar can be safely activated under an explicit coverage policy, provider completion attestation is available, and recovery integration tests pass.
 
 ## Operator API surface
 
