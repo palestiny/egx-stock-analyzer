@@ -258,3 +258,45 @@ def test_calendar_status_requires_its_corresponding_evidence_kind(tmp_path):
         )
 
     assert calendars.list_versions() == ()
+
+
+
+def test_in_batch_supersession_preserves_original_and_resolves_claim(tmp_path):
+    _database, _calendars, evidence_repository, uow = _setup(tmp_path)
+    original_id = UUID("30000000-0000-0000-0000-000000000001")
+    correction_id = UUID("30000000-0000-0000-0000-000000000002")
+    original = _evidence(
+        date(2026, 11, 1),
+        "Initial notice says non-trading",
+        kind=CalendarEvidenceKind.CLOSURE,
+        evidence_id=original_id,
+    )
+    correction = _evidence(
+        date(2026, 11, 1),
+        "Corrected notice confirms non-trading",
+        kind=CalendarEvidenceKind.CLOSURE,
+        evidence_id=correction_id,
+        supersedes_evidence_id=original_id,
+        supersession_reason="A later official exchange notice corrected the earlier claim",
+    )
+    second_day = _evidence(
+        date(2026, 11, 2),
+        "Official notice confirms closure",
+        kind=CalendarEvidenceKind.CLOSURE,
+    )
+
+    _stored, evidence = uow.publish(
+        _calendar(),
+        (original, correction, second_day),
+        published_by=str(ACTOR),
+        source_reference="EGX source bundle",
+        reason="In-batch correction test",
+    )
+
+    assert len(evidence) == 3
+    assert evidence_repository.get(original_id) == evidence[0]
+    assert evidence_repository.get(correction_id) == evidence[1]
+    assert evidence[1].supersedes_evidence_id == original_id
+    assert evidence_repository.list_conflicts(
+        "atomic-calendar-v1", date(2026, 11, 1)
+    ) == ()
