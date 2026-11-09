@@ -1,10 +1,20 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-07 (main at `ba03d41d5741856e5cb3ab892172633058b3ffd2`; PR #454 merged; exact-head CI passed all five jobs; post-merge main CI run #42399538146 passed all five jobs)  
+**Last reviewed:** 2026-11-09 (main at `7a65ce103b271457c9d609341ea1ffab4934ec1b`; PRs #455, #456, and #457 merged. PR #457 exact-head workflow run #4842 passed. No workflow run was associated with the squash merge commit at review time; post-merge CI is not claimed.)
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
+
+### Latest verified continuation — 2026-11-09
+
+- PR #455 merged the owner-accepted lifecycle monitoring policy reconciliation. The implementation gate remains open: the lifecycle orchestrator is still not wired to persisted analysis observations, and provider-specific completed-bar/freshness evidence is not verified.
+- PR #456 merged the operator-configured, versioned Crash Radar universe. This identifies the configured symbol set but does not establish full EGX coverage or completed-session freshness.
+- PR #457 merged the 2026-11-08 archive collection: 23 rows (17 equities, 6 indices), bringing the canonical CSV to 209 rows. Structural recheck on the exact PR head found 19 columns, 209 data rows, 23 rows for 2026-11-08, 17 equities, 6 indices, no duplicate (session_date, symbol) keys, and complete required provenance fields on the new rows.
+- The two 2026-11-08 index bars (EGX30, EGX30CAP) remain explicitly flagged ohlc_inconsistency_review; ORAS and HELI remain source_conflict_review. The source values were preserved and must not be silently repaired or treated as clean OHLC. The archive is partial and does not establish application-database ingestion or production-feed readiness.
+- PR #457 exact-head GitHub Actions run #4842 completed successfully. The squash merge commit is 7a65ce103b271457c9d609341ea1ffab4934ec1b; GitHub returned no workflow run associated with that merge commit at review time, so post-merge CI is not claimed.
+- PR #321 remains Draft and M61 remains paused by explicit owner request. Do not use exploratory COMI results as accepted strategy-performance evidence.
+- Next non-M61 priority remains Crash Radar freshness/coverage hardening without changing the 50/40/10 formula. DEC-135 requires freshness to be evaluated against completed EGX sessions; the official session/holiday calendar and authoritative completion source must be verified before enforcement. No elapsed-wall-clock approximation is allowed.
 
 ### Latest verified continuation — 2026-11-07
 
