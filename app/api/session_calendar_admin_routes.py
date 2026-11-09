@@ -7,6 +7,7 @@ from sqlite3 import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
     SessionCalendarStore,
@@ -14,7 +15,6 @@ from app.application.market_data.session_calendar_store import (
 )
 from app.application.security.identity import AuthenticatedIdentity
 from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
-from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXSessionCalendar,
@@ -140,7 +140,7 @@ def create_session_calendar_admin_router(
     *,
     store: SessionCalendarStore | None,
     require_operator,
-    publication_uow: SQLiteCalendarPublicationUnitOfWork | None = None,
+    publication_uow: CalendarPublicationUnitOfWork | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -152,7 +152,7 @@ def create_session_calendar_admin_router(
             )
         return store
 
-    def configured_publication_uow() -> SQLiteCalendarPublicationUnitOfWork:
+    def configured_publication_uow() -> CalendarPublicationUnitOfWork:
         if publication_uow is None:
             raise HTTPException(
                 status_code=503,
