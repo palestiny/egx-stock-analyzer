@@ -11,13 +11,19 @@ Keep the DEC-139 operator-maintained, versioned calendar as the operational sour
 
 ## Sources reviewed
 
-### 1. Egyptian Presidency — National Holidays 2026
+### 1. Egyptian Exchange — official public portal
+
+URL: https://beta.egx.com.eg/en
+
+The current EGX beta portal exposes exchange news, disclosures, market updates, and current market information. It is the preferred place to capture individual EGX notices and announcements. The public pages reviewed did not expose a complete machine-readable annual trading calendar with date-by-date status and session boundaries. An individual official notice remains stronger evidence than a secondary calendar summary.
+
+### 2. Egyptian Presidency — National Holidays 2026
 
 URL: https://www.presidency.eg/EN/مصر/العطلات-الرسمية/
 
 The Presidency publishes Egypt's national public-holiday dates for 2026. This is a primary government source for national holidays, but it is not an EGX trading-session calendar. It does not establish exchange-specific closures, shortened sessions, auctions, or exceptional EGX notices. It must not be used alone to generate NON_TRADING records.
 
-### 2. EGX session-hours evidence — conflicting secondary reproductions of exchange notices
+### 3. EGX session-hours evidence — conflicting secondary reproductions of exchange notices
 
 - Ramadan schedule: https://en.amwalalghad.com/egx-sets-ramadan-trading-hours/
 - Ramadan notice reproduced by Sigma Capital as source EGX: https://www.sigma-cap.com/main/news_page_exact?newsId=45851908&newsType=EGX
@@ -28,7 +34,7 @@ The February 17, 2026 report attributes the Ramadan schedule to EGX: discovery a
 
 This is a material warning against hard-coding one session-close time. The official notice and the exact meaning of the session boundary used for daily-bar completion must be retained before publication.
 
-### 3. Mansa API — third-party calendar candidate
+### 4. Mansa API — third-party calendar candidate
 
 URL: https://mansaapi.com/docs
 
@@ -36,7 +42,7 @@ The public documentation describes GET /api/v1/markets/calendar/{exchange_code} 
 
 This is a candidate for a controlled source-evaluation exercise, not an approved authority. The reviewed public documentation does not establish, for EGX specifically, the underlying official source per date, the completeness of exceptional/shortened sessions, correction history, or a contractual freshness guarantee. Do not auto-import or activate its calendar without obtaining and independently reconciling an actual EGX response and its provenance.
 
-### 4. Market-Holidays Exchange Calendar — third-party snapshot
+### 5. Market-Holidays Exchange Calendar — third-party snapshot
 
 URL: https://market-holiday.com/markets/egx
 
@@ -59,7 +65,7 @@ These reports are useful leads to the underlying EGX announcements, but they are
 
 These are secondary reproductions and should be used to locate/cross-check the original EGX notices, not to bypass them. The mismatches show that copying a national holiday list or an undated third-party calendar into production can shift the expected session date and invalidate freshness calculations.
 
-### 5. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
+### 6. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
 
 URL: https://isopennow.com/data/exchanges.v1.json
 
