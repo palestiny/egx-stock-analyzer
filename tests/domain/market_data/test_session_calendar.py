@@ -206,3 +206,17 @@ def test_calendar_requires_local_wall_clock_session_times() -> None:
             time(10, 0, tzinfo=timezone.utc),
             time(14, 30),
         )
+
+
+
+def test_calendar_rejects_extreme_coverage_span_before_expanding_dates() -> None:
+    with pytest.raises(ValueError, match="every date"):
+        EGXSessionCalendar(
+            version="egx-test-v1",
+            timezone="Africa/Cairo",
+            coverage_start=date(1, 1, 1),
+            coverage_end=date(9999, 12, 31),
+            days=(
+                EGXCalendarDay(date(1, 1, 1), CalendarDayStatus.NON_TRADING),
+            ),
+        )
