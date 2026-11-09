@@ -1,8 +1,8 @@
 # Project Completion Gap Register
 
 **Status:** Active non-M61 engineering/acceptance register  
-**Updated:** 2026-11-07  
-**Baseline:** `main` at `ba03d41d5741856e5cb3ab892172633058b3ffd2` (PR #454). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; its post-merge main state is included in the later PR #454 post-merge main workflow #42399538146, which passed all five jobs. Earlier verified baseline evidence remains recorded below.  
+**Updated:** 2026-11-09  
+**Baseline:** `main` at `d171324800027e9b298bfde9529eb5b75c5d8ec1` (PRs #459 and #460 merged; post-merge main CI run #42619902277 passed all five jobs). PR #438 and #439 exact-head CI runs #41203293617 and #41203128989 passed all five jobs; cumulative post-merge main run #41203662977 passed all five jobs after both merges. PR #440 exact-head CI run #41203971468 passed all five jobs and was merged as `13ef8ca07b7852dde82ad8d24672c1128badd837`. PR #441 exact-head CI run #41204283794 passed all five jobs and was merged as `a65612d2f6447dff041699f99e4f879c5a9c4a89`; post-merge main run #41204574796 passed all five jobs. PR #442 exact-head CI run #41204657069 passed all five jobs; merge commit `7a672a890e7334335f90b359dbf2c86d845eda6a`; post-merge main run #41205090278 passed all five jobs. PR #443 exact-head CI run #41205688356 passed all five jobs; merge commit `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`; post-merge main run #41206028998 passed all five jobs. PR #445 exact-head CI run #41206339863 passed all five jobs (1,469 passed, 8 deselected; 90.73% coverage); merge commit `d86f418ea927c11755c821a6c1c44c736023ddca`; its post-merge main state is included in the later PR #454 post-merge main workflow #42399538146, which passed all five jobs. Earlier verified baseline evidence remains recorded below.  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -25,15 +25,29 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #441 exposes each opportunity's source-data timestamp and the outcome's source-data timestamp in API responses and immutable SQLite snapshots. Exact-head CI run #41204283794 passed all five jobs. Merge commit: `a65612d2f6447dff041699f99e4f879c5a9c4a89`. These are provenance timestamps, not a freshness classification.
 - PR #442 updates this register and the session-report scheduler design gate after PR #441. Exact-head CI run #41204657069 and post-merge main run #41205090278 passed all five jobs. Merge commit: `7a672a890e7334335f90b359dbf2c86d845eda6a`.
 - PR #443 corrects terminal outcome provenance: `SignalMarketState` now carries the actual market-data source timestamp, and terminal `SignalOutcomeRecord.data_timestamp` is populated from that observation rather than signal-generation data. Exact-head CI run #41205688356 passed all five jobs. Merge commit: `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`.
-- PR #445 limits session opportunity reports to signal identities with a `PUBLISHED` or `PUBLISHED_VERSION` event, preserves the first published version as the original snapshot, and assigns the report session by publication time in the exchange timezone. Exact-head CI run #41206339863 passed all five jobs; 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`. Post-merge main CI is pending verification.
+- PR #445 limits session opportunity reports to signal identities with a `PUBLISHED` or `PUBLISHED_VERSION` event, preserves the first published version as the original snapshot, and assigns the report session by publication time in the exchange timezone. Exact-head CI run #41206339863 passed all five jobs; 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`.
+- PR #459 merged the explicit, fail-closed EGX session-calendar domain model with contiguous per-day coverage, Africa/Cairo wall-clock times, explicit day states, and completed-session confirmation. No weekend, holiday, or session-time inference is allowed.
+- PR #460 merged immutable SQLite calendar-version persistence, SHA-256 integrity checks, the active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
+- PR #462 remains Draft and adds authenticated operator publication/read APIs and runtime composition. Its predecessor exact-head run had one assertion-only failure (1,558 passed, 8 deselected, 90.82% coverage); the domain error and assertion were aligned in follow-up commits, and exact-head CI is pending. Do not treat the API as merged or the calendar as operational.
 
 ## Non-M61 work remaining
 
 ### P0 — Verify latest merged main CI
 
+- [x] PR #460 merge commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` passed all five main-branch jobs in run #42619902277.
 - [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490.
 - [x] PR #432 merge commit `93984f481cfbfeb19411f8230f03442a494702bc` passed all five post-merge main jobs in run #41197870758.
-- [x] PR #433 exact-head CI run #41198262173 passed all five jobs before merge. Its merge commit is `4733e9237495789ebceba9113567e42b7b6abf6d`; post-merge main CI run #41198751442 must complete before this newest main commit is marked fully verified.
+- [x] PR #433 exact-head CI run #41198262173 passed all five jobs before merge. Its merge commit is `4733e9237495789ebceba9113567e42b7b6abf6d`; later main commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` includes this change and passed all five CI jobs in run #42619902277.
+
+### P1 — EGX session calendar, lifecycle freshness, and operational readiness
+
+- [x] Implement explicit, contiguous, fail-closed EGX session-calendar domain records (PR #459).
+- [x] Persist immutable calendar versions with SHA-256 verification and append-only activation audit history (PR #460).
+- [ ] Complete review and exact-head CI for authenticated calendar publication/read API (Draft PR #462); publishing must remain separate from activation.
+- [ ] Decide and implement per-day source evidence and named, attributable operator identities before operational use.
+- [ ] Approve calendar bootstrap and cursor-derived coverage horizon; keep activation endpoints unavailable until the durable evaluation cursor and recovery rules exist.
+- [ ] Connect the calendar to durable lifecycle scheduling and chronological recovery only after provider-completed-bar attestation and freshness semantics are verified.
+- [ ] Keep lifecycle monitoring and Crash Radar freshness enforcement disabled until all required calendar, provider, and recovery gates pass.
 
 ### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
