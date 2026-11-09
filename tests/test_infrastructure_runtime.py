@@ -521,3 +521,62 @@ def test_production_application_exposes_calendar_api_only_to_individual_operator
     assert authorized.status_code == 200
     assert authorized.json() == {"items": []}
     assert runtime.closed is True
+
+
+
+def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path):
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    database = tmp_path / "calendar-publication.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="legacy-token",
+            analysis_database_path=str(database),
+        ),
+    )
+    operator_id = uuid4()
+    runtime.user_store.save(User(operator_id, UserStatus.ACTIVE))
+    credential = runtime.credential_service.provision(operator_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        operator_id,
+        reason="Atomic publication integration test",
+    )
+    app = create_application(runtime, operator_token="legacy-token")
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer " + credential.secret},
+            json={
+                "version": "runtime-atomic-calendar-v1",
+                "timezone": "Africa/Cairo",
+                "coverage_start": "2026-11-01",
+                "coverage_end": "2026-11-01",
+                "days": [{"date": "2026-11-01", "status": "NON_TRADING"}],
+                "evidence": [{
+                    "session_date": "2026-11-01",
+                    "evidence_kind": "CLOSURE",
+                    "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                    "source_reference": "https://example.invalid/egx/runtime-notice",
+                    "claim": "EGX notice confirms non-trading day",
+                    "observed_at": "2026-11-01T09:00:00+02:00",
+                }],
+                "source_reference": "EGX runtime notice",
+                "reason": "Verify production atomic publication",
+            },
+        )
+
+    assert response.status_code == 201
+    assert runtime.session_calendar_store.get_version("runtime-atomic-calendar-v1") is not None
+    stored = runtime.calendar_evidence_repository.list_for_day(
+        "runtime-atomic-calendar-v1",
+        date(2026, 11, 1),
+    )
+    assert len(stored) == 1
+    assert runtime.closed is True
