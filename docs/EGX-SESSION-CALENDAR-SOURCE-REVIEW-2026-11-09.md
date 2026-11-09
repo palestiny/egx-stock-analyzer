@@ -5,7 +5,7 @@
 
 ## Executive conclusion
 
-The available public evidence reviewed here does not establish a verified, authoritative, machine-readable EGX trading-session calendar with complete historical and forward coverage, per-date provenance, and correction history.
+The available public evidence reviewed here does not establish a verified, authoritative, machine-readable EGX trading-session calendar with complete historical and forward coverage, per-date provenance, and correction history. Several third-party candidates expose calendar-shaped data, but none reviewed here supplies sufficient independently verifiable EGX provenance and exception handling to replace operator confirmation.
 
 Keep the DEC-139 operator-maintained, versioned calendar as the operational source of truth. Do not derive exchange sessions by copying Egyptian national holidays, applying weekday rules, or importing an unverified third-party calendar. The versioned domain model deliberately requires an explicit record for every covered date.
 
@@ -17,11 +17,16 @@ URL: https://www.presidency.eg/EN/مصر/العطلات-الرسمية/
 
 The Presidency publishes Egypt's national public-holiday dates for 2026. This is a primary government source for national holidays, but it is not an EGX trading-session calendar. It does not establish exchange-specific closures, shortened sessions, auctions, or exceptional EGX notices. It must not be used alone to generate NON_TRADING records.
 
-### 2. Ramadan 2026 EGX hours — secondary reporting
+### 2. EGX session-hours evidence — conflicting secondary reproductions of exchange notices
 
-URL: https://en.amwalalghad.com/egx-sets-ramadan-trading-hours/
+- Ramadan schedule: https://en.amwalalghad.com/egx-sets-ramadan-trading-hours/
+- Ramadan notice reproduced by Sigma Capital as source EGX: https://www.sigma-cap.com/main/news_page_exact?newsId=45851908&newsType=EGX
+- Post-Ramadan return report: https://alborsaanews.com/2026/03/23/1956430
+- Reported extension approval: https://arabfinance.com/en/news/newdetails/egx-to-extends-trading-hours-after-eid-el-fitr
 
-A February 17, 2026 report attributes a Ramadan schedule announcement to EGX and describes a 09:30 discovery session and a 10:00–13:30 main trading session, plus auction and adjustment periods. This demonstrates why session hours must be date-specific and why a single annual default is unsafe. The report is secondary evidence; the underlying official EGX notice must be captured before an operator publishes those hours as authoritative.
+The February 17, 2026 report attributes the Ramadan schedule to EGX: discovery at 09:30, main session 10:00–13:30, closing auction beginning 13:15, and closing-price trading through 13:30. Sigma Capital reproduces a notice labelled as sourced from EGX. A March 23 report says the post-Ramadan main session returned to 10:00–14:30. Separately, a February 12 report quotes the EGX chairman as saying an extension to 09:30–15:00 had been approved for after Eid. These reports do not, by themselves, resolve whether 09:30–15:00 describes the full trading-day envelope, an approved change later revised, or another session definition.
+
+This is a material warning against hard-coding one session-close time. The official notice and the exact meaning of the session boundary used for daily-bar completion must be retained before publication.
 
 ### 3. Mansa API — third-party calendar candidate
 
@@ -54,10 +59,16 @@ These reports are useful leads to the underlying EGX announcements, but they are
 
 These are secondary reproductions and should be used to locate/cross-check the original EGX notices, not to bypass them. The mismatches show that copying a national holiday list or an undated third-party calendar into production can shift the expected session date and invalidate freshness calculations.
 
+### 5. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
+
+URL: https://isopennow.com/data/exchanges.v1.json
+
+The reviewed dataset identifies itself as version 1.8.0, updated 2026-09-05, under CC BY 4.0. Its provenance explicitly states that it is secondary, not authoritative for any date, and compiled partly from `exchange_calendars`. The published 33-exchange snapshot contains no Egypt/EGX entry. It therefore cannot supply the EGX calendar for this project. Its explicit provenance warning is useful: do not build a new calendar from a compilation that may itself derive from another compilation.
+
 ## Risks and required evidence
 
 - National public holidays and exchange trading closures are not interchangeable.
-- Secondary sources can report different session hours or closure dates; a mismatch must be resolved from the underlying EGX notice, not by majority vote.
+- Secondary sources can report different session hours or closure dates. The reviewed material includes a reported 09:30–15:00 post-Ramadan extension, a later report of a 10:00–14:30 main session, and a third-party page showing 10:00–14:15 continuous trading. A mismatch must be resolved from the underlying EGX notice, not by majority vote.
 - Normal, Ramadan, shortened, auction, and exceptional sessions must not be collapsed into one daily open/close pair unless the calendar contract explicitly represents the session relevant to daily-bar completion.
 - A third-party endpoint is not authoritative merely because it exposes an EGX code or says it covers the exchange.
 - Provider retrieval time, source-bar timestamp, scheduled close, and explicit confirmation that the exchange session is closed are separate facts.
@@ -74,5 +85,6 @@ Before approving an automated calendar source, require:
 
 - Continue using the authenticated operator publication API for immutable calendar versions.
 - Treat each published calendar as operator-asserted data with a calendar-level source reference; per-day provenance remains an open schema enhancement.
+- The current legacy operator credential resolves to the shared subject `operator`; the audit actor is not an individually attributable human. Do not treat this as personal operator accountability. Named operator identities with an explicit operator permission are a separate authentication/authorization requirement before operational use.
 - Do not activate a calendar through HTTP until the operational coverage horizon is explicitly defined and validated.
 - Do not enable lifecycle monitoring until the DEC-139 provider-completion attestation, freshness gate, persistence, and recovery requirements also pass.
