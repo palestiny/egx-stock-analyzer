@@ -2,7 +2,7 @@
 
 **Status:** APPROVED DESIGN — implementation partially complete; activation remains blocked  
 **Reviewed:** 2026-11-09  
-**Related:** PR #459, #460, #462, #465, #466
+**Related:** PR #459, #460, #465, #466, #467
 
 ## 1. Owner decisions
 
@@ -13,7 +13,7 @@ The owner approved:
 The approved decisions are implemented in part:
 - PR #465 adds append-only, hash-verified evidence records keyed by calendar version, session date, and evidence kind. Corrections are new records with explicit supersession and reason.
 - PR #466 adds individual operator grants, append-only grant/revoke/bootstrap events, a local first-operator bootstrap command, and durable-credential-aware permission resolution.
-- PR #462 now requires an individual operator identity (user ID plus durable credential ID) for calendar administration and rejects the synthetic shared operator identity.
+- PR #467 is merged and requires an active individual operator identity (user ID plus durable credential ID) for calendar administration; it rejects the synthetic shared operator identity.
 
 ## 2. Per-day evidence registry — implemented boundary
 

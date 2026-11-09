@@ -1,18 +1,17 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (main at `d171324800027e9b298bfde9529eb5b75c5d8ec1`; PRs #459 and #460 merged. PR #462 remains Draft; the initial exact-head run on `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` had one assertion-only unit-test failure. Follow-ups `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350a` aligned the domain error text and regression assertion; exact-head validation is pending. Main commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` has all five CI jobs passing.)
+**Last reviewed:** 2026-11-09 (main at `03d3969e19e7b73beb3b8427afb5328183d1553e`; PR #467 merged after all five exact-head CI jobs passed.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
 ### Latest verified continuation — 2026-11-09 (individual operator + calendar API)
 
-- PR #465 merged the immutable per-day calendar evidence registry. Evidence records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry is not yet a publication evidence gate and does not prove source authenticity.
-- PR #466 merged individually attributable operator grants, append-only grant/revoke/bootstrap audit events, durable-credential-aware permission resolution, last-operator protection, and a trusted local first-operator bootstrap.
-- PR #467 is the replacement integration PR, based directly on current main at `11a46034ee0acfb38b6d8d60078501070ee2d20d`. It composes the SQLite session-calendar repository and authenticated API, and requires an active individual operator user plus durable credential. The legacy shared operator token is rejected for calendar administration.
-- PR #467 exact-head workflow #42633034603: dependency audit, integration tests, frontend tests, lint/type-check, and container build passed at the last review; the unit-test suite was still running. Do not merge until that job and the overall exact-head workflow complete successfully.
-- PR #462 is now a stale/conflicting predecessor and must not be merged; PR #467 carries the integrated implementation on current main. Close #462 as superseded after #467 merges.
-- Calendar publication still does not activate a version. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
+- PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry does not prove source authenticity and is not yet enforced by calendar publication.
+- PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit, durable-credential-aware permission resolution, last-operator protection, and trusted local first-operator bootstrap.
+- PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`. Its exact head `2d2cdac405698d7e783a838037a588852a5cc5b2` passed all five required CI jobs before squash merge. It composes persistent calendar storage and the authenticated API, requiring an active individual operator user plus durable credential; the legacy shared operator token is rejected for calendar administration.
+- PR #462 is closed unmerged as superseded by #467.
+- Calendar publication remains separate from activation. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 ## 1. Where We Are
@@ -21,10 +20,10 @@
 
 - PR #459 merged the fail-closed EGX session-calendar domain model: explicit contiguous daily records, Africa/Cairo wall-clock times, five explicit day states, and completed-session checks requiring a passed close-confirmation timestamp. No weekends, holidays, or session hours are inferred.
 - PR #460 merged immutable SQLite calendar-version persistence, SHA-256 verification, a single active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
-- PR #462 is Draft and adds authenticated calendar publication and read endpoints plus runtime composition. Publication does not activate a version; no HTTP activation/deactivation/rollback endpoints are exposed. The current shared operator token records subject `operator`, not an individually attributable human.
-- The session-calendar activation gate remains GAP: a durable lifecycle cursor, bootstrap policy, cursor-derived coverage validation, per-day source evidence, named operator identity, and provider-completed-bar attestation remain unresolved. The calendar is not connected to lifecycle scheduling or freshness evaluation; automatic lifecycle monitoring remains disabled.
+- PR #467 is merged and provides authenticated calendar publication/read endpoints plus persistent runtime composition. Publication does not activate a version; no HTTP activation/deactivation/rollback endpoints are exposed. Calendar administration requires an individually attributable active operator credential.
+- The session-calendar activation gate remains GAP: a durable lifecycle cursor, bootstrap policy, cursor-derived coverage validation, evidence acceptance/publication enforcement, and provider-completed-bar attestation remain unresolved. Individual operator identity is implemented for calendar administration. The calendar is not connected to lifecycle scheduling or freshness evaluation; automatic lifecycle monitoring remains disabled.
 - Source review found conflicting secondary reports for EGX session boundaries and holiday dates; no complete authoritative machine-readable EGX calendar was verified. Do not import national holidays or third-party calendar rows as EGX truth.
-- PR #462 exact-head predecessor `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` ran 1,558 passing tests, 8 deselected, and 90.82% coverage, but one unit test failed because its expected error-text regex did not match the actual rollback validation message. Follow-up commits `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350a` clarify the domain error and align the regression assertion; exact-head validation is pending.
+- PR #467 exact-head CI run #42633962405 passed all five jobs: unit tests with coverage, integration tests, frontend tests/build, dependency audit, and container build. It was merged only after all exact-head checks passed.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 ### Prior verified continuation — 2026-11-09

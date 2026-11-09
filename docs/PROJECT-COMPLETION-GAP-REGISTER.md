@@ -33,7 +33,7 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #445 limits session opportunity reports to signal identities with a `PUBLISHED` or `PUBLISHED_VERSION` event, preserves the first published version as the original snapshot, and assigns the report session by publication time in the exchange timezone. Exact-head CI run #41206339863 passed all five jobs; 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`.
 - PR #459 merged the explicit, fail-closed EGX session-calendar domain model with contiguous per-day coverage, Africa/Cairo wall-clock times, explicit day states, and completed-session confirmation. No weekend, holiday, or session-time inference is allowed.
 - PR #460 merged immutable SQLite calendar-version persistence, SHA-256 integrity checks, the active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
-- PR #462 remains Draft and adds authenticated operator publication/read APIs and runtime composition. Its predecessor exact-head run had one assertion-only failure (1,558 passed, 8 deselected, 90.82% coverage); the domain error and assertion were aligned in follow-up commits, and exact-head CI is pending. Do not treat the API as merged or the calendar as operational.
+- PR #467 merged the individually authenticated operator publication/read API and persistent runtime composition after all five exact-head CI jobs passed. PR #462 is closed unmerged as superseded.
 
 ## Non-M61 work remaining
 
@@ -194,15 +194,13 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 ### P1 — Calendar evidence provenance and individual operator accountability (owner-approved 2026-11-09)
 
 - [x] Owner approved an immutable per-day evidence registry and individual operator identities for privileged calendar operations.
-- [x] Inspect existing boundaries: calendar versions are immutable and activation events append-only, but provenance is currently a single version-level source reference; no structured day-level evidence registry exists.
-- [x] Inspect authentication boundary: durable user credentials exist, but the legacy shared operator token can still resolve to the synthetic operator identity.
-- [x] Record the approved architecture and rollout/acceptance gates in `docs/CALENDAR-EVIDENCE-REGISTRY-AND-INDIVIDUAL-OPERATOR-IDENTITY-DESIGN.md`.
-- [x] Implement the first persistence slice: typed day-level evidence records, canonical SHA-256 hashes, read-time integrity verification, append-only corrections, explicit calendar-version/day coverage checks, and visible active-claim conflicts.
-- [ ] Prove the new persistence slice with exact-head CI; the current PR checks are still running.
-- [ ] Add API/application publication gates so missing or conflicting evidence blocks publication.
-- [ ] Require evidence references for calendar day status, hours, cancellation, and close-confirmation claims before publication.
-- [ ] Require explicit operator permission and individual durable credentials for privileged calendar operations; remove shared-token fallback from those routes after an audited bootstrap/recovery path is proven.
-- [ ] Link activation/publication audit events to immutable user and credential identities.
-- [x] Add focused persistence tests for append-only enforcement, restart persistence, hash tampering, conflicts, supersession, and calendar coverage.
-- [ ] Add API, authorization, role lifecycle, bootstrap/recovery, and end-to-end acceptance tests.
-- [ ] Keep calendar activation and lifecycle monitoring disabled until their independent coverage and provider-finality gates pass.
+- [x] PR #465 merged typed day-level evidence records, canonical SHA-256 hashes, read-time integrity verification, append-only corrections, explicit calendar-version/day coverage checks, and visible active-claim conflicts.
+- [x] PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit events, durable-credential-aware permission resolution, trusted first-operator bootstrap, and last-operator protection.
+- [x] PR #467 merged the authenticated calendar publication/read API and persistent runtime composition. Calendar administration requires an active individually attributable operator credential; the shared legacy operator token is rejected on these routes. Exact-head CI passed all five jobs before merge.
+- [ ] Define evidence acceptance by claim type: trading-session status, hours, cancellation, emergency closure, and close confirmation.
+- [ ] Link every calendar-day assertion to one or more immutable evidence IDs and validate required evidence at publication; unresolved conflicting claims must block publication.
+- [ ] Decide source artifact retention: archive the artifact, or require stable independently retrievable references plus hashes and retrieval metadata.
+- [ ] Define which day categories require primary EGX evidence before publication versus activation; broker/third-party calendars remain corroboration only.
+- [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
+- [ ] Add API-level tests proving missing, insufficient, conflicting, superseded, or mismatched evidence blocks publication.
+- [ ] Keep calendar activation and lifecycle monitoring disabled until their independent coverage, bootstrap, and provider-finality gates pass.

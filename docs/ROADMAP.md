@@ -9,25 +9,15 @@
 # Current Position
 
 
-## Latest verified non-M61 continuation — 2026-11-09 (operator identity + calendar API)
+## Latest verified non-M61 continuation — 2026-11-09 (calendar API merged)
 
-- PR #465 and #466 are merged: immutable per-day evidence storage and individually attributable operator access are now on main.
-- PR #467 is the replacement calendar API integration PR, based on current main. It wires the persistent calendar repository into runtime/API and rejects the legacy shared operator identity for calendar administration. Exact-head CI run #42633034603 has passed dependency audit, integration tests, frontend tests, lint/type-check, and container build; the unit-test suite is still running at last verification.
-- PR #462 is a stale/conflicting predecessor; do not merge it. Close it as superseded after PR #467 merges.
-- Calendar publication remains separate from activation. The evidence registry is not yet enforced at publication, and operational activation remains blocked by evidence policy, bootstrap/coverage, durable cursor/recovery, and provider completed-bar attestation.
-- M61 remains paused. Do not connect the calendar to lifecycle scheduling or enable freshness monitoring until all relevant gates pass.
+- PR #465 and #466 are merged: immutable per-day evidence storage and individually attributable operator access are on main.
+- PR #467 merged at `03d3969e19e7b73beb3b8427afb5328183d1553e` after all five exact-head CI jobs passed on `2d2cdac405698d7e783a838037a588852a5cc5b2`. The authenticated calendar API and persistent repository are now composed in the production runtime. Calendar administration rejects the legacy shared operator identity.
+- PR #462 is closed unmerged as superseded by #467.
+- Calendar publication remains separate from activation. Evidence acceptance/publication enforcement, bootstrap and cursor-derived coverage, durable recovery, and provider completed-bar attestation remain open. Do not connect the calendar to lifecycle scheduling or enable freshness monitoring until all relevant gates pass.
+- M61 remains paused. Do not connect M61 or make strategy-performance claims.
 
-**Next execution focus:** complete exact-head CI for PR #467, merge only if every required check passes, close superseded PR #462, then implement the evidence acceptance/publication gate and operational coverage design before lifecycle integration.
-
-## Latest verified non-M61 continuation — 2026-11-09 (session calendar)
-
-- PR #459 and #460 are merged: the explicit fail-closed session-calendar domain model and immutable SQLite version/audit persistence are now on `main` at `d171324800027e9b298bfde9529eb5b75c5d8ec1`.
-- PR #462 remains Draft. It adds authenticated calendar publication and read APIs; publishing is deliberately separate from activation. The predecessor exact-head run had 1,558 passing tests, 8 deselected, 90.82% coverage, and one test-assertion mismatch. Follow-up commits `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350a` clarified the domain error and aligned the regression assertion; exact-head checks are pending. The current `main` commit has all five CI jobs passing.
-- No calendar has been published or activated. The activation bootstrap/coverage policy, per-day source evidence, attributable operator identities, lifecycle cursor/scheduler integration, and provider-completed-bar attestation remain open. Do not enable lifecycle freshness enforcement or automatic monitoring yet.
-- Session-hours and holiday source review found conflicting secondary reports and no verified authoritative machine-readable EGX calendar. Do not infer session hours, weekends, or holidays.
-- M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
-
-**Next non-M61 execution focus:** finish the PR #462 review and exact-head CI; then close the calendar provenance/operator-identity and activation bootstrap/coverage decisions before connecting the calendar to lifecycle scheduling. In parallel, continue only engineering work that does not assume unverified market-data completion or exchange-calendar facts. Keep Yahoo-derived data out of paid/subscriber-facing distribution until commercial reuse rights are verified.
+**Next execution focus:** implement the evidence acceptance and calendar-day evidence-linking gate; then close bootstrap/cursor-derived coverage and provider-finality gates before considering activation or lifecycle integration.
 
 ## Previous verified non-M61 continuation — 2026-11-09
 
