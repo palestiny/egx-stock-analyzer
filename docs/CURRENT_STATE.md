@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (main at `d171324800027e9b298bfde9529eb5b75c5d8ec1`; PRs #459 and #460 merged. PR #462 remains Draft; exact-head CI on its predecessor commit `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` had one assertion-only unit-test failure, fixed in follow-up commit `d87f1853203cd4bfa47ca921ac87d2bd172b983a`; validation for the fix is pending.)
+**Last reviewed:** 2026-11-09 (main at `d171324800027e9b298bfde9529eb5b75c5d8ec1`; PRs #459 and #460 merged. PR #462 remains Draft; the initial exact-head run on `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` had one assertion-only unit-test failure. Follow-ups `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350a` aligned the domain error text and regression assertion; exact-head validation is pending. Main commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` has all five CI jobs passing.)
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
@@ -13,7 +13,7 @@
 - PR #462 is Draft and adds authenticated calendar publication and read endpoints plus runtime composition. Publication does not activate a version; no HTTP activation/deactivation/rollback endpoints are exposed. The current shared operator token records subject `operator`, not an individually attributable human.
 - The session-calendar activation gate remains GAP: a durable lifecycle cursor, bootstrap policy, cursor-derived coverage validation, per-day source evidence, named operator identity, and provider-completed-bar attestation remain unresolved. The calendar is not connected to lifecycle scheduling or freshness evaluation; automatic lifecycle monitoring remains disabled.
 - Source review found conflicting secondary reports for EGX session boundaries and holiday dates; no complete authoritative machine-readable EGX calendar was verified. Do not import national holidays or third-party calendar rows as EGX truth.
-- PR #462 exact-head predecessor `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` ran 1,558 passing tests, 8 deselected, and 90.82% coverage, but one unit test failed because its expected error-text regex did not match the actual rollback validation message. Commit `d87f1853203cd4bfa47ca921ac87d2bd172b983a` corrects the assertion; exact-head validation is pending.
+- PR #462 exact-head predecessor `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` ran 1,558 passing tests, 8 deselected, and 90.82% coverage, but one unit test failed because its expected error-text regex did not match the actual rollback validation message. Follow-up commits `45720ad2e426b3505a013d0306570bc9a7277b1b` and `2621e0e2502bbd66a863a6261f7355dc3e58350` clarify the domain error and align the regression assertion; exact-head validation is pending.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 ### Prior verified continuation — 2026-11-09
