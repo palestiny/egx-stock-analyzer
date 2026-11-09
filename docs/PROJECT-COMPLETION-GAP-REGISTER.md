@@ -13,7 +13,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 - PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. This is an evidence registry, not yet a publication policy gate or source-authenticity proof.
 - PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
-- PR #467 is the current replacement integration PR for authenticated session-calendar publication/read API and persistent runtime composition. It requires active user ID + durable credential ID and rejects the legacy shared operator token for calendar routes. Exact-head CI run #42633034603 has passed all jobs except the still-running unit-test suite at last review. PR #462 is a stale/conflicting predecessor and must not be merged; close it after #467 merges.
+- PR #467 merged authenticated session-calendar publication/read API and persistent runtime composition as `03d3969e19e7b73beb3b8427afb5328183d1553e`. All five exact-head checks passed before merge; the same five checks also passed on the merge commit. PR #462 is closed unmerged as superseded.
 
 - Technical-analysis stack includes deterministic indicators and price-action evidence, with API/dashboard integration (PR #364 and follow-on integration).
 - News/event ingestion foundations include normalized metadata, SQLite persistence, provider-neutral orchestration, authenticated API, and operator-configured RSS/Atom feeds.
@@ -48,8 +48,8 @@ This register separates verified implementation from incomplete acceptance and d
 
 - [x] Implement explicit, contiguous, fail-closed EGX session-calendar domain records (PR #459).
 - [x] Persist immutable calendar versions with SHA-256 verification and append-only activation audit history (PR #460).
-- [ ] Complete review and exact-head CI for authenticated calendar publication/read API (Draft PR #462); publishing must remain separate from activation.
-- [ ] Decide and implement per-day source evidence and named, attributable operator identities before operational use.
+- [x] Merge authenticated calendar publication/read API with exact-head CI and post-merge main CI verification (PR #467).
+- [x] Implement immutable per-day evidence storage and named, attributable operator identities (PRs #465 and #466); evidence acceptance and enforcement remain open.
 - [ ] Approve calendar bootstrap and cursor-derived coverage horizon; keep activation endpoints unavailable until the durable evaluation cursor and recovery rules exist.
 - [ ] Connect the calendar to durable lifecycle scheduling and chronological recovery only after provider-completed-bar attestation and freshness semantics are verified.
 - [ ] Keep lifecycle monitoring and Crash Radar freshness enforcement disabled until all required calendar, provider, and recovery gates pass.
