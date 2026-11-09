@@ -1,7 +1,7 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (main at `03d3969e19e7b73beb3b8427afb5328183d1553e`; PR #467 merged after all five exact-head CI jobs passed.)
+**Last reviewed:** 2026-11-09 (PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`; PR #468 documentation reconciliation merged as `81e5d8182ca9876c523cede761f595fbc1d82479`. Post-merge CI for #468 is running; see current GitHub checks.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
