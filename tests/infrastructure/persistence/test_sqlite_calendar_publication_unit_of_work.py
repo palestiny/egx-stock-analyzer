@@ -55,8 +55,8 @@ def _setup(tmp_path):
 
 def _evidence_set():
     return (
-        _evidence(date(2026, 11, 1), "Official schedule confirms no session"),
-        _evidence(date(2026, 11, 2), "Official schedule confirms no session"),
+        _evidence(date(2026, 11, 1), "Official notice confirms closure", kind=CalendarEvidenceKind.CLOSURE),
+        _evidence(date(2026, 11, 2), "Official notice confirms closure", kind=CalendarEvidenceKind.CLOSURE),
     )
 
 
@@ -117,8 +117,8 @@ def test_failure_after_first_evidence_insert_rolls_back_every_publication_row(tm
 def test_conflicting_unsuperseded_claims_roll_back_calendar_and_evidence(tmp_path):
     database, calendars, evidence_repository, uow = _setup(tmp_path)
     evidence = (
-        _evidence(date(2026, 11, 1), "Official notice says trading"),
-        _evidence(date(2026, 11, 1), "Different official notice says closure"),
+        _evidence(date(2026, 11, 1), "Official notice says trading", kind=CalendarEvidenceKind.CLOSURE),
+        _evidence(date(2026, 11, 1), "Different official notice says closure", kind=CalendarEvidenceKind.CLOSURE),
         _evidence(date(2026, 11, 2), "Official schedule confirms no session"),
     )
 
