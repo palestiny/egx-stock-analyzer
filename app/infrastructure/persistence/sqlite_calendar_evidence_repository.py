@@ -5,7 +5,7 @@ import hmac
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
@@ -155,7 +155,7 @@ class SQLiteCalendarEvidenceRepository:
         return self._from_row(row) if row else None
 
     def list_for_day(
-        self, calendar_version: str, session_date
+        self, calendar_version: str, session_date: date
     ) -> tuple[CalendarEvidence, ...]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -169,7 +169,17 @@ class SQLiteCalendarEvidenceRepository:
     def list_conflicts(
         self, calendar_version: str, session_date
     ) -> tuple[CalendarEvidenceConflict, ...]:
-        records = self.list_for_day(calendar_version, session_date)
+        with self._connect() as connection:
+            rows = connection.execute(
+                self._select()
+                + " WHERE calendar_version = ? AND session_date = ?"
+                + " AND evidence_id NOT IN ("
+                + " SELECT supersedes_evidence_id FROM egx_calendar_evidence"
+                + " WHERE supersedes_evidence_id IS NOT NULL)"
+                + " ORDER BY recorded_at ASC, evidence_id ASC",
+                (calendar_version, session_date.isoformat()),
+            ).fetchall()
+        records = tuple(self._from_row(row) for row in rows)
         grouped: dict[CalendarEvidenceKind, list[CalendarEvidence]] = {}
         for record in records:
             grouped.setdefault(record.evidence_kind, []).append(record)
@@ -224,7 +234,7 @@ class SQLiteCalendarEvidenceRepository:
         evidence = CalendarEvidence(
             evidence_id=UUID(raw_id),
             calendar_version=version,
-            session_date=__import__("datetime").date.fromisoformat(raw_date),
+            session_date=date.fromisoformat(raw_date),
             evidence_kind=CalendarEvidenceKind(raw_kind),
             source_type=source_type,
             source_reference=source_reference,
