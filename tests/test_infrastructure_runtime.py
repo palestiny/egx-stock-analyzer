@@ -441,6 +441,10 @@ def test_infrastructure_runtime_composes_persistent_session_calendar_store(tmp_p
         first_runtime.session_calendar_store,
         SQLiteSessionCalendarRepository,
     )
+    from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+    from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
+    assert isinstance(first_runtime.calendar_evidence_repository, SQLiteCalendarEvidenceRepository)
+    assert isinstance(first_runtime.calendar_publication_uow, SQLiteCalendarPublicationUnitOfWork)
     calendar = EGXSessionCalendar(
         version="runtime-calendar-v1",
         timezone="Africa/Cairo",
