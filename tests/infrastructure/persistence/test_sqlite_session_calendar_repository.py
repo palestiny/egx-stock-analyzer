@@ -391,7 +391,7 @@ def test_failed_rollback_preserves_active_version_and_audit_history(tmp_path):
     )
     before_events = repository.list_activation_events()
 
-    with pytest.raises(ValueError, match="previously active"):
+    with pytest.raises(ValueError, match="active previously"):
         repository.rollback(
             "egx-v1",
             performed_by="operator",
