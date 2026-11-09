@@ -138,3 +138,16 @@ def test_evidence_requires_timezone_aware_timestamps():
 def test_supersession_reason_is_mandatory():
     with pytest.raises(ValueError, match="supersession_reason"):
         _evidence(supersedes_evidence_id=uuid4())
+
+def test_evidence_must_reference_an_explicit_calendar_coverage_date(tmp_path):
+    repository, _ = _repository(tmp_path)
+    with pytest.raises(ValueError, match="explicit date"):
+        repository.append(
+            _evidence(session_date=date(2026, 11, 3))
+        )
+
+
+def test_evidence_must_reference_an_existing_calendar_version(tmp_path):
+    repository, _ = _repository(tmp_path)
+    with pytest.raises(KeyError, match="Unknown calendar version"):
+        repository.append(_evidence(calendar_version="missing-version"))
