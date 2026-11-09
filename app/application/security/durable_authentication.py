@@ -1,8 +1,8 @@
-
 from app.application.identity.user_store import UserStore
 from app.application.security.authentication import AuthenticationError, ConfiguredBearerTokenAuthenticator
 from app.application.security.credentials import CredentialStore
-from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.security.operator_access import OperatorAccessStore
 from app.domain.identity.user import UserStatus
 
 
@@ -12,10 +12,12 @@ class DurableBearerTokenAuthenticator:
         credential_store: CredentialStore,
         user_store: UserStore,
         fallback: ConfiguredBearerTokenAuthenticator | None = None,
+        operator_access_store: OperatorAccessStore | None = None,
     ) -> None:
         self._credential_store = credential_store
         self._user_store = user_store
         self._fallback = fallback
+        self._operator_access_store = operator_access_store
 
     def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
         token = self._extract_token(authorization_header)
@@ -24,7 +26,18 @@ class DurableBearerTokenAuthenticator:
         if credential is not None:
             user = self._user_store.get(credential.user_id)
             if user is not None and user.status is UserStatus.ACTIVE:
-                return AuthenticatedIdentity.user(user.id, user.status, credential.id)
+                permissions = (
+                    frozenset({Permission.OPERATOR})
+                    if self._operator_access_store is not None
+                    and self._operator_access_store.is_operator(user.id)
+                    else frozenset()
+                )
+                return AuthenticatedIdentity.user(
+                    user.id,
+                    user.status,
+                    credential.id,
+                    permissions=permissions,
+                )
 
         if self._fallback is not None:
             return self._fallback.authenticate("Bearer " + token)
