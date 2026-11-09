@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.security.authentication import AuthenticationError
-from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.infrastructure.persistence.sqlite_session_calendar_repository import (
     SQLiteSessionCalendarRepository,
 )
@@ -362,3 +362,32 @@ def test_reading_unknown_calendar_version_returns_not_found(tmp_path):
     )
 
     assert response.status_code == 404
+
+
+
+class BlankSubjectOperatorAuthenticator:
+    def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
+        return AuthenticatedIdentity(
+            subject=" ",
+            permissions=frozenset({Permission.OPERATOR}),
+        )
+
+
+def test_publication_rejects_operator_identity_without_audit_subject(tmp_path):
+    store = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    app = create_app(
+        result_store=InMemoryAnalysisResultStore(),
+        authenticator=BlankSubjectOperatorAuthenticator(),
+        session_calendar_store=store,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/owner/session-calendars/versions",
+            headers=operator_headers(),
+            json=calendar_payload(),
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Authenticated operator identity is invalid"
+    assert store.list_versions() == ()
