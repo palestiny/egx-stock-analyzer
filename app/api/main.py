@@ -286,6 +286,18 @@ def create_app(
         auth_rate_limiter.record_success(client_key)
         return identity
 
+    def require_individual_calendar_operator(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedIdentity:
+        identity = require_operator(request, authorization)
+        if identity.user_id is None or identity.credential_id is None:
+            raise HTTPException(
+                status_code=403,
+                detail="Individually attributable operator credential required",
+            )
+        return identity
+
     app.include_router(
         create_scheduled_workflow_router(
             get_scheduled_workflow_executions=get_scheduled_workflow_executions,
@@ -308,7 +320,7 @@ def create_app(
     app.include_router(
         create_session_calendar_admin_router(
             store=session_calendar_store,
-            require_operator=require_operator,
+            require_operator=require_individual_calendar_operator,
         )
     )
 
