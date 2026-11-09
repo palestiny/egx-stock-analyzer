@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import sqlite3
 from dataclasses import dataclass
@@ -9,6 +10,10 @@ from pathlib import Path
 
 from app.domain.market_data.session_calendar import EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
+
+
+class CalendarVersionIntegrityError(RuntimeError):
+    """Raised when a persisted calendar payload no longer matches its content hash."""
 
 
 @dataclass(frozen=True)
@@ -328,7 +333,20 @@ class SQLiteSessionCalendarRepository:
     @staticmethod
     def _version_from_row(row: tuple) -> StoredCalendarVersion:
         version, payload, digest, published_at, published_by, source, reason = row
-        calendar = EGXSessionCalendar.from_dict(json.loads(payload))
+        decoded_payload = json.loads(payload)
+        canonical_payload = json.dumps(
+            decoded_payload, sort_keys=True, separators=(",", ":")
+        )
+        actual_digest = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(actual_digest, digest):
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar version {version!r} failed its SHA-256 integrity check"
+            )
+        calendar = EGXSessionCalendar.from_dict(decoded_payload)
+        if calendar.version != version:
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar row {version!r} does not match its payload version"
+            )
         return StoredCalendarVersion(
             version, calendar, digest, datetime.fromisoformat(published_at),
             published_by, source, reason
