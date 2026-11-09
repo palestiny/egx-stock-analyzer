@@ -1,6 +1,8 @@
 import hashlib
 import json
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from datetime import date, datetime, timezone
 
 import pytest
@@ -293,3 +295,62 @@ def test_in_memory_calendar_database_survives_repository_connections():
     with pytest.raises(RuntimeError, match="repository is closed"):
         repository.get_version("memory-v1")
     isolated_repository.close()
+
+
+
+def test_invalid_persisted_calendar_json_fails_closed(tmp_path):
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        CalendarVersionIntegrityError,
+    )
+
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+
+    with repository._connect() as connection:
+        connection.execute("DROP TRIGGER egx_calendar_versions_no_update")
+        connection.execute(
+            "UPDATE egx_calendar_versions SET calendar_json = ? WHERE version = ?",
+            ("{invalid-json", "egx-v1"),
+        )
+
+    with pytest.raises(CalendarVersionIntegrityError, match="invalid JSON"):
+        repository.get_version("egx-v1")
+
+
+def test_concurrent_activation_attempts_serialize_and_audit_once(tmp_path):
+    database = tmp_path / "calendar.db"
+    first_repository = SQLiteSessionCalendarRepository(database)
+    second_repository = SQLiteSessionCalendarRepository(database)
+    first_repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+    barrier = Barrier(2)
+
+    def activate(repository):
+        barrier.wait()
+        try:
+            return repository.activate(
+                "egx-v1",
+                performed_by="operator",
+                reason="concurrent activation test",
+            )
+        except ValueError as error:
+            return error
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(
+            executor.map(activate, (first_repository, second_repository))
+        )
+
+    assert sum(not isinstance(result, ValueError) for result in results) == 1
+    assert sum(isinstance(result, ValueError) for result in results) == 1
+    assert first_repository.get_active().version == "egx-v1"
+    assert len(first_repository.list_activation_events()) == 1
