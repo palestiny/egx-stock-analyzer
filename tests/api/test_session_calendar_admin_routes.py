@@ -57,7 +57,7 @@ def calendar_payload() -> dict[str, object]:
                 "closed_at": "2026-11-02T14:31:00+02:00",
             },
         ],
-        "source_reference": "https://egx.com.eg/official-notice/123",
+        "source_reference": "EGX notice reference 123",
         "reason": "Publish operator-verified calendar sample",
     }
 
@@ -75,7 +75,7 @@ def test_operator_can_publish_list_and_read_calendar_version(tmp_path):
     body = published.json()
     assert body["version"] == "egx-2026-11-v1"
     assert body["published_by"] == "operator"
-    assert body["source_reference"] == "https://egx.com.eg/official-notice/123"
+    assert body["source_reference"] == "EGX notice reference 123"
     assert body["calendar"]["days"][1]["status"] == "CLOSED"
     assert len(body["sha256"]) == 64
 
