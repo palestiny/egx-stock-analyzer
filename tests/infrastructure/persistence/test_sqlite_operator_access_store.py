@@ -37,6 +37,7 @@ def test_bootstrap_requires_empty_operator_set_and_active_durable_credential(tmp
 def test_bootstrap_rejects_user_without_active_credential(tmp_path):
     path = tmp_path / "operators.db"
     users = SQLiteUserStore(path)
+    SQLiteCredentialStore(path)
     access = SQLiteOperatorAccessStore(path)
     target = uuid4()
     users.save(User(target, UserStatus.ACTIVE))
@@ -88,7 +89,7 @@ def test_last_active_operator_cannot_be_revoked(tmp_path):
 
 def test_grant_requires_active_operator_and_active_credential(tmp_path):
     path = tmp_path / "operators.db"
-    users, credentials, access, first, second, first_credential, _ = setup_operator_database(path)
+    _users, credentials, access, first, second, first_credential, _ = setup_operator_database(path)
     access.bootstrap_first_operator(first, reason="Initial owner setup")
     replacement = CredentialService(credentials).rotate(first_credential.id, first)
 
