@@ -48,12 +48,12 @@ The sample is a schema illustration only, not an asserted historical EGX schedul
 
 ## Deliberately not implemented yet
 
-This domain primitive does not load operator files, persist calendar versions, expose management APIs, schedule jobs, or connect to lifecycle monitoring/Crash Radar. It does not generate a 2026/2027 calendar from national holidays or infer weekends. It does not prove provider daily-bar completion. The runtime integration remains disabled until operator calendar publication, provider completion attestation, and recovery integration tests are complete.
+This domain primitive and persistence adapter do not load operator files, expose authenticated management APIs, schedule jobs, or connect to lifecycle monitoring/Crash Radar. The persistence adapter stores immutable, SHA-256-verified calendar versions and append-only activation/deactivation/rollback audit events, but this PR does not publish or activate any calendar. It does not generate a 2026/2027 calendar from national holidays or infer weekends. It does not prove provider daily-bar completion. The runtime integration remains disabled until operator calendar publication, provider completion attestation, and recovery integration tests are complete.
 
 ## Operator publication controls still required
 
-1. An authenticated operator workflow to publish an immutable calendar version.
+1. An authenticated operator workflow to publish an immutable calendar version (persistence primitives exist; the API does not yet).
 2. Provenance for each closure/schedule override (official EGX notice reference and operator audit identity).
-3. Validation that the new version covers the active operational horizon without gaps.
-4. Explicit activation and rollback to a prior immutable version.
+3. Validation that the new version covers the active operational horizon without gaps; the operational horizon policy is not yet defined.
+4. An authenticated activation/deactivation/rollback workflow with coverage validation before activation.
 5. Every evaluation must persist the calendar version and session date used.
