@@ -156,3 +156,82 @@ def test_legacy_pbkdf2_credentials_are_not_scanned_by_default(tmp_path, monkeypa
     monkeypatch.setenv("EGX_ALLOW_LEGACY_PBKDF2_CREDENTIALS", "true")
     assert store.find_active_credential(secret).id == credential.id
     assert store.find_active_credential(secret).id == credential.id
+
+
+def test_individual_operator_grant_is_reflected_in_durable_identity(tmp_path):
+    from app.application.security.identity import Permission
+    from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
+
+    store, users, _, issued = make_auth(tmp_path)
+    access = SQLiteOperatorAccessStore(tmp_path / "auth.db")
+    access.bootstrap_first_operator(issued.user_id, reason="Initial operator bootstrap")
+    auth = DurableBearerTokenAuthenticator(
+        store,
+        users,
+        operator_access_store=access,
+    )
+
+    identity = auth.authenticate("Bearer " + issued.secret)
+
+    assert identity.user_id == issued.user_id
+    assert identity.credential_id == issued.id
+    assert identity.permissions == frozenset({Permission.OPERATOR})
+
+
+def test_revoked_operator_grant_removes_permission_without_revoking_login(tmp_path):
+    from app.application.security.identity import Permission
+    from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
+
+    store, users, _, issued = make_auth(tmp_path)
+    access = SQLiteOperatorAccessStore(tmp_path / "auth.db")
+    access.bootstrap_first_operator(issued.user_id, reason="Initial operator bootstrap")
+    auth = DurableBearerTokenAuthenticator(store, users, operator_access_store=access)
+
+    identity = auth.authenticate("Bearer " + issued.secret)
+    assert Permission.OPERATOR in identity.permissions
+
+    # Last-operator protection prevents self-revocation; a second operator is
+    # required before a grant can be removed.
+    second_user = uuid4()
+    users.save(User(second_user, UserStatus.ACTIVE))
+    second_credential = CredentialService(store).provision(second_user)
+    access.grant(
+        second_user,
+        actor_user_id=issued.user_id,
+        actor_credential_id=issued.id,
+        reason="Add coverage operator",
+    )
+    access.revoke(
+        issued.user_id,
+        actor_user_id=second_user,
+        actor_credential_id=second_credential.id,
+        reason="Transfer primary operator responsibility",
+    )
+
+    updated = auth.authenticate("Bearer " + issued.secret)
+    assert updated.permissions == frozenset()
+
+
+def test_legacy_fallback_identity_is_not_promoted_by_individual_operator_store(tmp_path):
+    from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
+    from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
+
+    store, users, _, _ = make_auth(tmp_path)
+    legacy_user_id = uuid4()
+    users.save(User(legacy_user_id, UserStatus.ACTIVE))
+    fallback = ConfiguredBearerTokenAuthenticator(
+        {"mapped-token": legacy_user_id},
+        user_store=users,
+    )
+    access = SQLiteOperatorAccessStore(tmp_path / "auth.db")
+    auth = DurableBearerTokenAuthenticator(
+        store,
+        users,
+        fallback=fallback,
+        operator_access_store=access,
+    )
+
+    identity = auth.authenticate("Bearer mapped-token")
+
+    assert identity.permissions == frozenset()
+    assert identity.credential_id is None

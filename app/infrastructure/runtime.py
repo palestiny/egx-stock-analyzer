@@ -69,6 +69,8 @@ from app.infrastructure.persistence.sqlite_analysis_lifecycle_store import SQLit
 from app.application.security.authentication import ConfiguredBearerTokenAuthenticator
 from app.application.security.credentials import CredentialService
 from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
+from app.application.security.operator_access import OperatorAccessService
+from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
 from app.infrastructure.persistence.sqlite_scheduled_workflow_execution_store import (
     SQLiteScheduledWorkflowExecutionStore,
 )
@@ -109,6 +111,8 @@ class InfrastructureRuntime:
     authenticator: DurableBearerTokenAuthenticator | None = None
     credential_service: CredentialService | None = None
     user_store: SQLiteUserStore | None = None
+    operator_access_store: SQLiteOperatorAccessStore | None = None
+    operator_access_service: OperatorAccessService | None = None
     user_management: UserManagementService | None = None
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
@@ -165,6 +169,8 @@ def create_infrastructure_runtime(
     )
     credential_store = SQLiteCredentialStore(config.analysis_database_path)
     credential_service = CredentialService(credential_store)
+    operator_access_store = SQLiteOperatorAccessStore(config.analysis_database_path)
+    operator_access_service = OperatorAccessService(operator_access_store)
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
@@ -197,6 +203,7 @@ def create_infrastructure_runtime(
         credential_store=credential_store,
         user_store=user_store,
         fallback=configured_authenticator,
+        operator_access_store=operator_access_store,
     )
 
     signal_history_store = SQLiteSignalHistoryStore(config.analysis_database_path)
@@ -370,6 +377,8 @@ def create_infrastructure_runtime(
         authenticator=authenticator,
         credential_service=credential_service,
         user_store=user_store,
+        operator_access_store=operator_access_store,
+        operator_access_service=operator_access_service,
         user_management=user_management,
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
