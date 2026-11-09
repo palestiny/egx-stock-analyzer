@@ -62,6 +62,8 @@ The authenticated operator API currently supports:
 
 Every route requires operator authorization. The publication actor is taken from the authenticated identity; clients cannot submit or override `published_by`. Publication stores a calendar-level source reference and reason. Per-day evidence references are not yet modeled.
 
+**Audit identity limitation:** the current legacy operator credential resolves to the shared subject `operator` (and the shared legacy operator user ID). Therefore the audit record distinguishes the legacy operator credential class from ordinary users, but it does not identify which human used a shared token. The API rejects blank subjects and never trusts a body-supplied actor, but this is not individual accountability. Before real operational publication, the owner must approve named operator accounts/credentials with an explicit operator permission, or an alternative auditable human-identity mechanism. Do not represent the current shared subject as a unique person.
+
 Activation, deactivation, and rollback are deliberately not exposed through HTTP yet. The operational coverage horizon has not been defined, so there is no safe activation precondition to enforce. Publishing a version does not make it active, and no calendar is currently activated by this implementation.
 
 ## Operator controls still required
