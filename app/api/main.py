@@ -119,6 +119,7 @@ from app.application.notifications.telegram_message_sender import TelegramMessag
 from app.application.subscriptions.store import SubscriptionStore
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.identity.user_store import UserStore
+from app.domain.identity.user import UserStatus
 
 logger = logging.getLogger(__name__)
 
@@ -291,7 +292,12 @@ def create_app(
         authorization: str | None = Header(default=None),
     ) -> AuthenticatedIdentity:
         identity = require_operator(request, authorization)
-        if identity.user_id is None or identity.credential_id is None:
+        if (
+            identity.user_id is None
+            or identity.credential_id is None
+            or identity.user_status is not UserStatus.ACTIVE
+            or identity.subject != str(identity.user_id)
+        ):
             raise HTTPException(
                 status_code=403,
                 detail="Individually attributable operator credential required",
