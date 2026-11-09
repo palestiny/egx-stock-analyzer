@@ -23,7 +23,7 @@ class CalendarEvidenceIntegrityError(RuntimeError):
 @dataclass(frozen=True)
 class CalendarEvidenceConflict:
     calendar_version: str
-    session_date: str
+    session_date: date
     evidence_kind: CalendarEvidenceKind
     evidence: tuple[CalendarEvidence, ...]
 
@@ -158,7 +158,10 @@ class SQLiteCalendarEvidenceRepository:
                     digest,
                 ),
             )
-        return self.get(evidence.evidence_id)
+        stored = self.get(evidence.evidence_id)
+        if stored is None:
+            raise RuntimeError("Persisted calendar evidence could not be read back")
+        return stored
 
     def get(self, evidence_id: UUID) -> CalendarEvidence | None:
         with self._connect() as connection:
@@ -181,7 +184,7 @@ class SQLiteCalendarEvidenceRepository:
         return tuple(self._from_row(row) for row in rows)
 
     def list_conflicts(
-        self, calendar_version: str, session_date
+        self, calendar_version: str, session_date: date
     ) -> tuple[CalendarEvidenceConflict, ...]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -200,7 +203,7 @@ class SQLiteCalendarEvidenceRepository:
         return tuple(
             CalendarEvidenceConflict(
                 calendar_version=calendar_version,
-                session_date=session_date.isoformat(),
+                session_date=session_date,
                 evidence_kind=kind,
                 evidence=tuple(items),
             )
