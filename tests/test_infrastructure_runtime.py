@@ -287,6 +287,9 @@ def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> Non
     )
 
     assert isinstance(runtime.authenticator, DurableBearerTokenAuthenticator)
+    from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
+    assert isinstance(runtime.operator_access_store, SQLiteOperatorAccessStore)
+    assert runtime.operator_access_service is not None
     assert isinstance(runtime.credential_service, CredentialService)
     assert SQLiteCredentialStore(database_path)
 
