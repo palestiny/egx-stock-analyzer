@@ -35,10 +35,11 @@ class AuthenticatedIdentity:
         user_id: UUID,
         status: UserStatus = UserStatus.ACTIVE,
         credential_id: UUID | None = None,
+        permissions: frozenset[Permission] = frozenset(),
     ) -> "AuthenticatedIdentity":
         return cls(
             subject=str(user_id),
-            permissions=frozenset(),
+            permissions=permissions,
             user_id=user_id,
             user_status=status,
             credential_id=credential_id,
