@@ -255,3 +255,34 @@ def test_publication_rejects_blank_audit_metadata(tmp_path):
 
     assert response.status_code == 422
     assert store.list_versions() == ()
+
+
+
+def test_active_calendar_and_audit_endpoints_read_persisted_activation(tmp_path):
+    client, store = make_client(tmp_path)
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=calendar_payload(),
+    )
+    assert published.status_code == 201
+    store.activate(
+        "egx-2026-11-v1",
+        performed_by="operator",
+        reason="Activate only in the isolated test fixture",
+    )
+
+    active = client.get(
+        "/api/v1/owner/session-calendars/active",
+        headers=operator_headers(),
+    )
+    assert active.status_code == 200
+    assert active.json()["version"] == "egx-2026-11-v1"
+
+    events = client.get(
+        "/api/v1/owner/session-calendars/activation-events",
+        headers=operator_headers(),
+    )
+    assert events.status_code == 200
+    assert events.json()["items"][0]["action"] == "ACTIVATE"
+    assert events.json()["items"][0]["performed_by"] == "operator"
