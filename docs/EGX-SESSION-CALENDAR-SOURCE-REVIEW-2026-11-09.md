@@ -65,7 +65,13 @@ These reports are useful leads to the underlying EGX announcements, but they are
 
 These are secondary reproductions and should be used to locate/cross-check the original EGX notices, not to bypass them. The mismatches show that copying a national holiday list or an undated third-party calendar into production can shift the expected session date and invalidate freshness calculations.
 
-### 7. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
+### 7. Egypt currency non-clearing calendar — useful cross-check, wrong domain
+
+URL: https://tradingcalendars.com/calendars/EGP.CLEAR?year=2026
+
+This dataset is explicitly an **EGP currency non-clearing** calendar, not an EGX equity trading-session calendar. It lists observed dates such as January 29, May 7, June 18, July 2, August 27, and October 8. Those dates are useful for cross-checking Egyptian settlement/bank-closure observance, but they do not establish EGX session status, shortened trading sessions, auction boundaries, or exchange-specific exceptional closures. Do not import `EGP.CLEAR` as the EGX session calendar.
+
+### 8. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
 
 URL: https://isopennow.com/data/exchanges.v1.json
 
