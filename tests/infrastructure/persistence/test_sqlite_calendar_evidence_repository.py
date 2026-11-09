@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import date, datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -17,6 +17,8 @@ from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
     CalendarEvidenceIntegrityError,
     SQLiteCalendarEvidenceRepository,
 )
+from app.domain.identity.user import User, UserStatus
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 from app.infrastructure.persistence.sqlite_session_calendar_repository import (
     SQLiteSessionCalendarRepository,
 )
@@ -40,7 +42,7 @@ def _evidence(claim="Exchange notice confirms closure", **overrides):
         "source_type": "OFFICIAL_EXCHANGE_NOTICE",
         "source_reference": "https://example.invalid/notice/123",
         "claim": claim,
-        "recorded_by": uuid4(),
+        "recorded_by": UUID("10000000-0000-0000-0000-000000000001"),
         "observed_at": datetime(2026, 11, 2, 12, tzinfo=timezone.utc),
     }
     values.update(overrides)
@@ -54,6 +56,12 @@ def _repository(tmp_path):
         published_by="bootstrap-user",
         source_reference="schema-fixture",
         reason="test fixture only",
+    )
+    SQLiteUserStore(database).save(
+        User(
+            id=UUID("10000000-0000-0000-0000-000000000001"),
+            status=UserStatus.ACTIVE,
+        )
     )
     return SQLiteCalendarEvidenceRepository(database), database
 
@@ -151,3 +159,8 @@ def test_evidence_must_reference_an_existing_calendar_version(tmp_path):
     repository, _ = _repository(tmp_path)
     with pytest.raises(KeyError, match="Unknown calendar version"):
         repository.append(_evidence(calendar_version="missing-version"))
+
+def test_evidence_actor_must_reference_an_existing_user(tmp_path):
+    repository, _ = _repository(tmp_path)
+    with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+        repository.append(_evidence(recorded_by=uuid4()))
