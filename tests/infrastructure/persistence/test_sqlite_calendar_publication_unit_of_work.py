@@ -181,3 +181,80 @@ def test_calendar_evidence_repositories_must_share_database(tmp_path):
     evidence = SQLiteCalendarEvidenceRepository(tmp_path / "evidence.db")
     with pytest.raises(ValueError, match="share one SQLite database"):
         SQLiteCalendarPublicationUnitOfWork(calendars, evidence)
+
+
+
+def test_failure_after_all_links_are_written_rolls_back_every_table(tmp_path, monkeypatch):
+    database, calendars, evidence_repository, uow = _setup(tmp_path)
+
+    def fail_validation(_connection, _version, _dates):
+        raise RuntimeError("injected final validation failure")
+
+    monkeypatch.setattr(uow, "_validate_no_unresolved_conflicts", fail_validation)
+
+    with pytest.raises(RuntimeError, match="final validation"):
+        uow.publish(
+            _calendar(),
+            _evidence_set(),
+            published_by=str(ACTOR),
+            source_reference="EGX source bundle",
+            reason="Final gate rollback test",
+        )
+
+    assert calendars.get_version("atomic-calendar-v1") is None
+    with sqlite3.connect(database) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM egx_calendar_versions").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM egx_calendar_evidence").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM egx_calendar_day_evidence_links").fetchone()[0] == 0
+
+
+def test_second_connection_cannot_observe_uncommitted_calendar_or_evidence(tmp_path, monkeypatch):
+    database, calendars, evidence_repository, uow = _setup(tmp_path)
+    original = evidence_repository.append_in_transaction
+    observations = []
+
+    def inspect_from_other_connection(connection, item):
+        stored = original(connection, item)
+        with sqlite3.connect(database) as observer:
+            observations.append(
+                (
+                    observer.execute(
+                        "SELECT COUNT(*) FROM egx_calendar_versions"
+                    ).fetchone()[0],
+                    observer.execute(
+                        "SELECT COUNT(*) FROM egx_calendar_evidence"
+                    ).fetchone()[0],
+                )
+            )
+        return stored
+
+    monkeypatch.setattr(evidence_repository, "append_in_transaction", inspect_from_other_connection)
+    uow.publish(
+        _calendar(),
+        _evidence_set(),
+        published_by=str(ACTOR),
+        source_reference="EGX source bundle",
+        reason="Isolation test",
+    )
+
+    assert observations == [(0, 0), (0, 0)]
+    assert calendars.get_version("atomic-calendar-v1") is not None
+
+
+def test_calendar_status_requires_its_corresponding_evidence_kind(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    invalid = (
+        _evidence(date(2026, 11, 1), "A schedule claim", kind=CalendarEvidenceKind.SCHEDULE),
+        _evidence(date(2026, 11, 2), "A closure claim", kind=CalendarEvidenceKind.CLOSURE),
+    )
+
+    with pytest.raises(ValueError, match="requires evidence kinds: CLOSURE"):
+        uow.publish(
+            _calendar(),
+            invalid,
+            published_by=str(ACTOR),
+            source_reference="EGX source bundle",
+            reason="Evidence-kind validation test",
+        )
+
+    assert calendars.list_versions() == ()
