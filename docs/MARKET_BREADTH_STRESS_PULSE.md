@@ -46,3 +46,18 @@ The status is evidence transparency, not a confidence rating or trading signal. 
 ## Limitations
 
 This is a transparent heuristic, not a statistically calibrated crash predictor or trading signal. It summarizes saved analysis snapshots, which may be stale, and does not independently validate quotes, corporate actions, or the completeness of the EGX universe. The caller must pass a deliberate symbol universe; do not describe a partial list as the whole market.
+
+
+## Source-bar provenance correction — 2026-11-09
+
+The persisted `analysis_date` is the requested analysis as-of date. It is not guaranteed to equal the date of the latest market observation actually consumed. The analysis pipeline separately persists `StockAnalysisResult.data_timestamp`, derived from the latest valid `PriceBar.timestamp`.
+
+The API now exposes this source evidence independently:
+
+- `source_data_timestamps_by_symbol`: latest source-bar timestamp per analyzed symbol, preserving its timezone offset; null when unavailable or timezone-naive.
+- `source_data_dates_by_symbol`: the source timestamp converted to the EGX timezone and reduced to its calendar date.
+- `undated_source_data_symbols` and `source_data_timestamp_status`: explicit unknown, partial, mixed, or consistent source-date coverage.
+- `latest_source_data_timestamp` and `latest_source_data_date`: latest available source-bar evidence across analyzed symbols.
+- `source_data_age_calendar_days_by_symbol`: calendar-day age from the requested reference date. Negative ages remain visible and are not clamped.
+
+The legacy `analysis_dates_by_symbol` and `snapshot_age_calendar_days_by_symbol` remain unchanged for compatibility and continue to describe the analysis run date. Calendar-day source age is evidence metadata only; it is not a completed-session freshness verdict. Do not infer that a source bar is complete, current, or eligible from its timestamp alone. DEC-135's one-completed-session rule still requires verified EGX session/holiday calendar semantics and provider completion evidence. No score suppression, threshold, or notification behavior is introduced by this correction.
