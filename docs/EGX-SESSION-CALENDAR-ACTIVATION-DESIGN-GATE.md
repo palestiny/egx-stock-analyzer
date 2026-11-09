@@ -7,7 +7,7 @@
 
 ## 1. Problem
 
-The domain model and SQLite repository can represent explicit calendar versions, one active-version pointer, and append-only activation/deactivation/rollback events. The operator API can publish and inspect versions, but it does not expose activation.
+The domain model and SQLite repository can represent explicit calendar versions, one active-version pointer, and append-only activation/deactivation/rollback events. PR #467 merged the individually authenticated operator API for publishing and inspecting versions, but it does not expose activation.
 
 Activating a syntactically valid calendar without proving that it covers the dates the runtime must evaluate could cause the lifecycle monitor to skip or misclassify sessions. A coverage policy must be defined before activation becomes an HTTP operation.
 
@@ -73,13 +73,13 @@ Before adding activation endpoints, implement and test:
 - Failed activation and rollback preserve the prior active pointer and append no misleading success event.
 - Concurrent activation attempts serialize; the final pointer and audit events remain consistent.
 - Actor identity comes from the authenticated principal, and non-operators receive 403. The publication API test verifies that blank subjects are rejected and client-supplied actor values are forbidden.
-- **Still open:** individual operator accountability. The current legacy operator token is shared and resolves to subject `operator`; do not claim it identifies a human.
+- Individual operator accountability is implemented for calendar administration by PR #466/#467. Deployment bootstrap/recovery verification remains open.
 - Activation does not mark provider bars final, does not enable lifecycle monitoring by itself, and does not change Crash Radar scoring.
 
 ## 7. Current implementation boundary
 
 - Immutable calendar persistence, content-hash verification on reads and before activation/rollback, active pointer, and append-only audit-event primitives are implemented. A regression test proves a corrupt version cannot be activated.
-- Authenticated publication and read endpoints are in PR #462. They derive the actor from the principal, but the current legacy operator principal is shared rather than person-specific.
+- Authenticated publication and read endpoints merged in PR #467. They derive the actor from the active individual operator principal; the shared legacy operator identity is rejected.
 - No real EGX calendar version is published or active.
 - No durable lifecycle evaluation cursor or scheduler is connected to the calendar.
 - Provider finality attestation and per-day source evidence remain open.
