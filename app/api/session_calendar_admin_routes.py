@@ -44,9 +44,11 @@ class CalendarPublicationPayload(BaseModel):
     source_reference: str = Field(min_length=1, max_length=1000)
     reason: str = Field(min_length=1, max_length=500)
 
-    @field_validator("version", "timezone", "source_reference", "reason")
+    @field_validator("version", "timezone", "source_reference", "reason", mode="before")
     @classmethod
-    def strip_required_text(cls, value: str) -> str:
+    def strip_required_text(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
         normalized = value.strip()
         if not normalized:
             raise ValueError("value must be non-empty")
