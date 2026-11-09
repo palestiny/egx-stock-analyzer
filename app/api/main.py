@@ -15,6 +15,7 @@ from app.api.user_management_routes import create_user_management_router
 from app.api.telegram_delivery_reconciliation_routes import create_telegram_delivery_reconciliation_router
 from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
+from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -116,6 +117,7 @@ from app.application.notifications.telegram_account_linking import (
 )
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.subscriptions.store import SubscriptionStore
+from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.identity.user_store import UserStore
 
 logger = logging.getLogger(__name__)
@@ -170,6 +172,7 @@ def create_app(
     telegram_delivery_reconciliation_store: TelegramDeliveryReconciliationStore | None = None,
     crash_radar_universe_symbols: tuple[str, ...] = (),
     crash_radar_universe_version: str | None = None,
+    session_calendar_store: SessionCalendarStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -298,6 +301,13 @@ def create_app(
         create_subscription_admin_router(
             store=subscription_store,
             users=user_store,
+            require_operator=require_operator,
+        )
+    )
+
+    app.include_router(
+        create_session_calendar_admin_router(
+            store=session_calendar_store,
             require_operator=require_operator,
         )
     )
