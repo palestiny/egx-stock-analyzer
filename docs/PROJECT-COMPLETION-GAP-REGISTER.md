@@ -33,7 +33,7 @@ This register separates verified implementation from incomplete acceptance and d
 - PR #445 limits session opportunity reports to signal identities with a `PUBLISHED` or `PUBLISHED_VERSION` event, preserves the first published version as the original snapshot, and assigns the report session by publication time in the exchange timezone. Exact-head CI run #41206339863 passed all five jobs; 1,469 tests passed, 8 deselected, 90.73% coverage. Merge commit: `d86f418ea927c11755c821a6c1c44c736023ddca`.
 - PR #459 merged the explicit, fail-closed EGX session-calendar domain model with contiguous per-day coverage, Africa/Cairo wall-clock times, explicit day states, and completed-session confirmation. No weekend, holiday, or session-time inference is allowed.
 - PR #460 merged immutable SQLite calendar-version persistence, SHA-256 integrity checks, the active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
-- PR #462 remains Draft and adds authenticated operator publication/read APIs and runtime composition. Its predecessor exact-head run had one assertion-only failure (1,558 passed, 8 deselected, 90.82% coverage); the domain error and assertion were aligned in follow-up commits, and exact-head CI is pending. Do not treat the API as merged or the calendar as operational.
+- PR #467 merged the individually authenticated operator publication/read API and persistent runtime composition after all five exact-head CI jobs passed. PR #462 is closed unmerged as superseded.
 
 ## Non-M61 work remaining
 
