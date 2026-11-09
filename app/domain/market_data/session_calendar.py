@@ -88,15 +88,17 @@ class EGXSessionCalendar:
             raise ValueError("EGX session calendar timezone must be Africa/Cairo")
         if self.coverage_end < self.coverage_start:
             raise ValueError("Calendar coverage end must not precede coverage start")
-        expected_dates = tuple(
-            date.fromordinal(ordinal)
-            for ordinal in range(
-                self.coverage_start.toordinal(),
-                self.coverage_end.toordinal() + 1,
+        expected_day_count = (self.coverage_end - self.coverage_start).days + 1
+        if len(self.days) != expected_day_count:
+            raise ValueError(
+                "Calendar must contain exactly one ordered explicit record for every "
+                "date in its declared coverage"
             )
-        )
-        actual_dates = tuple(day.session_date for day in self.days)
-        if actual_dates != expected_dates:
+        start_ordinal = self.coverage_start.toordinal()
+        if any(
+            day.session_date.toordinal() != start_ordinal + offset
+            for offset, day in enumerate(self.days)
+        ):
             raise ValueError(
                 "Calendar must contain exactly one ordered explicit record for every "
                 "date in its declared coverage"
