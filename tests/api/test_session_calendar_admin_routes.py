@@ -14,6 +14,9 @@ from app.infrastructure.persistence.sqlite_session_calendar_repository import (
 
 
 OPERATOR_TOKEN = "calendar-operator-token"
+LEGACY_OPERATOR_TOKEN = "legacy-shared-operator-token"
+OPERATOR_USER_ID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+OPERATOR_CREDENTIAL_ID = UUID("cccccccc-cccc-cccc-cccc-cccccccccccc")
 USER_TOKEN = "calendar-user-token"
 USER_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
@@ -21,6 +24,12 @@ USER_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 class CalendarTestAuthenticator:
     def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
         if authorization_header == f"Bearer {OPERATOR_TOKEN}":
+            return AuthenticatedIdentity.user(
+                OPERATOR_USER_ID,
+                credential_id=OPERATOR_CREDENTIAL_ID,
+                permissions=frozenset({Permission.OPERATOR}),
+            )
+        if authorization_header == f"Bearer {LEGACY_OPERATOR_TOKEN}":
             return AuthenticatedIdentity.operator()
         if authorization_header == f"Bearer {USER_TOKEN}":
             return AuthenticatedIdentity.user(USER_ID)
@@ -74,7 +83,7 @@ def test_operator_can_publish_list_and_read_calendar_version(tmp_path):
     assert published.status_code == 201
     body = published.json()
     assert body["version"] == "egx-2026-11-v1"
-    assert body["published_by"] == "operator"
+    assert body["published_by"] == str(OPERATOR_USER_ID)
     assert body["source_reference"] == "EGX notice reference 123"
     assert body["calendar"]["days"][1]["status"] == "CLOSED"
     assert len(body["sha256"]) == 64
@@ -93,7 +102,7 @@ def test_operator_can_publish_list_and_read_calendar_version(tmp_path):
     )
     assert loaded.status_code == 200
     assert loaded.json()["calendar"] == body["calendar"]
-    assert store.get_version("egx-2026-11-v1").published_by == "operator"
+    assert store.get_version("egx-2026-11-v1").published_by == str(OPERATOR_USER_ID)
 
 
 def test_calendar_management_requires_operator_authentication(tmp_path):
@@ -102,6 +111,18 @@ def test_calendar_management_requires_operator_authentication(tmp_path):
     response = client.get("/api/v1/owner/session-calendars/versions")
 
     assert response.status_code == 401
+
+
+def test_calendar_management_rejects_legacy_shared_operator_token(tmp_path):
+    client, _store = make_client(tmp_path)
+
+    response = client.get(
+        "/api/v1/owner/session-calendars/versions",
+        headers={"Authorization": f"Bearer {LEGACY_OPERATOR_TOKEN}"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Individually attributable operator credential required"
 
 
 def test_calendar_management_rejects_authenticated_non_operator(tmp_path):
