@@ -73,6 +73,10 @@ class OperatorAccessService:
         except (ValueError, KeyError) as error:
             raise OperatorAccessError(str(error)) from error
 
+    def list_events(self, actor: AuthenticatedIdentity) -> tuple[OperatorAccessEvent, ...]:
+        self._require_individual_operator(actor)
+        return self._store.list_events()
+
     def revoke(self, actor: AuthenticatedIdentity, target_user_id: UUID, reason: str) -> None:
         self._require_individual_operator(actor)
         normalized_reason = self._normalize_reason(reason)
