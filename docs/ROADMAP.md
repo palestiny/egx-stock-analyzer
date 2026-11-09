@@ -8,6 +8,17 @@
 
 # Current Position
 
+
+## Latest verified non-M61 continuation — 2026-11-09 (operator identity + calendar API)
+
+- PR #465 and #466 are merged: immutable per-day evidence storage and individually attributable operator access are now on main.
+- PR #467 is the replacement calendar API integration PR, based on current main. It wires the persistent calendar repository into runtime/API and rejects the legacy shared operator identity for calendar administration. Exact-head CI run #42633034603 has passed dependency audit, integration tests, frontend tests, lint/type-check, and container build; the unit-test suite is still running at last verification.
+- PR #462 is a stale/conflicting predecessor; do not merge it. Close it as superseded after PR #467 merges.
+- Calendar publication remains separate from activation. The evidence registry is not yet enforced at publication, and operational activation remains blocked by evidence policy, bootstrap/coverage, durable cursor/recovery, and provider completed-bar attestation.
+- M61 remains paused. Do not connect the calendar to lifecycle scheduling or enable freshness monitoring until all relevant gates pass.
+
+**Next execution focus:** complete exact-head CI for PR #467, merge only if every required check passes, close superseded PR #462, then implement the evidence acceptance/publication gate and operational coverage design before lifecycle integration.
+
 ## Latest verified non-M61 continuation — 2026-11-09 (session calendar)
 
 - PR #459 and #460 are merged: the explicit fail-closed session-calendar domain model and immutable SQLite version/audit persistence are now on `main` at `d171324800027e9b298bfde9529eb5b75c5d8ec1`.
