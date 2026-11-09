@@ -421,3 +421,35 @@ def test_activation_event_deletion_is_rejected(tmp_path):
             connection.execute(
                 "DELETE FROM egx_calendar_activation_events WHERE event_id = 1"
             )
+
+
+
+def test_corrupt_calendar_cannot_be_activated_or_audited(tmp_path):
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        CalendarVersionIntegrityError,
+    )
+
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+
+    with repository._connect() as connection:
+        connection.execute("DROP TRIGGER egx_calendar_versions_no_update")
+        connection.execute(
+            "UPDATE egx_calendar_versions SET calendar_json = ? WHERE version = ?",
+            ("{}", "egx-v1"),
+        )
+
+    with pytest.raises(CalendarVersionIntegrityError, match="SHA-256 integrity check"):
+        repository.activate(
+            "egx-v1",
+            performed_by="operator",
+            reason="must reject corrupt calendar",
+        )
+
+    assert repository.get_active() is None
+    assert repository.list_activation_events() == ()
