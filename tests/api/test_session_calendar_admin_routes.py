@@ -306,3 +306,18 @@ def test_http_activation_is_not_exposed_before_coverage_policy_exists(tmp_path):
     assert response.status_code == 404
     assert store.get_active() is None
     assert store.list_activation_events() == ()
+
+
+
+def test_publication_rejects_version_identifiers_unsafe_for_resource_routes(tmp_path):
+    client, store = make_client(tmp_path)
+    payload = {**calendar_payload(), "version": "egx/2026/v1"}
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert response.status_code == 422
+    assert store.list_versions() == ()
