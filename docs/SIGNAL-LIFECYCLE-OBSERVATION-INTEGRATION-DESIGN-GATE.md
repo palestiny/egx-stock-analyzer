@@ -122,3 +122,15 @@ This closes only the crossing-semantics decision. Provider completion guarantees
 The owner approved the operational defaults in `docs/DEC-139-LIFECYCLE-MONITORING-OPERATIONAL-POLICY.md`: versioned operator-maintained EGX calendar until an authoritative machine-readable source is verified; evaluation after close + 60 minutes for explicitly closed sessions; provider-attested completed daily bars; STALE suppression for missing expected-session data; strict OHLC validation; no performance return without explicit entry/fill; 20 eligible-session Swing expiry; immutable linked revisions; append-only correction/reconciliation; idempotent candle replay; chronological restart reconciliation with gaps blocking progression.
 
 DEC-139 closes the product-policy decisions, not implementation or data-provider verification. Automatic monitoring remains disabled until the acceptance boundary in DEC-139 is implemented and verified. No Yahoo redistribution rights are implied; M61 remains paused.
+
+
+
+## 10. Session calendar implementation status — 2026-11-09
+
+- PR #459 merged the versioned EGX session-calendar domain model. It requires explicit, contiguous date records, uses Africa/Cairo, distinguishes scheduled/open/closed/non-trading/cancelled days, and only treats explicitly confirmed closed sessions as completed.
+- PR #460 merged SQLite persistence for immutable calendar versions, SHA-256 payload verification on reads, a single active-version pointer, and append-only activation/deactivation/rollback audit events.
+- PR #462 (operator API; not yet merged) adds authenticated publication and read endpoints. Publication is not activation. Activation/deactivation/rollback are intentionally not exposed through HTTP because the operational coverage horizon is not yet defined.
+- No real EGX calendar version has been published or activated. No weekend/holiday/session schedule is inferred. Per-day official notice references are not yet modeled; the current publication record carries a calendar-level source reference.
+- The calendar is not yet connected to lifecycle scheduling or freshness evaluation. Provider-completed-bar attestation, one-session freshness gating, durable observation identity/cursor, chronological recovery, and end-to-end lifecycle delivery remain open.
+
+Therefore the calendar domain and persistence foundations are implemented, but the DEC-139 operational calendar/freshness gate is not complete. Automatic lifecycle monitoring remains disabled.
