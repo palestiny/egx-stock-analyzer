@@ -1,12 +1,22 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (main at `7a65ce103b271457c9d609341ea1ffab4934ec1b`; PRs #455, #456, and #457 merged. PR #457 exact-head workflow run #4842 passed. No workflow run was associated with the squash merge commit at review time; post-merge CI is not claimed.)
+**Last reviewed:** 2026-11-09 (main at `d171324800027e9b298bfde9529eb5b75c5d8ec1`; PRs #459 and #460 merged. PR #462 remains Draft; exact-head CI on its predecessor commit `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` had one assertion-only unit-test failure, fixed in follow-up commit `d87f1853203cd4bfa47ca921ac87d2bd172b983a`; validation for the fix is pending.)
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
 
-### Latest verified continuation — 2026-11-09
+### Latest verified continuation — 2026-11-09 (session calendar)
+
+- PR #459 merged the fail-closed EGX session-calendar domain model: explicit contiguous daily records, Africa/Cairo wall-clock times, five explicit day states, and completed-session checks requiring a passed close-confirmation timestamp. No weekends, holidays, or session hours are inferred.
+- PR #460 merged immutable SQLite calendar-version persistence, SHA-256 verification, a single active-version pointer, and append-only activation/deactivation/rollback audit events. No calendar has been published or activated.
+- PR #462 is Draft and adds authenticated calendar publication and read endpoints plus runtime composition. Publication does not activate a version; no HTTP activation/deactivation/rollback endpoints are exposed. The current shared operator token records subject `operator`, not an individually attributable human.
+- The session-calendar activation gate remains GAP: a durable lifecycle cursor, bootstrap policy, cursor-derived coverage validation, per-day source evidence, named operator identity, and provider-completed-bar attestation remain unresolved. The calendar is not connected to lifecycle scheduling or freshness evaluation; automatic lifecycle monitoring remains disabled.
+- Source review found conflicting secondary reports for EGX session boundaries and holiday dates; no complete authoritative machine-readable EGX calendar was verified. Do not import national holidays or third-party calendar rows as EGX truth.
+- PR #462 exact-head predecessor `b73be72e28e1af91f2495ab7ca7f3ebbf9fea26f` ran 1,558 passing tests, 8 deselected, and 90.82% coverage, but one unit test failed because its expected error-text regex did not match the actual rollback validation message. Commit `d87f1853203cd4bfa47ca921ac87d2bd172b983a` corrects the assertion; exact-head validation is pending.
+- M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
+
+### Prior verified continuation — 2026-11-09
 
 - PR #455 merged the owner-accepted lifecycle monitoring policy reconciliation. The implementation gate remains open: the lifecycle orchestrator is still not wired to persisted analysis observations, and provider-specific completed-bar/freshness evidence is not verified.
 - PR #456 merged the operator-configured, versioned Crash Radar universe. This identifies the configured symbol set but does not establish full EGX coverage or completed-session freshness.
