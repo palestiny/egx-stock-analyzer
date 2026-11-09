@@ -409,3 +409,62 @@ def test_runtime_rejects_unsupported_configured_news_source_type(tmp_path) -> No
                 news_rss_source_type="unknown_source",
             ),
         )
+
+
+
+def test_infrastructure_runtime_composes_persistent_session_calendar_store(tmp_path) -> None:
+    from app.domain.market_data.session_calendar import (
+        CalendarDayStatus,
+        EGXCalendarDay,
+        EGXSessionCalendar,
+    )
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        SQLiteSessionCalendarRepository,
+    )
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    config = InfrastructureConfig(
+        operator_token="test-token",
+        analysis_database_path=str(database_path),
+    )
+
+    first_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert isinstance(
+        first_runtime.session_calendar_store,
+        SQLiteSessionCalendarRepository,
+    )
+    calendar = EGXSessionCalendar(
+        version="runtime-calendar-v1",
+        timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 1),
+        coverage_end=date(2026, 11, 1),
+        days=(
+            EGXCalendarDay(
+                session_date=date(2026, 11, 1),
+                status=CalendarDayStatus.NON_TRADING,
+            ),
+        ),
+    )
+    first_runtime.session_calendar_store.publish(
+        calendar,
+        published_by="operator",
+        source_reference="runtime-test-source",
+        reason="Verify persistent runtime composition",
+    )
+    first_runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+    restored = second_runtime.session_calendar_store.get_version("runtime-calendar-v1")
+    assert restored is not None
+    assert restored.calendar == calendar
+    second_runtime.close()
