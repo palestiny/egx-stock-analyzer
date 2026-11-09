@@ -99,6 +99,20 @@ class SQLiteCalendarEvidenceRepository:
         serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
         with self._connect() as connection:
+            calendar_row = connection.execute(
+                "SELECT calendar_json FROM egx_calendar_versions WHERE version = ?",
+                (evidence.calendar_version,),
+            ).fetchone()
+            if calendar_row is None:
+                raise KeyError(f"Unknown calendar version: {evidence.calendar_version}")
+            calendar_payload = json.loads(calendar_row[0])
+            covered_dates = {
+                item.get("date") for item in calendar_payload.get("days", [])
+            }
+            if evidence.session_date.isoformat() not in covered_dates:
+                raise ValueError(
+                    "Evidence session_date must be an explicit date in the calendar version"
+                )
             if evidence.supersedes_evidence_id is not None:
                 prior = connection.execute(
                     """
