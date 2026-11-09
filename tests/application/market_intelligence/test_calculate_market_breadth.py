@@ -301,7 +301,7 @@ def test_market_breadth_uses_source_bar_timestamp_separately_from_analysis_run_d
         "AAA": "2026-11-05T14:30:00+00:00"
     }
     assert payload["source_data_dates_by_symbol"] == {"AAA": "2026-11-05"}
-    assert payload["source_data_timestamp_status"] == "CONSISTENT"
+    assert payload["source_data_date_status"] == "CONSISTENT"
     assert payload["latest_source_data_timestamp"] == "2026-11-05T14:30:00+00:00"
     assert payload["latest_source_data_date"] == "2026-11-05"
     assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": 4}
@@ -340,6 +340,6 @@ def test_market_breadth_does_not_trust_naive_source_timestamps():
     assert payload["source_data_timestamps_by_symbol"] == {"AAA": None}
     assert payload["source_data_dates_by_symbol"] == {"AAA": None}
     assert payload["undated_source_data_symbols"] == ["AAA"]
-    assert payload["source_data_timestamp_status"] == "UNKNOWN"
+    assert payload["source_data_date_status"] == "UNKNOWN"
     assert payload["latest_source_data_timestamp"] is None
     assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": None}
