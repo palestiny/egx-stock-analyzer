@@ -55,7 +55,7 @@ Do not silently choose a start date from the machine's current date or assume th
 
 Before adding activation endpoints, implement and test:
 
-1. Verify the target version exists and its persisted content hash passes integrity validation.
+1. **Implemented at repository boundary:** verify the target version exists and its persisted content hash passes integrity validation inside the activation transaction. A corrupt target is rejected without changing the active pointer or audit history.
 2. Validate the target against the approved coverage-horizon and bootstrap policy.
 3. Ensure the candidate is not missing any explicit date in the required interval.
 4. Require an authenticated operator identity and a non-empty reason; never accept the actor identity from the request body.
@@ -78,7 +78,7 @@ Before adding activation endpoints, implement and test:
 
 ## 7. Current implementation boundary
 
-- Immutable calendar persistence, content-hash verification, active pointer, and audit-event primitives are implemented.
+- Immutable calendar persistence, content-hash verification on reads and before activation/rollback, active pointer, and append-only audit-event primitives are implemented. A regression test proves a corrupt version cannot be activated.
 - Authenticated publication and read endpoints are in PR #462. They derive the actor from the principal, but the current legacy operator principal is shared rather than person-specific.
 - No real EGX calendar version is published or active.
 - No durable lifecycle evaluation cursor or scheduler is connected to the calendar.
