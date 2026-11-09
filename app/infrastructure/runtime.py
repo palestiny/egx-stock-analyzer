@@ -10,6 +10,8 @@ from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.infrastructure.persistence.sqlite_session_calendar_repository import SQLiteSessionCalendarRepository
+from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
 from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
 from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
@@ -116,6 +118,8 @@ class InfrastructureRuntime:
     operator_access_store: SQLiteOperatorAccessStore | None = None
     operator_access_service: OperatorAccessService | None = None
     session_calendar_store: SessionCalendarStore | None = None
+    calendar_evidence_repository: SQLiteCalendarEvidenceRepository | None = None
+    calendar_publication_uow: SQLiteCalendarPublicationUnitOfWork | None = None
     user_management: UserManagementService | None = None
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
@@ -177,6 +181,11 @@ def create_infrastructure_runtime(
     operator_access_store = SQLiteOperatorAccessStore(config.analysis_database_path)
     operator_access_service = OperatorAccessService(operator_access_store)
     session_calendar_store = SQLiteSessionCalendarRepository(config.analysis_database_path)
+    calendar_evidence_repository = SQLiteCalendarEvidenceRepository(config.analysis_database_path)
+    calendar_publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        session_calendar_store,
+        calendar_evidence_repository,
+    )
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
@@ -386,6 +395,8 @@ def create_infrastructure_runtime(
         operator_access_store=operator_access_store,
         operator_access_service=operator_access_service,
         session_calendar_store=session_calendar_store,
+        calendar_evidence_repository=calendar_evidence_repository,
+        calendar_publication_uow=calendar_publication_uow,
         user_management=user_management,
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
