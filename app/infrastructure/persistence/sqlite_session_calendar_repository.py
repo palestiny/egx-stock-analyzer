@@ -4,38 +4,19 @@ import hashlib
 import hmac
 import json
 import sqlite3
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.application.market_data.session_calendar_store import (
+    CalendarActivationEvent,
+    StoredCalendarVersion,
+)
 from app.domain.market_data.session_calendar import EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
 class CalendarVersionIntegrityError(RuntimeError):
     """Raised when a persisted calendar payload no longer matches its content hash."""
-
-
-@dataclass(frozen=True)
-class StoredCalendarVersion:
-    version: str
-    calendar: EGXSessionCalendar
-    sha256: str
-    published_at: datetime
-    published_by: str
-    source_reference: str
-    publication_reason: str
-
-
-@dataclass(frozen=True)
-class CalendarActivationEvent:
-    event_id: int
-    action: str
-    previous_version: str | None
-    target_version: str | None
-    occurred_at: datetime
-    performed_by: str
-    reason: str
 
 
 class SQLiteSessionCalendarRepository:
