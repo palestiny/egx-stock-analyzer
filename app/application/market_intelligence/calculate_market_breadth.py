@@ -31,6 +31,13 @@ class MarketBreadthSnapshot:
     latest_analysis_date: date | None = None
     as_of_date: date | None = None
     snapshot_age_calendar_days_by_symbol: dict[str, int | None] | None = None
+    source_data_timestamps_by_symbol: dict[str, datetime | None] | None = None
+    source_data_dates_by_symbol: dict[str, date | None] | None = None
+    undated_source_data_symbols: tuple[str, ...] = ()
+    source_data_timestamp_status: str = "UNKNOWN"
+    latest_source_data_timestamp: datetime | None = None
+    latest_source_data_date: date | None = None
+    source_data_age_calendar_days_by_symbol: dict[str, int | None] | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -92,6 +99,29 @@ class MarketBreadthSnapshot:
             "snapshot_age_calendar_days_by_symbol": (
                 self.snapshot_age_calendar_days_by_symbol or {}
             ),
+            "source_data_timestamps_by_symbol": {
+                symbol: value.isoformat() if value is not None else None
+                for symbol, value in (self.source_data_timestamps_by_symbol or {}).items()
+            },
+            "source_data_dates_by_symbol": {
+                symbol: value.isoformat() if value is not None else None
+                for symbol, value in (self.source_data_dates_by_symbol or {}).items()
+            },
+            "undated_source_data_symbols": list(self.undated_source_data_symbols),
+            "source_data_timestamp_status": self.source_data_timestamp_status,
+            "latest_source_data_timestamp": (
+                self.latest_source_data_timestamp.isoformat()
+                if self.latest_source_data_timestamp is not None
+                else None
+            ),
+            "latest_source_data_date": (
+                self.latest_source_data_date.isoformat()
+                if self.latest_source_data_date is not None
+                else None
+            ),
+            "source_data_age_calendar_days_by_symbol": (
+                self.source_data_age_calendar_days_by_symbol or {}
+            ),
             "methodology_version": "stress-heuristic-v1",
             "is_trading_signal": False,
             "methodology": "Stress is a heuristic: 50% downtrend share + 40% negative-momentum share + 10% negative-momentum-with-above-average-volume share. Percentages use analyzed symbols only.",
@@ -132,6 +162,8 @@ class CalculateMarketBreadth:
 
         missing: list[str] = []
         analysis_dates: dict[str, date | None] = {}
+        source_data_timestamps: dict[str, datetime | None] = {}
+        source_data_dates: dict[str, date | None] = {}
         uptrend = downtrend = positive = negative = above_average = 0
         negative_with_volume = 0
         analyzed = 0
@@ -151,6 +183,19 @@ class CalculateMarketBreadth:
             analysis_dates[symbol] = (
                 raw_analysis_date if isinstance(raw_analysis_date, date) else None
             )
+            raw_source_timestamp = getattr(record.result, "data_timestamp", None)
+            source_timestamp = None
+            if (
+                isinstance(raw_source_timestamp, datetime)
+                and raw_source_timestamp.tzinfo is not None
+                and raw_source_timestamp.utcoffset() is not None
+            ):
+                source_timestamp = raw_source_timestamp
+                source_data_date = raw_source_timestamp.astimezone(EGX_TIMEZONE).date()
+            else:
+                source_data_date = None
+            source_data_timestamps[symbol] = source_timestamp
+            source_data_dates[symbol] = source_data_date
             technical = record.result.technical_analysis
             if technical.trend.status is TrendStatus.UPTREND:
                 uptrend += 1
@@ -209,6 +254,29 @@ class CalculateMarketBreadth:
         else:
             analysis_date_status = "CONSISTENT"
 
+        known_source_dates = {
+            value for value in source_data_dates.values() if value is not None
+        }
+        undated_source_data_symbols = tuple(
+            symbol for symbol, value in source_data_dates.items() if value is None
+        )
+        source_data_timestamp_status = (
+            "PARTIAL"
+            if missing or (undated_source_data_symbols and known_source_dates)
+            else "UNKNOWN"
+            if not known_source_dates
+            else "MIXED"
+            if len(known_source_dates) > 1
+            else "CONSISTENT"
+        )
+        source_data_age_calendar_days = {
+            symbol: (reference_date - value).days if value is not None else None
+            for symbol, value in source_data_dates.items()
+        }
+        known_source_timestamps = [
+            value for value in source_data_timestamps.values() if value is not None
+        ]
+
         return MarketBreadthSnapshot(
             requested_symbols=len(normalized),
             analyzed_symbols=analyzed,
@@ -229,4 +297,15 @@ class CalculateMarketBreadth:
             latest_analysis_date=max(known_dates) if known_dates else None,
             as_of_date=reference_date,
             snapshot_age_calendar_days_by_symbol=snapshot_ages,
+            source_data_timestamps_by_symbol=source_data_timestamps,
+            source_data_dates_by_symbol=source_data_dates,
+            undated_source_data_symbols=undated_source_data_symbols,
+            source_data_timestamp_status=source_data_timestamp_status,
+            latest_source_data_timestamp=(
+                max(known_source_timestamps) if known_source_timestamps else None
+            ),
+            latest_source_data_date=(
+                max(known_source_dates) if known_source_dates else None
+            ),
+            source_data_age_calendar_days_by_symbol=source_data_age_calendar_days,
         )
