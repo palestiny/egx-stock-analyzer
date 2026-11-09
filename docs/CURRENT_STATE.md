@@ -1,10 +1,21 @@
 # EGX Stock Analyzer — Current State
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-07 (main at `1f6594b74ba6d6814413b325d21c04395180baa2`; PR #452 exact-head CI passed; post-merge main CI pending)  
+**Last reviewed:** 2026-11-07 (main at `ba03d41d5741856e5cb3ab892172633058b3ffd2`; PR #454 merged; exact-head CI passed all five jobs; post-merge main CI run #42399538146 passed all five jobs)  
 **Repository:** palestiny/egx-stock-analyzer
 
 ## 1. Where We Are
+
+### Latest verified continuation — 2026-11-07
+
+- PR #450 merged atomic lifecycle persistence: history, optional market-proxy outcome, and durable alert intent share one SQLite connection and transaction.
+- PR #452 merged rollback failpoint tests after history, outcome, and outbox writes.
+- PR #454 merged restart-recovery and transport-boundary tests. A pending event is delivered after dispatcher reconstruction and is not redelivered by a second dispatcher. A separate SQLite connection can observe committed lifecycle rows before the Telegram transport is invoked.
+- PR #454 exact-head CI passed all five jobs. Post-merge `main` is `ba03d41d5741856e5cb3ab892172633058b3ffd2`; workflow run #42399538146 completed successfully with all five jobs.
+- Code-path inspection confirms `GenerateSignal` reads the latest persisted analysis result, while `PublishSignalOpportunity` writes publication history/outbox. `SignalLifecycleOrchestrator` is constructed in infrastructure runtime but is not called by those publication or analysis-persistence paths. Automatic observation integration remains unimplemented.
+- DEC-138 and DEC-139 now settle the product rules for completed-daily-OHLC crossing, session calendar/timing, provider completion requirements, freshness suppression, OHLC validation, entry/performance separation, 20-eligible-session Swing expiry, immutable revisions, append-only corrections, idempotent replay, and chronological recovery. Provider-specific completion/freshness evidence and the end-to-end runtime integration remain unverified/unimplemented; no automatic monitoring claim is authorized.
+- M61 remains paused; PR #321 remains Draft.
+
 
 ### Latest repository updates — 2026-10-31
 

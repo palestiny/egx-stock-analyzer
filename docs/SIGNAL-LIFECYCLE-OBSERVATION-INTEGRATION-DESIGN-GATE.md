@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Integration gap confirmed; observation and market-data semantics must be accepted before wiring  
+**Status:** Integration gap confirmed; daily OHLC crossing semantics accepted; data eligibility and runtime wiring remain open  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -14,6 +14,9 @@ The repository currently has these separate capabilities:
 - `DispatchSignalAlertOutbox` handles per-recipient Telegram delivery, entitlements, retry/reconciliation, and durable recipient state.
 - `SignalLifecycleOrchestrator` can transition a supplied signal using a supplied `SignalMarketState`, record a terminal market-proxy outcome, and publish a lifecycle alert event.
 - `SignalLifecycleOrchestrator` is constructed in `app/infrastructure/runtime.py` and exposed on the runtime object.
+- The current `SignalMarketState` contract carries one `price`, `observed_at`, and `data_timestamp`; it does not carry daily OHLC, provider identity, source candle identity, revision, or a completion attestation. The current `transition_signal` therefore evaluates a single price rather than DEC-138's completed-candle High/Low rules.
+- The current `SignalLifecycleOrchestrator.process` requires `entry_price` and creates a market-proxy outcome whenever a target/invalidation transition occurs. Its outcome builder uses the observation close as the target exit and the invalidation level as the stop exit. That behavior is not accepted as completed-OHLC level monitoring or as performance accounting under DEC-139; it must be separated before production wiring.
+- `RawPriceBarObservation` contains OHLC values and timeframe/timestamp but no provider completion/finality attestation or immutable source-candle/revision identity. The current Yahoo adapter maps daily history rows into this raw type but does not attest that a bar is final/complete. Yahoo rows are therefore not currently eligible for automatic lifecycle transitions under DEC-139.
 - `SQLiteSignalHistoryStore` records signal-level history keyed by signal identity; it does not model a user's saved/acknowledged opportunity list. The Telegram delivery store tracks recipient delivery state, which is not equivalent to a per-user opportunity lifecycle/history read model.
 
 The inspected API publication route `POST /api/v1/opportunities/{symbol}/publish` calls `GenerateSignal` and `PublishSignalOpportunity`. It does not call `SignalLifecycleOrchestrator.process` or `invalidate_for_evidence_change`. No completed end-to-end observation path has been evidenced that supplies fresh market observations to the lifecycle service after analysis updates.
@@ -31,16 +34,17 @@ Therefore the repository must not currently describe target-hit/stop/invalidatio
 
 ## 3. Decisions required before wiring
 
-Do not infer these from generic price fields:
+The following policy decisions are accepted in DEC-138 and DEC-139. They are **not** evidence that the current provider/runtime satisfies the requirements:
 
-1. **Observation price semantics:** Which value is authoritative for transition: daily close, last trade, or a bar's high/low? The current analysis result exposes a current-price value, but its use as a completed-bar close or intraday last trade must be verified per provider and timeframe.
-2. **Crossing semantics:** Whether a target or invalidation is considered crossed by close-only, OHLC range, or another documented rule. If one candle spans both target and invalidation, the current domain rule prioritizes invalidation because intrabar path is unknown; owner must confirm that conservative behavior for the product.
-3. **Data eligibility:** What constitutes a completed/usable bar, how corrections are handled, and how stale, future-dated, duplicated, or missing observations are rejected. This depends on provider timestamp semantics and an approved EGX session calendar.
-4. **Observation cadence:** Whether evaluation runs after every accepted analysis result, once after a completed session, or on a separately licensed intraday feed. Do not use an in-process timer as a substitute for durable scheduling.
-5. **Expiry policy:** Define `expires_at`, valid session/timeframe semantics, and what causes EXPIRED. The status enum contains EXPIRED/CLOSED, but the current transition function only transitions ACTIVE to TRIGGERED or INVALIDATED; no expiry duration or close policy is inferred here.
-6. **Revision semantics:** Which changes in entry zone, invalidation, targets, direction, timeframe, evidence, confidence, or strategy version constitute a new version versus invalidation of the prior published setup. Preserve lineage and avoid duplicate Telegram notifications.
-7. **Entry and outcome price semantics:** Define the hypothetical entry basis used by `process(entry_price=...)` (for example, a documented zone rule or first eligible observation), and how gaps through invalidation and target overshoots are recorded. A published entry zone, assumed entry, stop threshold, observed close, and executable fill are different values. Never call a market-proxy return an executed result.
-8. **Recovery and operations:** Define durable observation identity/cursor, duplicate handling, late corrections, replay, missed-run reconciliation, and operator-visible failures.
+1. **Observation semantics — accepted:** Swing transitions use completed daily OHLC candles only; `High >= target` records target reach and `Low <= invalidation` records invalidation. Same-candle dual touch resolves to invalidation. Persist source candle identity/timestamp, provider provenance, OHLC evidence, policy version, and transition identity. Same-candle replay is idempotent; corrections are append-only and auditable.
+2. **Session and cadence — accepted:** Use a versioned operator-maintained EGX calendar until an authoritative machine-readable source is verified. Evaluate once after configured session close + 60 minutes and only for sessions explicitly marked closed.
+3. **Provider/data eligibility — policy accepted, provider proof open:** Require provider-attested daily timeframe, source identity/timestamp, and final/complete status. If completion cannot be established, suppress transitions. Reject missing, non-finite, non-positive, or internally inconsistent OHLC. Mark an expected-session observation STALE at the next scheduled evaluation if eligible data is absent. Actual adapter guarantees and timestamp semantics still require verification.
+4. **Expiry — accepted:** Active Swing opportunities expire after 20 eligible EGX trading sessions, as a distinct terminal event.
+5. **Revision — accepted:** A materially changed setup creates a new immutable linked revision; prior evidence and terminal events are not overwritten.
+6. **Entry/performance — accepted:** Keep level monitoring separate from performance accounting. Do not calculate realized return/R without an explicit entry/fill; otherwise record only level reached/invalidated.
+7. **Corrections and recovery — accepted:** Append correction/reconciliation records; replay identity is provider + symbol + timeframe + candle timestamp + revision. Reconcile missed eligible sessions chronologically after restart and stop/mark a gap if required session data is missing.
+
+Implementation and provider/session eligibility verification remain open. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md` and `docs/DEC-139-LIFECYCLE-MONITORING-OPERATIONAL-POLICY.md`.
 
 ## 4. Recommended application flow
 
@@ -52,7 +56,7 @@ After owner decisions and provider/session verification, implement a dedicated a
 4. If the setup's supporting evidence materially changed, apply the approved revision/invalidation policy. A missing candidate or failed analysis must not invalidate the existing opportunity.
 5. Construct `SignalMarketState` from the verified observation price and its actual source-data timestamp. Keep source-data time separate from processing/observation time.
 6. Apply the pure domain transition and create an immutable lifecycle event with a stable idempotency key derived from signal version and source observation identity.
-7. Persist transition, outcome, and alert intent through a reviewed durable transaction/outbox boundary. The current separate history, outcome, and outbox stores do not share one transaction; do not claim cross-store atomicity.
+7. Persist transition, outcome, and alert intent through `SQLiteSignalLifecycleUnitOfWork`. The history, outcome, and alert outbox stores must share one SQLite database; the unit of work uses one connection and `BEGIN IMMEDIATE` so these writes commit or roll back together. Telegram network delivery remains outside this transaction.
 8. Dispatch the lifecycle alert through the existing per-recipient Telegram delivery state machine. Preserve delivered-recipient suppression and manual-only handling for ambiguous `DELIVERY_UNKNOWN`.
 9. Expose lifecycle history and outcome provenance through authenticated per-user/operator read models with clear proxy-not-execution wording.
 
@@ -85,10 +89,36 @@ After owner decisions and provider/session verification, implement a dedicated a
 
 ## 6. Gate decision
 
-**Current result: GAP — do not claim automatic lifecycle monitoring.**
+**Current result: GAP — do not claim automatic lifecycle monitoring.** DEC-138 resolves the Swing daily-OHLC crossing rule only; it does not authorize runtime monitoring until provider/session eligibility, freshness, idempotent persistence, recovery, and end-to-end delivery are implemented and verified.
 
-The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. The observation-price, crossing, data-eligibility, expiry, revision, and outcome semantics must be resolved before the orchestration is wired.
+The generation/publication/Telegram-delivery path and the lifecycle domain/orchestrator exist as separate pieces, but automatic observation integration is not evidenced. DEC-138/DEC-139 settle the product semantics; the remaining blockers are provider/session eligibility proof, the durable observation/cursor and correction implementation, runtime wiring, and end-to-end recovery/delivery/read-model acceptance.
 
 PR #443 adds the source-data timestamp to `SignalMarketState` and records that timestamp on terminal outcomes; its exact-head CI run #41205688356 passed all five jobs and merge commit is `f7de38c6a1c8a2e4cdb0bd29fd7eac5eed80342d`. This corrects provenance for callers that supply a state; it does not itself create an automatic observation pipeline.
 
 M61/backtesting remains paused and is outside this gate.
+
+
+## 7. Verified implementation update — 2026-11-07
+
+- PR #450 merged the SQLite lifecycle Unit of Work. It requires the history, outcome, and alert outbox stores to share one database and commits their writes through one connection/transaction.
+- PR #452 added failpoint coverage after history writes, outcome persistence, and outbox insertion; each injected failure verifies rollback across the participating stores.
+- PR #454 merged persistent-history dispatcher-restart coverage and a transport-boundary test. The restart test reconstructs the dispatcher and its SQLite-backed stores, proves a pending event is delivered after restart, and proves a second dispatcher does not redeliver it. The transport-boundary test verifies the committed lifecycle rows are visible to a separate SQLite connection before the fake Telegram transport is invoked.
+- PR #454 exact-head CI passed all five jobs. Post-merge `main` workflow run #42399538146 subsequently completed successfully with all five jobs passed: unit tests (including lint, type-check, and coverage), deterministic integration tests, frontend tests/build/audit, dependency audit, and container build.
+
+These changes close the atomic persistence, rollback, restart-recovery, and tested transport-boundary acceptance items. They do **not** close automatic observation integration.
+
+M61/backtesting remains paused and is outside this gate.
+
+
+## 8. Owner decision update — 2026-11-07 (DEC-138)
+
+The owner accepted completed daily OHLC semantics for Swing opportunities: High touching target means target reached; Low touching invalidation means invalidated; if both occur in the same completed candle, invalidation takes precedence. The decision also requires persisted source-candle identity/timestamp, provider provenance, OHLC evidence, policy version, idempotent replay, and explicit auditable correction handling. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md`.
+
+This closes only the crossing-semantics decision. Provider completion guarantees, EGX session calendar, stale/future/corrected data eligibility, observation cadence/recovery, entry basis, expiry, revision lineage, and user-facing history remain open. Automatic monitoring remains unimplemented until the end-to-end acceptance path passes.
+
+
+## 9. Owner decision update — 2026-11-07 (DEC-139)
+
+The owner approved the operational defaults in `docs/DEC-139-LIFECYCLE-MONITORING-OPERATIONAL-POLICY.md`: versioned operator-maintained EGX calendar until an authoritative machine-readable source is verified; evaluation after close + 60 minutes for explicitly closed sessions; provider-attested completed daily bars; STALE suppression for missing expected-session data; strict OHLC validation; no performance return without explicit entry/fill; 20 eligible-session Swing expiry; immutable linked revisions; append-only correction/reconciliation; idempotent candle replay; chronological restart reconciliation with gaps blocking progression.
+
+DEC-139 closes the product-policy decisions, not implementation or data-provider verification. Automatic monitoring remains disabled until the acceptance boundary in DEC-139 is implemented and verified. No Yahoo redistribution rights are implied; M61 remains paused.

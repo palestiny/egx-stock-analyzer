@@ -8,6 +8,19 @@
 
 # Current Position
 
+## Latest verified non-M61 continuation — 2026-11-07
+
+- PR #450, #452, and #454 are merged. Lifecycle history, optional market-proxy outcome, and alert intent persist through one SQLite transaction; rollback failpoints, dispatcher restart recovery, and the no-network-I/O transaction boundary have explicit tests.
+- PR #454 exact-head CI passed all five jobs. Post-merge main workflow #42399538146 completed successfully with all five jobs.
+- The lifecycle orchestrator remains constructed but is not wired to persisted analysis observations. Automatic target/invalidation monitoring is therefore not implemented or accepted.
+- The lifecycle integration gate records unresolved observation identity, provider timestamp/freshness, completed-bar eligibility, price/crossing, expiry, revision, entry-basis, and missed-observation recovery decisions. Do not infer these rules from generic OHLC/current-price fields.
+- The authenticated Telegram opportunity-notification feed is available, but it is not a complete per-user lifecycle history/read model.
+- PR #447's canonical archive contains 186 source-attributed records through the 2026-11-05 session; 36 rows with reported open below reported low remain flagged and must not be silently repaired or treated as clean OHLC.
+- M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
+
+**Next non-M61 execution focus:** close verified engineering gaps that do not require inventing market-data or trading policy; keep lifecycle integration blocked until its design-gate inputs are accepted and provider/session semantics are verified. Keep Yahoo-derived data out of paid/subscriber-facing distribution until commercial reuse rights are explicitly verified.
+
+
 ## Non-M61 engineering checkpoint — 2026-10-31 (updated after PRs #428–#433)
 
 The latest non-M61 implementation increment merged:
@@ -246,4 +259,4 @@ Verified repository checkpoint: PR #422 merged at `fa5d16a9b8a47e3cdcb9467d1e31f
 
 **Latest verified non-M61 progress — 2026-10-31:** PR #428 merged atomic Telegram recipient claims and ambiguous-outcome handling; PR #429 merged operator-only audited reconciliation; PR #430 merged the operator runbook. PR #429 main CI run #41191307763 passed all five jobs. PR #430 branch CI run #41191550843 passed all five jobs; post-merge main CI for the new main commit still requires verification.
 
-**Next execution priority:** continue from the updated gap register. The Telegram retry policy for definite failures is the immediate owner decision gate: attempt budget, delay/backoff, and exhaustion behavior remain unapproved. In parallel, close the Cairo-session report scheduling/correction/delivery composition, Crash Radar configurable-universe/freshness/coverage implementation without changing 50/40/10, official-news source-rights/provenance verification, and entitlement enforcement across API and Telegram. Keep payment collection/pricing/refunds deferred; do not enable automatic trading or Crash Radar alerts. PRs #342/#344/#347 are historical proposals superseded by the accepted DEC-135 policy baseline, not active owner-decision gates.
+**Next execution priority:** follow the 2026-11-07 checkpoint and `docs/PROJECT-COMPLETION-GAP-REGISTER.md`. First, resolve the lifecycle observation design gate and verify provider/session semantics before wiring monitoring. In parallel, close EGXBot data readiness and commercial-rights verification; implement only the accepted Crash Radar universe/freshness/coverage behavior once authoritative session semantics are available; resolve the official calendar, cutoff, correction, worker, and delivery contracts before automatic session reports; verify official news source rights before production ingestion; and complete entitlement/release-readiness verification. DEC-135 is accepted policy, not implementation acceptance. Keep billing deferred, do not enable automatic trading or Crash Radar alerts, and keep M61 paused. PRs #342/#344/#347 are historical proposals superseded by DEC-135, not active decision gates.

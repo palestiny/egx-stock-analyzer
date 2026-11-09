@@ -3169,3 +3169,19 @@ The 15-minute cap is a ceiling, not an instruction to retry more than three time
 
 ### Consequences
 The retry budget is finite and auditable. A worker restart must preserve the scheduled retry instant and attempt count. Operator reconciliation remains distinct from automatic retry, and exactly-once delivery is not claimed.
+
+
+## DEC-138 — Completed Daily OHLC Swing Opportunity Observation Semantics
+
+**Status:** Accepted by owner  
+**Date:** 2026-11-07
+
+Completed daily OHLC candles are the only eligible observations for Swing target/invalidation transitions. High touching the target records target reach; Low touching invalidation records invalidation. If both are touched in one candle, invalidation wins because OHLC does not reveal intrabar order. Persist candle identity/timestamp, provider provenance, OHLC evidence, policy version, and transition identity. Reprocessing the same candle is idempotent. Corrections must be explicit and auditable; they must not silently rewrite prior lifecycle events. This does not resolve EGX calendar/provider completion, freshness, entry basis, expiry, or revision lineage. See `docs/DEC-138-COMPLETED-DAILY-OHLC-OPPORTUNITY-OBSERVATION.md`.
+
+
+## DEC-139 — Lifecycle Monitoring Operational Policy
+
+**Status:** Accepted by owner  
+**Date:** 2026-11-07
+
+Owner approved the lifecycle monitoring defaults: versioned operator-maintained EGX session calendar until an authoritative machine-readable source is verified; evaluate once after configured close + 60 minutes and only for explicitly closed sessions; require provider-attested completed daily bars and suppress transitions if completion cannot be established; mark missing expected-session observations STALE at the next scheduled evaluation; validate OHLC completeness, finiteness, positivity and internal consistency; separate level events from performance accounting and calculate realized return only from an explicitly recorded entry/fill; expire active Swing opportunities after 20 eligible EGX sessions; create immutable linked revisions for materially changed setups; append correction/reconciliation records and make same-candle replay idempotent; recover missed eligible sessions chronologically and stop on data gaps. These policies do not establish that any current provider meets the requirements, authorize redistribution of Yahoo-derived data, or resume M61. See `docs/DEC-139-LIFECYCLE-MONITORING-OPERATIONAL-POLICY.md`.
