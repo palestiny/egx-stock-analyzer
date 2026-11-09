@@ -37,6 +37,23 @@ URL: https://market-holiday.com/markets/egx
 
 The page identifies EGX and Africa/Cairo, displays a dataset snapshot dated August 4, 2026, and reports a regular continuous session of 10:00–14:15. The page distinguishes its dataset snapshot from the official venue as the authority for current schedules. This is useful as a comparison source, not as the source of truth. Its published hours and holiday list must be reconciled against actual EGX notices before use.
 
+### 5. Secondary reports reproducing EGX holiday notices — conflict examples
+
+These reports are useful leads to the underlying EGX announcements, but they are not the original exchange notices:
+
+- **25 January / Police Day:** a Sigma Securities page dated January 26 reports that EGX moved the exchange holiday to Thursday, January 29 instead of Sunday, January 25. A separate CalendarLabs listing still shows January 25 as the EGX closure. The Presidency's national-holiday page lists January 29. Do not treat a third-party holiday row as sufficient evidence of the actual exchange closure.
+  - Sigma Securities: https://www.sigmasecurities.com.eg/main/news_page_exact?newsId=45830271&newsType=EGX
+  - CalendarLabs: https://www.calendarlabs.com/egx-market-holidays-2026/
+- **Armed Forces Day:** a Sigma Capital page dated October 5 reports that EGX moved the exchange holiday to Thursday, October 8 instead of Tuesday, October 6. The Market-Holidays dataset snapshot lists October 6 as the full closure. This is a concrete freshness/reconciliation failure in the third-party snapshot.
+  - Sigma Capital: https://sigmacapital.com.eg/main/news_page_exact?newsId=46118692&newsType=EGX&u_sess=%27
+  - Market-Holidays: https://market-holiday.com/markets/egx/holidays/2026
+- **Labor Day:** Mubasher reports that Thursday, May 7 was the EGX holiday and trading resumed Sunday, May 10.
+  - Mubasher: https://english.mubasher.info/news/4606991/Labor-Day-Holiday-at-EGX/
+- **Prophet Mohamed's Birthday:** MondoVisione reproduces an EGX holiday announcement for Thursday, August 27, with trading resuming Sunday, August 30; the Market-Holidays dataset lists August 26.
+  - MondoVisione: https://mondovisione.com/media-and-resources/news/prophet-mohameds-birthday-mawled-el-nabi-holiday-at-egx-2026824/
+
+These are secondary reproductions and should be used to locate/cross-check the original EGX notices, not to bypass them. The mismatches show that copying a national holiday list or an undated third-party calendar into production can shift the expected session date and invalidate freshness calculations.
+
 ## Risks and required evidence
 
 - National public holidays and exchange trading closures are not interchangeable.
