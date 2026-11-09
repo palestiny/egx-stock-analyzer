@@ -89,6 +89,16 @@ class SQLiteCalendarEvidenceRepository:
             )
 
     def append(self, evidence: CalendarEvidence) -> CalendarEvidence:
+        with self._connect() as connection:
+            stored = self.append_in_transaction(connection, evidence)
+        return stored
+
+    def append_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        evidence: CalendarEvidence,
+    ) -> CalendarEvidence:
+        """Append evidence using a caller-owned transaction connection."""
         if evidence.content_sha256:
             raise ValueError("New evidence must not supply a precomputed content hash")
         if evidence.recorded_at > datetime.now(timezone.utc):
@@ -98,70 +108,72 @@ class SQLiteCalendarEvidenceRepository:
         payload = self._payload(evidence)
         serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-        with self._connect() as connection:
-            calendar_row = connection.execute(
-                "SELECT calendar_json FROM egx_calendar_versions WHERE version = ?",
-                (evidence.calendar_version,),
-            ).fetchone()
-            if calendar_row is None:
-                raise KeyError(f"Unknown calendar version: {evidence.calendar_version}")
-            calendar_payload = json.loads(calendar_row[0])
-            covered_dates = {
-                item.get("date") for item in calendar_payload.get("days", [])
-            }
-            if evidence.session_date.isoformat() not in covered_dates:
-                raise ValueError(
-                    "Evidence session_date must be an explicit date in the calendar version"
-                )
-            if evidence.supersedes_evidence_id is not None:
-                prior = connection.execute(
-                    """
-                    SELECT calendar_version, session_date, evidence_kind
-                    FROM egx_calendar_evidence WHERE evidence_id = ?
-                    """,
-                    (str(evidence.supersedes_evidence_id),),
-                ).fetchone()
-                if prior is None:
-                    raise KeyError("Superseded evidence does not exist")
-                expected = (
-                    evidence.calendar_version,
-                    evidence.session_date.isoformat(),
-                    evidence.evidence_kind.value,
-                )
-                if prior != expected:
-                    raise ValueError("Superseding evidence must support the same calendar day and kind")
-            connection.execute(
-                """
-                INSERT INTO egx_calendar_evidence (
-                    evidence_id, calendar_version, session_date, evidence_kind,
-                    source_type, source_reference, claim, recorded_by, observed_at,
-                    recorded_at, source_published_at, supersedes_evidence_id,
-                    supersession_reason, content_sha256
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    str(evidence.evidence_id),
-                    evidence.calendar_version,
-                    evidence.session_date.isoformat(),
-                    evidence.evidence_kind.value,
-                    evidence.source_type,
-                    evidence.source_reference,
-                    evidence.claim,
-                    str(evidence.recorded_by),
-                    evidence.observed_at.astimezone(timezone.utc).isoformat(),
-                    evidence.recorded_at.astimezone(timezone.utc).isoformat(),
-                    evidence.source_published_at.astimezone(timezone.utc).isoformat()
-                    if evidence.source_published_at else None,
-                    str(evidence.supersedes_evidence_id)
-                    if evidence.supersedes_evidence_id else None,
-                    evidence.supersession_reason,
-                    digest,
-                ),
+        calendar_row = connection.execute(
+            "SELECT calendar_json FROM egx_calendar_versions WHERE version = ?",
+            (evidence.calendar_version,),
+        ).fetchone()
+        if calendar_row is None:
+            raise KeyError(f"Unknown calendar version: {evidence.calendar_version}")
+        calendar_payload = json.loads(calendar_row[0])
+        covered_dates = {
+            item.get("date") for item in calendar_payload.get("days", [])
+        }
+        if evidence.session_date.isoformat() not in covered_dates:
+            raise ValueError(
+                "Evidence session_date must be an explicit date in the calendar version"
             )
-        stored = self.get(evidence.evidence_id)
-        if stored is None:
+        if evidence.supersedes_evidence_id is not None:
+            prior = connection.execute(
+                """
+                SELECT calendar_version, session_date, evidence_kind
+                FROM egx_calendar_evidence WHERE evidence_id = ?
+                """,
+                (str(evidence.supersedes_evidence_id),),
+            ).fetchone()
+            if prior is None:
+                raise KeyError("Superseded evidence does not exist")
+            expected = (
+                evidence.calendar_version,
+                evidence.session_date.isoformat(),
+                evidence.evidence_kind.value,
+            )
+            if prior != expected:
+                raise ValueError("Superseding evidence must support the same calendar day and kind")
+        connection.execute(
+            """
+            INSERT INTO egx_calendar_evidence (
+                evidence_id, calendar_version, session_date, evidence_kind,
+                source_type, source_reference, claim, recorded_by, observed_at,
+                recorded_at, source_published_at, supersedes_evidence_id,
+                supersession_reason, content_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(evidence.evidence_id),
+                evidence.calendar_version,
+                evidence.session_date.isoformat(),
+                evidence.evidence_kind.value,
+                evidence.source_type,
+                evidence.source_reference,
+                evidence.claim,
+                str(evidence.recorded_by),
+                evidence.observed_at.astimezone(timezone.utc).isoformat(),
+                evidence.recorded_at.astimezone(timezone.utc).isoformat(),
+                evidence.source_published_at.astimezone(timezone.utc).isoformat()
+                if evidence.source_published_at else None,
+                str(evidence.supersedes_evidence_id)
+                if evidence.supersedes_evidence_id else None,
+                evidence.supersession_reason,
+                digest,
+            ),
+        )
+        row = connection.execute(
+            self._select() + " WHERE evidence_id = ?",
+            (str(evidence.evidence_id),),
+        ).fetchone()
+        if row is None:
             raise RuntimeError("Persisted calendar evidence could not be read back")
-        return stored
+        return self._from_row(row)
 
     def get(self, evidence_id: UUID) -> CalendarEvidence | None:
         with self._connect() as connection:
