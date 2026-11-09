@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -62,7 +62,7 @@ def test_calendar_versions_are_immutable(tmp_path):
                 "UPDATE egx_calendar_versions SET publication_reason = 'changed' "
                 "WHERE version = 'egx-v1'"
             )
-        with pytest.raises(Exception, match="immutable"):
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             connection.execute(
                 "DELETE FROM egx_calendar_versions WHERE version = 'egx-v1'"
             )
