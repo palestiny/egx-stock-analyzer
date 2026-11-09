@@ -37,6 +37,9 @@ This register separates verified implementation from incomplete acceptance and d
 
 ### P1 — EGXBot market-data readiness and dual engines (stale/invalid-data safety policy accepted in DEC-135)
 
+- [x] Review current provider contract against DEC-139 and record the gap in `docs/MARKET-DATA-PROVIDER-RELIABILITY-DESIGN-GATE.md`: provider identity, retrieved-at, session mapping, finality attestation and revision identity are not carried by the current `MarketDataProvider`/`RawPriceBarObservation` contract; `DataQualityAssessor` does not implement expected-session STALE eligibility.
+- [ ] Approve the provider observation envelope and finality/correction contract after a candidate provider's technical documentation is verified.
+
 - [x] Inspect current adapter path: `YahooFinanceHistoryClient.history()` requests daily bars only (`interval="1d"`); `YahooFinanceAdapter` maps `{stock.symbol}.CA`, carries OHLCV and normalizes naive timestamps as UTC. This is code behavior, not verified provider timezone semantics, delay, coverage, rate limits or reuse rights.
 - [x] Verify source-bar timestamp is carried into `StockAnalysisResult.data_timestamp` and serialized with analysis snapshots; `GenerateSignal` suppresses output if timestamp is absent or timezone-naive (PR #418 and current main code).
 - [ ] Verify EGX symbol coverage, actual timestamp/timezone semantics, data delay, corrections and rate limits.
