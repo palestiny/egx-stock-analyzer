@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 from sqlite3 import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +21,7 @@ from app.domain.market_data.session_calendar import (
 class CalendarDayPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    date: str = Field(min_length=10, max_length=10)
+    date: date
     status: CalendarDayStatus
     session_open: time | None = None
     session_close: time | None = None
@@ -34,8 +34,8 @@ class CalendarPublicationPayload(BaseModel):
 
     version: str = Field(min_length=1, max_length=120)
     timezone: str = Field(min_length=1, max_length=100)
-    coverage_start: str = Field(min_length=10, max_length=10)
-    coverage_end: str = Field(min_length=10, max_length=10)
+    coverage_start: date
+    coverage_end: date
     days: list[CalendarDayPayload] = Field(min_length=1, max_length=800)
     source_reference: str = Field(min_length=1, max_length=1000)
     reason: str = Field(min_length=1, max_length=500)
