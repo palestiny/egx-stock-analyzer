@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
-from app.application.security.authentication import AuthenticationError, Authenticator
+from app.application.security.authentication import AuthenticationError
 from app.application.security.identity import AuthenticatedIdentity
 from app.infrastructure.persistence.sqlite_session_calendar_repository import (
     SQLiteSessionCalendarRepository,
@@ -18,7 +18,7 @@ USER_TOKEN = "calendar-user-token"
 USER_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
 
-class CalendarTestAuthenticator(Authenticator):
+class CalendarTestAuthenticator:
     def authenticate(self, authorization_header: str | None) -> AuthenticatedIdentity:
         if authorization_header == f"Bearer {OPERATOR_TOKEN}":
             return AuthenticatedIdentity.operator()
