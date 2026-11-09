@@ -38,9 +38,11 @@ This is a material warning against hard-coding one session-close time. The offic
 
 URL: https://mansaapi.com/docs
 
-The public documentation describes GET /api/v1/markets/calendar/{exchange_code} as returning a full exchange trading calendar with session times, timezone, trading days, settlement cycle, and public holidays. The documentation labels the full calendar endpoint Starter tier and above, while an is-open endpoint is described as free. API access uses a Bearer key.
+The public documentation describes GET /api/v1/markets/calendar/{exchange_code} as returning a full exchange trading calendar with session times, timezone, trading days, settlement cycle, and public holidays. The full calendar endpoint is Starter tier and above; the is-open endpoint (current status plus next open/close) is free. API access uses a Bearer key.
 
-This is a candidate for a controlled source-evaluation exercise, not an approved authority. The reviewed public documentation does not establish, for EGX specifically, the underlying official source per date, the completeness of exceptional/shortened sessions, correction history, or a contractual freshness guarantee. Do not auto-import or activate its calendar without obtaining and independently reconciling an actual EGX response and its provenance.
+The same documentation advertises daily OHLCV history for Egypt from 1995 on the Pro tier and above. Its example response exposes data_freshness: daily, but the documented response does not show a provider final/complete attestation for an individual daily candle. The general markets freshness target of 30 minutes during market hours is not proof that a daily bar is final.
+
+This is a candidate for a controlled source-evaluation exercise, not an approved authority. The reviewed public documentation does not establish, for EGX specifically, the underlying official source per calendar date, the completeness of exceptional/shortened sessions, correction history, or a contractual calendar freshness guarantee. Nor does the displayed OHLCV contract satisfy DEC-139's explicit completed-bar attestation requirement. Do not auto-import or activate its calendar, or use its history for lifecycle transitions, without obtaining actual EGX responses and verifying provenance, revision handling, licensing, and bar-completion semantics.
 
 ### 5. Market-Holidays Exchange Calendar — third-party snapshot
 
