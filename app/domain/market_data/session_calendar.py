@@ -29,6 +29,8 @@ class EGXCalendarDay:
     reason: str | None = None
 
     def __post_init__(self) -> None:
+        if not isinstance(self.status, CalendarDayStatus):
+            raise ValueError("Calendar day status must be a CalendarDayStatus value")
         is_trading = self.status in {
             CalendarDayStatus.SCHEDULED,
             CalendarDayStatus.OPEN,
