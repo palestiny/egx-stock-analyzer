@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 from sqlite3 import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
@@ -36,9 +36,17 @@ class CalendarPublicationPayload(BaseModel):
     timezone: str = Field(min_length=1, max_length=100)
     coverage_start: date
     coverage_end: date
-    days: list[CalendarDayPayload] = Field(min_length=1, max_length=800)
+    days: list[CalendarDayPayload] = Field(min_length=1)
     source_reference: str = Field(min_length=1, max_length=1000)
     reason: str = Field(min_length=1, max_length=500)
+
+    @field_validator("version", "timezone", "source_reference", "reason")
+    @classmethod
+    def strip_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must be non-empty")
+        return normalized
 
 
 def _calendar_payload(calendar: EGXSessionCalendar) -> dict[str, object]:
