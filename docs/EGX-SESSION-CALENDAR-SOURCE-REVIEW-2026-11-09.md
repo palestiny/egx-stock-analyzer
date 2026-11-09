@@ -48,7 +48,7 @@ URL: https://market-holiday.com/markets/egx
 
 The page identifies EGX and Africa/Cairo, displays a dataset snapshot dated August 4, 2026, and reports a regular continuous session of 10:00–14:15. The page distinguishes its dataset snapshot from the official venue as the authority for current schedules. This is useful as a comparison source, not as the source of truth. Its published hours and holiday list must be reconciled against actual EGX notices before use.
 
-### 5. Secondary reports reproducing EGX holiday notices — conflict examples
+### 6. Secondary reports reproducing EGX holiday notices — conflict examples
 
 These reports are useful leads to the underlying EGX announcements, but they are not the original exchange notices:
 
@@ -65,7 +65,7 @@ These reports are useful leads to the underlying EGX announcements, but they are
 
 These are secondary reproductions and should be used to locate/cross-check the original EGX notices, not to bypass them. The mismatches show that copying a national holiday list or an undated third-party calendar into production can shift the expected session date and invalidate freshness calculations.
 
-### 6. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
+### 7. IsOpenNow open dataset — not an EGX candidate in the reviewed snapshot
 
 URL: https://isopennow.com/data/exchanges.v1.json
 
