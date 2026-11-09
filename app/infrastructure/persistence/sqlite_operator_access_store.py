@@ -40,11 +40,13 @@ class SQLiteOperatorAccessStore:
                     target_user_id TEXT NOT NULL REFERENCES users(id),
                     actor_user_id TEXT NULL REFERENCES users(id),
                     actor_credential_id TEXT NULL,
-                    actor_kind TEXT NOT NULL CHECK (actor_kind IN ('SYSTEM_BOOTSTRAP', 'INDIVIDUAL_OPERATOR')),
+                    actor_kind TEXT NOT NULL CHECK (actor_kind IN ('SYSTEM_BOOTSTRAP', 'SYSTEM_USER_LIFECYCLE', 'INDIVIDUAL_OPERATOR')),
                     reason TEXT NOT NULL,
                     occurred_at TEXT NOT NULL,
                     CHECK (
                         (actor_kind = 'SYSTEM_BOOTSTRAP' AND actor_user_id IS NULL AND actor_credential_id IS NULL AND action = 'BOOTSTRAP')
+                        OR
+                        (actor_kind = 'SYSTEM_USER_LIFECYCLE' AND actor_user_id IS NULL AND actor_credential_id IS NULL AND action = 'REVOKE')
                         OR
                         (actor_kind = 'INDIVIDUAL_OPERATOR' AND actor_user_id IS NOT NULL AND actor_credential_id IS NOT NULL AND action IN ('GRANT', 'REVOKE'))
                     )
@@ -65,6 +67,24 @@ class SQLiteOperatorAccessStore:
                  ) <= 1
                 BEGIN
                     SELECT RAISE(ABORT, 'cannot disable the last active operator');
+                END;
+
+                CREATE TRIGGER IF NOT EXISTS operator_access_revoke_on_user_deactivation
+                AFTER UPDATE OF status ON users
+                WHEN OLD.status = 'active'
+                 AND NEW.status <> 'active'
+                 AND EXISTS (
+                     SELECT 1 FROM operator_access_current WHERE user_id = OLD.id
+                 )
+                BEGIN
+                    INSERT INTO operator_access_events
+                        (action, target_user_id, actor_user_id, actor_credential_id, actor_kind, reason, occurred_at)
+                    VALUES (
+                        'REVOKE', OLD.id, NULL, NULL, 'SYSTEM_USER_LIFECYCLE',
+                        'User status changed to ' || NEW.status || '; operator access automatically revoked',
+                        strftime('%Y-%m-%dT%H:%M:%f+00:00', 'now')
+                    );
+                    DELETE FROM operator_access_current WHERE user_id = OLD.id;
                 END;
 
                 CREATE TRIGGER IF NOT EXISTS operator_access_events_no_update
