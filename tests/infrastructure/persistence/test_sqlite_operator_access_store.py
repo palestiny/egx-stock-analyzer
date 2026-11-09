@@ -111,11 +111,17 @@ def test_disabled_user_loses_operator_authority_and_cannot_be_granted(tmp_path):
     path = tmp_path / "operators.db"
     users, _, access, first, second, first_credential, _ = setup_operator_database(path)
     access.bootstrap_first_operator(first, reason="Initial owner setup")
+    access.grant(
+        second,
+        actor_user_id=first,
+        actor_credential_id=first_credential.id,
+        reason="Add second operator",
+    )
     users.save(User(first, UserStatus.DISABLED))
     assert not access.is_operator(first)
-    with pytest.raises(ValueError, match="active user"):
+    with pytest.raises(ValueError, match="Actor is not an active operator"):
         access.grant(
-            second,
+            first,
             actor_user_id=first,
             actor_credential_id=first_credential.id,
             reason="Disabled actor",
