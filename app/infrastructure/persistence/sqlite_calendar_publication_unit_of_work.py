@@ -10,7 +10,7 @@ from uuid import UUID
 
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
-from app.domain.market_data.session_calendar import EGXSessionCalendar
+from app.domain.market_data.session_calendar import CalendarDayStatus, EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
     SQLiteCalendarEvidenceRepository,
 )
@@ -110,6 +110,26 @@ class SQLiteCalendarPublicationUnitOfWork:
             raise ValueError("Evidence actor must match the authenticated calendar publisher")
         if len({item.evidence_id for item in evidence}) != len(evidence):
             raise ValueError("Evidence identifiers must be unique within a publication")
+        evidence_kinds_by_date: dict = {}
+        for item in evidence:
+            evidence_kinds_by_date.setdefault(item.session_date, set()).add(item.evidence_kind)
+        for day in calendar.days:
+            required_kinds = {
+                CalendarDayStatus.NON_TRADING: {CalendarEvidenceKind.CLOSURE},
+                CalendarDayStatus.CANCELLED: {CalendarEvidenceKind.CANCELLATION},
+                CalendarDayStatus.SCHEDULED: {CalendarEvidenceKind.SCHEDULE},
+                CalendarDayStatus.OPEN: {CalendarEvidenceKind.SCHEDULE},
+                CalendarDayStatus.CLOSED: {
+                    CalendarEvidenceKind.SCHEDULE,
+                    CalendarEvidenceKind.CLOSE_CONFIRMATION,
+                },
+            }[day.status]
+            missing_kinds = required_kinds - evidence_kinds_by_date.get(day.session_date, set())
+            if missing_kinds:
+                missing = ", ".join(sorted(kind.value for kind in missing_kinds))
+                raise ValueError(
+                    f"Calendar date {day.session_date.isoformat()} requires evidence kinds: {missing}"
+                )
 
         payload = self._calendar_repository._calendar_payload(calendar)
         serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
