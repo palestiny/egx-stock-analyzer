@@ -56,7 +56,7 @@ The API now exposes this source evidence independently:
 
 - `source_data_timestamps_by_symbol`: latest source-bar timestamp per analyzed symbol, preserving its timezone offset; null when unavailable or timezone-naive.
 - `source_data_dates_by_symbol`: the source timestamp converted to the EGX timezone and reduced to its calendar date.
-- `undated_source_data_symbols` and `source_data_timestamp_status`: explicit unknown, partial, mixed, or consistent source-date coverage.
+- `undated_source_data_symbols` and `source_data_date_status`: explicit unknown, partial, mixed, or consistent source-date coverage.
 - `latest_source_data_timestamp` and `latest_source_data_date`: latest available source-bar evidence across analyzed symbols.
 - `source_data_age_calendar_days_by_symbol`: calendar-day age from the requested reference date. Negative ages remain visible and are not clamped.
 
