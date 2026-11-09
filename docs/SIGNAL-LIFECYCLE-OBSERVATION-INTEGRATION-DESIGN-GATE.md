@@ -129,8 +129,8 @@ DEC-139 closes the product-policy decisions, not implementation or data-provider
 
 - PR #459 merged the versioned EGX session-calendar domain model. It requires explicit, contiguous date records, uses Africa/Cairo, distinguishes scheduled/open/closed/non-trading/cancelled days, and only treats explicitly confirmed closed sessions as completed.
 - PR #460 merged SQLite persistence for immutable calendar versions, SHA-256 payload verification on reads, a single active-version pointer, and append-only activation/deactivation/rollback audit events.
-- PR #462 (operator API; not yet merged) adds authenticated publication and read endpoints. Publication is not activation. Activation/deactivation/rollback are intentionally not exposed through HTTP because the operational coverage horizon is not yet defined.
-- No real EGX calendar version has been published or activated. No weekend/holiday/session schedule is inferred. Per-day official notice references are not yet modeled; the current publication record carries a calendar-level source reference.
+- PR #467 merged the authenticated publication and read API with persistent runtime composition. Publication is not activation. Activation/deactivation/rollback are intentionally not exposed through HTTP because the operational coverage horizon is not yet defined.
+- No real EGX calendar version has been published or activated. No weekend/holiday/session schedule is inferred. The per-day evidence registry is implemented, but publication does not yet require evidence IDs for each calendar-day claim.
 - The calendar is not yet connected to lifecycle scheduling or freshness evaluation. Provider-completed-bar attestation, one-session freshness gating, durable observation identity/cursor, chronological recovery, and end-to-end lifecycle delivery remain open.
 
 Therefore the calendar domain and persistence foundations are implemented, but the DEC-139 operational calendar/freshness gate is not complete. Automatic lifecycle monitoring remains disabled.
