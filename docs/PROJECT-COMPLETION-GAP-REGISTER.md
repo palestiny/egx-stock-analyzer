@@ -168,3 +168,16 @@ DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-hea
 - [ ] A user-facing per-user lifecycle history/read model remains distinct from the existing Telegram notification feed and is not yet complete.
 
 The persistence/recovery foundation is verified; automatic monitoring and lifecycle product acceptance are not. M61 remains paused and PR #321 remains Draft.
+
+### P1 — Calendar evidence provenance and individual operator accountability (owner-approved 2026-11-09)
+
+- [x] Owner approved an immutable per-day evidence registry and individual operator identities for privileged calendar operations.
+- [x] Inspect existing boundaries: calendar versions are immutable and activation events append-only, but provenance is currently a single version-level source reference; no structured day-level evidence registry exists.
+- [x] Inspect authentication boundary: durable user credentials exist, but the legacy shared operator token can still resolve to the synthetic operator identity.
+- [x] Record the approved architecture and rollout/acceptance gates in `docs/CALENDAR-EVIDENCE-REGISTRY-AND-INDIVIDUAL-OPERATOR-IDENTITY-DESIGN.md`.
+- [ ] Implement immutable day-level evidence records, canonical hashes, read-time integrity verification, append-only corrections, and visible conflict handling.
+- [ ] Require evidence references for calendar day status, hours, cancellation, and close-confirmation claims before publication.
+- [ ] Require explicit operator permission and individual durable credentials for privileged calendar operations; remove shared-token fallback from those routes after an audited bootstrap/recovery path is proven.
+- [ ] Link activation/publication audit events to immutable user and credential identities.
+- [ ] Add persistence, API, authorization, tamper, conflict, correction, restart, and end-to-end acceptance tests.
+- [ ] Keep calendar activation and lifecycle monitoring disabled until their independent coverage and provider-finality gates pass.
