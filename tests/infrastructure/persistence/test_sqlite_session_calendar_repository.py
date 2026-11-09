@@ -189,3 +189,77 @@ def test_activation_events_are_append_only(tmp_path):
                 "UPDATE egx_calendar_activation_events SET reason = 'rewritten' "
                 "WHERE event_id = 1"
             )
+
+
+
+def test_calendar_payload_integrity_is_verified_when_loaded(tmp_path):
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        CalendarVersionIntegrityError,
+    )
+
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+
+    with repository._connect() as connection:
+        connection.execute("DROP TRIGGER egx_calendar_versions_no_update")
+        connection.execute(
+            "UPDATE egx_calendar_versions SET calendar_json = "
+            "REPLACE(calendar_json, 'egx-v1', 'egx-v2') WHERE version = 'egx-v1'"
+        )
+
+    with pytest.raises(CalendarVersionIntegrityError, match="SHA-256 integrity check"):
+        repository.get_version("egx-v1")
+
+
+def test_calendar_payload_version_must_match_immutable_row_key(tmp_path):
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        CalendarVersionIntegrityError,
+    )
+
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+
+    with repository._connect() as connection:
+        connection.execute("DROP TRIGGER egx_calendar_versions_no_update")
+        connection.execute(
+            "UPDATE egx_calendar_versions SET calendar_json = "
+            "REPLACE(calendar_json, 'egx-v1', 'egx-v2'), sha256 = ? "
+            "WHERE version = 'egx-v1'",
+            (
+                __import__("hashlib").sha256(
+                    __import__("json").dumps(
+                        {
+                            "version": "egx-v2",
+                            "timezone": "Africa/Cairo",
+                            "coverage_start": "2026-11-02",
+                            "coverage_end": "2026-11-02",
+                            "days": [
+                                {
+                                    "date": "2026-11-02",
+                                    "status": "NON_TRADING",
+                                    "session_open": None,
+                                    "session_close": None,
+                                    "closed_at": None,
+                                    "reason": None,
+                                }
+                            ],
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).hexdigest(),
+            ),
+        )
+
+    with pytest.raises(CalendarVersionIntegrityError, match="payload version"):
+        repository.get_version("egx-v1")
