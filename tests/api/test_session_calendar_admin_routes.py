@@ -286,3 +286,23 @@ def test_active_calendar_and_audit_endpoints_read_persisted_activation(tmp_path)
     assert events.status_code == 200
     assert events.json()["items"][0]["action"] == "ACTIVATE"
     assert events.json()["items"][0]["performed_by"] == "operator"
+
+
+
+def test_http_activation_is_not_exposed_before_coverage_policy_exists(tmp_path):
+    client, store = make_client(tmp_path)
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=calendar_payload(),
+    )
+    assert published.status_code == 201
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions/egx-2026-11-v1/activate",
+        headers=operator_headers(),
+    )
+
+    assert response.status_code == 404
+    assert store.get_active() is None
+    assert store.list_activation_events() == ()
