@@ -120,7 +120,7 @@ from app.application.notifications.telegram_message_sender import TelegramMessag
 from app.application.subscriptions.store import SubscriptionStore
 from app.application.identity.user_store import UserStore
 from app.application.market_data.session_calendar_store import SessionCalendarStore
-from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
+from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
 from app.application.security.operator_access import OperatorAccessService
 
 logger = logging.getLogger(__name__)
@@ -177,7 +177,7 @@ def create_app(
     crash_radar_universe_symbols: tuple[str, ...] = (),
     crash_radar_universe_version: str | None = None,
     session_calendar_store: SessionCalendarStore | None = None,
-    calendar_publication_uow: SQLiteCalendarPublicationUnitOfWork | None = None,
+    calendar_publication_uow: CalendarPublicationUnitOfWork | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
