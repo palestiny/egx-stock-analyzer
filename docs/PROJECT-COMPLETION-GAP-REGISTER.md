@@ -175,9 +175,12 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] Inspect existing boundaries: calendar versions are immutable and activation events append-only, but provenance is currently a single version-level source reference; no structured day-level evidence registry exists.
 - [x] Inspect authentication boundary: durable user credentials exist, but the legacy shared operator token can still resolve to the synthetic operator identity.
 - [x] Record the approved architecture and rollout/acceptance gates in `docs/CALENDAR-EVIDENCE-REGISTRY-AND-INDIVIDUAL-OPERATOR-IDENTITY-DESIGN.md`.
-- [ ] Implement immutable day-level evidence records, canonical hashes, read-time integrity verification, append-only corrections, and visible conflict handling.
+- [x] Implement the first persistence slice: typed day-level evidence records, canonical SHA-256 hashes, read-time integrity verification, append-only corrections, explicit calendar-version/day coverage checks, and visible active-claim conflicts.
+- [ ] Prove the new persistence slice with exact-head CI; the current PR checks are still running.
+- [ ] Add API/application publication gates so missing or conflicting evidence blocks publication.
 - [ ] Require evidence references for calendar day status, hours, cancellation, and close-confirmation claims before publication.
 - [ ] Require explicit operator permission and individual durable credentials for privileged calendar operations; remove shared-token fallback from those routes after an audited bootstrap/recovery path is proven.
 - [ ] Link activation/publication audit events to immutable user and credential identities.
-- [ ] Add persistence, API, authorization, tamper, conflict, correction, restart, and end-to-end acceptance tests.
+- [x] Add focused persistence tests for append-only enforcement, restart persistence, hash tampering, conflicts, supersession, and calendar coverage.
+- [ ] Add API, authorization, role lifecycle, bootstrap/recovery, and end-to-end acceptance tests.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until their independent coverage and provider-finality gates pass.
