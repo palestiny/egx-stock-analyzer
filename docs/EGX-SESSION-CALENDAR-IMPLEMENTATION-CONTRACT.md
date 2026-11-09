@@ -70,3 +70,5 @@ Activation, deactivation, and rollback are deliberately not exposed through HTTP
 2. Define and validate the active operational horizon; the policy is not yet defined.
 3. Add authenticated activation/deactivation/rollback endpoints only after coverage validation is enforceable.
 4. Every evaluation must persist the calendar version and session date used.
+
+The activation coverage-horizon options and unresolved initial-cursor/bootstrap decision are documented in `docs/EGX-SESSION-CALENDAR-ACTIVATION-DESIGN-GATE.md`.
