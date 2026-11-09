@@ -18,7 +18,7 @@ from app.application.identity.get_user_audit_history import (
 )
 from app.application.identity.user_management import UserManagementError, UserManagementService
 from app.application.security.authorization import AuthorizationError
-from app.application.security.identity import AuthenticatedIdentity
+from app.application.security.identity import AuthenticatedIdentity, Permission
 from app.application.security.operator_access import OperatorAccessError, OperatorAccessService
 from app.domain.identity.user import UserStatus
 
@@ -38,12 +38,21 @@ def create_user_management_router(
     class OperatorAccessReasonPayload(BaseModel):
         reason: str = Field(min_length=1, max_length=500)
 
+    def require_individual_operator_identity(identity: AuthenticatedIdentity) -> None:
+        if (
+            Permission.OPERATOR not in identity.permissions
+            or identity.user_id is None
+            or identity.credential_id is None
+        ):
+            raise HTTPException(status_code=403, detail="Individual operator credential required")
+
     @router.get("/api/v1/operators/access-events")
     def list_operator_access_events(
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if operator_access is None:
             raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        require_individual_operator_identity(_identity)
         events = operator_access.list_events(_identity)
         return {
             "items": [
@@ -69,6 +78,7 @@ def create_user_management_router(
     ) -> dict[str, object]:
         if operator_access is None:
             raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        require_individual_operator_identity(identity)
         try:
             operator_access.grant(identity, user_id, payload.reason)
         except OperatorAccessError as error:
@@ -83,6 +93,7 @@ def create_user_management_router(
     ) -> dict[str, object]:
         if operator_access is None:
             raise HTTPException(status_code=503, detail="Operator access management is not configured")
+        require_individual_operator_identity(identity)
         try:
             operator_access.revoke(identity, user_id, payload.reason)
         except OperatorAccessError as error:
