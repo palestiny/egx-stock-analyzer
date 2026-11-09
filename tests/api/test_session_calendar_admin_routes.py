@@ -175,8 +175,14 @@ def test_duplicate_calendar_version_returns_conflict(tmp_path):
     assert second.status_code == 409
 
 
-def test_active_calendar_is_explicitly_absent_until_activation(tmp_path):
+def test_publishing_does_not_implicitly_activate_calendar(tmp_path):
     client, _store = make_client(tmp_path)
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=calendar_payload(),
+    )
+    assert published.status_code == 201
 
     response = client.get(
         "/api/v1/owner/session-calendars/active",
@@ -212,3 +218,40 @@ def test_calendar_management_returns_service_unavailable_without_store():
         )
 
     assert response.status_code == 503
+
+
+
+def test_publication_rejects_naive_session_close_confirmation(tmp_path):
+    client, store = make_client(tmp_path)
+    payload = calendar_payload()
+    payload["days"] = [
+        payload["days"][0],
+        {
+            **payload["days"][1],
+            "closed_at": "2026-11-02T14:31:00",
+        },
+    ]
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert response.status_code == 422
+    assert "timezone-aware" in response.json()["detail"]
+    assert store.list_versions() == ()
+
+
+def test_publication_rejects_blank_audit_metadata(tmp_path):
+    client, store = make_client(tmp_path)
+    payload = {**calendar_payload(), "source_reference": "   "}
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert response.status_code == 422
+    assert store.list_versions() == ()
