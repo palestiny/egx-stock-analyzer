@@ -11,7 +11,7 @@ This register separates verified implementation from incomplete acceptance and d
 ## Verified merged foundations
 
 
-- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. This is an evidence registry, not yet a publication policy gate or source-authenticity proof.
+- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection (pending exact-head CI). Neither layer proves source authenticity or completes the source-class acceptance policy.
 - PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
 - PR #467 merged authenticated session-calendar publication/read API and persistent runtime composition as `03d3969e19e7b73beb3b8427afb5328183d1553e`. All five exact-head checks passed before merge; the same five checks also passed on the merge commit. PR #462 is closed unmerged as superseded.
 
@@ -83,7 +83,8 @@ First add the UoW and repository transaction seams with focused tests; then rout
 - [x] Implement explicit, contiguous, fail-closed EGX session-calendar domain records (PR #459).
 - [x] Persist immutable calendar versions with SHA-256 verification and append-only activation audit history (PR #460).
 - [x] Merge authenticated calendar publication/read API with exact-head CI and post-merge main CI verification (PR #467).
-- [x] Implement immutable per-day evidence storage and named, attributable operator identities (PRs #465 and #466); evidence acceptance and enforcement remain open.
+- [x] Implement immutable per-day evidence storage and named, attributable operator identities (PRs #465 and #466).
+- [ ] Verify PR #471 exact-head CI for atomic publication, explicit per-day links, status-specific evidence requirements, and conflict rejection; source-class acceptance and artifact authenticity remain open.
 - [ ] Approve calendar bootstrap and cursor-derived coverage horizon; keep activation endpoints unavailable until the durable evaluation cursor and recovery rules exist.
 - [ ] Connect the calendar to durable lifecycle scheduling and chronological recovery only after provider-completed-bar attestation and freshness semantics are verified.
 - [ ] Keep lifecycle monitoring and Crash Radar freshness enforcement disabled until all required calendar, provider, and recovery gates pass.
