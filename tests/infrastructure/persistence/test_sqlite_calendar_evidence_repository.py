@@ -101,6 +101,7 @@ def test_correction_appends_and_preserves_original_evidence(tmp_path):
     assert repository.get(original.evidence_id) == original
     assert correction.supersedes_evidence_id == original.evidence_id
     assert len(repository.list_for_day("egx-evidence-v1", date(2026, 11, 2))) == 2
+    assert repository.list_conflicts("egx-evidence-v1", date(2026, 11, 2)) == ()
 
 
 def test_supersession_must_reference_same_day_and_kind(tmp_path):
