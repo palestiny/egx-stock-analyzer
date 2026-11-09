@@ -8,7 +8,17 @@
 
 # Current Position
 
-## Latest verified non-M61 continuation — 2026-11-09
+## Latest verified non-M61 continuation — 2026-11-09 (session calendar)
+
+- PR #459 and #460 are merged: the explicit fail-closed session-calendar domain model and immutable SQLite version/audit persistence are now on `main` at `d171324800027e9b298bfde9529eb5b75c5d8ec1`.
+- PR #462 remains Draft. It adds authenticated calendar publication and read APIs; publishing is deliberately separate from activation. The predecessor exact-head run had 1,558 passing tests, 8 deselected, 90.82% coverage, and one test-assertion mismatch. The assertion was corrected in `d87f1853203cd4bfa47ca921ac87d2bd172b983a`; the new exact-head checks are pending.
+- No calendar has been published or activated. The activation bootstrap/coverage policy, per-day source evidence, attributable operator identities, lifecycle cursor/scheduler integration, and provider-completed-bar attestation remain open. Do not enable lifecycle freshness enforcement or automatic monitoring yet.
+- Session-hours and holiday source review found conflicting secondary reports and no verified authoritative machine-readable EGX calendar. Do not infer session hours, weekends, or holidays.
+- M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
+
+**Next non-M61 execution focus:** finish the PR #462 review and exact-head CI; then close the calendar provenance/operator-identity and activation bootstrap/coverage decisions before connecting the calendar to lifecycle scheduling. In parallel, continue only engineering work that does not assume unverified market-data completion or exchange-calendar facts. Keep Yahoo-derived data out of paid/subscriber-facing distribution until commercial reuse rights are verified.
+
+## Previous verified non-M61 continuation — 2026-11-09
 
 - PR #450, #452, and #454 are merged. Lifecycle history, optional market-proxy outcome, and alert intent persist through one SQLite transaction; rollback failpoints, dispatcher restart recovery, and the no-network-I/O transaction boundary have explicit tests.
 - PR #455 reconciled the lifecycle monitoring gate with accepted DEC-138/DEC-139 rules. The runtime observation path remains unimplemented; do not claim automatic target/invalidation monitoring.
