@@ -126,7 +126,7 @@ class EGXSessionCalendar:
             raise ValueError("through_date must not precede after_date")
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
-        self._require_coverage(after_date, through_date)
+        self._require_exclusive_range_coverage(after_date, through_date)
         return tuple(
             day.session_date
             for day in self.days
@@ -141,7 +141,7 @@ class EGXSessionCalendar:
     ) -> tuple[date, ...]:
         if through_date < after_date:
             raise ValueError("through_date must not precede after_date")
-        self._require_coverage(after_date, through_date)
+        self._require_exclusive_range_coverage(after_date, through_date)
         return tuple(
             day.session_date
             for day in self.days
@@ -159,6 +159,19 @@ class EGXSessionCalendar:
                 f"calendar coverage {self.coverage_start.isoformat()}.."
                 f"{self.coverage_end.isoformat()}"
             )
+
+    def _require_exclusive_range_coverage(self, after_date: date, through_date: date) -> None:
+        # after_date is exclusive. Permit the immediately preceding cursor date,
+        # but never silently bridge an actual gap before the declared coverage.
+        if after_date < self.coverage_start:
+            days_before_coverage = (self.coverage_start - after_date).days
+            if days_before_coverage != 1:
+                raise CalendarCoverageError(
+                    f"Requested range {after_date.isoformat()}..{through_date.isoformat()} "
+                    f"starts before calendar coverage {self.coverage_start.isoformat()}.."
+                    f"{self.coverage_end.isoformat()}"
+                )
+        self._require_coverage(max(after_date, self.coverage_start), through_date)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> EGXSessionCalendar:
