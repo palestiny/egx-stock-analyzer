@@ -14,11 +14,11 @@
 - Calendar publication remains separate from activation. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
-### Calendar publication design — proposed, not yet approved
+### Calendar publication atomicity — owner-approved; implementation in progress
 
 - Code review confirmed that calendar-version persistence and per-day evidence persistence currently open independent SQLite connections; this prevents a guaranteed all-or-nothing publication transaction.
-- A calendar-specific SQLite Unit of Work proposal is recorded in `docs/EGX-CALENDAR-ATOMIC-PUBLICATION-DESIGN-PROPOSAL.md`. It covers a single `BEGIN IMMEDIATE` boundary, explicit per-day evidence links, fail-closed validation, rollback/concurrency tests, and compatibility.
-- This is documentation only. No runtime implementation was changed and no owner approval is inferred from a generic “continue”.
+- Owner approved a calendar-specific SQLite Unit of Work: one `BEGIN IMMEDIATE` transaction persists the immutable calendar version, per-day evidence, explicit links, and validation; any failure rolls everything back.
+- Implementation is underway on `feature/atomic-calendar-evidence-publication-v2`: API payload now requires status-appropriate evidence; runtime composition injects the UoW; focused rollback/isolation and production-composition tests are included. Exact-head CI is pending.
 - Calendar activation, lifecycle monitoring, Crash Radar freshness enforcement, and M61 remain disabled/paused.
 
 ## 1. Where We Are
