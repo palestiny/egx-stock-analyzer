@@ -231,3 +231,26 @@ def test_calendar_day_rejects_string_status_that_bypasses_enum_identity_checks()
             time(10, 0),
             time(14, 30),
         )
+
+
+
+def test_calendar_requires_immutable_day_tuple() -> None:
+    with pytest.raises(ValueError, match="immutable tuple"):
+        EGXSessionCalendar(
+            version="egx-test-v1",
+            timezone="Africa/Cairo",
+            coverage_start=date(2026, 11, 1),
+            coverage_end=date(2026, 11, 1),
+            days=[EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING)],
+        )
+
+
+def test_calendar_rejects_noncanonical_version_whitespace() -> None:
+    with pytest.raises(ValueError, match="surrounding whitespace"):
+        EGXSessionCalendar(
+            version=" egx-test-v1 ",
+            timezone="Africa/Cairo",
+            coverage_start=date(2026, 11, 1),
+            coverage_end=date(2026, 11, 1),
+            days=(EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING),),
+        )
