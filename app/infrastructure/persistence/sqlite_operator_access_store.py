@@ -50,6 +50,23 @@ class SQLiteOperatorAccessStore:
                     )
                 );
 
+                CREATE TRIGGER IF NOT EXISTS operator_access_prevent_last_operator_disable
+                BEFORE UPDATE OF status ON users
+                WHEN OLD.status = 'active'
+                 AND NEW.status <> 'active'
+                 AND EXISTS (
+                     SELECT 1 FROM operator_access_current WHERE user_id = OLD.id
+                 )
+                 AND (
+                     SELECT COUNT(*)
+                     FROM operator_access_current AS g
+                     JOIN users AS u ON u.id = g.user_id
+                     WHERE u.status = 'active'
+                 ) <= 1
+                BEGIN
+                    SELECT RAISE(ABORT, 'cannot disable the last active operator');
+                END;
+
                 CREATE TRIGGER IF NOT EXISTS operator_access_events_no_update
                 BEFORE UPDATE ON operator_access_events
                 BEGIN
@@ -129,7 +146,11 @@ class SQLiteOperatorAccessStore:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             count = connection.execute(
-                "SELECT COUNT(*) FROM operator_access_current"
+                """
+                SELECT COUNT(*) FROM operator_access_current AS g
+                JOIN users AS u ON u.id = g.user_id
+                WHERE u.status = 'active'
+                """
             ).fetchone()[0]
             if count:
                 raise ValueError("First operator bootstrap is only allowed when no operator exists")
