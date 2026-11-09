@@ -99,10 +99,10 @@ class SQLiteCalendarPublicationUnitOfWork:
         if not evidence:
             raise ValueError("Evidence is required for every explicit calendar date")
         if evidence_dates != calendar_dates:
-            missing = sorted(day.isoformat() for day in calendar_dates - evidence_dates)
-            extra = sorted(day.isoformat() for day in evidence_dates - calendar_dates)
+            missing_dates = sorted(day.isoformat() for day in calendar_dates - evidence_dates)
+            extra_dates = sorted(day.isoformat() for day in evidence_dates - calendar_dates)
             raise ValueError(
-                f"Evidence must cover exactly the calendar dates; missing={missing}, extra={extra}"
+                f"Evidence must cover exactly the calendar dates; missing={missing_dates}, extra={extra_dates}"
             )
         if any(item.calendar_version != calendar.version for item in evidence):
             raise ValueError("Every evidence record must reference the calendar version being published")
@@ -126,9 +126,9 @@ class SQLiteCalendarPublicationUnitOfWork:
             }[day.status]
             missing_kinds = required_kinds - evidence_kinds_by_date.get(day.session_date, set())
             if missing_kinds:
-                missing = ", ".join(sorted(kind.value for kind in missing_kinds))
+                missing_kind_names = ", ".join(sorted(kind.value for kind in missing_kinds))
                 raise ValueError(
-                    f"Calendar date {day.session_date.isoformat()} requires evidence kinds: {missing}"
+                    f"Calendar date {day.session_date.isoformat()} requires evidence kinds: {missing_kind_names}"
                 )
 
         payload = self._calendar_repository._calendar_payload(calendar)
