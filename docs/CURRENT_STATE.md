@@ -7,11 +7,11 @@
 
 ### Latest verified continuation — 2026-11-09 (individual operator + calendar API)
 
-- PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry does not prove source authenticity and is not yet enforced by calendar publication.
+- PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry does not prove source authenticity; atomic publication enforcement is implemented on PR #471 pending exact-head CI.
 - PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit, durable-credential-aware permission resolution, last-operator protection, and trusted local first-operator bootstrap.
 - PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`. Its exact head `2d2cdac405698d7e783a838037a588852a5cc5b2` passed all five required CI jobs before squash merge. It composes persistent calendar storage and the authenticated API, requiring an active individual operator user plus durable credential; the legacy shared operator token is rejected for calendar administration.
 - PR #462 is closed unmerged as superseded by #467.
-- Calendar publication remains separate from activation. Evidence-to-calendar enforcement, evidence policy, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
+- Calendar publication remains separate from activation. Atomic per-day evidence coverage/linkage and conflict validation are implemented on PR #471 pending exact-head CI. Source-class acceptance, artifact authenticity/retention, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 ### Calendar publication atomicity — owner-approved; implementation in progress
