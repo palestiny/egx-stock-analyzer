@@ -468,3 +468,33 @@ def test_infrastructure_runtime_composes_persistent_session_calendar_store(tmp_p
     assert restored is not None
     assert restored.calendar == calendar
     second_runtime.close()
+
+
+
+def test_production_application_exposes_authenticated_session_calendar_api(tmp_path) -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import create_application
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+        ),
+    )
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        unauthorized = client.get("/api/v1/owner/session-calendars/versions")
+        authorized = client.get(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert unauthorized.status_code == 401
+    assert authorized.status_code == 200
+    assert authorized.json() == {"items": []}
+    assert runtime.closed is True
