@@ -34,7 +34,7 @@ class MarketBreadthSnapshot:
     source_data_timestamps_by_symbol: dict[str, datetime | None] | None = None
     source_data_dates_by_symbol: dict[str, date | None] | None = None
     undated_source_data_symbols: tuple[str, ...] = ()
-    source_data_timestamp_status: str = "UNKNOWN"
+    source_data_date_status: str = "UNKNOWN"
     latest_source_data_timestamp: datetime | None = None
     latest_source_data_date: date | None = None
     source_data_age_calendar_days_by_symbol: dict[str, int | None] | None = None
@@ -108,7 +108,7 @@ class MarketBreadthSnapshot:
                 for symbol, value in (self.source_data_dates_by_symbol or {}).items()
             },
             "undated_source_data_symbols": list(self.undated_source_data_symbols),
-            "source_data_timestamp_status": self.source_data_timestamp_status,
+            "source_data_date_status": self.source_data_date_status,
             "latest_source_data_timestamp": (
                 self.latest_source_data_timestamp.isoformat()
                 if self.latest_source_data_timestamp is not None
@@ -260,7 +260,7 @@ class CalculateMarketBreadth:
         undated_source_data_symbols = tuple(
             symbol for symbol, value in source_data_dates.items() if value is None
         )
-        source_data_timestamp_status = (
+        source_data_date_status = (
             "PARTIAL"
             if missing or (undated_source_data_symbols and known_source_dates)
             else "UNKNOWN"
@@ -300,7 +300,7 @@ class CalculateMarketBreadth:
             source_data_timestamps_by_symbol=source_data_timestamps,
             source_data_dates_by_symbol=source_data_dates,
             undated_source_data_symbols=undated_source_data_symbols,
-            source_data_timestamp_status=source_data_timestamp_status,
+            source_data_date_status=source_data_date_status,
             latest_source_data_timestamp=(
                 max(known_source_timestamps) if known_source_timestamps else None
             ),
