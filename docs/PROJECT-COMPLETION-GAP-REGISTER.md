@@ -37,7 +37,7 @@ This register separates verified implementation from incomplete acceptance and d
 - [x] PR #460 merge commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` passed all five main-branch jobs in run #42619902277.
 - [x] PR #422 merge commit `fa5d16a9b8a47e3cdcb9467d1e31ffd4ee6bed64` passed all five main-branch jobs in run #41185546490.
 - [x] PR #432 merge commit `93984f481cfbfeb19411f8230f03442a494702bc` passed all five post-merge main jobs in run #41197870758.
-- [x] PR #433 exact-head CI run #41198262173 passed all five jobs before merge. Its merge commit is `4733e9237495789ebceba9113567e42b7b6abf6d`; post-merge main CI run #41198751442 must complete before this newest main commit is marked fully verified.
+- [x] PR #433 exact-head CI run #41198262173 passed all five jobs before merge. Its merge commit is `4733e9237495789ebceba9113567e42b7b6abf6d`; later main commit `d171324800027e9b298bfde9529eb5b75c5d8ec1` includes this change and passed all five CI jobs in run #42619902277.
 
 ### P1 — EGX session calendar, lifecycle freshness, and operational readiness
 
