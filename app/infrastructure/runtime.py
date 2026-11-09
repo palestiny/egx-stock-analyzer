@@ -132,6 +132,8 @@ class InfrastructureRuntime:
         self.fundamental_data_provider.close()
         if self.telegram_notification_provider is not None:
             self.telegram_notification_provider.close()
+        if self.session_calendar_store is not None:
+            self.session_calendar_store.close()
         self._closed = True
 
 
