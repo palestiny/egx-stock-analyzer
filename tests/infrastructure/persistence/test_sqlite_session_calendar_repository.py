@@ -354,3 +354,70 @@ def test_concurrent_activation_attempts_serialize_and_audit_once(tmp_path):
     assert sum(isinstance(result, ValueError) for result in results) == 1
     assert first_repository.get_active().version == "egx-v1"
     assert len(first_repository.list_activation_events()) == 1
+
+
+
+def test_deactivation_without_active_calendar_is_rejected_without_audit(tmp_path):
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+
+    with pytest.raises(ValueError, match="no calendar version is active"):
+        repository.deactivate(
+            performed_by="operator",
+            reason="There is nothing to deactivate",
+        )
+
+    assert repository.get_active() is None
+    assert repository.list_activation_events() == ()
+
+
+def test_failed_rollback_preserves_active_version_and_audit_history(tmp_path):
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="first version",
+    )
+    repository.publish(
+        calendar("egx-v2", day=3),
+        published_by="operator",
+        source_reference="notice-2",
+        reason="second version",
+    )
+    repository.activate(
+        "egx-v2",
+        performed_by="operator",
+        reason="activate second version",
+    )
+    before_events = repository.list_activation_events()
+
+    with pytest.raises(ValueError, match="previously active"):
+        repository.rollback(
+            "egx-v1",
+            performed_by="operator",
+            reason="reject unactivated rollback target",
+        )
+
+    assert repository.get_active().version == "egx-v2"
+    assert repository.list_activation_events() == before_events
+
+
+def test_activation_event_deletion_is_rejected(tmp_path):
+    repository = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    repository.publish(
+        calendar("egx-v1"),
+        published_by="operator",
+        source_reference="notice-1",
+        reason="publish",
+    )
+    repository.activate(
+        "egx-v1",
+        performed_by="operator",
+        reason="activate",
+    )
+
+    with repository._connect() as connection:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM egx_calendar_activation_events WHERE event_id = 1"
+            )
