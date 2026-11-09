@@ -220,3 +220,14 @@ def test_calendar_rejects_extreme_coverage_span_before_expanding_dates() -> None
                 EGXCalendarDay(date(1, 1, 1), CalendarDayStatus.NON_TRADING),
             ),
         )
+
+
+
+def test_calendar_day_rejects_string_status_that_bypasses_enum_identity_checks() -> None:
+    with pytest.raises(ValueError, match="CalendarDayStatus"):
+        EGXCalendarDay(
+            date(2026, 11, 1),
+            "CLOSED",
+            time(10, 0),
+            time(14, 30),
+        )
