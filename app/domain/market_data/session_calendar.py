@@ -42,6 +42,10 @@ class EGXCalendarDay:
             self.session_open is not None or self.session_close is not None
         ):
             raise ValueError("Non-trading and cancelled days cannot have session times")
+        if self.session_open is not None and self.session_open.tzinfo is not None:
+            raise ValueError("Session open must be a Cairo local wall-clock time")
+        if self.session_close is not None and self.session_close.tzinfo is not None:
+            raise ValueError("Session close must be a Cairo local wall-clock time")
         if (
             self.session_open is not None
             and self.session_close is not None
@@ -53,6 +57,12 @@ class EGXCalendarDay:
                 raise ValueError("A CLOSED session requires an explicit closed_at timestamp")
             if self.closed_at.tzinfo is None or self.closed_at.utcoffset() is None:
                 raise ValueError("closed_at must be timezone-aware")
+            cairo_close = self.closed_at.astimezone(ZoneInfo("Africa/Cairo"))
+            if cairo_close.date() != self.session_date:
+                raise ValueError("closed_at must fall on the session date in Cairo time")
+            assert self.session_close is not None
+            if cairo_close.timetz().replace(tzinfo=None) < self.session_close:
+                raise ValueError("closed_at cannot precede the configured session close")
         elif self.closed_at is not None:
             raise ValueError("closed_at is only valid for a CLOSED session")
         if self.reason is not None and not self.reason.strip():
