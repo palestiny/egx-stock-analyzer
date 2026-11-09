@@ -1,3 +1,4 @@
+import sqlite3
 from uuid import uuid4
 
 import pytest
@@ -150,6 +151,6 @@ def test_last_operator_cannot_be_disabled_or_deleted(tmp_path):
     users, _, access, first, _, _, _ = setup_operator_database(path)
     access.bootstrap_first_operator(first, reason="Initial owner setup")
 
-    with pytest.raises(Exception, match="last active operator"):
+    with pytest.raises(sqlite3.IntegrityError, match="last active operator"):
         users.save(User(first, UserStatus.DISABLED))
     assert access.is_operator(first)
