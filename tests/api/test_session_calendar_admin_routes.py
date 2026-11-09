@@ -78,11 +78,19 @@ def calendar_payload() -> dict[str, object]:
         "evidence": [
             {
                 "session_date": "2026-11-01",
-                "evidence_kind": "SCHEDULE",
+                "evidence_kind": "CLOSURE",
                 "source_type": "OFFICIAL_EXCHANGE_NOTICE",
                 "source_reference": "https://example.invalid/egx/notice-1",
                 "claim": "EGX notice confirms non-trading day",
                 "observed_at": "2026-11-01T09:00:00+02:00",
+            },
+            {
+                "session_date": "2026-11-02",
+                "evidence_kind": "SCHEDULE",
+                "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                "source_reference": "https://example.invalid/egx/schedule-2",
+                "claim": "EGX notice confirms scheduled session hours",
+                "observed_at": "2026-11-02T09:00:00+02:00",
             },
             {
                 "session_date": "2026-11-02",
@@ -114,7 +122,7 @@ def test_operator_can_publish_list_and_read_calendar_version(tmp_path):
     assert body["source_reference"] == "EGX notice reference 123"
     assert body["calendar"]["days"][1]["status"] == "CLOSED"
     assert len(body["sha256"]) == 64
-    assert len(body["evidence"]) == 2
+    assert len(body["evidence"]) == 3
     assert all(len(item["content_sha256"]) == 64 for item in body["evidence"])
 
     listed = client.get(
