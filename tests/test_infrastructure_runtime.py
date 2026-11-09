@@ -412,3 +412,108 @@ def test_runtime_rejects_unsupported_configured_news_source_type(tmp_path) -> No
                 news_rss_source_type="unknown_source",
             ),
         )
+
+
+def test_infrastructure_runtime_composes_persistent_session_calendar_store(tmp_path) -> None:
+    from app.domain.market_data.session_calendar import (
+        CalendarDayStatus,
+        EGXCalendarDay,
+        EGXSessionCalendar,
+    )
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        SQLiteSessionCalendarRepository,
+    )
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    config = InfrastructureConfig(
+        operator_token="test-token",
+        analysis_database_path=str(database_path),
+    )
+
+    first_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert isinstance(
+        first_runtime.session_calendar_store,
+        SQLiteSessionCalendarRepository,
+    )
+    calendar = EGXSessionCalendar(
+        version="runtime-calendar-v1",
+        timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 1),
+        coverage_end=date(2026, 11, 1),
+        days=(
+            EGXCalendarDay(
+                session_date=date(2026, 11, 1),
+                status=CalendarDayStatus.NON_TRADING,
+            ),
+        ),
+    )
+    first_runtime.session_calendar_store.publish(
+        calendar,
+        published_by="runtime-test-operator",
+        source_reference="runtime-test-source",
+        reason="Verify persistent runtime composition",
+    )
+    first_runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+    restored = second_runtime.session_calendar_store.get_version("runtime-calendar-v1")
+    assert restored is not None
+    assert restored.calendar == calendar
+    second_runtime.close()
+
+
+def test_production_application_exposes_calendar_api_only_to_individual_operator(tmp_path) -> None:
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+        ),
+    )
+    assert runtime.user_store is not None
+    assert runtime.credential_service is not None
+    assert runtime.operator_access_store is not None
+    operator_user_id = uuid4()
+    runtime.user_store.save(User(operator_user_id, UserStatus.ACTIVE))
+    issued = runtime.credential_service.provision(operator_user_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        operator_user_id,
+        reason="Production composition integration test",
+    )
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        unauthorized = client.get("/api/v1/owner/session-calendars/versions")
+        legacy_shared = client.get(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer test-token"},
+        )
+        authorized = client.get(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer " + issued.secret},
+        )
+
+    assert unauthorized.status_code == 401
+    assert legacy_shared.status_code == 403
+    assert authorized.status_code == 200
+    assert authorized.json() == {"items": []}
+    assert runtime.closed is True
