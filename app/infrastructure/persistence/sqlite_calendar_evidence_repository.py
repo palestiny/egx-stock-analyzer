@@ -61,7 +61,7 @@ class SQLiteCalendarEvidenceRepository:
                     source_type TEXT NOT NULL,
                     source_reference TEXT NOT NULL,
                     claim TEXT NOT NULL,
-                    recorded_by TEXT NOT NULL,
+                    recorded_by TEXT NOT NULL REFERENCES users(id),
                     observed_at TEXT NOT NULL,
                     recorded_at TEXT NOT NULL,
                     source_published_at TEXT NULL,
