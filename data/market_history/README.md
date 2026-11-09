@@ -139,3 +139,34 @@ The exact requested path `data/market_history/egal_daily_2026-09-28_to_2026-10-2
 - Verified per-security traded value and execution counts: not available in this collection.
 - Application database ingestion: not established by this archive alone.
 - M61 and backtesting: not performed.
+
+## Daily collection: 2026-11-09
+
+Added 23 source-reported daily historical rows for the Monday 2026-11-09 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `EGX70EWI`, `EGX100EWI`, `SHARIAH`).
+
+Collection timestamp recorded in the rows: `2026-11-09T19:41:47+02:00`. All observations are daily historical table rows from Investing.com, not intraday candles. The source page for each instrument is linked in `source_url`. Exact quote latency is not stated consistently by the provider, so `delay_status` records that limitation. Source-displayed K/M/B volumes were normalized to thousands in `volume_thousands_reported`; the original displayed unit/value is preserved in `notes`. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied by the retrieved historical rows.
+
+### Data-quality exceptions retained transparently
+
+- `EGX30CAP`, `SHARIAH`, `EGX70EWI`, and `EGX100EWI` report opening values below the reported daily low. Original source values were preserved and each row is marked exactly `ohlc_inconsistency_review`; exclude these rows from clean OHLC calculations until reconciled.
+- `PHDC`: the selected English Investing.com historical row reports close=11.940, low=11.940, volume=2.02M and -0.58%; a Philippines-localized page reports close=11.900, low=11.820, volume=5.33M and -0.92%. The selected English row is retained and marked `source_conflict_review`.
+- `EGX30`: the selected English historical row reports open=50,841.73, high=51,432.95, low=50,831.06, close=51,414.93 and 186.17M volume. The NG-localized page differs on open/high/low while retaining the same close, change and volume. The selected English row is retained and marked `source_conflict_review`.
+- `EGX100EWI` also has a localized-page discrepancy: the NG page reports close=23,769.22 and volume=790.55M (+1.03%), compared with the selected English row's close=23,869.07 and volume=1.34B (+1.46%). The row remains primarily marked `ohlc_inconsistency_review` because its selected open is below its low; the provider discrepancy is recorded in `notes`.
+- Index-page volume values are preserved as reported and normalized to thousands, but their interpretation as comparable trading volume has not been independently validated.
+- No verified per-security traded value or execution count was available in the retrieved rows. No market-wide turnover figure was assigned to an individual security.
+- Coverage remains partial and limited to instruments with an attributable daily historical row; no missing instrument row was invented.
+
+### Legacy EGAL migration status
+
+The requested legacy path `data/market_history/egal_daily_2026-09-28_to_2026-10-28.csv` remains absent from `main`. The canonical archive already contains the 22 EGAL seed records for 2026-09-28 through 2026-10-28, and those existing records were not changed. Because the named original file is unavailable in the repository, row-for-row equivalence with that file remains unverified; no file was deleted.
+
+## Current coverage status (as of 2026-11-09)
+
+- Total records after the 2026-11-09 collection: 232.
+- Records for 2026-11-09: 23 (17 equities and 6 indices).
+- Records through 2026-11-08: 209.
+- 2026-11-09 rows requiring OHLC review: 4 (`EGX30CAP`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+- 2026-11-09 rows with localized-source conflicts: 2 (`PHDC`, `EGX30`); `EGX100EWI` has an additional localized discrepancy noted on its OHLC-review row.
+- Verified per-security traded value and execution counts: not available in this collection.
+- Application database ingestion: not established by this archive alone.
+- M61 and backtesting: not performed.
