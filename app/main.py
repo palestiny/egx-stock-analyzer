@@ -85,6 +85,7 @@ def create_application(
         get_user_opportunity_notifications=getattr(runtime, "get_user_opportunity_notifications", None),
         get_owner_dashboard_overview=getattr(runtime, "owner_dashboard_overview", None),
         session_opportunity_report_store=getattr(runtime, "session_opportunity_report_store", None),
+        session_calendar_store=getattr(runtime, "session_calendar_store", None),
         subscription_store=getattr(runtime, "subscription_store", None),
         user_store=getattr(runtime, "user_store", None),
         telegram_delivery_reconciliation_store=getattr(runtime, "telegram_delivery_reconciliation_store", None),
