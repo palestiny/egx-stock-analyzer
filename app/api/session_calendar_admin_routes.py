@@ -132,11 +132,17 @@ def create_session_calendar_admin_router(
             mode="json",
             exclude={"source_reference", "reason"},
         )
+        actor = identity.subject.strip()
+        if not actor:
+            raise HTTPException(
+                status_code=403,
+                detail="Authenticated operator identity is invalid",
+            )
         try:
             calendar = EGXSessionCalendar.from_dict(calendar_document)
             stored = configured_store().publish(
                 calendar,
-                published_by=identity.subject.strip() or "operator",
+                published_by=actor,
                 source_reference=payload.source_reference,
                 reason=payload.reason,
             )
