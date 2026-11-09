@@ -181,7 +181,7 @@ def test_calendar_rejects_close_confirmation_before_configured_close() -> None:
             CalendarDayStatus.CLOSED,
             time(10, 0),
             time(14, 30),
-            datetime(2026, 11, 1, 14, 29, tzinfo=timezone.utc),
+            datetime(2026, 11, 1, 12, 29, tzinfo=timezone.utc),
         )
 
 
