@@ -338,7 +338,12 @@ class SQLiteSessionCalendarRepository:
     @staticmethod
     def _version_from_row(row: tuple) -> StoredCalendarVersion:
         version, payload, digest, published_at, published_by, source, reason = row
-        decoded_payload = json.loads(payload)
+        try:
+            decoded_payload = json.loads(payload)
+        except (json.JSONDecodeError, TypeError) as error:
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar version {version!r} contains invalid JSON"
+            ) from error
         canonical_payload = json.dumps(
             decoded_payload, sort_keys=True, separators=(",", ":")
         )
@@ -347,7 +352,12 @@ class SQLiteSessionCalendarRepository:
             raise CalendarVersionIntegrityError(
                 f"Stored calendar version {version!r} failed its SHA-256 integrity check"
             )
-        calendar = EGXSessionCalendar.from_dict(decoded_payload)
+        try:
+            calendar = EGXSessionCalendar.from_dict(decoded_payload)
+        except (TypeError, ValueError) as error:
+            raise CalendarVersionIntegrityError(
+                f"Stored calendar version {version!r} contains an invalid calendar"
+            ) from error
         if calendar.version != version:
             raise CalendarVersionIntegrityError(
                 f"Stored calendar row {version!r} does not match its payload version"
