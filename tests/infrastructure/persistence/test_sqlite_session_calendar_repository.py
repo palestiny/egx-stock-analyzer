@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import date, datetime, time, timezone
 
 import pytest
@@ -56,7 +57,7 @@ def test_calendar_versions_are_immutable(tmp_path):
     )
 
     with repository._connect() as connection:
-        with pytest.raises(Exception, match="immutable"):
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             connection.execute(
                 "UPDATE egx_calendar_versions SET publication_reason = 'changed' "
                 "WHERE version = 'egx-v1'"
@@ -183,7 +184,7 @@ def test_activation_events_are_append_only(tmp_path):
     repository.activate("egx-v1", performed_by="admin", reason="activate")
 
     with repository._connect() as connection:
-        with pytest.raises(Exception, match="append-only"):
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
             connection.execute(
                 "UPDATE egx_calendar_activation_events SET reason = 'rewritten' "
                 "WHERE event_id = 1"
