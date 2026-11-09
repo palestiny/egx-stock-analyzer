@@ -92,3 +92,17 @@ A calendar day may have multiple evidence records. Conflicting claims must remai
 ## 8. Explicit non-goals
 
 This approval does not select an EGX calendar source, declare any specific date a holiday or trading day, approve a market-data provider, establish provider bar finality, activate a calendar, enable Crash Radar freshness enforcement, enable lifecycle monitoring, or resume M61/backtesting.
+
+## 9. Implementation progress (2026-11-09)
+
+The first persistence slice is now present on the PR branch:
+
+- Typed evidence records cover schedule, closure, cancellation, exceptional-hours, and close-confirmation claims.
+- SQLite stores evidence against an existing immutable calendar version and an explicitly represented date inside that version's coverage.
+- Database triggers reject evidence UPDATE and DELETE operations.
+- Canonical SHA-256 hashes cover the evidence identity, day, source, claim, actor ID, and timestamps; reads re-compute and verify the hash.
+- Corrections append a new record linked to the prior record with a mandatory reason. The original remains retrievable.
+- Conflicting unsuperseded claims of the same evidence kind are returned as conflicts; superseded records remain in the audit history but do not create an active conflict by themselves.
+- Focused persistence tests have been added. Their exact-head CI result is pending; no test pass is claimed yet.
+
+Still not implemented: publication/API enforcement of evidence completeness and conflict resolution; database-level verification that recorded_by is an active, authorized operator; operator role assignment and bootstrap/recovery; linking activation events to credential IDs; and end-to-end authorization tests. The evidence hash is an integrity check, not a digital signature or proof that the external source is authentic.
