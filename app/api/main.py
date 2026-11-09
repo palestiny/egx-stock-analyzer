@@ -117,6 +117,7 @@ from app.application.notifications.telegram_account_linking import (
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.subscriptions.store import SubscriptionStore
 from app.application.identity.user_store import UserStore
+from app.application.security.operator_access import OperatorAccessService
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,7 @@ def create_app(
     telegram_webhook_secret: str | None = None,
     subscription_store: SubscriptionStore | None = None,
     user_store: UserStore | None = None,
+    operator_access_service: OperatorAccessService | None = None,
     telegram_delivery_reconciliation_store: TelegramDeliveryReconciliationStore | None = None,
     crash_radar_universe_symbols: tuple[str, ...] = (),
     crash_radar_universe_version: str | None = None,
@@ -332,6 +334,7 @@ def create_app(
             get_user_audit_history=get_user_audit_history,
             require_authenticated=require_authenticated,
             require_operator=require_operator,
+            operator_access=operator_access_service,
         )
     )
 
