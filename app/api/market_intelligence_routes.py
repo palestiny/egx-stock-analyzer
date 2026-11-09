@@ -32,22 +32,53 @@ def create_market_intelligence_router(
     calculate_market_breadth: CalculateMarketBreadth,
     analyze_stock_regime: AnalyzeStockRegime | None = None,
     require_authenticated: Callable[..., AuthenticatedIdentity],
+    configured_universe_symbols: tuple[str, ...] = (),
+    configured_universe_version: str | None = None,
 ) -> APIRouter:
     """Register deterministic market-intelligence routes behind the app's auth boundary."""
+    normalized_universe_symbols = tuple(
+        symbol.strip().upper() for symbol in configured_universe_symbols
+    )
+    if any(not symbol for symbol in normalized_universe_symbols):
+        raise ValueError("configured Crash Radar universe contains an empty symbol")
+    if len(normalized_universe_symbols) != len(set(normalized_universe_symbols)):
+        raise ValueError("configured Crash Radar universe contains duplicate symbols")
+    normalized_universe_version = (
+        configured_universe_version.strip()
+        if configured_universe_version is not None
+        else None
+    )
+    if bool(normalized_universe_symbols) != bool(normalized_universe_version):
+        raise ValueError(
+            "configured Crash Radar universe symbols and version must be provided together"
+        )
     router = APIRouter()
 
     @router.get("/api/v1/market-intelligence/breadth-stress")
     def get_market_breadth_stress(
-        symbols: str = "",
+        symbols: str | None = None,
         identity: AuthenticatedIdentity = Depends(require_authenticated),
     ) -> dict[str, object]:
-        requested_symbols = [
-            symbol.strip().upper()
-            for symbol in symbols.split(",")
-            if symbol.strip()
-        ]
+        if symbols is None or not symbols.strip():
+            requested_symbols = list(normalized_universe_symbols)
+            universe_source = "OPERATOR_CONFIGURED" if requested_symbols else "UNCONFIGURED"
+            universe_version = normalized_universe_version if requested_symbols else None
+        else:
+            requested_symbols = [
+                symbol.strip().upper()
+                for symbol in symbols.split(",")
+                if symbol.strip()
+            ]
+            universe_source = "CALLER_SUPPLIED"
+            universe_version = None
         try:
-            return calculate_market_breadth.execute(requested_symbols).to_dict()
+            payload = calculate_market_breadth.execute(requested_symbols).to_dict()
+            payload["universe"] = {
+                "source": universe_source,
+                "version": universe_version,
+                "symbols": requested_symbols,
+            }
+            return payload
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
 

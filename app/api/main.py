@@ -168,6 +168,8 @@ def create_app(
     subscription_store: SubscriptionStore | None = None,
     user_store: UserStore | None = None,
     telegram_delivery_reconciliation_store: TelegramDeliveryReconciliationStore | None = None,
+    crash_radar_universe_symbols: tuple[str, ...] = (),
+    crash_radar_universe_version: str | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -311,6 +313,8 @@ def create_app(
             calculate_market_breadth=calculate_market_breadth,
             analyze_stock_regime=analyze_stock_regime,
             require_authenticated=require_authenticated,
+            configured_universe_symbols=crash_radar_universe_symbols,
+            configured_universe_version=crash_radar_universe_version,
         )
     )
 

@@ -144,3 +144,40 @@ def test_from_environment_normalizes_empty_optional_compose_values(monkeypatch) 
     assert config.telegram_webhook_secret is None
     assert config.default_subscription_plan_id is None
     assert config.default_subscription_plan_version is None
+
+
+def test_from_environment_reads_versioned_crash_radar_universe(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_CRASH_RADAR_SYMBOLS", " comi, EGAL,swdy ")
+    monkeypatch.setenv("EGX_CRASH_RADAR_UNIVERSE_VERSION", "egx-universe-2026-11-v1")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.crash_radar_universe_symbols == ("COMI", "EGAL", "SWDY")
+    assert config.crash_radar_universe_version == "egx-universe-2026-11-v1"
+
+
+def test_crash_radar_universe_is_unconfigured_by_default() -> None:
+    config = InfrastructureConfig()
+
+    assert config.crash_radar_universe_symbols == ()
+    assert config.crash_radar_universe_version is None
+
+
+def test_from_environment_requires_crash_radar_universe_version(monkeypatch) -> None:
+    import pytest
+
+    monkeypatch.setenv("EGX_CRASH_RADAR_SYMBOLS", "COMI,EGAL")
+    monkeypatch.delenv("EGX_CRASH_RADAR_UNIVERSE_VERSION", raising=False)
+
+    with pytest.raises(ValueError, match="must be configured together"):
+        InfrastructureConfig.from_environment()
+
+
+def test_from_environment_rejects_duplicate_crash_radar_symbols(monkeypatch) -> None:
+    import pytest
+
+    monkeypatch.setenv("EGX_CRASH_RADAR_SYMBOLS", "COMI,comi")
+    monkeypatch.setenv("EGX_CRASH_RADAR_UNIVERSE_VERSION", "v1")
+
+    with pytest.raises(ValueError, match="duplicate symbols"):
+        InfrastructureConfig.from_environment()
