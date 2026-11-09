@@ -3,7 +3,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.api.management_audit_response import ManagementAuditResponse
 from app.api.user_audit_history_response import UserAuditHistoryResponse
@@ -37,6 +37,14 @@ def create_user_management_router(
 
     class OperatorAccessReasonPayload(BaseModel):
         reason: str = Field(min_length=1, max_length=500)
+
+        @field_validator("reason")
+        @classmethod
+        def normalize_reason(cls, value: str) -> str:
+            normalized = value.strip()
+            if not normalized:
+                raise ValueError("A non-empty reason is required")
+            return normalized
 
     def require_individual_operator_identity(identity: AuthenticatedIdentity) -> None:
         if (
