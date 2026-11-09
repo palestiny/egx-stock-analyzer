@@ -93,6 +93,19 @@ def test_closed_session_is_not_effective_before_closed_at() -> None:
     )
 
 
+def test_calendar_range_does_not_bridge_a_gap_before_coverage() -> None:
+    value = calendar(
+        (EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING),)
+    )
+
+    with pytest.raises(CalendarCoverageError, match="starts before calendar coverage"):
+        value.completed_sessions_between(
+            date(2026, 10, 30),
+            date(2026, 11, 1),
+            as_of=datetime(2026, 11, 1, 15, 0, tzinfo=timezone.utc),
+        )
+
+
 def test_calendar_fails_closed_outside_declared_coverage() -> None:
     value = calendar(
         (EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING),)
