@@ -229,7 +229,7 @@ def test_activation_events_endpoint_is_empty_before_any_activation(tmp_path):
 def test_calendar_management_returns_service_unavailable_without_store():
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
-        operator_token=OPERATOR_TOKEN,
+        authenticator=CalendarTestAuthenticator(),
     )
 
     with TestClient(app) as client:
@@ -394,7 +394,7 @@ class BlankSubjectOperatorAuthenticator:
         )
 
 
-def test_publication_rejects_operator_identity_without_audit_subject(tmp_path):
+def test_publication_rejects_operator_identity_without_attributable_credential(tmp_path):
     store = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
@@ -410,5 +410,5 @@ def test_publication_rejects_operator_identity_without_audit_subject(tmp_path):
         )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Authenticated operator identity is invalid"
+    assert response.json()["detail"] == "Individually attributable operator credential required"
     assert store.list_versions() == ()
