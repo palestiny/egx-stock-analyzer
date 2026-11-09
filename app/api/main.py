@@ -15,6 +15,7 @@ from app.api.user_management_routes import create_user_management_router
 from app.api.telegram_delivery_reconciliation_routes import create_telegram_delivery_reconciliation_router
 from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
+from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -78,6 +79,7 @@ from app.application.identity.get_user_audit_history import (
 )
 from app.application.identity.user_management import UserManagementService
 from app.domain.execution import ExecutionState
+from app.domain.identity.user import UserStatus
 from app.application.analysis.run_configured_market_analysis import RunConfiguredMarketAnalysis
 from app.application.execution.get_scheduled_workflow_history import (
     GetScheduledWorkflowHistory,
@@ -117,6 +119,7 @@ from app.application.notifications.telegram_account_linking import (
 from app.application.notifications.telegram_message_sender import TelegramMessageSender
 from app.application.subscriptions.store import SubscriptionStore
 from app.application.identity.user_store import UserStore
+from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.security.operator_access import OperatorAccessService
 
 logger = logging.getLogger(__name__)
@@ -172,6 +175,7 @@ def create_app(
     telegram_delivery_reconciliation_store: TelegramDeliveryReconciliationStore | None = None,
     crash_radar_universe_symbols: tuple[str, ...] = (),
     crash_radar_universe_version: str | None = None,
+    session_calendar_store: SessionCalendarStore | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -285,6 +289,23 @@ def create_app(
         auth_rate_limiter.record_success(client_key)
         return identity
 
+    def require_individual_calendar_operator(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> AuthenticatedIdentity:
+        identity = require_operator(request, authorization)
+        if (
+            identity.user_id is None
+            or identity.credential_id is None
+            or identity.user_status is not UserStatus.ACTIVE
+            or identity.subject != str(identity.user_id)
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Individually attributable operator credential required",
+            )
+        return identity
+
     app.include_router(
         create_scheduled_workflow_router(
             get_scheduled_workflow_executions=get_scheduled_workflow_executions,
@@ -301,6 +322,13 @@ def create_app(
             store=subscription_store,
             users=user_store,
             require_operator=require_operator,
+        )
+    )
+
+    app.include_router(
+        create_session_calendar_admin_router(
+            store=session_calendar_store,
+            require_operator=require_individual_calendar_operator,
         )
     )
 
