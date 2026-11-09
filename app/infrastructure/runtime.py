@@ -5,9 +5,11 @@ from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAl
 from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.news.ingestion import NewsIngestionService
+from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
+from app.infrastructure.persistence.sqlite_session_calendar_repository import SQLiteSessionCalendarRepository
 from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
 from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
@@ -113,6 +115,7 @@ class InfrastructureRuntime:
     user_store: SQLiteUserStore | None = None
     operator_access_store: SQLiteOperatorAccessStore | None = None
     operator_access_service: OperatorAccessService | None = None
+    session_calendar_store: SessionCalendarStore | None = None
     user_management: UserManagementService | None = None
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
@@ -133,6 +136,8 @@ class InfrastructureRuntime:
         self.fundamental_data_provider.close()
         if self.telegram_notification_provider is not None:
             self.telegram_notification_provider.close()
+        if self.session_calendar_store is not None:
+            self.session_calendar_store.close()
         self._closed = True
 
 
@@ -171,6 +176,7 @@ def create_infrastructure_runtime(
     credential_service = CredentialService(credential_store)
     operator_access_store = SQLiteOperatorAccessStore(config.analysis_database_path)
     operator_access_service = OperatorAccessService(operator_access_store)
+    session_calendar_store = SQLiteSessionCalendarRepository(config.analysis_database_path)
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
@@ -379,6 +385,7 @@ def create_infrastructure_runtime(
         user_store=user_store,
         operator_access_store=operator_access_store,
         operator_access_service=operator_access_service,
+        session_calendar_store=session_calendar_store,
         user_management=user_management,
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
