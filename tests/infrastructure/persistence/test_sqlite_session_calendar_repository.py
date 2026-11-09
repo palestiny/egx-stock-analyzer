@@ -265,3 +265,31 @@ def test_calendar_payload_version_must_match_immutable_row_key(tmp_path):
 
     with pytest.raises(CalendarVersionIntegrityError, match="payload version"):
         repository.get_version("egx-v1")
+
+
+
+def test_in_memory_calendar_database_survives_repository_connections():
+    repository = SQLiteSessionCalendarRepository(":memory:")
+    stored = repository.publish(
+        calendar("memory-v1"),
+        published_by="operator",
+        source_reference="memory-test",
+        reason="Verify shared in-memory persistence",
+    )
+
+    assert repository.get_version("memory-v1") == stored
+    repository.activate(
+        "memory-v1",
+        performed_by="operator",
+        reason="Verify in-memory active pointer",
+    )
+    assert repository.get_active() == stored
+
+    isolated_repository = SQLiteSessionCalendarRepository(":memory:")
+    assert isolated_repository.get_version("memory-v1") is None
+
+    repository.close()
+    repository.close()
+    with pytest.raises(RuntimeError, match="repository is closed"):
+        repository.get_version("memory-v1")
+    isolated_repository.close()
