@@ -5,9 +5,11 @@ from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAl
 from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.news.ingestion import NewsIngestionService
+from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
+from app.infrastructure.persistence.sqlite_session_calendar_repository import SQLiteSessionCalendarRepository
 from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
 from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
 from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
@@ -117,6 +119,7 @@ class InfrastructureRuntime:
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
     owner_dashboard_overview: GetOwnerDashboardOverview | None = None
     session_opportunity_report_store: SQLiteSessionOpportunityReportStore | None = None
+    session_calendar_store: SessionCalendarStore | None = None
     _closed: bool = field(default=False, init=False, repr=False)
 
     @property
@@ -173,6 +176,7 @@ def create_infrastructure_runtime(
         audit_store=management_audit_store,
     )
     news_event_store = SQLiteNewsEventStore(config.analysis_database_path)
+    session_calendar_store = SQLiteSessionCalendarRepository(config.analysis_database_path)
     news_ingestion_service = None
     if config.news_rss_feed_url is not None:
         try:
@@ -378,4 +382,5 @@ def create_infrastructure_runtime(
         build_session_opportunity_ledger=build_session_opportunity_ledger,
         owner_dashboard_overview=owner_dashboard_overview,
         session_opportunity_report_store=session_opportunity_report_store,
+        session_calendar_store=session_calendar_store,
     )
