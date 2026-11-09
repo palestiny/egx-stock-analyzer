@@ -337,3 +337,28 @@ def test_publication_normalizes_surrounding_whitespace_in_version_identifier(tmp
     assert response.status_code == 201
     assert response.json()["version"] == "egx-2026-11-v1"
     assert store.get_version("egx-2026-11-v1") is not None
+
+
+
+def test_authenticated_non_operator_cannot_publish_calendar(tmp_path):
+    client, store = make_client(tmp_path)
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        json=calendar_payload(),
+    )
+
+    assert response.status_code == 403
+    assert store.list_versions() == ()
+
+
+def test_reading_unknown_calendar_version_returns_not_found(tmp_path):
+    client, _store = make_client(tmp_path)
+
+    response = client.get(
+        "/api/v1/owner/session-calendars/versions/egx-unknown-v1",
+        headers=operator_headers(),
+    )
+
+    assert response.status_code == 404
