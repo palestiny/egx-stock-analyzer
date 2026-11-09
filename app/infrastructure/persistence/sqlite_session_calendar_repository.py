@@ -6,6 +6,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
@@ -23,16 +24,39 @@ class SQLiteSessionCalendarRepository:
     """Persists immutable calendar versions and an audited active-version pointer."""
 
     def __init__(self, database_path: str | Path) -> None:
-        path = Path(database_path)
-        if str(path) != ":memory:":
+        self._memory_anchor: sqlite3.Connection | None = None
+        self._closed = False
+        if str(database_path) == ":memory:":
+            self._database_path = (
+                f"file:egx_session_calendar_{uuid4().hex}?mode=memory&cache=shared"
+            )
+            self._use_uri = True
+            self._memory_anchor = connect_sqlite(self._database_path, uri=True)
+        else:
+            path = Path(database_path)
             path.parent.mkdir(parents=True, exist_ok=True)
-        self._database_path = str(path)
-        self._initialize()
+            self._database_path = str(path)
+            self._use_uri = False
+        try:
+            self._initialize()
+        except Exception:
+            self.close()
+            raise
 
     def _connect(self) -> sqlite3.Connection:
-        connection = connect_sqlite(self._database_path)
+        if self._closed:
+            raise RuntimeError("Session calendar repository is closed")
+        connection = connect_sqlite(self._database_path, uri=self._use_uri)
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        if self._memory_anchor is not None:
+            self._memory_anchor.close()
+            self._memory_anchor = None
+        self._closed = True
 
     def _initialize(self) -> None:
         with self._connect() as connection:
