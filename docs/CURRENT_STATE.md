@@ -1,3 +1,5 @@
+# EGX Stock Analyzer — Current State
+
 ## Latest verified continuation — 2026-11-10 (artifact inventory and SQLite WAL verification)
 
 - PR #483 merged into `main` as `975409d39b2e80ba00e78a96dfda144b21ba802c`. Its exact head `ad0d3ff31a78a1da0c42ed9df7faeb3b70814c1d` passed all five required CI jobs before squash merge. It adds a read-only calendar artifact inventory that classifies referenced-valid, orphaned, missing, integrity-failure, invalid-reference, and invalid-storage-entry findings. It does not repair or delete anything.
@@ -11,8 +13,6 @@
 **Last reviewed:** 2026-11-10 (`main` at `9e120eec682d155204c64bce150f3aee9b6cbdcf`; PR #484 merged after all five exact-head CI jobs passed.)
 
 ---
-
-# EGX Stock Analyzer — Current State
 
 ## Latest working continuation — 2026-11-10 (calendar artifact verification)
 
