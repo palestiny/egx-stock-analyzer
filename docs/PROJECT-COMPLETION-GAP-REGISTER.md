@@ -274,3 +274,19 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
 PR #471 and PR #475 are merged; both exact-head CI requirements passed before merge. PR #479 added byte-storage and publication-time byte verification. PR #480 reconciled the merged state and is itself merged as `c475b076c82c7c91a5671a91baf18a47afad105f`; its exact-head CI run #42874761255 passed all five required jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+
+
+## Daily market-history audit — verified implementation and remaining gaps (2026-11-10)
+
+- [x] PR #486 rebased the 2026-11-10 daily-history batch onto current main after verifying the original README and CSV blobs matched the new base; no rows were discarded.
+- [x] PR #487 added a read-only CSV audit covering canonical schema/order, malformed rows, dates, symbols, instrument/unit pairing, finite numeric values, source metadata shape, quality statuses, duplicate session/symbol keys, OHLC geometry, missing metrics, and artifact byte count/SHA-256.
+- [x] PR #487 tests include the repository archive and verify the source CSV bytes remain unchanged.
+- [x] PR #487 post-merge main CI run #42886017424 passed all five required jobs on main commit 5c303ff15b97357d7ab086c921061644265ff309.
+- [ ] PR #488 classification/baseline comparison remains unmerged pending all five required CI jobs passing on the exact current head fe9ba50a823f46e6965aa180d7abb4d488a17df3. Four jobs are green; unit-tests (3.12) was still in progress at the latest check. Do not merge while any required job is pending or failed.
+- [ ] Independently authenticate source pages/values and reconcile review rows against authoritative EGX evidence; the CSV audit validates structure and arithmetic only.
+- [ ] Establish a trusted and repeatable source acquisition process, explicit coverage/completeness evidence, correction/revision handling, and operator review before using these rows as clean analytical history.
+- [ ] Keep rows with review statuses or OHLC geometry failures out of clean OHLC analysis/backtests until independently reconciled. Do not silently repair source values.
+- [ ] Keep blank volume, traded value, and executions as unavailable; never convert blanks to zero or infer that no trading occurred.
+- [ ] Do not claim production ingestion, source authenticity, M61 data acceptance, or strategy-performance validation from the read-only audit.
+
+The latest archive snapshot after PR #486 has 255 rows, 61 symbols, and 31 session dates. Its 2026-11-10 batch has 23 rows (17 equities and six indices), eight OHLC-review flags, no duplicate symbols within that batch, and blank traded value/execution counts for all 23 rows; EGREAL also has blank volume. These are observed archive properties, not claims of complete EGX market coverage.
