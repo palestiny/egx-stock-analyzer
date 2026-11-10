@@ -8,6 +8,8 @@ from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.security.authentication import AuthenticationError
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
+from app.infrastructure.persistence.filesystem_calendar_artifact_store import FileSystemCalendarArtifactStore
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
 from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
 from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
@@ -45,13 +47,22 @@ def make_client(tmp_path):
     store = SQLiteSessionCalendarRepository(database)
     evidence_repository = SQLiteCalendarEvidenceRepository(database)
     SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
-    publication_uow = SQLiteCalendarPublicationUnitOfWork(store, evidence_repository)
+    artifact_service = CalendarArtifactService(
+        FileSystemCalendarArtifactStore(tmp_path / "calendar-artifacts")
+    )
+    publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        store,
+        evidence_repository,
+        artifact_service=artifact_service,
+    )
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
         authenticator=CalendarTestAuthenticator(),
         session_calendar_store=store,
         calendar_publication_uow=publication_uow,
+        calendar_artifact_service=artifact_service,
     )
+    app.state.calendar_artifact_service = artifact_service
     return TestClient(app), store
 
 
@@ -476,3 +487,148 @@ def test_publication_rejects_operator_identity_without_attributable_credential(t
     assert response.status_code == 403
     assert response.json()["detail"] == "Individually attributable operator credential required"
     assert store.list_versions() == ()
+
+
+
+def test_operator_can_upload_and_verify_calendar_artifact(tmp_path):
+    client, _store = make_client(tmp_path)
+    content = b"%PDF-1.7 official EGX calendar notice"
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/artifacts",
+        headers={**operator_headers(), "Content-Type": "application/octet-stream"},
+        content=content,
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["integrity"] == "VERIFIED"
+    assert body["size_bytes"] == len(content)
+    receipt = client.app.state.calendar_artifact_service.verify(
+        body["storage_reference"],
+        body["artifact_sha256"],
+    )
+    assert receipt.sha256 == body["artifact_sha256"]
+
+
+def test_archived_evidence_publication_requires_verified_uploaded_bytes(tmp_path):
+    client, store = make_client(tmp_path)
+    content = b"EGX official calendar evidence"
+    uploaded = client.post(
+        "/api/v1/owner/session-calendars/artifacts",
+        headers={**operator_headers(), "Content-Type": "application/octet-stream"},
+        content=content,
+    )
+    assert uploaded.status_code == 201
+
+    payload = calendar_payload()
+    payload["evidence"][0].update({
+        "artifact_retention": "ARCHIVED",
+        "artifact_storage_reference": uploaded.json()["storage_reference"],
+        "artifact_sha256": uploaded.json()["artifact_sha256"],
+        "artifact_not_retained_reason": None,
+    })
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert published.status_code == 201
+    assert published.json()["evidence"][0]["artifact_retention"] == "ARCHIVED"
+    assert store.get_version("egx-2026-11-v1") is not None
+
+
+def test_archived_evidence_publication_rejects_tampered_artifact_bytes(tmp_path):
+    client, store = make_client(tmp_path)
+    content = b"unaltered EGX source bytes"
+    uploaded = client.post(
+        "/api/v1/owner/session-calendars/artifacts",
+        headers={**operator_headers(), "Content-Type": "application/octet-stream"},
+        content=content,
+    )
+    assert uploaded.status_code == 201
+    digest = uploaded.json()["artifact_sha256"]
+    artifact_path = tmp_path / "calendar-artifacts" / digest[:2] / digest
+    artifact_path.write_bytes(b"tampered source bytes")
+
+    payload = calendar_payload()
+    payload["evidence"][0].update({
+        "artifact_retention": "ARCHIVED",
+        "artifact_storage_reference": uploaded.json()["storage_reference"],
+        "artifact_sha256": digest,
+        "artifact_not_retained_reason": None,
+    })
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert published.status_code == 422
+    assert "SHA-256 verification" in published.json()["detail"]
+    assert store.list_versions() == ()
+
+
+def test_archived_evidence_publication_rejects_missing_artifact(tmp_path):
+    client, store = make_client(tmp_path)
+    payload = calendar_payload()
+    payload["evidence"][0].update({
+        "artifact_retention": "ARCHIVED",
+        "artifact_storage_reference": "sha256:" + "a" * 64,
+        "artifact_not_retained_reason": None,
+    })
+
+    published = client.post(
+        "/api/v1/owner/session-calendars/versions",
+        headers=operator_headers(),
+        json=payload,
+    )
+
+    assert published.status_code == 422
+    assert "does not exist" in published.json()["detail"]
+    assert store.list_versions() == ()
+
+
+def test_calendar_artifact_upload_requires_binary_content_type(tmp_path):
+    client, _store = make_client(tmp_path)
+
+    response = client.post(
+        "/api/v1/owner/session-calendars/artifacts",
+        headers=operator_headers(),
+        json={"not": "binary"},
+    )
+
+    assert response.status_code == 415
+
+
+def test_calendar_artifact_upload_enforces_configured_size_limit(tmp_path):
+    database = tmp_path / "calendar.db"
+    store = SQLiteSessionCalendarRepository(database)
+    evidence_repository = SQLiteCalendarEvidenceRepository(database)
+    SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
+    artifact_service = CalendarArtifactService(
+        FileSystemCalendarArtifactStore(tmp_path / "calendar-artifacts"),
+        max_artifact_bytes=8,
+    )
+    publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        store,
+        evidence_repository,
+        artifact_service=artifact_service,
+    )
+    app = create_app(
+        result_store=InMemoryAnalysisResultStore(),
+        authenticator=CalendarTestAuthenticator(),
+        session_calendar_store=store,
+        calendar_publication_uow=publication_uow,
+        calendar_artifact_service=artifact_service,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/owner/session-calendars/artifacts",
+            headers={**operator_headers(), "Content-Type": "application/octet-stream"},
+            content=b"ninebytes",
+        )
+
+    assert response.status_code == 413

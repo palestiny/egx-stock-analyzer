@@ -1,5 +1,16 @@
 # EGX Stock Analyzer — Current State
 
+## Latest working continuation — 2026-11-10 (calendar artifact verification)
+
+- PR #477 is merged into `main` as `cea2b8e8620a2ccb96693a20bd00ccc5ca900e63`; its post-merge Main workflow run #42868953457 completed successfully.
+- PR #478 merged into `main` as `622783b7ade6e23be604d6c07d4c5bc83e638b90` after all five required CI jobs passed on exact PR head `dde6315975732b89559aee2fecdbb507b016b86a` in run #42869283451. Post-merge main CI run #42870826850 is still in progress at this snapshot.
+- PR #479 (`feature/calendar-artifact-publication-verification`) is open at exact head `2046914533c74a99a315e3b571b621844f749209`. It adds authenticated binary artifact upload, bounded streaming intake, configurable persistent storage, and mandatory byte verification inside the SQLite publication Unit of Work before any transaction begins. Its exact-head CI run #42871338138 is in progress.
+- Compose config stores artifacts under `/data/calendar-artifacts` on the existing persistent `egx-data` volume; default upload limit is 20 MiB and can be configured. Non-Compose configurations keep artifact storage disabled unless explicitly configured.
+- The API returns a computed SHA-256 and opaque storage reference after successful write/read-back verification. Publication rejects missing or tampered archived artifacts; `EXTERNAL_ONLY` remains supported with its explicit non-retention reason.
+- New tests cover authenticated upload, successful archived publication, missing/tampered artifact rejection, direct Unit-of-Work rejection when no verifier is configured, content-type enforcement, upload size limits, and artifact storage configuration.
+- Remaining gaps: source authenticity is not established; lawful retention/reuse rights, backup/restore acceptance, orphaned uploads after failed publication, and deployment storage operations still need explicit controls. This work does not equate a matching digest with an authentic EGX/FRA source.
+- Calendar activation remains paused. No lifecycle monitoring, freshness enforcement, provider-finality behavior, or M61 work is introduced.
+
 ## Latest verified continuation — 2026-11-10 (PR #475 merged)
 
 - PR #475 merged into `main` as `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`. Exact PR head `6f53e65bdd8615be92c99fc6fcf42308b36624dd` passed all five required CI jobs in run #42866088424.

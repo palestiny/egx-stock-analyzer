@@ -1,6 +1,6 @@
 # Calendar Artifact Byte Integrity — Implementation Slice
 
-**Status:** byte-storage port and filesystem adapter implemented on a feature branch; API/publication integration is not yet merged.
+**Status:** byte-storage, authenticated upload, and publication-time byte verification are implemented on a stacked feature branch; CI and merge are pending.
 
 ## Scope implemented
 
@@ -9,6 +9,9 @@
 - `FileSystemCalendarArtifactStore` uses content-addressed paths (`sha256:<digest>`), rejects malformed references and symbolic-link targets, writes through a temporary file, and uses a no-overwrite hard-link operation.
 - Existing content is verified rather than silently replaced. Read operations detect post-write tampering.
 - Focused tests cover binary bytes, idempotent writes, missing artifacts, malformed references, tampering, and a corrupt storage adapter.
+- Authenticated operator upload is exposed as `POST /api/v1/owner/session-calendars/artifacts` with `Content-Type: application/octet-stream`. The server streams the request into a bounded buffer, computes the digest, stores the bytes, reads them back, and returns the storage reference plus computed digest only after verification.
+- Every `ARCHIVED` evidence item is re-read and verified by the SQLite publication Unit of Work itself, before it opens the database transaction. This protects direct internal callers as well as the HTTP route; there is no API-only bypass. Missing or tampered artifacts fail closed; `EXTERNAL_ONLY` evidence remains unchanged and still requires an explicit non-retention reason.
+- Compose config uses `/data/calendar-artifacts` on the existing persistent `egx-data` volume. The default maximum upload size is 20 MiB (`EGX_CALENDAR_ARTIFACT_MAX_BYTES`); the path and limit are configurable. Non-Compose runtime configuration keeps storage disabled unless `EGX_CALENDAR_ARTIFACT_STORAGE_PATH` is set.
 
 ## Explicit guarantees and non-guarantees
 
@@ -16,15 +19,15 @@ This slice proves **byte integrity across the adapter write/read boundary** when
 
 The filesystem adapter is a storage implementation, not yet a deployment decision. Production use requires a protected persistent volume, backup/recovery procedures, capacity/retention controls, and an explicit deployment configuration. It is not a multi-node object-storage solution.
 
-## Remaining integration gates
+## Remaining acceptance gates
 
-1. Wire artifact intake to the authenticated calendar-operator API without accepting a caller-supplied digest as proof.
-2. Require a verified storage receipt before new evidence can be recorded as `ARCHIVED`; preserve `EXTERNAL_ONLY` with an explicit non-retention reason.
-3. Ensure evidence publication checks the referenced artifact bytes and digest before committing the evidence record. Define cleanup/reconciliation for uploaded artifacts that are not attached to a published evidence record.
-4. Record source-verification method and outcome separately from byte integrity. HTTPS, publisher labels, and a matching digest do not independently authenticate the source.
-5. Establish source-specific retention/reuse permission and deployment retrieval/backup evidence before claiming legal or operational retention compliance.
+1. Define and implement source-verification method and outcome separately from byte integrity. HTTPS, publisher labels, and a matching digest do not independently authenticate the source.
+2. Establish source-specific retention/reuse permission before treating any artifact as lawfully retainable.
+3. Validate backup/restore and recovery procedures for the persistent volume; the filesystem adapter is not a multi-node object-storage solution.
+4. Define reconciliation for uploaded artifacts that are not attached to a successful publication. No automated deletion is enabled because deletion rights and retention policy have not been approved.
+5. Decide whether a future authenticated artifact-download endpoint is required for operator workflows.
 
-Until these gates are complete, the existing calendar API's operator-supplied artifact digest/reference fields must not be described as independently verified archival. The new storage service is not yet wired into that API.
+The current implementation proves that the stored bytes matched the computed digest at upload/read-back and again inside the publication Unit of Work before the database transaction begins. It does not prove source authenticity, legal retention permission, or future availability after external storage loss/tampering.
 
 ## Scope exclusions
 
