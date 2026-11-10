@@ -571,12 +571,12 @@ def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path)
                 "reason": "Verify production atomic publication",
             },
         )
+        assert response.status_code == 201
+        assert runtime.session_calendar_store.get_version("runtime-atomic-calendar-v1") is not None
+        stored = runtime.calendar_evidence_repository.list_for_day(
+            "runtime-atomic-calendar-v1",
+            date(2026, 11, 1),
+        )
+        assert len(stored) == 1
 
-    assert response.status_code == 201
-    assert runtime.session_calendar_store.get_version("runtime-atomic-calendar-v1") is not None
-    stored = runtime.calendar_evidence_repository.list_for_day(
-        "runtime-atomic-calendar-v1",
-        date(2026, 11, 1),
-    )
-    assert len(stored) == 1
     assert runtime.closed is True
