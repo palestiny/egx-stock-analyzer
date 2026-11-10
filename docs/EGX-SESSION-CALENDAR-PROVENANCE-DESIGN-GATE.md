@@ -1,8 +1,16 @@
 # EGX Session Calendar Provenance & Operator Accountability — Design Gate
 
-**Status:** D1–D4 POLICY APPROVED — enforcement under PR #475; activation remains blocked  
+**Status:** D1–D4 POLICY APPROVED AND ENFORCEMENT MERGED — activation remains blocked  
 **Reviewed:** 2026-11-10  
-**Related:** PR #459, #460, #465, #466, #467
+**Related:** PR #459, #460, #465, #466, #467, #471, #475
+
+## Latest implementation status — 2026-11-10
+
+- PR #475 merged to `main` as `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`; exact PR head `6f53e65` passed all five required CI jobs in run #42866088424.
+- Post-merge main run #42867152618 had four jobs passed; unit tests with coverage were still running at this snapshot.
+- A/A-R/B/C source-class rules, FRA `FRA_REGULATORY` scope, hybrid retention metadata, strict evidence-gated publication, explicit OPEN confirmation, exceptional-hours evidence, and migration compatibility are merged.
+- Publisher identity and digest are operator-declared; independent artifact-byte authentication/verification and deployment proof of lawful retention/retrieval remain open.
+- Publication is not activation. No calendar has been activated; cursor-derived coverage, bootstrap/recovery, provider completed-bar attestation, and lifecycle/freshness integration remain separate blockers. Keep activation and lifecycle monitoring disabled.
 
 ## 1. Owner decisions
 
@@ -66,7 +74,7 @@ The operator access model uses named application users with an explicit `OPERATO
 
 ## 5. Remaining engineering and operational acceptance
 
-- Complete PR #475 exact-head CI on final head `5cd363f`; run #42864456090 passed all five jobs on prior head `b09ebd9`. Merge only after all five jobs pass on the latest head.
+- [x] Merge PR #475 after all five exact-head CI jobs passed on `6f53e65` in run #42866088424. Post-merge main run #42867152618 was awaiting unit tests with coverage at this snapshot.
 - Additive SQLite migration and legacy record-digest preservation have dedicated regression coverage in PR #475.
 - API-level source/retention metadata validation and atomic rollback remain covered by the publication/API test suite; deployment-level artifact-byte verification remains open.
 - Independently verify archived artifact bytes against artifact_sha256; current operator-supplied digest/reference fields do not authenticate the publisher or artifact.
@@ -78,7 +86,7 @@ The operator access model uses named application users with an explicit `OPERATO
 
 Calendar publication remains separate from activation. No calendar has been activated, and lifecycle monitoring remains disabled. No schedule, weekend, holiday, or session time is inferred. Provider completed-bar attestation and cursor-derived coverage validation remain independent activation blockers.
 
-**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. D1–D4 source acceptance, hybrid retention metadata, strict claim-specific publication, exceptional-hours evidence, legacy migration, and FRA regulatory scope are implemented in PR #475. Run #42864456090 passed all five jobs on prior head `b09ebd9`; final head `5cd363f` awaits exact-head CI. Source authenticity, artifact-byte verification/legal retention, and operational activation gates remain open.
+**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. D1–D4 source acceptance, hybrid retention metadata, strict claim-specific publication, explicit OPEN confirmation, exceptional-hours evidence, legacy migration, and FRA regulatory scope are merged in PR #475. Exact PR-head CI passed in run #42866088424; post-merge main CI run #42867152618 was awaiting its unit-test/coverage job at this snapshot. Source authenticity, artifact-byte verification/legal retention, and operational activation gates remain open.
 
 
 ## 10. Atomic publication implementation — PR #471

@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `ec1364e09399932273b87de4ba4761a6bc7161da` (main CI run #42859055049 completed successfully across all five jobs; PR #475 is open against this baseline). Historical PR/CI evidence remains recorded below.
+**Baseline:** `main` at `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22` (PR #475 merged; exact PR-head CI run #42866088424 passed all five jobs; post-merge main CI run #42867152618 pending unit tests with coverage at this snapshot).  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -11,7 +11,7 @@ This register separates verified implementation from incomplete acceptance and d
 ## Verified merged foundations
 
 
-- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection; its exact-head CI passed. PR #475 implements owner-approved source acceptance and hybrid artifact-retention policy, but is not merged and does not prove source authenticity.
+- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection; its exact-head CI passed. PR #475 is merged: owner-approved source acceptance, hybrid artifact-retention metadata, strict evidence-gated publication, explicit OPEN confirmation, exceptional-hours enforcement, and FRA-only regulatory scope. This still does not prove source authenticity or artifact-byte retention.
 - PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
 - PR #467 merged authenticated session-calendar publication/read API and persistent runtime composition as `03d3969e19e7b73beb3b8427afb5328183d1553e`. All five exact-head checks passed before merge; the same five checks also passed on the merge commit. PR #462 is closed unmerged as superseded.
 
@@ -84,7 +84,9 @@ First add the UoW and repository transaction seams with focused tests; then rout
 - [x] Persist immutable calendar versions with SHA-256 verification and append-only activation audit history (PR #460).
 - [x] Merge authenticated calendar publication/read API with exact-head CI and post-merge main CI verification (PR #467).
 - [x] Implement immutable per-day evidence storage and named, attributable operator identities (PRs #465 and #466).
-- [ ] Verify PR #471 exact-head CI for atomic publication, explicit per-day links, status-specific evidence requirements, and conflict rejection; source-class acceptance and artifact authenticity remain open.
+- [x] Merge PR #475 after all five exact-head CI jobs passed; source-class acceptance, FRA regulatory scope, hybrid retention metadata, explicit OPEN confirmation, exceptional-hours evidence, and strict publication are implemented. Post-merge main CI run #42867152618 was pending its unit-test/coverage job at this snapshot.
+- [ ] Independently verify source publisher authenticity and artifact bytes against the recorded digest; confirm lawful retention and retrievability in deployment.
+- [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Approve calendar bootstrap and cursor-derived coverage horizon; keep activation endpoints unavailable until the durable evaluation cursor and recovery rules exist.
 - [ ] Connect the calendar to durable lifecycle scheduling and chronological recovery only after provider-completed-bar attestation and freshness semantics are verified.
 - [ ] Keep lifecycle monitoring and Crash Radar freshness enforcement disabled until all required calendar, provider, and recovery gates pass.
