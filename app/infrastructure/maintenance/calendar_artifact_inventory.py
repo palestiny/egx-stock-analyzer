@@ -10,7 +10,6 @@ from pathlib import Path
 import re
 import sqlite3
 import stat
-from typing import Iterable
 
 
 _STORAGE_REFERENCE_PATTERN = re.compile(r"^sha256:([0-9a-f]{64})$")
