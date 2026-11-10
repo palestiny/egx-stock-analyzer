@@ -95,7 +95,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
                 )
             raise ValueError("CSV columns are not in the canonical order")
 
-        rows: list[dict[str, str]] = []
+        rows: list[tuple[int, dict[str, str]]] = []
         row_errors: list[dict[str, object]] = []
         for row_number, values in enumerate(reader, start=2):
             if not values:
@@ -106,7 +106,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
                     "reason": f"field_count_expected_{len(header)}_got_{len(values)}",
                 })
                 continue
-            rows.append(dict(zip(header, values, strict=True)))
+            rows.append((row_number, dict(zip(header, values, strict=True))))
     except csv.Error as exc:
         raise ValueError("CSV contains malformed quoting or structure") from exc
 
@@ -121,7 +121,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
     symbols: set[str] = set()
     session_counts: Counter[str] = Counter()
 
-    for row_number, row in enumerate(rows, start=2):
+    for row_number, row in rows:
         symbol = row["symbol"].strip().upper()
         session = row["session_date"].strip()
         quality = row["quality_status"].strip()
@@ -137,6 +137,9 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
             if not row[field].strip():
                 missing_counts[field] += 1
                 row_problems.append(f"missing_{field}")
+        for field in ("volume_thousands_reported", "traded_value_egp", "executions_count"):
+            if not row[field].strip():
+                missing_counts[field] += 1
 
         try:
             parsed_date = date.fromisoformat(session)
@@ -241,7 +244,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
         "last_session_date": latest_date,
         "latest_session_row_count": latest_session_rows,
         "latest_session_symbols": sorted({
-            row["symbol"].strip().upper() for row in rows
+            row["symbol"].strip().upper() for _, row in rows
             if latest_date and row["session_date"].strip() == latest_date
         }),
         "quality_status_counts": dict(sorted(quality_counts.items())),
