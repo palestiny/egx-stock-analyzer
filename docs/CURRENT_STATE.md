@@ -5,8 +5,8 @@
 - PR #477 is merged into `main` as `cea2b8e8620a2ccb96693a20bd00ccc5ca900e63`; its post-merge Main workflow run #42868953457 completed successfully.
 - PR #478 is merged into `main` as `622783b7ade6e23be604d6c07d4c5bc83e638b90`; all five required CI jobs passed on exact PR head `dde6315975732b89559aee2fecdbb507b016b86a` in run #42869283451.
 - PR #479 is merged into `main` as `d1114c1a020825fb1e8477605c5c18c14bf475e6`; exact PR head `9cd81700201c38ceeb34b50ffad18e9565b7f959` passed all five required jobs in run #42873143036 before merge.
-- Post-merge main CI run #42874061006 has four required jobs passed; `unit-tests (3.12)` remains in progress. Do not claim post-merge main CI green until it completes.
-- PR #480 (`docs/reconcile-calendar-artifact-merge-state`) is open at exact head `e62ae3f35b25fd32fba1b4751d4dbe53d11b044b`. Its four completed required jobs passed; `unit-tests (3.12)` remains in progress in run #42874226041. Merge only after all five exact-head jobs pass.
+- Post-merge main CI run #42874061006 completed successfully; all five required jobs passed.
+- PR #480 (`docs/reconcile-calendar-artifact-merge-state`) merged into `main` as `c475b076c82c7c91a5671a91baf18a47afad105f`. Its exact head `2b8a40e8917ff06772f501a95b0ec248d8a5e642` passed all five required jobs in run #42874761255 before merge.
 - Artifact storage/upload/publication verification is implemented, but source authenticity, legal retention permission, backup/restore, multi-node behavior, and orphan reconciliation remain open acceptance gates. No automatic deletion is enabled.
 - Compose config stores artifacts under `/data/calendar-artifacts` on the existing persistent `egx-data` volume; default upload limit is 20 MiB and can be configured. Non-Compose configurations keep artifact storage disabled unless explicitly configured.
 - The API returns a computed SHA-256 and opaque storage reference after successful write/read-back verification. Publication rejects missing or tampered archived artifacts; `EXTERNAL_ONLY` remains supported with its explicit non-retention reason.
@@ -34,7 +34,7 @@
 
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-10 (main at `d1114c1a020825fb1e8477605c5c18c14bf475e6`; PR #479 merged after all five exact-head CI jobs passed. Post-merge main run #42874061006 is in progress.)
+**Last reviewed:** 2026-11-10 (main at `c475b076c82c7c91a5671a91baf18a47afad105f`; PR #480 merged after all five exact-head CI jobs passed in run #42874761255. Main run #42874061006 also passed all five required jobs.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
