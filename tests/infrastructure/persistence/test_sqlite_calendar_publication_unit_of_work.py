@@ -349,16 +349,19 @@ def test_secondary_source_cannot_authorize_calendar_publication(tmp_path):
     assert calendars.list_versions() == ()
 
 
-def test_primary_evidence_must_cover_the_exact_day_and_market_scope(tmp_path):
+def test_primary_evidence_must_cover_egx_market_wide_scope(tmp_path):
     _database, calendars, _evidence_repository, uow = _setup(tmp_path)
-    with pytest.raises(ValueError, match="inside the source effective date scope"):
-        evidence = (
-            _evidence(date(2026, 11, 1), "Wrong effective date", kind=CalendarEvidenceKind.CLOSURE, effective_from=date(2026, 11, 2)),
-            _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
-        )
+    evidence = (
+        _evidence(
+            date(2026, 11, 1), "Index-only notice", kind=CalendarEvidenceKind.CLOSURE,
+            market_scope="EGX_INDEX_ONLY",
+        ),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence kinds"):
         uow.publish(
             _calendar(), evidence, published_by=str(ACTOR),
-            source_reference="EGX source bundle", reason="Reject out-of-scope evidence",
+            source_reference="EGX source bundle", reason="Reject non-market-wide evidence",
         )
     assert calendars.list_versions() == ()
 

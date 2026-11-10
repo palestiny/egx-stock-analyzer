@@ -167,7 +167,11 @@ def test_evidence_must_reference_an_explicit_calendar_coverage_date(tmp_path):
     repository, _ = _repository(tmp_path)
     with pytest.raises(ValueError, match="explicit date"):
         repository.append(
-            _evidence(session_date=date(2026, 11, 3))
+            _evidence(
+                session_date=date(2026, 11, 3),
+                effective_from=date(2026, 11, 3),
+                effective_through=date(2026, 11, 3),
+            )
         )
 
 
