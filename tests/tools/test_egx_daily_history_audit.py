@@ -230,3 +230,21 @@ def test_snapshot_comparison_marks_duplicate_keys_as_partial(tmp_path: Path) -> 
     assert comparison["ambiguous_duplicate_keys"] == [
         {"session_date": "2026-11-10", "symbol": "DUP"}
     ]
+
+
+def test_audit_marks_duplicate_baseline_comparison_as_incomplete(tmp_path: Path) -> None:
+    archive = tmp_path / "current.csv"
+    baseline = tmp_path / "baseline.csv"
+    archive.write_text(csv_text(row(symbol="ONLY")), encoding="utf-8")
+    baseline.write_text(csv_text(
+        row(symbol="DUP"),
+        row(symbol="DUP", close_value="106"),
+    ), encoding="utf-8")
+    before = archive.read_bytes()
+
+    report = audit_file(archive, baseline)
+
+    assert archive.read_bytes() == before
+    assert report["baseline_comparison_complete"] is False
+    assert report["baseline_comparison"]["status"] == "partial_due_to_duplicate_keys"
+    assert report["status"] == "completed_with_findings"
