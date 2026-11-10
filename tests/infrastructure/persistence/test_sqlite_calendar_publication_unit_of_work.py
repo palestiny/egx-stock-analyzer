@@ -31,7 +31,7 @@ def _calendar(version: str = "atomic-calendar-v1") -> EGXSessionCalendar:
     )
 
 
-def _evidence(day: date, claim: str, *, kind: CalendarEvidenceKind = CalendarEvidenceKind.SCHEDULE) -> CalendarEvidence:
+def _evidence(\n    day: date,\n    claim: str,\n    *,\n    kind: CalendarEvidenceKind = CalendarEvidenceKind.SCHEDULE,\n    evidence_id: UUID | None = None,\n    supersedes_evidence_id: UUID | None = None,\n    supersession_reason: str | None = None,\n) -> CalendarEvidence:
     return CalendarEvidence.create(
         calendar_version="atomic-calendar-v1",
         session_date=day,
@@ -119,7 +119,7 @@ def test_conflicting_unsuperseded_claims_roll_back_calendar_and_evidence(tmp_pat
     evidence = (
         _evidence(date(2026, 11, 1), "Official notice says trading", kind=CalendarEvidenceKind.CLOSURE),
         _evidence(date(2026, 11, 1), "Different official notice says closure", kind=CalendarEvidenceKind.CLOSURE),
-        _evidence(date(2026, 11, 2), "Official schedule confirms no session"),
+        _evidence(date(2026, 11, 2), "Official notice confirms closure", kind=CalendarEvidenceKind.CLOSURE),
     )
 
     with pytest.raises(ValueError, match="Unresolved calendar evidence conflict"):
