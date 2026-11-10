@@ -156,3 +156,95 @@ def test_repository_archive_is_auditable_without_modification() -> None:
     assert report["malformed_row_count"] == 0
     assert report["unlabelled_ohlc_inconsistency_count"] == 0
     assert len(report["artifact"]["sha256"]) == 64
+
+
+def test_row_classifications_are_mutually_exclusive_and_conservative() -> None:
+    content = csv_text(
+        row(symbol="CLEAN"),
+        row(symbol="REVIEW", quality_status="ohlc_inconsistency_review"),
+        row(symbol="INVALID", open_value="not-a-number"),
+        row(symbol="DUP"),
+        row(symbol="DUP", close_value="106"),
+    )
+    report = audit_csv_text(content)
+
+    assert report["row_classification_counts"] == {
+        "clean_ohlc_candidates": 1,
+        "review_required": 1,
+        "rejected_or_invalid": 3,
+    }
+    assert report["duplicate_row_count"] == 2
+    assert report["analysis_eligibility"] == (
+        "STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED"
+    )
+
+
+def test_snapshot_comparison_reports_added_removed_and_changed_without_mutation(
+    tmp_path: Path,
+) -> None:
+    from tools.egx_daily_history_audit import compare_csv_files
+
+    baseline = tmp_path / "baseline.csv"
+    current = tmp_path / "current.csv"
+    baseline.write_text(csv_text(
+        row(symbol="KEEP"),
+        row(symbol="CHANGE", close_value="105"),
+        row(symbol="REMOVE"),
+    ), encoding="utf-8")
+    current.write_text(csv_text(
+        row(symbol="KEEP"),
+        row(symbol="CHANGE", close_value="106"),
+        row(symbol="ADD"),
+    ), encoding="utf-8")
+    before = current.read_bytes()
+
+    comparison = compare_csv_files(current, baseline)
+
+    assert current.read_bytes() == before
+    assert comparison["status"] == "complete"
+    assert comparison["added_count"] == 1
+    assert comparison["added_keys"] == [
+        {"session_date": "2026-11-10", "symbol": "ADD"}
+    ]
+    assert comparison["removed_count"] == 1
+    assert comparison["removed_keys"] == [
+        {"session_date": "2026-11-10", "symbol": "REMOVE"}
+    ]
+    assert comparison["changed_count"] == 1
+    assert comparison["changed_rows"][0]["symbol"] == "CHANGE"
+    assert comparison["changed_rows"][0]["changed_fields"] == ["close_value"]
+
+
+def test_snapshot_comparison_marks_duplicate_keys_as_partial(tmp_path: Path) -> None:
+    from tools.egx_daily_history_audit import compare_csv_files
+
+    baseline = tmp_path / "baseline.csv"
+    current = tmp_path / "current.csv"
+    baseline.write_text(csv_text(row(symbol="DUP"), row(symbol="DUP")), encoding="utf-8")
+    current.write_text(csv_text(row(symbol="DUP")), encoding="utf-8")
+
+    comparison = compare_csv_files(current, baseline)
+
+    assert comparison["status"] == "partial_due_to_duplicate_keys"
+    assert comparison["comparison_complete"] is False
+    assert comparison["ambiguous_duplicate_keys"] == [
+        {"session_date": "2026-11-10", "symbol": "DUP"}
+    ]
+
+
+def test_audit_marks_duplicate_baseline_comparison_as_incomplete(tmp_path: Path) -> None:
+    archive = tmp_path / "current.csv"
+    baseline = tmp_path / "baseline.csv"
+    archive.write_text(csv_text(row(symbol="ONLY")), encoding="utf-8")
+    baseline.write_text(csv_text(
+        row(symbol="DUP"),
+        row(symbol="DUP", close_value="106"),
+    ), encoding="utf-8")
+    before = archive.read_bytes()
+
+    report = audit_file(archive, baseline)
+
+    assert archive.read_bytes() == before
+    assert report["baseline_comparison_complete"] is False
+    assert report["baseline_comparison"]["status"] == "partial_due_to_duplicate_keys"
+    assert report["status"] == "completed_with_findings"
