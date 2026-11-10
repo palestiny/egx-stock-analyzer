@@ -82,7 +82,7 @@ class CalendarArtifactService:
         actual_digest = hashlib.sha256(persisted_content).hexdigest()
         if not hmac.compare_digest(expected_sha256, actual_digest):
             raise CalendarArtifactIntegrityError(
-                "Stored calendar artifact bytes failed SHA-256 verification"
+                "Stored calendar artifact bytes failed SHA-256 verification after read-back"
             )
         if len(persisted_content) > self.max_artifact_bytes:
             raise CalendarArtifactIntegrityError(
