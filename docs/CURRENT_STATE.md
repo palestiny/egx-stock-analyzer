@@ -6,23 +6,23 @@
 - PR #472 merged as `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`. Its exact head `71ebdb22c5f3dd517ef4c896a6dfc8643e083dc6` passed all five CI jobs in run #42667845797. The canonical archive now contains 232 records across 19 columns, including 23 rows for 2026-11-09 (17 equities and 6 indices). Independent structural verification found no duplicate `(session_date, symbol)` keys and complete required provenance fields on all 23 new rows.
 - Four 2026-11-09 index rows remain flagged `ohlc_inconsistency_review`; PHDC and EGX30 remain flagged for localized-source conflicts, and an EGX100EWI discrepancy is retained in notes. Raw values were preserved; flagged rows are not clean OHLC evidence. This archive update does not establish full-market coverage, application-database ingestion, or production-feed readiness.
 - Current `main` is `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`. Post-merge main CI run #42855711113 completed successfully with all five required jobs. The earlier main run #42855271889 was cancelled by the subsequent #472 push and is not counted as a pass.
-- PR #474's evidence acceptance proposal was accepted by the owner on 2026-11-10: D1 A/A-R/B/C source classes; D2 hybrid retention; D3 strict evidence-gated publication; D4 claim-specific day evidence matrix. PR #475 implements these decisions. Its current head is 4026f4d54a914e97de05199bf73010a2b3dc6b4e; CI run #42862320115 is in progress. Do not merge before all five jobs pass on the exact head.
+- PR #474's evidence acceptance proposal was accepted by the owner on 2026-11-10: D1 A/A-R/B/C source classes; D2 hybrid retention; D3 strict evidence-gated publication; D4 claim-specific day evidence matrix. PR #475 implements these decisions. CI run #42862915659 on the prior implementation head passed four jobs but failed unit tests on four fixture assertions (1,608 passed; 8 deselected). The four fixture causes were isolated and corrected in commit `7c6da71`; rerun the complete suite on the final PR head before merge.
 - PR #475 adds typed source classes, scope/effective-date/retrieval metadata, hybrid artifact-retention metadata, Class A-only primary evidence checks, and explicit exceptional-hours marker/evidence enforcement. This is not source authentication: declared publisher and artifact digest are operator-supplied; independent artifact verification is still open.
 - Calendar activation, lifecycle monitoring, freshness enforcement, provider completed-bar attestation, and M61 remain disabled/blocked/paused. PR #321 remains Draft.
 
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-09 (main at `5cf842d01919f95ce73b984a8b237813db9d2db7`; PR #469 merged. Main CI run #42643672050 had 4/5 jobs successful and unit-tests still in progress at review.)
+**Last reviewed:** 2026-11-10 (main at `ec1364e09399932273b87de4ba4761a6bc7161da`; main CI run #42859055049 completed successfully with all five jobs. PR #475 remains open pending final exact-head CI.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
 ### Latest verified continuation — 2026-11-09 (individual operator + calendar API)
 
-- PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. The registry does not prove source authenticity; atomic publication enforcement is implemented on PR #471 pending exact-head CI.
+- PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. PR #471's atomic publication enforcement is merged and its exact-head CI passed. The registry does not prove source authenticity.
 - PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit, durable-credential-aware permission resolution, last-operator protection, and trusted local first-operator bootstrap.
 - PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`. Its exact head `2d2cdac405698d7e783a838037a588852a5cc5b2` passed all five required CI jobs before squash merge. It composes persistent calendar storage and the authenticated API, requiring an active individual operator user plus durable credential; the legacy shared operator token is rejected for calendar administration.
 - PR #462 is closed unmerged as superseded by #467.
-- Calendar publication remains separate from activation. Atomic per-day evidence coverage/linkage and conflict validation are implemented on PR #471 pending exact-head CI. Source-class acceptance, artifact authenticity/retention, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
+- Calendar publication remains separate from activation. PR #471's atomic per-day evidence coverage/linkage and conflict validation are merged. D1–D4 source-class acceptance, hybrid retention metadata, strict publication, and claim-specific evidence matrix are owner-approved and implemented under PR #475, pending final exact-head CI. Artifact authenticity/byte verification, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
 ### Calendar publication atomicity — owner-approved; implementation in progress

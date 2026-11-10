@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `3531c78d15d65c7eac687f3848219d724dd2a8bb` (PR #470 merged after all five exact-head CI jobs passed; prior baseline main CI run #42643672050 also completed successfully across all five jobs). Historical PR/CI evidence remains recorded below.
+**Baseline:** `main` at `ec1364e09399932273b87de4ba4761a6bc7161da` (main CI run #42859055049 completed successfully across all five jobs; PR #475 is open against this baseline). Historical PR/CI evidence remains recorded below.
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -64,7 +64,7 @@ Introduce a narrowly scoped calendar SQLite Unit of Work (UoW) that owns one con
 - Tests use the production runtime composition and a temporary on-disk SQLite database, not only isolated in-memory repository fakes.
 
 ### Decisions intentionally outside this implementation
-Evidence acceptance by claim type, required primary-source categories, source artifact archival versus stable external references, and deployment bootstrap/recovery remain owner decisions or separate operational gates. The proposal does not assert that a hash proves source authenticity. It does not authorize calendar activation or lifecycle monitoring.
+D1–D4 evidence acceptance, source classes, hybrid retention metadata, and strict publication are owner-approved and implemented in PR #475, pending final exact-head CI. Independent publisher authenticity, artifact-byte verification and lawful retention, and deployment bootstrap/recovery remain separate operational gates. An operator-supplied digest does not prove source authenticity. These decisions do not authorize calendar activation or lifecycle monitoring.
 
 ### Rollout and compatibility
 First add the UoW and repository transaction seams with focused tests; then route the publication use case through it. Preserve existing schema and immutable record IDs where possible. If an explicit per-day link table or schema migration is required, document the migration and prove upgrade-from-existing-database behavior before release. Do not silently retrofit existing evidence or infer missing evidence.
@@ -242,4 +242,4 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. PR #475 remains open while its exact-head CI runs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+PR #471 is merged; its exact-head CI passed. PR #475 remains open after its first exact-head run exposed four test-fixture failures; the root causes are corrected in commit `7c6da71` and a new exact-head run is required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.

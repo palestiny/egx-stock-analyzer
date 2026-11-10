@@ -78,7 +78,7 @@ The operator access model uses named application users with an explicit `OPERATO
 
 Calendar publication remains separate from activation. No calendar has been activated, and lifecycle monitoring remains disabled. No schedule, weekend, holiday, or session time is inferred. Provider completed-bar attestation and cursor-derived coverage validation remain independent activation blockers.
 
-**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. The latest main CI after PR #472 is tracked in CURRENT_STATE.md. Source-class acceptance, artifact retention/authenticity, and operational activation gates remain open.
+**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. D1–D4 source acceptance, hybrid retention metadata, and strict claim-specific publication are owner-approved and implemented in PR #475, pending final exact-head CI. Source authenticity, artifact-byte verification/legal retention, and operational activation gates remain open.
 
 
 ## 10. Atomic publication implementation — PR #471
@@ -93,4 +93,4 @@ Calendar publication remains separate from activation. No calendar has been acti
 
 ## 11. Post-merge status — 2026-11-10
 
-PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. The latest main-line CI is run #42855711113 on `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`; four jobs have passed and unit tests remain in progress. D1–D4 policy is owner-approved and PR #475 is the enforcement implementation. Source authenticity, deployment artifact verification, bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated. No calendar has been activated.
+PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. Main at `ec1364e09399932273b87de4ba4761a6bc7161da` passed all five jobs in run #42859055049. D1–D4 policy is owner-approved and PR #475 is the enforcement implementation. Its first exact-head run passed four jobs but found four unit-test fixture assertions; the corrections are committed and final exact-head CI is pending. Source authenticity, deployment artifact verification, bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated.
