@@ -234,19 +234,19 @@ def run_calendar_artifact_inventory(
 
     for storage_reference, expected_digests in sorted(referenced.items()):
         digest = storage_reference.removeprefix("sha256:")
+        stored = files.pop(digest, None)
         if any(value != digest for value in expected_digests):
             entries.append(
                 CalendarArtifactInventoryEntry(
                     status=CalendarArtifactInventoryStatus.INTEGRITY_FAILURE,
                     storage_reference=storage_reference,
                     evidence_count=len(expected_digests),
-                    size_bytes=None,
+                    size_bytes=stored[1] if stored is not None else None,
                     detail="Database artifact_sha256 metadata does not consistently match the content-addressed reference",
                 )
             )
             continue
 
-        stored = files.pop(digest, None)
         if stored is None:
             entries.append(
                 CalendarArtifactInventoryEntry(
