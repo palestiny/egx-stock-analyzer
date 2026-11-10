@@ -356,4 +356,4 @@ The main report's `analysis_eligibility` is `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURC
 
 ### CLI findings-path regression
 
-PR #495 adds a focused subprocess test that supplies a structurally parseable CSV with an unlabelled OHLC geometry inconsistency and asserts exit code 1, matching stdout/file JSON, the unlabelled finding count, and unchanged input bytes. It is test-only and its CI must pass on the exact head before merge.
+PR #495 merged as `2b18d2d1ac9ea54aa89b17351875802e5970a7ab`; exact-head CI run #42895151535 passed all six jobs on `db52eb8eefa4c54efdd804dfb16d01cd9af111c0`. Its focused subprocess test supplies a structurally parseable CSV with an unlabelled OHLC geometry inconsistency and asserts exit code 1, matching stdout/file JSON, the unlabelled finding count, and unchanged input bytes. PR #496 also merged as `05c3d00e719b3d50c8f9e57dfc73644d54f72a0c` after all six exact-head CI jobs passed in run #42895373313. The latest post-merge main run on the final SHA is queued; verify it before declaring main-line closeout complete.
