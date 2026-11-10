@@ -66,9 +66,9 @@ The operator access model uses named application users with an explicit `OPERATO
 
 ## 5. Remaining engineering and operational acceptance
 
-- Complete PR #475 exact-head CI and merge only after all five required jobs pass.
-- Verify additive SQLite migration against a representative pre-policy evidence database and preserve legacy record-digest verification.
-- Verify API-level rejection for missing/invalid source and retention metadata, plus atomic rollback on every policy rejection.
+- Complete PR #475 exact-head CI on final head `5cd363f`; run #42864456090 passed all five jobs on prior head `b09ebd9`. Merge only after all five jobs pass on the latest head.
+- Additive SQLite migration and legacy record-digest preservation have dedicated regression coverage in PR #475.
+- API-level source/retention metadata validation and atomic rollback remain covered by the publication/API test suite; deployment-level artifact-byte verification remains open.
 - Independently verify archived artifact bytes against artifact_sha256; current operator-supplied digest/reference fields do not authenticate the publisher or artifact.
 - Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
@@ -78,7 +78,7 @@ The operator access model uses named application users with an explicit `OPERATO
 
 Calendar publication remains separate from activation. No calendar has been activated, and lifecycle monitoring remains disabled. No schedule, weekend, holiday, or session time is inferred. Provider completed-bar attestation and cursor-derived coverage validation remain independent activation blockers.
 
-**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. D1–D4 source acceptance, hybrid retention metadata, and strict claim-specific publication are owner-approved and implemented in PR #475, pending final exact-head CI. Source authenticity, artifact-byte verification/legal retention, and operational activation gates remain open.
+**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. D1–D4 source acceptance, hybrid retention metadata, strict claim-specific publication, exceptional-hours evidence, legacy migration, and FRA regulatory scope are implemented in PR #475. Run #42864456090 passed all five jobs on prior head `b09ebd9`; final head `5cd363f` awaits exact-head CI. Source authenticity, artifact-byte verification/legal retention, and operational activation gates remain open.
 
 
 ## 10. Atomic publication implementation — PR #471
@@ -93,4 +93,4 @@ Calendar publication remains separate from activation. No calendar has been acti
 
 ## 11. Post-merge status — 2026-11-10
 
-PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. Main at `ec1364e09399932273b87de4ba4761a6bc7161da` passed all five jobs in run #42859055049. D1–D4 policy is owner-approved and PR #475 is the enforcement implementation. Its first exact-head run passed four jobs but found four unit-test fixture assertions; the corrections are committed and final exact-head CI is pending. Source authenticity, deployment artifact verification, bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated.
+PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. Main at `ec1364e09399932273b87de4ba4761a6bc7161da` passed all five jobs in run #42859055049. D1–D4 policy is owner-approved and PR #475 implements enforcement. Run #42864456090 passed all five jobs on prior head `b09ebd9`; final head `5cd363f` adds explicit FRA regulatory-scope enforcement and reconciled documentation, so its exact-head CI is pending. Source authenticity, deployment artifact verification, bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated.

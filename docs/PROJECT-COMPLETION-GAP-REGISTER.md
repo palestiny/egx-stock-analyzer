@@ -37,7 +37,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 ## Calendar evidence publication — atomicity implementation (2026-11-09)
 
-**Status: OWNER-APPROVED — implementation in progress on `feature/atomic-calendar-evidence-publication-v2`.**
+**Status: IMPLEMENTED — merged in PR #471 after all five exact-head CI jobs passed.**
 
 ### Problem verified in current implementation
 The calendar-version repository and calendar-evidence repository each manage their own SQLite connections and transaction scopes. Evidence rows reference an already-persisted calendar version, so the current composition cannot guarantee that a version and all required per-day evidence are committed or rolled back as one operation. An API-level pre-check alone would leave a time-of-check/time-of-use gap and could persist a calendar version without its complete evidence set.
@@ -51,8 +51,8 @@ The calendar-version repository and calendar-evidence repository each manage the
 6. Commit only when every validation passes. Any exception or failed gate rolls back the version, evidence rows, links, and related audit entries together.
 7. Publication remains distinct from activation. No active-version pointer, activation event, lifecycle cursor, or monitoring state is changed by this transaction.
 
-### Implemented code boundary (pending CI)
-Introduce a narrowly scoped calendar SQLite Unit of Work (UoW) that owns one connection and transaction. Repositories participating in publication receive the UoW connection (or a transaction-scoped repository interface); they must not open independent connections during the operation. Keep ordinary read paths and the existing immutable evidence semantics intact. Avoid a generic cross-domain transaction framework: the initial UoW should be calendar-specific and small.
+### Implemented code boundary (merged PR #471)
+The calendar-specific SQLite Unit of Work owns one connection and `BEGIN IMMEDIATE` transaction. Calendar and evidence repositories participate through the transaction connection; rollback, isolation, conflict, and production-runtime composition tests are merged in PR #471. No generic cross-domain transaction framework was introduced.
 
 ### Required invariants and tests
 - The calendar version and all per-day evidence/link rows are visible together after commit.
@@ -236,10 +236,10 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
 - [x] Owner approved source-class acceptance by claim type (D1) and hybrid source-artifact retention (D2) on 2026-11-10; enforcement is under PR #475.
 - [x] Owner approved strict evidence-gated publication (D3) and the claim-specific day evidence matrix (D4) on 2026-11-10; enforcement is under PR #475.
-- [ ] Complete PR #475 exact-head CI and merge; verify SQLite legacy migration and exceptional-hours evidence coverage.
+- [ ] Complete PR #475 exact-head CI on final head `5cd363f` and merge; run #42864456090 passed all five jobs on prior head `b09ebd9`. SQLite legacy migration and exceptional-hours evidence tests are implemented.
 - [ ] Independently verify archived artifact bytes and publisher authenticity; operator-declared metadata and SHA-256 strings are not authenticity proof.
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. PR #475 remains open after its first exact-head run exposed four test-fixture failures; the root causes are corrected in commit `7c6da71` and a new exact-head run is required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+PR #471 is merged; its exact-head CI passed. PR #475 remains open. Run #42864456090 passed all five jobs on prior head `b09ebd9`; subsequent hardening constrains A-R to `FRA_REGULATORY` and the latest docs update is on `5cd363f`, so exact-head CI is still required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.

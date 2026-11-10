@@ -12,24 +12,24 @@
 
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-10 (main at `ec1364e09399932273b87de4ba4761a6bc7161da`; main CI run #42859055049 completed successfully with all five jobs. PR #475 remains open pending final exact-head CI.)
+**Last reviewed:** 2026-11-10 (main at `ec1364e09399932273b87de4ba4761a6bc7161da`; main CI run #42859055049 passed all five jobs. PR #475 remains open; run #42864456090 passed all five jobs on prior head `b09ebd9`, while final head `5cd363f` awaits its own exact-head CI.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
-### Latest verified continuation — 2026-11-09 (individual operator + calendar API)
+### Latest verified continuation — 2026-11-10 (calendar evidence acceptance)
 
 - PR #465 merged the immutable per-day calendar evidence registry. Records are append-only and SHA-256 verified; corrections use explicit supersession and reason. PR #471's atomic publication enforcement is merged and its exact-head CI passed. The registry does not prove source authenticity.
 - PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit, durable-credential-aware permission resolution, last-operator protection, and trusted local first-operator bootstrap.
 - PR #467 merged as `03d3969e19e7b73beb3b8427afb5328183d1553e`. Its exact head `2d2cdac405698d7e783a838037a588852a5cc5b2` passed all five required CI jobs before squash merge. It composes persistent calendar storage and the authenticated API, requiring an active individual operator user plus durable credential; the legacy shared operator token is rejected for calendar administration.
 - PR #462 is closed unmerged as superseded by #467.
-- Calendar publication remains separate from activation. PR #471's atomic per-day evidence coverage/linkage and conflict validation are merged. D1–D4 source-class acceptance, hybrid retention metadata, strict publication, and claim-specific evidence matrix are owner-approved and implemented under PR #475, pending final exact-head CI. Artifact authenticity/byte verification, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
+- Calendar publication remains separate from activation. PR #471's atomic per-day evidence coverage/linkage and conflict validation are merged. D1–D4 source-class acceptance, hybrid retention metadata, strict publication, claim-specific evidence matrix, exceptional-hours marker, legacy migration, and FRA-only regulatory scope are implemented in PR #475. Run #42864456090 passed all five jobs on prior head `b09ebd9`; final head `5cd363f` awaits exact-head CI. Artifact authenticity/byte verification, lawful retention, operational bootstrap/coverage horizon, cursor-derived validation, lifecycle integration, and provider completed-bar attestation remain open. No lifecycle monitoring or freshness enforcement is enabled.
 - M61 remains paused by explicit owner request; PR #321 remains Draft and untouched.
 
-### Calendar publication atomicity — owner-approved; implementation in progress
+### Calendar publication atomicity — implemented and merged (PR #471)
 
-- Code review confirmed that calendar-version persistence and per-day evidence persistence currently open independent SQLite connections; this prevents a guaranteed all-or-nothing publication transaction.
-- Owner approved a calendar-specific SQLite Unit of Work: one `BEGIN IMMEDIATE` transaction persists the immutable calendar version, per-day evidence, explicit links, and validation; any failure rolls everything back.
-- Implementation is underway on `feature/atomic-calendar-evidence-publication-v2`: API payload now requires status-appropriate evidence; runtime composition injects the UoW; focused rollback/isolation and production-composition tests are included. Exact-head CI is pending.
+- The calendar-specific SQLite Unit of Work owns one `BEGIN IMMEDIATE` transaction for immutable calendar-version persistence, evidence persistence, per-day links, and policy validation.
+- Rollback/isolation tests and production runtime composition are merged; PR #471 passed all five exact-head CI jobs.
+- Publication remains distinct from activation. The D1–D4 source acceptance and claim-specific evidence enforcement are the separate PR #475 workstream.
 - Calendar activation, lifecycle monitoring, Crash Radar freshness enforcement, and M61 remain disabled/paused.
 
 ## 1. Where We Are
