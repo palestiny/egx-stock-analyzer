@@ -10,7 +10,7 @@
 - Existing content is verified rather than silently replaced. Read operations detect post-write tampering.
 - Focused tests cover binary bytes, idempotent writes, missing artifacts, malformed references, tampering, and a corrupt storage adapter.
 - Authenticated operator upload is exposed as `POST /api/v1/owner/session-calendars/artifacts` with `Content-Type: application/octet-stream`. The server streams the request into a bounded buffer, computes the digest, stores the bytes, reads them back, and returns the storage reference plus computed digest only after verification.
-- Every `ARCHIVED` evidence item is re-read and verified against its expected digest before the SQLite publication Unit of Work starts. Missing or tampered artifacts fail closed; `EXTERNAL_ONLY` evidence remains unchanged and still requires an explicit non-retention reason.
+- Every `ARCHIVED` evidence item is re-read and verified by the SQLite publication Unit of Work itself, before it opens the database transaction. This protects direct internal callers as well as the HTTP route; there is no API-only bypass. Missing or tampered artifacts fail closed; `EXTERNAL_ONLY` evidence remains unchanged and still requires an explicit non-retention reason.
 - Compose config uses `/data/calendar-artifacts` on the existing persistent `egx-data` volume. The default maximum upload size is 20 MiB (`EGX_CALENDAR_ARTIFACT_MAX_BYTES`); the path and limit are configurable. Non-Compose runtime configuration keeps storage disabled unless `EGX_CALENDAR_ARTIFACT_STORAGE_PATH` is set.
 
 ## Explicit guarantees and non-guarantees
@@ -27,7 +27,7 @@ The filesystem adapter is a storage implementation, not yet a deployment decisio
 4. Define reconciliation for uploaded artifacts that are not attached to a successful publication. No automated deletion is enabled because deletion rights and retention policy have not been approved.
 5. Decide whether a future authenticated artifact-download endpoint is required for operator workflows.
 
-The current implementation proves that the stored bytes matched the computed digest at upload/read-back and again immediately before publication. It does not prove source authenticity, legal retention permission, or future availability after external storage loss/tampering.
+The current implementation proves that the stored bytes matched the computed digest at upload/read-back and again inside the publication Unit of Work before the database transaction begins. It does not prove source authenticity, legal retention permission, or future availability after external storage loss/tampering.
 
 ## Scope exclusions
 
