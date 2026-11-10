@@ -188,6 +188,18 @@ Collection timestamp recorded in every new row: `2026-11-10T19:16:35+02:00` (Afr
 - No verified per-security traded value or execution count was available in the retrieved rows. No market-wide total was copied into a per-security field.
 - Coverage remains partial and limited to the 17 equity symbols and six index symbols listed above; no missing instrument row was invented.
 
+## Read-only canonical archive audit
+
+The canonical archive can be checked without changing the source CSV:
+
+```powershell
+python -m tools.egx_daily_history_audit --input data/market_history/egx_daily_history.csv --output reports/egx-daily-history-audit.json
+```
+
+The report checks the exact canonical column contract, row shape, dates, symbols, instrument/price-unit pairing, numeric values, source metadata shape, duplicate `(session_date, symbol)` keys, OHLC geometry, missing optional metrics, and existing review labels. It records a SHA-256 digest of the input artifact.
+
+The command is intentionally read-only with respect to the source CSV. It does not fetch source pages, establish source authenticity, infer exchange sessions, repair prices, or convert blank volume/traded-value/execution fields to zero. A report with findings exits with code 1; malformed input/schema errors fail with an exception. Review-labelled rows and OHLC-inconsistent rows must remain excluded from clean OHLC analysis until reconciled.
+
 ## Current coverage status (as of 2026-11-10)
 
 - Total records after the 2026-11-10 collection: 255.
