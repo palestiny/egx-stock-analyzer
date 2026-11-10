@@ -1,7 +1,7 @@
 # Project Completion Gap Register
 
 **Status:** Active non-M61 engineering/acceptance register  
-**Updated:** 2026-11-09  
+**Updated:** 2026-11-10  
 **Baseline:** `main` at `3531c78d15d65c7eac687f3848219d724dd2a8bb` (PR #470 merged after all five exact-head CI jobs passed; prior baseline main CI run #42643672050 also completed successfully across all five jobs). Historical PR/CI evidence remains recorded below.
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
@@ -11,7 +11,7 @@ This register separates verified implementation from incomplete acceptance and d
 ## Verified merged foundations
 
 
-- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection (pending exact-head CI). Neither layer proves source authenticity or completes the source-class acceptance policy.
+- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection; its exact-head CI passed. PR #475 implements owner-approved source acceptance and hybrid artifact-retention policy, but is not merged and does not prove source authenticity.
 - PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
 - PR #467 merged authenticated session-calendar publication/read API and persistent runtime composition as `03d3969e19e7b73beb3b8427afb5328183d1553e`. All five exact-head checks passed before merge; the same five checks also passed on the merge commit. PR #462 is closed unmerged as superseded.
 
@@ -234,11 +234,12 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] PR #467 merged the authenticated calendar publication/read API and persistent runtime composition.
 - [x] PR #471 merged atomic publication: one SQLite `BEGIN IMMEDIATE` transaction persists the immutable calendar version, per-day evidence, explicit links, and validation; failures roll back the entire publication.
 - [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
-- [ ] Approve source-class acceptance by claim type (proposal PR #473).
-- [ ] Approve source-artifact retention/authenticity policy (proposal PR #473).
-- [ ] Approve strict publication semantics and the evidence matrix for each day category (proposal PR #473).
+- [x] Owner approved source-class acceptance by claim type (D1) and hybrid source-artifact retention (D2) on 2026-11-10; enforcement is under PR #475.
+- [x] Owner approved strict evidence-gated publication (D3) and the claim-specific day evidence matrix (D4) on 2026-11-10; enforcement is under PR #475.
+- [ ] Complete PR #475 exact-head CI and merge; verify SQLite legacy migration and exceptional-hours evidence coverage.
+- [ ] Independently verify archived artifact bytes and publisher authenticity; operator-declared metadata and SHA-256 strings are not authenticity proof.
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. The latest main CI after PR #472 is run #42855711113 and completed successfully with all five jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retention, full EGX calendar correctness, or provider bar finality.
+PR #471 is merged; its exact-head CI passed. PR #475 remains open while its exact-head CI runs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
