@@ -219,6 +219,8 @@ class SQLiteCalendarEvidenceRepository:
         """Append evidence using a caller-owned transaction connection."""
         if evidence.content_sha256:
             raise ValueError("New evidence must not supply a precomputed content hash")
+        if evidence.source_class is None:
+            raise ValueError("New evidence requires explicit source acceptance and artifact retention metadata")
         if evidence.recorded_at > datetime.now(timezone.utc):
             raise ValueError("recorded_at cannot be in the future")
         if evidence.supersedes_evidence_id == evidence.evidence_id:
@@ -434,7 +436,18 @@ class SQLiteCalendarEvidenceRepository:
             artifact_storage_reference=artifact_storage_reference,
             artifact_not_retained_reason=artifact_not_retained_reason,
         )
-        canonical = json.dumps(cls._payload(evidence), sort_keys=True, separators=(",", ":"))
+        payload = cls._payload(evidence)
+        if raw_source_class is None:
+            # Preserve read compatibility with immutable rows written before
+            # source acceptance metadata was introduced.
+            for key in (
+                "source_class", "source_publisher", "market_scope",
+                "effective_from", "effective_through", "retrieved_at",
+                "artifact_sha256", "artifact_retention",
+                "artifact_storage_reference", "artifact_not_retained_reason",
+            ):
+                payload.pop(key)
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         actual = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
         if not hmac.compare_digest(actual, digest):
             raise CalendarEvidenceIntegrityError(
