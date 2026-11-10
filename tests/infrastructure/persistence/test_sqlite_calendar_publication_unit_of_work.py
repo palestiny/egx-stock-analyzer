@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from uuid import UUID
 
 import pytest
@@ -42,9 +42,10 @@ def _evidence(
     source_class: CalendarEvidenceSourceClass = CalendarEvidenceSourceClass.A,
     market_scope: str = "EGX_MARKET_WIDE",
     effective_from: date | None = None,
+    calendar_version: str = "atomic-calendar-v1",
 ) -> CalendarEvidence:
     return CalendarEvidence.create(
-        calendar_version="atomic-calendar-v1",
+        calendar_version=calendar_version,
         session_date=day,
         evidence_kind=kind,
         source_type="OFFICIAL_EXCHANGE_NOTICE",
@@ -350,11 +351,11 @@ def test_secondary_source_cannot_authorize_calendar_publication(tmp_path):
 
 def test_primary_evidence_must_cover_the_exact_day_and_market_scope(tmp_path):
     _database, calendars, _evidence_repository, uow = _setup(tmp_path)
-    evidence = (
-        _evidence(date(2026, 11, 1), "Wrong effective date", kind=CalendarEvidenceKind.CLOSURE, effective_from=date(2026, 11, 2)),
-        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
-    )
     with pytest.raises(ValueError, match="inside the source effective date scope"):
+        evidence = (
+            _evidence(date(2026, 11, 1), "Wrong effective date", kind=CalendarEvidenceKind.CLOSURE, effective_from=date(2026, 11, 2)),
+            _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+        )
         uow.publish(
             _calendar(), evidence, published_by=str(ACTOR),
             source_reference="EGX source bundle", reason="Reject out-of-scope evidence",
@@ -368,17 +369,17 @@ def test_open_status_requires_schedule_and_open_confirmation(tmp_path):
         version="open-calendar-v1", timezone="Africa/Cairo",
         coverage_start=date(2026, 11, 3), coverage_end=date(2026, 11, 3),
         days=(EGXCalendarDay(date(2026, 11, 3), CalendarDayStatus.OPEN,
-                             session_open=__import__("datetime").time(10, 0),
-                             session_close=__import__("datetime").time(14, 30)),),
+                             session_open=time(10, 0),
+                             session_close=time(14, 30)),),
     )
-    schedule_only = (_evidence(date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE),)
+    schedule_only = (_evidence(date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE, calendar_version="open-calendar-v1"),)
     with pytest.raises(ValueError, match="OPEN_CONFIRMATION"):
         uow.publish(
             open_day, schedule_only, published_by=str(ACTOR),
             source_reference="EGX source bundle", reason="Require opening confirmation",
         )
     with_open = schedule_only + (
-        _evidence(date(2026, 11, 3), "Trading opened", kind=CalendarEvidenceKind.OPEN_CONFIRMATION),
+        _evidence(date(2026, 11, 3), "Trading opened", kind=CalendarEvidenceKind.OPEN_CONFIRMATION, calendar_version="open-calendar-v1"),
     )
     stored, _ = uow.publish(
         open_day, with_open, published_by=str(ACTOR),
