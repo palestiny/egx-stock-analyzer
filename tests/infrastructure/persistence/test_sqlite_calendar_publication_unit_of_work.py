@@ -7,7 +7,7 @@ from uuid import UUID
 import pytest
 
 from app.domain.identity.user import User, UserStatus
-from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
+from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass, CalendarArtifactRetention
 from app.domain.market_data.session_calendar import CalendarDayStatus, EGXCalendarDay, EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
 from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
@@ -52,6 +52,15 @@ def _evidence(
         evidence_id=evidence_id,
         supersedes_evidence_id=supersedes_evidence_id,
         supersession_reason=supersession_reason,
+        source_class=CalendarEvidenceSourceClass.A,
+        source_publisher="EGX",
+        market_scope="EGX_MARKET_WIDE",
+        effective_from=day,
+        effective_through=day,
+        retrieved_at=datetime(2026, 11, day.day, 9, tzinfo=timezone.utc),
+        artifact_sha256="a" * 64,
+        artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+        artifact_not_retained_reason="Test fixture stores the official reference only",
     )
 
 

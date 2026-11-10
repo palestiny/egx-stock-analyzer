@@ -14,7 +14,7 @@ from app.application.market_data.session_calendar_store import (
     StoredCalendarVersion,
 )
 from app.application.security.identity import AuthenticatedIdentity
-from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
+from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass, CalendarArtifactRetention
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXSessionCalendar,
@@ -39,6 +39,16 @@ class CalendarEvidencePayload(BaseModel):
     session_date: date
     evidence_kind: CalendarEvidenceKind
     source_type: str = Field(min_length=1, max_length=100)
+    source_class: CalendarEvidenceSourceClass
+    source_publisher: str = Field(min_length=1, max_length=100)
+    market_scope: str = Field(min_length=1, max_length=100)
+    effective_from: date
+    effective_through: date
+    retrieved_at: datetime
+    artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    artifact_retention: CalendarArtifactRetention
+    artifact_storage_reference: str | None = Field(default=None, max_length=1000)
+    artifact_not_retained_reason: str | None = Field(default=None, max_length=500)
     source_reference: str = Field(min_length=1, max_length=1000)
     claim: str = Field(min_length=1, max_length=2000)
     observed_at: datetime
@@ -46,7 +56,7 @@ class CalendarEvidencePayload(BaseModel):
     supersedes_evidence_id: UUID | None = None
     supersession_reason: str | None = Field(default=None, max_length=500)
 
-    @field_validator("source_type", "source_reference", "claim", mode="before")
+    @field_validator("source_type", "source_reference", "claim", "source_publisher", "market_scope", mode="before")
     @classmethod
     def strip_evidence_text(cls, value: object) -> object:
         if not isinstance(value, str):
@@ -193,6 +203,16 @@ def create_session_calendar_admin_router(
                     source_published_at=item.source_published_at,
                     supersedes_evidence_id=item.supersedes_evidence_id,
                     supersession_reason=item.supersession_reason,
+                    source_class=item.source_class,
+                    source_publisher=item.source_publisher,
+                    market_scope=item.market_scope,
+                    effective_from=item.effective_from,
+                    effective_through=item.effective_through,
+                    retrieved_at=item.retrieved_at,
+                    artifact_sha256=item.artifact_sha256,
+                    artifact_retention=item.artifact_retention,
+                    artifact_storage_reference=item.artifact_storage_reference,
+                    artifact_not_retained_reason=item.artifact_not_retained_reason,
                 )
                 for item in payload.evidence
             )
@@ -217,6 +237,9 @@ def create_session_calendar_admin_router(
                 "session_date": item.session_date.isoformat(),
                 "evidence_kind": item.evidence_kind.value,
                 "content_sha256": item.content_sha256,
+                "artifact_sha256": item.artifact_sha256,
+                "source_class": item.source_class.value if item.source_class else None,
+                "artifact_retention": item.artifact_retention.value if item.artifact_retention else None,
             }
             for item in stored_evidence
         ]

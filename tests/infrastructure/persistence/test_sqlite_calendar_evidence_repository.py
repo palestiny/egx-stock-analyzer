@@ -7,6 +7,8 @@ import pytest
 from app.domain.market_data.calendar_evidence import (
     CalendarEvidence,
     CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
+    CalendarArtifactRetention,
 )
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
@@ -44,6 +46,15 @@ def _evidence(claim="Exchange notice confirms closure", **overrides):
         "claim": claim,
         "recorded_by": UUID("10000000-0000-0000-0000-000000000001"),
         "observed_at": datetime(2026, 11, 2, 12, tzinfo=timezone.utc),
+        "source_class": CalendarEvidenceSourceClass.A,
+        "source_publisher": "EGX",
+        "market_scope": "EGX_MARKET_WIDE",
+        "effective_from": date(2026, 11, 2),
+        "effective_through": date(2026, 11, 2),
+        "retrieved_at": datetime(2026, 11, 2, 12, tzinfo=timezone.utc),
+        "artifact_sha256": "b" * 64,
+        "artifact_retention": CalendarArtifactRetention.EXTERNAL_ONLY,
+        "artifact_not_retained_reason": "Test fixture stores the official reference only",
     }
     values.update(overrides)
     return CalendarEvidence.create(**values)

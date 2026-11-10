@@ -12,6 +12,8 @@ from uuid import UUID
 from app.domain.market_data.calendar_evidence import (
     CalendarEvidence,
     CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
+    CalendarArtifactRetention,
 )
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
@@ -59,6 +61,16 @@ class SQLiteCalendarEvidenceRepository:
                         )
                     ),
                     source_type TEXT NOT NULL,
+                    source_class TEXT NULL,
+                    source_publisher TEXT NULL,
+                    market_scope TEXT NULL,
+                    effective_from TEXT NULL,
+                    effective_through TEXT NULL,
+                    retrieved_at TEXT NULL,
+                    artifact_sha256 TEXT NULL,
+                    artifact_retention TEXT NULL,
+                    artifact_storage_reference TEXT NULL,
+                    artifact_not_retained_reason TEXT NULL,
                     source_reference TEXT NOT NULL,
                     claim TEXT NOT NULL,
                     recorded_by TEXT NOT NULL REFERENCES users(id),
@@ -87,6 +99,28 @@ class SQLiteCalendarEvidenceRepository:
                 END;
                 """
             )
+            existing_columns = {
+                row[1] for row in connection.execute(
+                    "PRAGMA table_info(egx_calendar_evidence)"
+                ).fetchall()
+            }
+            migrations = {
+                "source_class": "TEXT NULL",
+                "source_publisher": "TEXT NULL",
+                "market_scope": "TEXT NULL",
+                "effective_from": "TEXT NULL",
+                "effective_through": "TEXT NULL",
+                "retrieved_at": "TEXT NULL",
+                "artifact_sha256": "TEXT NULL",
+                "artifact_retention": "TEXT NULL",
+                "artifact_storage_reference": "TEXT NULL",
+                "artifact_not_retained_reason": "TEXT NULL",
+            }
+            for column, definition in migrations.items():
+                if column not in existing_columns:
+                    connection.execute(
+                        f"ALTER TABLE egx_calendar_evidence ADD COLUMN {column} {definition}"
+                    )
 
     def append(self, evidence: CalendarEvidence) -> CalendarEvidence:
         with self._connect() as connection:
@@ -145,8 +179,11 @@ class SQLiteCalendarEvidenceRepository:
                 evidence_id, calendar_version, session_date, evidence_kind,
                 source_type, source_reference, claim, recorded_by, observed_at,
                 recorded_at, source_published_at, supersedes_evidence_id,
-                supersession_reason, content_sha256
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                supersession_reason, content_sha256, source_class, source_publisher,
+                market_scope, effective_from, effective_through, retrieved_at,
+                artifact_sha256, artifact_retention, artifact_storage_reference,
+                artifact_not_retained_reason
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(evidence.evidence_id),
@@ -165,6 +202,16 @@ class SQLiteCalendarEvidenceRepository:
                 if evidence.supersedes_evidence_id else None,
                 evidence.supersession_reason,
                 digest,
+                evidence.source_class.value if evidence.source_class else None,
+                evidence.source_publisher,
+                evidence.market_scope,
+                evidence.effective_from.isoformat() if evidence.effective_from else None,
+                evidence.effective_through.isoformat() if evidence.effective_through else None,
+                evidence.retrieved_at.astimezone(timezone.utc).isoformat() if evidence.retrieved_at else None,
+                evidence.artifact_sha256,
+                evidence.artifact_retention.value if evidence.artifact_retention else None,
+                evidence.artifact_storage_reference,
+                evidence.artifact_not_retained_reason,
             ),
         )
         row = connection.execute(
@@ -229,7 +276,10 @@ class SQLiteCalendarEvidenceRepository:
             SELECT evidence_id, calendar_version, session_date, evidence_kind,
                    source_type, source_reference, claim, recorded_by, observed_at,
                    recorded_at, source_published_at, supersedes_evidence_id,
-                   supersession_reason, content_sha256
+                   supersession_reason, content_sha256, source_class, source_publisher,
+                   market_scope, effective_from, effective_through, retrieved_at,
+                   artifact_sha256, artifact_retention, artifact_storage_reference,
+                   artifact_not_retained_reason
             FROM egx_calendar_evidence
         """
 
@@ -251,6 +301,16 @@ class SQLiteCalendarEvidenceRepository:
             "supersedes_evidence_id": str(evidence.supersedes_evidence_id)
             if evidence.supersedes_evidence_id else None,
             "supersession_reason": evidence.supersession_reason,
+            "source_class": evidence.source_class.value if evidence.source_class else None,
+            "source_publisher": evidence.source_publisher,
+            "market_scope": evidence.market_scope,
+            "effective_from": evidence.effective_from.isoformat() if evidence.effective_from else None,
+            "effective_through": evidence.effective_through.isoformat() if evidence.effective_through else None,
+            "retrieved_at": evidence.retrieved_at.astimezone(timezone.utc).isoformat() if evidence.retrieved_at else None,
+            "artifact_sha256": evidence.artifact_sha256,
+            "artifact_retention": evidence.artifact_retention.value if evidence.artifact_retention else None,
+            "artifact_storage_reference": evidence.artifact_storage_reference,
+            "artifact_not_retained_reason": evidence.artifact_not_retained_reason,
         }
 
     @classmethod
@@ -258,7 +318,10 @@ class SQLiteCalendarEvidenceRepository:
         (
             raw_id, version, raw_date, raw_kind, source_type, source_reference,
             claim, actor, observed, recorded, source_published, supersedes,
-            supersession_reason, digest,
+            supersession_reason, digest, raw_source_class, source_publisher,
+            market_scope, raw_effective_from, raw_effective_through, raw_retrieved_at,
+            artifact_sha256, raw_artifact_retention, artifact_storage_reference,
+            artifact_not_retained_reason,
         ) = row
         evidence = CalendarEvidence(
             evidence_id=UUID(raw_id),
@@ -276,6 +339,16 @@ class SQLiteCalendarEvidenceRepository:
             supersedes_evidence_id=UUID(supersedes) if supersedes else None,
             supersession_reason=supersession_reason,
             content_sha256=digest,
+            source_class=CalendarEvidenceSourceClass(raw_source_class) if raw_source_class else None,
+            source_publisher=source_publisher,
+            market_scope=market_scope,
+            effective_from=date.fromisoformat(raw_effective_from) if raw_effective_from else None,
+            effective_through=date.fromisoformat(raw_effective_through) if raw_effective_through else None,
+            retrieved_at=datetime.fromisoformat(raw_retrieved_at) if raw_retrieved_at else None,
+            artifact_sha256=artifact_sha256,
+            artifact_retention=CalendarArtifactRetention(raw_artifact_retention) if raw_artifact_retention else None,
+            artifact_storage_reference=artifact_storage_reference,
+            artifact_not_retained_reason=artifact_not_retained_reason,
         )
         canonical = json.dumps(cls._payload(evidence), sort_keys=True, separators=(",", ":"))
         actual = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
