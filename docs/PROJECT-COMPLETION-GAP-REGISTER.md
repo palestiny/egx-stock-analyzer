@@ -1,8 +1,26 @@
 # Project Completion Gap Register
 
+## Calendar artifact inventory and SQLite WAL regression — 2026-11-10
+
+**Status: read-only inventory implementation and WAL regression merged; production operational acceptance remains open.**
+
+- PR #483 merged as `975409d39b2e80ba00e78a96dfda144b21ba802c`; all five required exact-head CI jobs passed. The inventory opens SQLite in read-only/query-only mode, scans the content-addressed storage layout, hashes regular files, and reports `REFERENCED_AND_VALID`, `ORPHANED`, `MISSING`, `INTEGRITY_FAILURE`, `INVALID_REFERENCE`, and `INVALID_STORAGE_ENTRY` classifications.
+- The inventory is report-only. It does not initialize/migrate the database, create a missing storage root, repair records, move files, or delete artifacts. Exit codes: 0 clean, 1 findings, 2 scan failure.
+- PR #484 merged as `9e120eec682d155204c64bce150f3aee9b6cbdcf`; exact PR head `b4955c3e745593c68c200a1b2038fe9de95a7a2d` passed all five required CI jobs. Its WAL regression verifies committed evidence visibility with an open writer and unchanged DB/WAL bytes. It does not claim shared-memory sidecar bytes are unchanged.
+- Post-merge main CI run #42881049920 for `9e120eec...` was still in progress at this update; wait for all five jobs before marking post-merge verification complete.
+- No actual production DB/storage scan has been run. Filesystem TOCTOU protection against a hostile concurrent writer is not claimed as complete. SQLite read-only WAL access may participate in normal shared-memory reader coordination.
+- No orphan cleanup, retention policy, backup/restore acceptance, multi-node storage acceptance, source authenticity, or legal retention/reuse approval is implemented or approved. No activation/lifecycle/freshness behavior is enabled.
+
+## Daily history collection — PR #476 status
+
+- PR #476 remains open and contains 23 2026-11-10 daily historical rows (17 equities, six indices) in the canonical archive, plus README provenance/limitations. Eight rows are marked `ohlc_inconsistency_review`; original provider values are retained and must not be treated as clean OHLC bars until reconciled.
+- The PR's five required checks passed on its recorded head, but comparison with current `main` shows it is 2 commits ahead and 8 behind, diverged from merge base `ec1364e09399932273b87de4ba4761a6bc7161da`. Rebase and rerun exact-head checks before merge.
+- Archive coverage is partial; per-security traded value/execution counts are not established where blank; application DB ingestion is not claimed; M61/backtesting was not performed. PR #321 remains Draft and M61 paused.
+
+
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `c475b076c82c7c91a5671a91baf18a47afad105f` (PR #480 merged after all five exact-head CI jobs passed; main CI run #42874061006 also passed all five required jobs).  
+**Baseline:** `main` at `9e120eec682d155204c64bce150f3aee9b6cbdcf` (PR #484 merged after all five exact-head CI jobs passed; post-merge main CI run #42881049920 pending at this update).  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
