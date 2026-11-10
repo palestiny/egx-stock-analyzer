@@ -635,3 +635,15 @@ Current daily-history boundary: the audit is a local artifact-structure/quality 
 
 **Authority:** GitHub `main` and run #42894527758; artifact #13799198851.  
 **Last reviewed:** 2026-11-10; main `be8b8fea246870a517f3f80bad9a8123f23efabb`; post-merge CI passed 6/6.
+
+
+## Latest verified continuation — 2026-11-10 (daily-history reconciliation protocol merged)
+
+- PR #497 merged as `0e9bbeccf71d75cece2585e8a95a98c3ea700617`. Its exact-head CI run #42896485869 passed all six required jobs on `fa365a2bc273ded88ccfbc54d1eeca407a35a7e1`. It reconciles the merge state and CI record for PRs #495/#496.
+- PR #498 merged as `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`. Its exact-head CI run #42897109443 passed all six required jobs on `32c4f2aee4dd59a62f583f2f1f07d9d6cbbc2e9a`. It adds `docs/EGX-DAILY-HISTORY-RECONCILIATION-PROTOCOL.md`, defining evidence hierarchy, immutable evidence capture, field-by-field comparison, explicit reviewer dispositions, and closeout criteria. It does not select a provider or authorize data correction/ingestion.
+- Post-merge main CI run #42897359694 on PR #497 merge commit `0e9bbeccf71d75cece2585e8a95a98c3ea700617` completed successfully with all six jobs.
+- Post-merge main CI run #42899130922 targets current main `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`. At this documentation snapshot, five of six jobs have passed and `unit-tests (3.12)` is still running; do not mark the final post-#498 main line green until it completes successfully.
+- The reconciliation protocol is process documentation only. No archive values were repaired/replaced, no provider was selected, no ingestion or eligibility promotion was enabled, and M61 remains paused.
+
+**Authority:** GitHub `main`, PR #497/#498, and exact-head Actions runs above.  
+**Last reviewed:** 2026-11-10; main `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; post-merge run #42899130922 pending unit tests.
