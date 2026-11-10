@@ -43,6 +43,14 @@ A report-only inventory command is being added at `app/infrastructure/maintenanc
 - Classifies referenced-and-valid, orphaned, missing, integrity-failure, invalid-reference, and invalid-storage-entry cases.
 - Emits a JSON report and a non-zero exit code when any non-clean condition is found.
 - Requires explicit database and storage-root paths; a missing storage root is an error and is never created.
+
+Run it explicitly against a known database and storage directory:
+
+```powershell
+python -m app.infrastructure.maintenance.calendar_artifact_inventory --database <sqlite-path> --storage-root <artifact-root>
+```
+
+The command writes a JSON report to stdout. Exit code `0` means every discovered entry is clean; exit code `1` means the report contains a non-clean finding; exit code `2` means the scan could not be completed.
 - Does not delete, move, rewrite, repair, or otherwise mutate database records or files. Orphan cleanup remains prohibited until a separate retention/deletion policy is approved.
 
 This report describes the state observed during one scan only. It does not prove publisher authenticity, legal retention permission, or future availability, and it does not reconcile concurrent writes as an atomic snapshot.
