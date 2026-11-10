@@ -39,7 +39,7 @@ Persistence is append-only: database triggers reject UPDATE and DELETE. Conflict
 ## 3. Approved evidence acceptance rules
 
 - Class A EGX operational evidence is required for primary EGX-wide calendar claims.
-- Class A-R FRA evidence may explain the regulatory basis within FRA's scope but cannot replace the EGX operational notice where an operational session claim is made.
+- Class A-R FRA evidence is constrained to the explicit `FRA_REGULATORY` scope; it may explain the regulatory basis but cannot replace the EGX operational notice where an operational session claim is made.
 - Class B and C sources are corroboration only and cannot independently authorize a calendar date or session time.
 - NON_TRADING requires explicit Class A closure/non-trading evidence; never infer from weekday or national holiday.
 - SCHEDULED requires Class A schedule evidence covering the exact date and market scope.

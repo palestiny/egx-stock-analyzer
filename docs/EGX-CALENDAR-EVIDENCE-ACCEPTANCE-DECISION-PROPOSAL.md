@@ -29,7 +29,7 @@ These controls establish structural completeness, linkage, immutability, and tra
 | B — Official corroboration | Official government or other public-sector material relevant to a closure context but not itself an EGX operating notice | Context and corroboration; may trigger a search for the EGX operational notice | Independently authorizing an EGX non-trading day or session hours |
 | C — Secondary corroboration | Broker calendars, financial portals, data vendors, news reports, and third-party calendars | Detect discrepancies and corroborate a primary claim | Independently authorizing a calendar day, session time, cancellation, or completed-session status |
 
-**Approved D1:** accept Class A for primary EGX operational claims; accept A-R only within FRA's regulatory scope and require the corresponding EGX operational evidence where the claim is operational; retain B/C as corroboration only. A source's reputation or a matching third-party consensus does not convert it into primary evidence.
+**Approved D1:** accept Class A for primary EGX operational claims; accept A-R only within FRA's regulatory scope (encoded as `FRA_REGULATORY`) and require the corresponding EGX operational evidence where the claim is operational; retain B/C as corroboration only. A source's reputation or a matching third-party consensus does not convert it into primary evidence.
 
 A source record must identify the exact publisher, artifact/document reference, publication date when available, retrieval timestamp, effective date range, and the precise claim it supports. A URL alone is not an authority classification.
 
