@@ -111,9 +111,11 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
         raise ValueError("CSV contains malformed quoting or structure") from exc
 
     duplicate_counts: Counter[tuple[str, str]] = Counter()
+    duplicate_row_numbers: dict[tuple[str, str], list[int]] = {}
     quality_counts: Counter[str] = Counter()
     missing_counts: Counter[str] = Counter()
     invalid_rows: list[dict[str, object]] = []
+    invalid_row_numbers: set[int] = set()
     ohlc_failures: list[dict[str, object]] = []
     unlabelled_ohlc_failures: list[dict[str, object]] = []
     review_rows: list[dict[str, str]] = []
@@ -128,6 +130,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
         if symbol:
             symbols.add(symbol)
             duplicate_counts[(session, symbol)] += 1
+            duplicate_row_numbers.setdefault((session, symbol), []).append(row_number)
             session_counts[session] += 1
         if quality:
             quality_counts[quality] += 1
@@ -211,6 +214,7 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
                 "quality_status": quality,
             })
         if row_problems:
+            invalid_row_numbers.add(row_number)
             invalid_rows.append({
                 "row": row_number,
                 "session_date": session,
@@ -223,6 +227,26 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
         for key, count in sorted(duplicate_counts.items()) if count > 1
     ]
     duplicate_extra_rows = sum(item["count"] - 1 for item in duplicates)
+    duplicate_row_numbers = {
+        row_number
+        for key, row_numbers in duplicate_row_numbers.items()
+        if duplicate_counts[key] > 1
+        for row_number in row_numbers
+    }
+    malformed_row_numbers = {int(item["row"]) for item in row_errors}
+    review_row_numbers = {
+        row_number for row_number, row in rows
+        if row["quality_status"].strip() in REVIEW_STATUSES
+    }
+    ohlc_issue_row_numbers = {int(item["row"]) for item in ohlc_failures}
+    rejected_row_numbers = invalid_row_numbers | duplicate_row_numbers | malformed_row_numbers
+    review_only_row_numbers = (
+        (review_row_numbers | ohlc_issue_row_numbers) - rejected_row_numbers
+    )
+    eligible_row_numbers = (
+        {row_number for row_number, _ in rows}
+        - rejected_row_numbers - review_only_row_numbers
+    )
     sorted_dates = sorted(parsed_dates)
     latest_date = sorted_dates[-1].isoformat() if sorted_dates else None
     latest_session_rows = session_counts[latest_date] if latest_date else 0
@@ -251,6 +275,13 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
         "missing_value_counts": dict(sorted(missing_counts.items())),
         "duplicate_keys": duplicates,
         "duplicate_extra_rows": duplicate_extra_rows,
+        "duplicate_row_count": len(duplicate_row_numbers),
+        "row_classification_counts": {
+            "clean_ohlc_candidates": len(eligible_row_numbers),
+            "review_required": len(review_only_row_numbers),
+            "rejected_or_invalid": len(rejected_row_numbers),
+        },
+        "analysis_eligibility": "STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED",
         "invalid_row_count": len(invalid_rows),
         "invalid_rows": invalid_rows,
         "ohlc_inconsistency_count": len(ohlc_failures),
@@ -272,13 +303,73 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
     }
 
 
-def audit_file(path: Path) -> dict[str, object]:
+def compare_csv_files(current_path: Path, baseline_path: Path) -> dict[str, object]:
+    """Compare canonical snapshots by (session_date, symbol), without mutation."""
+    def read_snapshot(path: Path) -> tuple[dict[tuple[str, str], dict[str, str]], set[tuple[str, str]]]:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            if tuple(reader.fieldnames or ()) != EXPECTED_COLUMNS:
+                raise ValueError(f"CSV schema mismatch in comparison input: {path}")
+            records: dict[tuple[str, str], dict[str, str]] = {}
+            duplicates: set[tuple[str, str]] = set()
+            for row in reader:
+                key = (row["session_date"].strip(), row["symbol"].strip().upper())
+                if key in records:
+                    duplicates.add(key)
+                else:
+                    records[key] = dict(row)
+            return records, duplicates
+
+    current, current_duplicates = read_snapshot(current_path)
+    baseline, baseline_duplicates = read_snapshot(baseline_path)
+    ambiguous = current_duplicates | baseline_duplicates
+    current_keys = set(current) - ambiguous
+    baseline_keys = set(baseline) - ambiguous
+    added = sorted(current_keys - baseline_keys)
+    removed = sorted(baseline_keys - current_keys)
+    changed = []
+    for key in sorted(current_keys & baseline_keys):
+        changed_fields = [
+            field for field in EXPECTED_COLUMNS
+            if current[key][field] != baseline[key][field]
+        ]
+        if changed_fields:
+            changed.append({
+                "session_date": key[0],
+                "symbol": key[1],
+                "changed_fields": changed_fields,
+            })
+    return {
+        "status": "partial_due_to_duplicate_keys" if ambiguous else "complete",
+        "comparison_complete": not ambiguous,
+        "baseline": str(baseline_path),
+        "current": str(current_path),
+        "added_count": len(added),
+        "added_keys": [{"session_date": d, "symbol": s} for d, s in added],
+        "removed_count": len(removed),
+        "removed_keys": [{"session_date": d, "symbol": s} for d, s in removed],
+        "changed_count": len(changed),
+        "changed_rows": changed,
+        "ambiguous_duplicate_keys": [
+            {"session_date": d, "symbol": s} for d, s in sorted(ambiguous)
+        ],
+        "limitations": [
+            "Comparison is a snapshot diff, not proof of source correctness.",
+            "Keys duplicated in either snapshot are excluded from key-level comparison.",
+            "A removed key is a difference, not automatically an error.",
+        ],
+    }
+
+
+def audit_file(path: Path, baseline_path: Path | None = None) -> dict[str, object]:
     raw = path.read_bytes()
     try:
         content = raw.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
         raise ValueError("CSV must be UTF-8 or UTF-8 with BOM") from exc
     report = audit_csv_text(content, str(path))
+    if baseline_path is not None:
+        report["baseline_comparison"] = compare_csv_files(path, baseline_path)
     report["artifact"] = {
         "filename": path.name,
         "byte_count": len(raw),
@@ -291,8 +382,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path, help="Canonical EGX daily-history CSV")
     parser.add_argument("--output", type=Path, help="Optional JSON report path")
+    parser.add_argument("--baseline", type=Path, help="Optional prior canonical CSV snapshot for read-only comparison")
     args = parser.parse_args()
-    report = audit_file(args.input)
+    report = audit_file(args.input, args.baseline)
     rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
