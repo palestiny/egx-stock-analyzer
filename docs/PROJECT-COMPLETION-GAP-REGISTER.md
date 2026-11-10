@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `622783b7ade6e23be604d6c07d4c5bc83e638b90` (PR #478 merged after all five exact-head CI jobs passed; post-merge main CI run #42870826850 is still in progress at this snapshot).  
+**Baseline:** `main` at `d1114c1a020825fb1e8477605c5c18c14bf475e6` (PR #479 merged after all five exact-head CI jobs passed; post-merge main CI run #42874061006 is in progress).  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -10,15 +10,15 @@ This register separates verified implementation from incomplete acceptance and d
 
 ## Calendar artifact byte integrity and publication enforcement — 2026-11-10
 
-**Status: implementation under review; do not claim full archival or source authenticity yet.**
+**Status: byte-integrity and publication-verification implementation merged; operational acceptance remains incomplete. Do not claim full archival or source authenticity.**
 
 - PR #478 is merged: byte-storage port, content-addressed filesystem adapter, and read-back SHA-256 integrity service. All five exact-head CI jobs passed.
-- PR #479 (`feature/calendar-artifact-publication-verification`) adds a bounded binary upload endpoint for individually authenticated calendar operators and wires the artifact service into infrastructure composition.
+- PR #479 is merged as `d1114c1a020825fb1e8477605c5c18c14bf475e6`. Its exact PR head `9cd81700201c38ceeb34b50ffad18e9565b7f959` passed all five required CI jobs in run #42873143036 before merge. Post-merge main CI run #42874061006 is still running.
 - The SQLite publication Unit of Work itself verifies every new `ARCHIVED` evidence item against stored bytes and its expected SHA-256 before opening the transaction. Direct callers cannot bypass this rule. Missing artifacts and digest mismatches fail closed. `EXTERNAL_ONLY` still requires an explicit non-retention reason.
 - Compose uses the existing persistent `egx-data` volume for `/data/calendar-artifacts`; the default upload ceiling is 20 MiB. Other runtime configurations must explicitly set `EGX_CALENDAR_ARTIFACT_STORAGE_PATH`.
 - The upload endpoint computes the digest from the received bytes; the client-provided digest in a later publication request is only an expected value and must match the bytes re-read from storage.
 - Remaining acceptance gaps: source authenticity, publisher identity verification, legal retention/reuse rights, backup/restore testing, multi-node storage behavior, and reconciliation of uploaded artifacts not linked by a successful publication. No automated deletion is enabled.
-- PR #479 is open and its exact-head CI run #42871338138 is in progress. No activation, lifecycle monitoring, freshness enforcement, or M61 work is included.
+- PR #479 is merged. The five exact-head CI jobs passed; post-merge main CI is not yet green/verified. No activation, lifecycle monitoring, freshness enforcement, or M61 work is included.
 
 ## Verified merged foundations
 
@@ -250,10 +250,10 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
 - [x] Owner approved source-class acceptance by claim type (D1) and hybrid source-artifact retention (D2) on 2026-11-10; enforcement is under PR #475.
 - [x] Owner approved strict evidence-gated publication (D3) and the claim-specific day evidence matrix (D4) on 2026-11-10; enforcement is under PR #475.
-- [ ] Complete PR #475 exact-head CI on final head `5cd363f` and merge; run #42864456090 passed all five jobs on prior head `b09ebd9`. SQLite legacy migration and exceptional-hours evidence tests are implemented.
+- [x] PR #475 merged as `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`; exact-head CI passed all five required jobs in run #42866088424.
 - [ ] Independently verify archived artifact bytes and publisher authenticity; operator-declared metadata and SHA-256 strings are not authenticity proof.
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. PR #475 remains open. Run #42864456090 passed all five jobs on prior head `b09ebd9`; subsequent hardening constrains A-R to `FRA_REGULATORY` and the latest docs update is on `5cd363f`, so exact-head CI is still required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+PR #471 and PR #475 are merged; both exact-head CI requirements passed before merge. PR #479 subsequently added byte-storage and publication-time byte verification. PR #480 reconciles this register with the merged state; its exact-head CI remains in progress until all five required jobs complete. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.

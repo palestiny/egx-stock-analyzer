@@ -1,6 +1,6 @@
 # Calendar Artifact Byte Integrity — Implementation Slice
 
-**Status:** byte-storage, authenticated upload, and publication-time byte verification are implemented on a stacked feature branch; CI and merge are pending.
+**Status:** byte-storage, authenticated upload, and publication-time byte verification are merged in `main` (`d1114c1`). All five exact PR-head CI jobs passed; post-merge main CI run #42874061006 is in progress.
 
 ## Scope implemented
 
