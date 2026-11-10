@@ -11,7 +11,7 @@ from tools.egx_daily_history_audit import EXPECTED_COLUMNS
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-def write_clean_csv(path: Path) -> None:
+def write_clean_csv(path: Path, **overrides: str) -> None:
     row = {
         "session_date": "2026-11-10",
         "instrument_type": "equity",
@@ -33,6 +33,7 @@ def write_clean_csv(path: Path) -> None:
         "quality_status": "source_reported",
         "notes": "Fixture for CLI smoke test.",
     }
+    row.update(overrides)
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=EXPECTED_COLUMNS)
         writer.writeheader()
@@ -93,4 +94,21 @@ def test_cli_audits_repository_archive_without_modifying_it(tmp_path: Path) -> N
     assert stdout_report["unlabelled_ohlc_inconsistency_count"] == 0
     assert stdout_report["artifact"]["byte_count"] == len(original_bytes)
     assert stdout_report["artifact"]["sha256"] == hashlib.sha256(original_bytes).hexdigest()
+    assert archive.read_bytes() == original_bytes
+
+
+def test_cli_reports_unlabelled_ohlc_findings_and_returns_one(tmp_path: Path) -> None:
+    archive = tmp_path / "review.csv"
+    report_path = tmp_path / "audit.json"
+    write_clean_csv(archive, open_value="99", low_value="100")
+    original_bytes = archive.read_bytes()
+
+    result = run_cli(archive, report_path)
+
+    assert result.returncode == 1, result.stderr
+    stdout_report = json.loads(result.stdout)
+    file_report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert stdout_report == file_report
+    assert stdout_report["status"] == "completed_with_findings"
+    assert stdout_report["unlabelled_ohlc_inconsistency_count"] == 1
     assert archive.read_bytes() == original_bytes
