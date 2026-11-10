@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22` (PR #475 merged; exact PR-head CI run #42866088424 passed all five jobs; post-merge main CI run #42867152618 pending unit tests with coverage at this snapshot).  
+**Baseline:** `main` at `622783b7ade6e23be604d6c07d4c5bc83e638b90` (PR #478 merged after all five exact-head CI jobs passed; post-merge main CI run #42870826850 is still in progress at this snapshot).  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -12,13 +12,13 @@ This register separates verified implementation from incomplete acceptance and d
 
 **Status: implementation under review; do not claim full archival or source authenticity yet.**
 
-- PR #478 provides a byte-storage port and content-addressed filesystem adapter. Its exact-head CI remains pending the unit-test/coverage job at the current snapshot.
-- Follow-up branch `feature/calendar-artifact-publication-verification` adds a bounded binary upload endpoint for individually authenticated calendar operators and wires the artifact service into infrastructure composition.
-- Every new `ARCHIVED` evidence item is checked against stored bytes and its expected SHA-256 before the atomic calendar/evidence SQLite publication transaction begins. Missing artifacts and digest mismatches fail closed. `EXTERNAL_ONLY` still requires an explicit non-retention reason.
+- PR #478 is merged: byte-storage port, content-addressed filesystem adapter, and read-back SHA-256 integrity service. All five exact-head CI jobs passed.
+- PR #479 (`feature/calendar-artifact-publication-verification`) adds a bounded binary upload endpoint for individually authenticated calendar operators and wires the artifact service into infrastructure composition.
+- The SQLite publication Unit of Work itself verifies every new `ARCHIVED` evidence item against stored bytes and its expected SHA-256 before opening the transaction. Direct callers cannot bypass this rule. Missing artifacts and digest mismatches fail closed. `EXTERNAL_ONLY` still requires an explicit non-retention reason.
 - Compose uses the existing persistent `egx-data` volume for `/data/calendar-artifacts`; the default upload ceiling is 20 MiB. Other runtime configurations must explicitly set `EGX_CALENDAR_ARTIFACT_STORAGE_PATH`.
 - The upload endpoint computes the digest from the received bytes; the client-provided digest in a later publication request is only an expected value and must match the bytes re-read from storage.
 - Remaining acceptance gaps: source authenticity, publisher identity verification, legal retention/reuse rights, backup/restore testing, multi-node storage behavior, and reconciliation of uploaded artifacts not linked by a successful publication. No automated deletion is enabled.
-- This branch is stacked on PR #478 and is not yet merged. No activation, lifecycle monitoring, freshness enforcement, or M61 work is included.
+- PR #479 is open and its exact-head CI run #42871338138 is in progress. No activation, lifecycle monitoring, freshness enforcement, or M61 work is included.
 
 ## Verified merged foundations
 
