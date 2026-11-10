@@ -1,3 +1,5 @@
+import hashlib
+import json
 import sqlite3
 from datetime import date, datetime, timezone
 from uuid import UUID, uuid4
@@ -178,3 +180,102 @@ def test_evidence_actor_must_reference_an_existing_user(tmp_path):
     repository, _ = _repository(tmp_path)
     with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
         repository.append(_evidence(recorded_by=uuid4()))
+
+
+def test_legacy_evidence_schema_migrates_without_changing_existing_record_digest(tmp_path):
+    database = tmp_path / "legacy-evidence.db"
+    SQLiteSessionCalendarRepository(database).publish(
+        _calendar(), published_by="bootstrap-user",
+        source_reference="schema-fixture", reason="legacy migration fixture",
+    )
+    SQLiteUserStore(database).save(
+        User(
+            id=UUID("10000000-0000-0000-0000-000000000001"),
+            status=UserStatus.ACTIVE,
+        )
+    )
+    legacy = CalendarEvidence.create(
+        calendar_version="egx-evidence-v1",
+        session_date=date(2026, 11, 2),
+        evidence_kind=CalendarEvidenceKind.CLOSURE,
+        source_type="OFFICIAL_EXCHANGE_NOTICE",
+        source_reference="https://example.invalid/legacy-notice",
+        claim="Legacy EGX notice confirms closure",
+        recorded_by=UUID("10000000-0000-0000-0000-000000000001"),
+        observed_at=datetime(2026, 11, 2, 12, tzinfo=timezone.utc),
+        recorded_at=datetime(2026, 11, 2, 13, tzinfo=timezone.utc),
+    )
+    old_payload = SQLiteCalendarEvidenceRepository._payload(legacy)
+    for key in (
+        "source_class", "source_publisher", "market_scope", "effective_from",
+        "effective_through", "retrieved_at", "artifact_sha256",
+        "artifact_retention", "artifact_storage_reference",
+        "artifact_not_retained_reason",
+    ):
+        old_payload.pop(key)
+    canonical = json.dumps(old_payload, sort_keys=True, separators=(",", ":"))
+    legacy_digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    with sqlite3.connect(database) as connection:
+        connection.executescript("""
+            CREATE TABLE egx_calendar_evidence (
+                evidence_id TEXT PRIMARY KEY,
+                calendar_version TEXT NOT NULL REFERENCES egx_calendar_versions(version),
+                session_date TEXT NOT NULL,
+                evidence_kind TEXT NOT NULL CHECK (
+                    evidence_kind IN ('SCHEDULE', 'CLOSURE', 'CANCELLATION', 'EXCEPTIONAL_HOURS', 'CLOSE_CONFIRMATION')
+                ),
+                source_type TEXT NOT NULL,
+                source_reference TEXT NOT NULL,
+                claim TEXT NOT NULL,
+                recorded_by TEXT NOT NULL REFERENCES users(id),
+                observed_at TEXT NOT NULL,
+                recorded_at TEXT NOT NULL,
+                source_published_at TEXT NULL,
+                supersedes_evidence_id TEXT NULL REFERENCES egx_calendar_evidence(evidence_id),
+                supersession_reason TEXT NULL,
+                content_sha256 TEXT NOT NULL
+            );
+            CREATE INDEX idx_calendar_evidence_day
+            ON egx_calendar_evidence(calendar_version, session_date, evidence_kind);
+            CREATE TRIGGER egx_calendar_evidence_no_update
+            BEFORE UPDATE ON egx_calendar_evidence BEGIN
+                SELECT RAISE(ABORT, 'calendar evidence is immutable');
+            END;
+            CREATE TRIGGER egx_calendar_evidence_no_delete
+            BEFORE DELETE ON egx_calendar_evidence BEGIN
+                SELECT RAISE(ABORT, 'calendar evidence is immutable');
+            END;
+        """)
+        connection.execute(
+            """INSERT INTO egx_calendar_evidence (
+                evidence_id, calendar_version, session_date, evidence_kind,
+                source_type, source_reference, claim, recorded_by, observed_at,
+                recorded_at, source_published_at, supersedes_evidence_id,
+                supersession_reason, content_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(legacy.evidence_id), legacy.calendar_version,
+                legacy.session_date.isoformat(), legacy.evidence_kind.value,
+                legacy.source_type, legacy.source_reference, legacy.claim,
+                str(legacy.recorded_by), legacy.observed_at.isoformat(),
+                legacy.recorded_at.isoformat(), None, None, None, legacy_digest,
+            ),
+        )
+
+    migrated = SQLiteCalendarEvidenceRepository(database)
+    loaded = migrated.get(legacy.evidence_id)
+    assert loaded is not None
+    assert loaded.claim == legacy.claim
+    assert loaded.content_sha256 == legacy_digest
+    assert loaded.source_class is None
+    with migrated._connect() as connection:
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(egx_calendar_evidence)"
+        )}
+        assert "artifact_sha256" in columns
+        assert "source_class" in columns
+        check_sql = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='egx_calendar_evidence'"
+        ).fetchone()[0]
+        assert "OPEN_CONFIRMATION" in check_sql
