@@ -250,10 +250,10 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
 - [x] Owner approved source-class acceptance by claim type (D1) and hybrid source-artifact retention (D2) on 2026-11-10; enforcement is under PR #475.
 - [x] Owner approved strict evidence-gated publication (D3) and the claim-specific day evidence matrix (D4) on 2026-11-10; enforcement is under PR #475.
-- [ ] Complete PR #475 exact-head CI on final head `5cd363f` and merge; run #42864456090 passed all five jobs on prior head `b09ebd9`. SQLite legacy migration and exceptional-hours evidence tests are implemented.
+- [x] PR #475 merged as `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`; exact-head CI passed all five required jobs in run #42866088424.
 - [ ] Independently verify archived artifact bytes and publisher authenticity; operator-declared metadata and SHA-256 strings are not authenticity proof.
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. PR #475 remains open. Run #42864456090 passed all five jobs on prior head `b09ebd9`; subsequent hardening constrains A-R to `FRA_REGULATORY` and the latest docs update is on `5cd363f`, so exact-head CI is still required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+PR #471 and PR #475 are merged; both exact-head CI requirements passed before merge. PR #479 subsequently added byte-storage and publication-time byte verification. PR #480 reconciles this register with the merged state; its exact-head CI remains in progress until all five required jobs complete. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
