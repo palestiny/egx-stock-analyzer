@@ -1,9 +1,10 @@
 import csv
 import io
+from pathlib import Path
 
 import pytest
 
-from tools.egx_daily_history_audit import EXPECTED_COLUMNS, audit_csv_text
+from tools.egx_daily_history_audit import EXPECTED_COLUMNS, audit_csv_text, audit_file
 
 
 def row(**overrides: str) -> dict[str, str]:
@@ -134,3 +135,24 @@ def test_audit_rejects_invalid_retrieval_timestamp_timezone() -> None:
 
     assert report["invalid_row_count"] == 1
     assert "retrieved_at_timezone_missing" in report["invalid_rows"][0]["issues"]
+
+
+def test_repository_archive_is_auditable_without_modification() -> None:
+    archive = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "market_history"
+        / "egx_daily_history.csv"
+    )
+    original_bytes = archive.read_bytes()
+
+    report = audit_file(archive)
+
+    assert archive.read_bytes() == original_bytes
+    assert report["row_count"] == report["parsed_row_count"]
+    assert report["symbol_count"] > 0
+    assert report["session_count"] > 0
+    assert report["duplicate_extra_rows"] == 0
+    assert report["malformed_row_count"] == 0
+    assert report["unlabelled_ohlc_inconsistency_count"] == 0
+    assert len(report["artifact"]["sha256"]) == 64
