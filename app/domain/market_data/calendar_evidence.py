@@ -111,6 +111,8 @@ class CalendarEvidence:
                 raise ValueError("Source class A requires the declared publisher EGX")
             if self.source_class is CalendarEvidenceSourceClass.A_R and self.source_publisher != "FRA":
                 raise ValueError("Source class A-R requires the declared publisher FRA")
+            if self.source_class is CalendarEvidenceSourceClass.A_R and self.market_scope != "FRA_REGULATORY":
+                raise ValueError("Source class A-R is restricted to FRA_REGULATORY scope")
             if self.artifact_retention is CalendarArtifactRetention.ARCHIVED:
                 if not self.artifact_storage_reference or self.artifact_not_retained_reason:
                     raise ValueError("ARCHIVED evidence requires artifact_storage_reference only")

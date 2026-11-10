@@ -349,6 +349,33 @@ def test_secondary_source_cannot_authorize_calendar_publication(tmp_path):
     assert calendars.list_versions() == ()
 
 
+def test_regulatory_evidence_is_limited_to_fra_scope_and_cannot_authorize_egx_session(tmp_path):
+    with pytest.raises(ValueError, match="FRA_REGULATORY"):
+        _evidence(
+            date(2026, 11, 1), "FRA regulatory notice",
+            kind=CalendarEvidenceKind.CLOSURE,
+            source_class=CalendarEvidenceSourceClass.A_R,
+            market_scope="EGX_MARKET_WIDE",
+        )
+
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(
+            date(2026, 11, 1), "FRA regulatory context",
+            kind=CalendarEvidenceKind.CLOSURE,
+            source_class=CalendarEvidenceSourceClass.A_R,
+            market_scope="FRA_REGULATORY",
+        ),
+        _evidence(date(2026, 11, 2), "EGX operational closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence kinds"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Regulatory evidence is not operational evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
 def test_primary_evidence_must_cover_egx_market_wide_scope(tmp_path):
     _database, calendars, _evidence_repository, uow = _setup(tmp_path)
     evidence = (
