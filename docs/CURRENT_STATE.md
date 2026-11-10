@@ -31,7 +31,7 @@
 
 
 **Authority:** GitHub `main` + current open pull requests  
-**Last reviewed:** 2026-11-10 (main at `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`; PR #475 merged. Exact PR-head CI passed; post-merge main run #42867152618 is awaiting unit tests with coverage.)
+**Last reviewed:** 2026-11-10 (main at `d1114c1a020825fb1e8477605c5c18c14bf475e6`; PR #479 merged after all five exact-head CI jobs passed. Post-merge main run #42874061006 is in progress.)
 **Repository:** palestiny/egx-stock-analyzer
 
 
