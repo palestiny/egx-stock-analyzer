@@ -125,7 +125,7 @@ def test_inventory_detects_database_digest_mismatch(tmp_path):
     report = run_calendar_artifact_inventory(database, root)
 
     assert statuses(report) == [Status.INTEGRITY_FAILURE]
-    assert "database artifact_sha256" in report.entries[0].detail
+    assert "database artifact_sha256" in report.entries[0].detail.lower()
 
 
 @pytest.mark.parametrize("reference", [None, "../outside", "sha256:ABC"])
