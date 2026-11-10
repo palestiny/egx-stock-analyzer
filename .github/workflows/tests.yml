@@ -112,3 +112,40 @@ jobs:
       - name: Clean up Compose services
         if: always()
         run: docker compose down -v
+
+  daily-history-audit-report:
+    name: daily-history-audit-report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run read-only daily history audit
+        id: audit
+        shell: bash
+        run: |
+          set +e
+          python -m tools.egx_daily_history_audit \
+            --input data/market_history/egx_daily_history.csv \
+            --output reports/egx-daily-history-audit.json
+          audit_exit_code=$?
+          set -e
+
+          if [ "$audit_exit_code" -gt 1 ]; then
+            echo "Audit CLI failed with exit code $audit_exit_code"
+            exit "$audit_exit_code"
+          fi
+
+          python -c "import json; from pathlib import Path; report=json.loads(Path('reports/egx-daily-history-audit.json').read_text(encoding='utf-8')); assert report.get('status') in {'clean', 'completed_with_findings'}; print('Audit status:', report['status']); print('Rows:', report.get('row_count', 'unknown')); print('SHA-256:', report['artifact']['sha256'])"
+          echo "Audit CLI exit code: $audit_exit_code" >> "$GITHUB_STEP_SUMMARY"
+          echo "Audit report status: $(python -c "import json; print(json.load(open('reports/egx-daily-history-audit.json', encoding='utf-8'))['status'])")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload daily history audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: egx-daily-history-audit-${{ github.sha }}
+          path: reports/egx-daily-history-audit.json
+          if-no-files-found: error
+          retention-days: 14
