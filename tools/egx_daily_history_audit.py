@@ -306,19 +306,22 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
 def compare_csv_files(current_path: Path, baseline_path: Path) -> dict[str, object]:
     """Compare canonical snapshots by (session_date, symbol), without mutation."""
     def read_snapshot(path: Path) -> tuple[dict[tuple[str, str], dict[str, str]], set[tuple[str, str]]]:
-        with path.open("r", encoding="utf-8-sig", newline="") as handle:
-            reader = csv.DictReader(handle)
-            if tuple(reader.fieldnames or ()) != EXPECTED_COLUMNS:
-                raise ValueError(f"CSV schema mismatch in comparison input: {path}")
-            records: dict[tuple[str, str], dict[str, str]] = {}
-            duplicates: set[tuple[str, str]] = set()
-            for row in reader:
-                key = (row["session_date"].strip(), row["symbol"].strip().upper())
-                if key in records:
-                    duplicates.add(key)
-                else:
-                    records[key] = dict(row)
-            return records, duplicates
+        content = path.read_text(encoding="utf-8-sig")
+        structural_report = audit_csv_text(content, str(path))
+        if structural_report["malformed_row_count"]:
+            raise ValueError(f"Malformed CSV rows prevent snapshot comparison: {path}")
+        reader = csv.DictReader(io.StringIO(content, newline=""))
+        records: dict[tuple[str, str], dict[str, str]] = {}
+        duplicates: set[tuple[str, str]] = set()
+        for row in reader:
+            if not row["session_date"].strip() or not row["symbol"].strip():
+                raise ValueError(f"Missing comparison key in snapshot: {path}")
+            key = (row["session_date"].strip(), row["symbol"].strip().upper())
+            if key in records:
+                duplicates.add(key)
+            else:
+                records[key] = dict(row)
+        return records, duplicates
 
     current, current_duplicates = read_snapshot(current_path)
     baseline, baseline_duplicates = read_snapshot(baseline_path)
