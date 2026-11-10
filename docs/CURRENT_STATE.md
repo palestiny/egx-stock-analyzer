@@ -1,5 +1,15 @@
 # EGX Stock Analyzer — Current State
 
+## Latest verified continuation — 2026-11-10
+
+- PR #471 merged as `bad0f1b134586fd6ffe32ebf09352c31a5fb445f`. Its exact head `e57b9ca301be3541bd47cadfdc1a597dd7ad60e2` passed all five required CI jobs in runs #42854454025 and #42855087258. It implements atomic calendar publication: calendar version, per-day immutable evidence, explicit links, and validation share one SQLite `BEGIN IMMEDIATE` transaction.
+- PR #472 merged as `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`. Its exact head `71ebdb22c5f3dd517ef4c896a6dfc8643e083dc6` passed all five CI jobs in run #42667845797. The canonical archive now contains 232 records across 19 columns, including 23 rows for 2026-11-09 (17 equities and 6 indices). Independent structural verification found no duplicate `(session_date, symbol)` keys and complete required provenance fields on all 23 new rows.
+- Four 2026-11-09 index rows remain flagged `ohlc_inconsistency_review`; PHDC and EGX30 remain flagged for localized-source conflicts, and an EGX100EWI discrepancy is retained in notes. Raw values were preserved; flagged rows are not clean OHLC evidence. This archive update does not establish full-market coverage, application-database ingestion, or production-feed readiness.
+- Current `main` is `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`. Post-merge main CI run #42855711113 completed successfully with all five required jobs. The earlier main run #42855271889 was cancelled by the subsequent #472 push and is not counted as a pass.
+- PR #473 was closed as superseded. PR #474 carries the source-class acceptance, claim-specific evidence requirements, source-artifact retention, and publication-semantics proposal on the feature branch. It is a proposal only; four owner decisions remain open. No source authenticity or legal retention claim is made. CI validation for the current PR #474 head is pending; do not merge before all required checks pass.
+- Calendar activation, lifecycle monitoring, freshness enforcement, provider completed-bar attestation, and M61 remain disabled/blocked/paused. PR #321 remains Draft.
+
+
 **Authority:** GitHub `main` + current open pull requests  
 **Last reviewed:** 2026-11-09 (main at `5cf842d01919f95ce73b984a8b237813db9d2db7`; PR #469 merged. Main CI run #42643672050 had 4/5 jobs successful and unit-tests still in progress at review.)
 **Repository:** palestiny/egx-stock-analyzer

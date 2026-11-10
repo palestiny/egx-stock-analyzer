@@ -226,16 +226,19 @@ DEC-136 and DEC-137 implementations are merged and verified by PR #432 exact-hea
 
 The persistence/recovery foundation is verified; automatic monitoring and lifecycle product acceptance are not. M61 remains paused and PR #321 remains Draft.
 
-### P1 — Calendar evidence provenance and individual operator accountability (owner-approved 2026-11-09)
+### P1 — Calendar evidence provenance and individual operator accountability (updated 2026-11-10)
 
-- [x] Owner approved an immutable per-day evidence registry and individual operator identities for privileged calendar operations.
-- [x] PR #465 merged typed day-level evidence records, canonical SHA-256 hashes, read-time integrity verification, append-only corrections, explicit calendar-version/day coverage checks, and visible active-claim conflicts.
-- [x] PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit events, durable-credential-aware permission resolution, trusted first-operator bootstrap, and last-operator protection.
-- [x] PR #467 merged the authenticated calendar publication/read API and persistent runtime composition. Calendar administration requires an active individually attributable operator credential; the shared legacy operator token is rejected on these routes. Exact-head CI passed all five jobs before merge.
-- [ ] Define evidence acceptance by claim type: trading-session status, hours, cancellation, emergency closure, and close confirmation.
-- [ ] Link every calendar-day assertion to one or more immutable evidence IDs and validate required evidence at publication; unresolved conflicting claims must block publication.
-- [ ] Decide source artifact retention: archive the artifact, or require stable independently retrievable references plus hashes and retrieval metadata.
-- [ ] Define which day categories require primary EGX evidence before publication versus activation; broker/third-party calendars remain corroboration only.
+- [x] Owner approved an immutable per-day evidence registry and individual named operator identities.
+- [x] PR #465 merged immutable typed evidence records, SHA-256 integrity checks, append-only corrections, explicit calendar-version/date coverage, and conflict visibility.
+- [x] PR #466 merged individual operator grants, append-only grant/revoke/bootstrap audit, durable-credential-aware permissions, trusted first-operator bootstrap, and last-operator protection.
+- [x] PR #467 merged the authenticated calendar publication/read API and persistent runtime composition.
+- [x] PR #471 merged atomic publication: one SQLite `BEGIN IMMEDIATE` transaction persists the immutable calendar version, per-day evidence, explicit links, and validation; failures roll back the entire publication.
+- [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
+- [ ] Approve source-class acceptance by claim type (proposal PR #473).
+- [ ] Approve source-artifact retention/authenticity policy (proposal PR #473).
+- [ ] Approve strict publication semantics and the evidence matrix for each day category (proposal PR #473).
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
-- [ ] Add API-level tests proving missing, insufficient, conflicting, superseded, or mismatched evidence blocks publication.
-- [ ] Keep calendar activation and lifecycle monitoring disabled until their independent coverage, bootstrap, and provider-finality gates pass.
+- [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
+- [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
+
+PR #471 is merged; its exact-head CI passed. The latest main CI after PR #472 is run #42855711113 and completed successfully with all five jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retention, full EGX calendar correctness, or provider bar finality.

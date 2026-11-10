@@ -1,6 +1,6 @@
 # EGX Session Calendar Provenance & Operator Accountability — Design Gate
 
-**Status:** APPROVED DESIGN — implementation partially complete; activation remains blocked  
+**Status:** APPROVED FOUNDATION — atomic publication merged; source acceptance and activation remain blocked  
 **Reviewed:** 2026-11-09  
 **Related:** PR #459, #460, #465, #466, #467
 
@@ -28,7 +28,7 @@ The current evidence record includes:
 
 Persistence is append-only: database triggers reject UPDATE and DELETE. Conflicting unsuperseded claims of the same kind/day remain visible. A superseding record preserves the prior evidence history.
 
-**Publication enforcement (implementation pending exact-head CI):** the publication API now requires immutable evidence for every explicit calendar date, validates evidence kinds against the calendar-day status, creates explicit day-to-evidence links, and rejects unresolved conflicting claims inside the same SQLite transaction. The registry and publication gate still do not independently prove source authenticity or preserve the source artifact.
+**Publication enforcement (merged in PR #471; exact-head CI passed):** the publication API now requires immutable evidence for every explicit calendar date, validates evidence kinds against the calendar-day status, creates explicit day-to-evidence links, and rejects unresolved conflicting claims inside the same SQLite transaction. The registry and publication gate still do not independently prove source authenticity or preserve the source artifact.
 
 ## 3. Evidence acceptance rules
 
@@ -64,7 +64,7 @@ The operator access model uses named application users with an explicit `OPERATO
 
 Calendar publication remains separate from activation. No calendar has been activated, and lifecycle monitoring remains disabled. No schedule, weekend, holiday, or session time is inferred. Provider completed-bar attestation and cursor-derived coverage validation remain independent activation blockers.
 
-**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are implemented on PR #471 pending exact-head CI. Source-class acceptance, artifact retention/authenticity, and operational activation gates remain open.
+**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are merged in PR #471. Its exact head passed all five CI jobs. The latest main CI after PR #472 is tracked in CURRENT_STATE.md. Source-class acceptance, artifact retention/authenticity, and operational activation gates remain open.
 
 
 ## 10. Atomic publication implementation — PR #471
@@ -73,5 +73,10 @@ Calendar publication remains separate from activation. No calendar has been acti
 - The API requires evidence for every explicit date and validates the minimum evidence kind implied by each day status: closure, cancellation, schedule, and close confirmation for a completed session.
 - Evidence corrections can be supplied in order within the same publication batch using caller-provided stable evidence IDs and supersession references; originals remain immutable.
 - Rollback tests inject failures after evidence insertion and after link creation/final validation. A separate SQLite connection is verified not to observe uncommitted publication rows.
-- Exact-head CI is pending. No merge or test-pass claim is made until all required checks pass.
+- PR #471 merged at `bad0f1b134586fd6ffe32ebf09352c31a5fb445f`; its exact head passed all five required CI jobs. The latest post-merge main CI after PR #472 is still tracked separately.
 - Source authenticity, archival of retrieved source artifacts, source-class acceptance policy, activation bootstrap, and lifecycle integration remain outside this implementation.
+
+
+## 11. Post-merge status — 2026-11-10
+
+PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. The latest main-line CI is run #42855711113 on `b2fa65e4ffa68cb80c27bad6e69da45e03fe126a`; four jobs have passed and unit tests remain in progress. Source-class acceptance, artifact authenticity/retention, deployment bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated.
