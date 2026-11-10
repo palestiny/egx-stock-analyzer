@@ -241,4 +241,4 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. The latest main CI after PR #472 is run #42855711113 and remains in progress with four of five jobs successful. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retention, full EGX calendar correctness, or provider bar finality.
+PR #471 is merged; its exact-head CI passed. The latest main CI after PR #472 is run #42855711113 and completed successfully with all five jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retention, full EGX calendar correctness, or provider bar finality.
