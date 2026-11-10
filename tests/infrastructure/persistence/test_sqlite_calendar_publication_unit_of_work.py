@@ -418,3 +418,17 @@ def test_exceptional_hours_requires_its_own_primary_evidence_kind(tmp_path):
         source_reference="EGX source bundle", reason="Publish evidenced exceptional hours",
     )
     assert calendars.get_version(stored.version) == stored
+
+
+def test_exceptional_hours_evidence_requires_explicit_calendar_day_marker(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(date(2026, 11, 1), "EGX confirms exceptional hours", kind=CalendarEvidenceKind.EXCEPTIONAL_HOURS),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="without an explicit day marker"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject orphan exceptional-hours evidence",
+        )
+    assert calendars.list_versions() == ()

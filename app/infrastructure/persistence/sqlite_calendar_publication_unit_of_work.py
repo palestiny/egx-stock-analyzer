@@ -126,9 +126,17 @@ class SQLiteCalendarPublicationUnitOfWork:
                     CalendarEvidenceKind.CLOSE_CONFIRMATION,
                 },
             }[day.status]
+            day_evidence_kinds = evidence_kinds_by_date.get(day.session_date, set())
+            if (
+                CalendarEvidenceKind.EXCEPTIONAL_HOURS in day_evidence_kinds
+                and not day.exceptional_hours
+            ):
+                raise ValueError(
+                    f"Calendar date {day.session_date.isoformat()} has exceptional-hours evidence without an explicit day marker"
+                )
             if day.exceptional_hours:
                 required_kinds = required_kinds | {CalendarEvidenceKind.EXCEPTIONAL_HOURS}
-            missing_kinds = required_kinds - evidence_kinds_by_date.get(day.session_date, set())
+            missing_kinds = required_kinds - day_evidence_kinds
             accepted_primary_kinds = {
                 item.evidence_kind for item in evidence
                 if item.session_date == day.session_date
