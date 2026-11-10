@@ -31,7 +31,15 @@ def _calendar(version: str = "atomic-calendar-v1") -> EGXSessionCalendar:
     )
 
 
-def _evidence(\n    day: date,\n    claim: str,\n    *,\n    kind: CalendarEvidenceKind = CalendarEvidenceKind.SCHEDULE,\n    evidence_id: UUID | None = None,\n    supersedes_evidence_id: UUID | None = None,\n    supersession_reason: str | None = None,\n) -> CalendarEvidence:
+def _evidence(
+    day: date,
+    claim: str,
+    *,
+    kind: CalendarEvidenceKind = CalendarEvidenceKind.SCHEDULE,
+    evidence_id: UUID | None = None,
+    supersedes_evidence_id: UUID | None = None,
+    supersession_reason: str | None = None,
+) -> CalendarEvidence:
     return CalendarEvidence.create(
         calendar_version="atomic-calendar-v1",
         session_date=day,
@@ -41,6 +49,9 @@ def _evidence(\n    day: date,\n    claim: str,\n    *,\n    kind: CalendarEvide
         claim=claim,
         recorded_by=ACTOR,
         observed_at=datetime(2026, 11, day.day, 9, tzinfo=timezone.utc),
+        evidence_id=evidence_id,
+        supersedes_evidence_id=supersedes_evidence_id,
+        supersession_reason=supersession_reason,
     )
 
 
