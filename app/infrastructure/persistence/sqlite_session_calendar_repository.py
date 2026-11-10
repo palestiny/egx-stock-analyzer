@@ -337,6 +337,7 @@ class SQLiteSessionCalendarRepository:
                     "session_close": day.session_close.isoformat() if day.session_close else None,
                     "closed_at": day.closed_at.isoformat() if day.closed_at else None,
                     "reason": day.reason,
+                    "exceptional_hours": day.exceptional_hours,
                 }
                 for day in calendar.days
             ],

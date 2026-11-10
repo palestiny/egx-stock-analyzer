@@ -254,3 +254,28 @@ def test_calendar_rejects_noncanonical_version_whitespace() -> None:
             coverage_end=date(2026, 11, 1),
             days=(EGXCalendarDay(date(2026, 11, 1), CalendarDayStatus.NON_TRADING),),
         )
+
+
+def test_exceptional_hours_requires_an_explicit_trading_day_marker() -> None:
+    day = EGXCalendarDay(
+        date(2026, 11, 4), CalendarDayStatus.SCHEDULED,
+        time(10, 0), time(13, 0), exceptional_hours=True,
+    )
+    assert day.exceptional_hours is True
+
+
+def test_exceptional_hours_cannot_be_declared_on_non_trading_day() -> None:
+    with pytest.raises(ValueError, match="only be declared for a trading day"):
+        EGXCalendarDay(
+            date(2026, 11, 4), CalendarDayStatus.NON_TRADING,
+            exceptional_hours=True,
+        )
+
+
+def test_legacy_calendar_payload_defaults_exceptional_hours_to_false() -> None:
+    value = EGXSessionCalendar.from_dict({
+        "version": "legacy-calendar-v1", "timezone": "Africa/Cairo",
+        "coverage_start": "2026-11-01", "coverage_end": "2026-11-01",
+        "days": [{"date": "2026-11-01", "status": "NON_TRADING"}],
+    })
+    assert value.days[0].exceptional_hours is False

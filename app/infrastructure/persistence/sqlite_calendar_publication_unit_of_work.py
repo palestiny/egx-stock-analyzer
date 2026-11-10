@@ -9,7 +9,7 @@ from typing import Sequence
 from uuid import UUID
 
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
-from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
+from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass
 from app.domain.market_data.session_calendar import CalendarDayStatus, EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
     SQLiteCalendarEvidenceRepository,
@@ -108,6 +108,8 @@ class SQLiteCalendarPublicationUnitOfWork:
             raise ValueError("Every evidence record must reference the calendar version being published")
         if any(item.recorded_by != actor_id for item in evidence):
             raise ValueError("Evidence actor must match the authenticated calendar publisher")
+        if any(item.source_class is None for item in evidence):
+            raise ValueError("Every newly published evidence record requires explicit source acceptance metadata")
         if len({item.evidence_id for item in evidence}) != len(evidence):
             raise ValueError("Evidence identifiers must be unique within a publication")
         evidence_kinds_by_date: dict = {}
@@ -118,17 +120,57 @@ class SQLiteCalendarPublicationUnitOfWork:
                 CalendarDayStatus.NON_TRADING: {CalendarEvidenceKind.CLOSURE},
                 CalendarDayStatus.CANCELLED: {CalendarEvidenceKind.CANCELLATION},
                 CalendarDayStatus.SCHEDULED: {CalendarEvidenceKind.SCHEDULE},
-                CalendarDayStatus.OPEN: {CalendarEvidenceKind.SCHEDULE},
+                CalendarDayStatus.OPEN: {CalendarEvidenceKind.SCHEDULE, CalendarEvidenceKind.OPEN_CONFIRMATION},
                 CalendarDayStatus.CLOSED: {
                     CalendarEvidenceKind.SCHEDULE,
                     CalendarEvidenceKind.CLOSE_CONFIRMATION,
                 },
             }[day.status]
-            missing_kinds = required_kinds - evidence_kinds_by_date.get(day.session_date, set())
+            day_evidence_kinds = evidence_kinds_by_date.get(day.session_date, set())
+            if (
+                CalendarEvidenceKind.EXCEPTIONAL_HOURS in day_evidence_kinds
+                and not day.exceptional_hours
+            ):
+                raise ValueError(
+                    f"Calendar date {day.session_date.isoformat()} has exceptional-hours evidence without an explicit day marker"
+                )
+            if day.exceptional_hours:
+                required_kinds = required_kinds | {CalendarEvidenceKind.EXCEPTIONAL_HOURS}
+            missing_kinds = required_kinds - day_evidence_kinds
+            accepted_primary_kinds = {
+                item.evidence_kind for item in evidence
+                if item.session_date == day.session_date
+                and item.source_class is CalendarEvidenceSourceClass.A
+                and item.market_scope == "EGX_MARKET_WIDE"
+                and item.effective_from is not None
+                and item.effective_through is not None
+                and item.effective_from <= day.session_date <= item.effective_through
+            }
+            missing_primary_kinds = required_kinds - accepted_primary_kinds
+            if any(
+                item.session_date == day.session_date
+                and item.evidence_kind is CalendarEvidenceKind.EXCEPTIONAL_HOURS
+                and not (
+                    item.source_class is CalendarEvidenceSourceClass.A
+                    and item.market_scope == "EGX_MARKET_WIDE"
+                    and item.effective_from is not None
+                    and item.effective_through is not None
+                    and item.effective_from <= day.session_date <= item.effective_through
+                )
+                for item in evidence
+            ):
+                raise ValueError(
+                    f"Exceptional-hours evidence for {day.session_date.isoformat()} requires Class A EGX primary evidence"
+                )
             if missing_kinds:
                 missing_kind_names = ", ".join(sorted(kind.value for kind in missing_kinds))
                 raise ValueError(
                     f"Calendar date {day.session_date.isoformat()} requires evidence kinds: {missing_kind_names}"
+                )
+            if missing_primary_kinds:
+                names = ", ".join(sorted(kind.value for kind in missing_primary_kinds))
+                raise ValueError(
+                    f"Calendar date {day.session_date.isoformat()} requires Class A EGX primary evidence kinds: {names}"
                 )
 
         payload = self._calendar_repository._calendar_payload(calendar)

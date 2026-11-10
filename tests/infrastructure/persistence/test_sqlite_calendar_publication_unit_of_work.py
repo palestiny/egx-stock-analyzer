@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from uuid import UUID
 
 import pytest
 
 from app.domain.identity.user import User, UserStatus
-from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
+from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass, CalendarArtifactRetention
 from app.domain.market_data.session_calendar import CalendarDayStatus, EGXCalendarDay, EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
 from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
@@ -39,9 +39,13 @@ def _evidence(
     evidence_id: UUID | None = None,
     supersedes_evidence_id: UUID | None = None,
     supersession_reason: str | None = None,
+    source_class: CalendarEvidenceSourceClass = CalendarEvidenceSourceClass.A,
+    market_scope: str = "EGX_MARKET_WIDE",
+    effective_from: date | None = None,
+    calendar_version: str = "atomic-calendar-v1",
 ) -> CalendarEvidence:
     return CalendarEvidence.create(
-        calendar_version="atomic-calendar-v1",
+        calendar_version=calendar_version,
         session_date=day,
         evidence_kind=kind,
         source_type="OFFICIAL_EXCHANGE_NOTICE",
@@ -52,6 +56,15 @@ def _evidence(
         evidence_id=evidence_id,
         supersedes_evidence_id=supersedes_evidence_id,
         supersession_reason=supersession_reason,
+        source_class=source_class,
+        source_publisher={CalendarEvidenceSourceClass.A: "EGX", CalendarEvidenceSourceClass.A_R: "FRA", CalendarEvidenceSourceClass.B: "Public authority", CalendarEvidenceSourceClass.C: "Broker"}[source_class],
+        market_scope=market_scope,
+        effective_from=effective_from or day,
+        effective_through=day,
+        retrieved_at=datetime(2026, 11, day.day, 9, tzinfo=timezone.utc),
+        artifact_sha256="a" * 64,
+        artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+        artifact_not_retained_reason="Test fixture stores the official reference only",
     )
 
 
@@ -173,6 +186,15 @@ def test_publication_rejects_evidence_actor_mismatch_before_writes(tmp_path):
             claim=item.claim,
             recorded_by=UUID("20000000-0000-0000-0000-000000000002"),
             observed_at=item.observed_at,
+            source_class=item.source_class,
+            source_publisher=item.source_publisher,
+            market_scope=item.market_scope,
+            effective_from=item.effective_from,
+            effective_through=item.effective_through,
+            retrieved_at=item.retrieved_at,
+            artifact_sha256=item.artifact_sha256,
+            artifact_retention=item.artifact_retention,
+            artifact_not_retained_reason=item.artifact_not_retained_reason,
         )
         for item in _evidence_set()
     )
@@ -311,3 +333,132 @@ def test_in_batch_supersession_preserves_original_and_resolves_claim(tmp_path):
     assert evidence_repository.list_conflicts(
         "atomic-calendar-v1", date(2026, 11, 1)
     ) == ()
+
+
+def test_secondary_source_cannot_authorize_calendar_publication(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(date(2026, 11, 1), "Broker says closure", kind=CalendarEvidenceKind.CLOSURE, source_class=CalendarEvidenceSourceClass.C),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject secondary-only evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
+def test_regulatory_evidence_is_limited_to_fra_scope_and_cannot_authorize_egx_session(tmp_path):
+    with pytest.raises(ValueError, match="FRA_REGULATORY"):
+        _evidence(
+            date(2026, 11, 1), "FRA regulatory notice",
+            kind=CalendarEvidenceKind.CLOSURE,
+            source_class=CalendarEvidenceSourceClass.A_R,
+            market_scope="EGX_MARKET_WIDE",
+        )
+
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(
+            date(2026, 11, 1), "FRA regulatory context",
+            kind=CalendarEvidenceKind.CLOSURE,
+            source_class=CalendarEvidenceSourceClass.A_R,
+            market_scope="FRA_REGULATORY",
+        ),
+        _evidence(date(2026, 11, 2), "EGX operational closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence kinds"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Regulatory evidence is not operational evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
+def test_primary_evidence_must_cover_egx_market_wide_scope(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(
+            date(2026, 11, 1), "Index-only notice", kind=CalendarEvidenceKind.CLOSURE,
+            market_scope="EGX_INDEX_ONLY",
+        ),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence kinds"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject non-market-wide evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
+def test_open_status_requires_schedule_and_open_confirmation(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    open_day = EGXSessionCalendar(
+        version="open-calendar-v1", timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 3), coverage_end=date(2026, 11, 3),
+        days=(EGXCalendarDay(date(2026, 11, 3), CalendarDayStatus.OPEN,
+                             session_open=time(10, 0),
+                             session_close=time(14, 30)),),
+    )
+    schedule_only = (_evidence(date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE, calendar_version="open-calendar-v1"),)
+    with pytest.raises(ValueError, match="OPEN_CONFIRMATION"):
+        uow.publish(
+            open_day, schedule_only, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Require opening confirmation",
+        )
+    with_open = schedule_only + (
+        _evidence(date(2026, 11, 3), "Trading opened", kind=CalendarEvidenceKind.OPEN_CONFIRMATION, calendar_version="open-calendar-v1"),
+    )
+    stored, _ = uow.publish(
+        open_day, with_open, published_by=str(ACTOR),
+        source_reference="EGX source bundle", reason="Opening confirmation supplied",
+    )
+    assert calendars.get_version(stored.version) == stored
+
+
+def test_exceptional_hours_requires_its_own_primary_evidence_kind(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    exceptional_day = EGXSessionCalendar(
+        version="exceptional-calendar-v1", timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 3), coverage_end=date(2026, 11, 3),
+        days=(EGXCalendarDay(
+            date(2026, 11, 3), CalendarDayStatus.SCHEDULED,
+            session_open=time(10, 0), session_close=time(13, 0),
+            exceptional_hours=True,
+        ),),
+    )
+    schedule = (_evidence(
+        date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE,
+        calendar_version="exceptional-calendar-v1",
+    ),)
+    with pytest.raises(ValueError, match="EXCEPTIONAL_HOURS"):
+        uow.publish(
+            exceptional_day, schedule, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Require exceptional-hours evidence",
+        )
+    evidence = schedule + (_evidence(
+        date(2026, 11, 3), "EGX confirms shortened session hours",
+        kind=CalendarEvidenceKind.EXCEPTIONAL_HOURS,
+        calendar_version="exceptional-calendar-v1",
+    ),)
+    stored, _ = uow.publish(
+        exceptional_day, evidence, published_by=str(ACTOR),
+        source_reference="EGX source bundle", reason="Publish evidenced exceptional hours",
+    )
+    assert calendars.get_version(stored.version) == stored
+
+
+def test_exceptional_hours_evidence_requires_explicit_calendar_day_marker(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(date(2026, 11, 1), "EGX confirms exceptional hours", kind=CalendarEvidenceKind.EXCEPTIONAL_HOURS),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="without an explicit day marker"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject orphan exceptional-hours evidence",
+        )
+    assert calendars.list_versions() == ()

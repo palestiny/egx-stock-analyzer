@@ -1,8 +1,8 @@
 # Project Completion Gap Register
 
 **Status:** Active non-M61 engineering/acceptance register  
-**Updated:** 2026-11-09  
-**Baseline:** `main` at `3531c78d15d65c7eac687f3848219d724dd2a8bb` (PR #470 merged after all five exact-head CI jobs passed; prior baseline main CI run #42643672050 also completed successfully across all five jobs). Historical PR/CI evidence remains recorded below.
+**Updated:** 2026-11-10  
+**Baseline:** `main` at `ec1364e09399932273b87de4ba4761a6bc7161da` (main CI run #42859055049 completed successfully across all five jobs; PR #475 is open against this baseline). Historical PR/CI evidence remains recorded below.
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -11,7 +11,7 @@ This register separates verified implementation from incomplete acceptance and d
 ## Verified merged foundations
 
 
-- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection (pending exact-head CI). Neither layer proves source authenticity or completes the source-class acceptance policy.
+- PR #465 merged immutable, append-only, SHA-256-verified per-day calendar evidence storage with explicit correction/supersession history. PR #471 adds atomic publication coverage, status-kind validation, explicit day/evidence links, and conflict rejection; its exact-head CI passed. PR #475 implements owner-approved source acceptance and hybrid artifact-retention policy, but is not merged and does not prove source authenticity.
 - PR #466 merged individually attributable operator grants and append-only grant/revoke/bootstrap audit. Durable active credentials and active users are required; the last active operator is protected; first-operator bootstrap is a trusted local command.
 - PR #467 merged authenticated session-calendar publication/read API and persistent runtime composition as `03d3969e19e7b73beb3b8427afb5328183d1553e`. All five exact-head checks passed before merge; the same five checks also passed on the merge commit. PR #462 is closed unmerged as superseded.
 
@@ -37,7 +37,7 @@ This register separates verified implementation from incomplete acceptance and d
 
 ## Calendar evidence publication — atomicity implementation (2026-11-09)
 
-**Status: OWNER-APPROVED — implementation in progress on `feature/atomic-calendar-evidence-publication-v2`.**
+**Status: IMPLEMENTED — merged in PR #471 after all five exact-head CI jobs passed.**
 
 ### Problem verified in current implementation
 The calendar-version repository and calendar-evidence repository each manage their own SQLite connections and transaction scopes. Evidence rows reference an already-persisted calendar version, so the current composition cannot guarantee that a version and all required per-day evidence are committed or rolled back as one operation. An API-level pre-check alone would leave a time-of-check/time-of-use gap and could persist a calendar version without its complete evidence set.
@@ -51,8 +51,8 @@ The calendar-version repository and calendar-evidence repository each manage the
 6. Commit only when every validation passes. Any exception or failed gate rolls back the version, evidence rows, links, and related audit entries together.
 7. Publication remains distinct from activation. No active-version pointer, activation event, lifecycle cursor, or monitoring state is changed by this transaction.
 
-### Implemented code boundary (pending CI)
-Introduce a narrowly scoped calendar SQLite Unit of Work (UoW) that owns one connection and transaction. Repositories participating in publication receive the UoW connection (or a transaction-scoped repository interface); they must not open independent connections during the operation. Keep ordinary read paths and the existing immutable evidence semantics intact. Avoid a generic cross-domain transaction framework: the initial UoW should be calendar-specific and small.
+### Implemented code boundary (merged PR #471)
+The calendar-specific SQLite Unit of Work owns one connection and `BEGIN IMMEDIATE` transaction. Calendar and evidence repositories participate through the transaction connection; rollback, isolation, conflict, and production-runtime composition tests are merged in PR #471. No generic cross-domain transaction framework was introduced.
 
 ### Required invariants and tests
 - The calendar version and all per-day evidence/link rows are visible together after commit.
@@ -64,7 +64,7 @@ Introduce a narrowly scoped calendar SQLite Unit of Work (UoW) that owns one con
 - Tests use the production runtime composition and a temporary on-disk SQLite database, not only isolated in-memory repository fakes.
 
 ### Decisions intentionally outside this implementation
-Evidence acceptance by claim type, required primary-source categories, source artifact archival versus stable external references, and deployment bootstrap/recovery remain owner decisions or separate operational gates. The proposal does not assert that a hash proves source authenticity. It does not authorize calendar activation or lifecycle monitoring.
+D1–D4 evidence acceptance, source classes, hybrid retention metadata, and strict publication are owner-approved and implemented in PR #475, pending final exact-head CI. Independent publisher authenticity, artifact-byte verification and lawful retention, and deployment bootstrap/recovery remain separate operational gates. An operator-supplied digest does not prove source authenticity. These decisions do not authorize calendar activation or lifecycle monitoring.
 
 ### Rollout and compatibility
 First add the UoW and repository transaction seams with focused tests; then route the publication use case through it. Preserve existing schema and immutable record IDs where possible. If an explicit per-day link table or schema migration is required, document the migration and prove upgrade-from-existing-database behavior before release. Do not silently retrofit existing evidence or infer missing evidence.
@@ -234,11 +234,12 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [x] PR #467 merged the authenticated calendar publication/read API and persistent runtime composition.
 - [x] PR #471 merged atomic publication: one SQLite `BEGIN IMMEDIATE` transaction persists the immutable calendar version, per-day evidence, explicit links, and validation; failures roll back the entire publication.
 - [x] PR #471 enforces evidence coverage for every explicit date, status-appropriate evidence kinds, actor consistency, and unresolved-conflict rejection. Rollback, isolation, in-batch supersession, and production runtime composition tests passed all five exact-head CI jobs.
-- [ ] Approve source-class acceptance by claim type (proposal PR #473).
-- [ ] Approve source-artifact retention/authenticity policy (proposal PR #473).
-- [ ] Approve strict publication semantics and the evidence matrix for each day category (proposal PR #473).
+- [x] Owner approved source-class acceptance by claim type (D1) and hybrid source-artifact retention (D2) on 2026-11-10; enforcement is under PR #475.
+- [x] Owner approved strict evidence-gated publication (D3) and the claim-specific day evidence matrix (D4) on 2026-11-10; enforcement is under PR #475.
+- [ ] Complete PR #475 exact-head CI on final head `5cd363f` and merge; run #42864456090 passed all five jobs on prior head `b09ebd9`. SQLite legacy migration and exceptional-hours evidence tests are implemented.
+- [ ] Independently verify archived artifact bytes and publisher authenticity; operator-declared metadata and SHA-256 strings are not authenticity proof.
 - [ ] Verify first-operator bootstrap and recovery against the actual deployment database and operational procedure.
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 is merged; its exact-head CI passed. The latest main CI after PR #472 is run #42855711113 and completed successfully with all five jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retention, full EGX calendar correctness, or provider bar finality.
+PR #471 is merged; its exact-head CI passed. PR #475 remains open. Run #42864456090 passed all five jobs on prior head `b09ebd9`; subsequent hardening constrains A-R to `FRA_REGULATORY` and the latest docs update is on `5cd363f`, so exact-head CI is still required. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.

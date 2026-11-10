@@ -255,6 +255,7 @@ def test_calendar_payload_version_must_match_immutable_row_key(tmp_path):
                                     "session_close": None,
                                     "closed_at": None,
                                     "reason": None,
+                                    "exceptional_hours": False,
                                 }
                             ],
                         },
