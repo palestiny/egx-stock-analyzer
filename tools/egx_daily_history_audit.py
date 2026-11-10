@@ -372,7 +372,14 @@ def audit_file(path: Path, baseline_path: Path | None = None) -> dict[str, objec
         raise ValueError("CSV must be UTF-8 or UTF-8 with BOM") from exc
     report = audit_csv_text(content, str(path))
     if baseline_path is not None:
-        report["baseline_comparison"] = compare_csv_files(path, baseline_path)
+        comparison = compare_csv_files(path, baseline_path)
+        report["baseline_comparison"] = comparison
+        report["baseline_comparison_complete"] = comparison["comparison_complete"]
+        if not comparison["comparison_complete"]:
+            report["status"] = "completed_with_findings"
+            report["limitations"].append(
+                "Baseline comparison is partial because duplicate keys make some records ambiguous."
+            )
     report["artifact"] = {
         "filename": path.name,
         "byte_count": len(raw),
