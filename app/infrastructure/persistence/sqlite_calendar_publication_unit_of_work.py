@@ -108,6 +108,8 @@ class SQLiteCalendarPublicationUnitOfWork:
             raise ValueError("Every evidence record must reference the calendar version being published")
         if any(item.recorded_by != actor_id for item in evidence):
             raise ValueError("Evidence actor must match the authenticated calendar publisher")
+        if any(item.source_class is None for item in evidence):
+            raise ValueError("Every newly published evidence record requires explicit source acceptance metadata")
         if len({item.evidence_id for item in evidence}) != len(evidence):
             raise ValueError("Evidence identifiers must be unique within a publication")
         evidence_kinds_by_date: dict = {}
@@ -135,6 +137,21 @@ class SQLiteCalendarPublicationUnitOfWork:
                 and item.effective_from <= day.session_date <= item.effective_through
             }
             missing_primary_kinds = required_kinds - accepted_primary_kinds
+            if any(
+                item.session_date == day.session_date
+                and item.evidence_kind is CalendarEvidenceKind.EXCEPTIONAL_HOURS
+                and not (
+                    item.source_class is CalendarEvidenceSourceClass.A
+                    and item.market_scope == "EGX_MARKET_WIDE"
+                    and item.effective_from is not None
+                    and item.effective_through is not None
+                    and item.effective_from <= day.session_date <= item.effective_through
+                )
+                for item in evidence
+            ):
+                raise ValueError(
+                    f"Exceptional-hours evidence for {day.session_date.isoformat()} requires Class A EGX primary evidence"
+                )
             if missing_primary_kinds:
                 names = ", ".join(sorted(kind.value for kind in missing_primary_kinds))
                 raise ValueError(

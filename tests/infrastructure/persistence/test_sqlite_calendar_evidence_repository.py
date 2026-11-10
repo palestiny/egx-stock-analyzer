@@ -83,6 +83,9 @@ def test_evidence_is_append_only_and_survives_recreation(tmp_path):
     recreated = SQLiteCalendarEvidenceRepository(database)
     assert recreated.get(stored.evidence_id) == stored
     assert len(stored.content_sha256) == 64
+    assert stored.source_class is CalendarEvidenceSourceClass.A
+    assert stored.artifact_sha256 == "b" * 64
+    assert stored.artifact_retention is CalendarArtifactRetention.EXTERNAL_ONLY
     with recreated._connect() as connection:
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
             connection.execute(

@@ -87,16 +87,24 @@ class CalendarEvidence:
                 raise ValueError("All source acceptance and artifact retention metadata is required together")
             assert self.source_class is not None
             assert self.artifact_retention is not None
+            assert self.effective_from is not None
+            assert self.effective_through is not None
+            assert self.retrieved_at is not None
+            assert self.artifact_sha256 is not None
             for name in ("source_publisher", "market_scope"):
                 value = getattr(self, name)
                 if not isinstance(value, str) or not value.strip():
                     raise ValueError(f"{name} must be non-empty")
+            if self.source_class in {CalendarEvidenceSourceClass.A, CalendarEvidenceSourceClass.A_R} and not self.source_reference.startswith("https://"):
+                raise ValueError("Primary-source references must use HTTPS")
             if self.effective_through < self.effective_from:
                 raise ValueError("effective_through cannot precede effective_from")
             if not self.effective_from <= self.session_date <= self.effective_through:
                 raise ValueError("Evidence session date must be inside the source effective date scope")
             if self.retrieved_at.tzinfo is None or self.retrieved_at.utcoffset() is None:
                 raise ValueError("retrieved_at must be timezone-aware")
+            if self.retrieved_at.astimezone(timezone.utc) > self.recorded_at.astimezone(timezone.utc):
+                raise ValueError("retrieved_at cannot be later than recorded_at")
             if not re.fullmatch(r"[0-9a-f]{64}", self.artifact_sha256):
                 raise ValueError("artifact_sha256 must be a lowercase SHA-256 hex digest")
             if self.source_class is CalendarEvidenceSourceClass.A and self.source_publisher != "EGX":
@@ -106,7 +114,7 @@ class CalendarEvidence:
             if self.artifact_retention is CalendarArtifactRetention.ARCHIVED:
                 if not self.artifact_storage_reference or self.artifact_not_retained_reason:
                     raise ValueError("ARCHIVED evidence requires artifact_storage_reference only")
-            elif not self.artifact_not_retained_reason or self.artifact_storage_reference:
+            elif not (self.artifact_not_retained_reason and self.artifact_not_retained_reason.strip()) or self.artifact_storage_reference:
                 raise ValueError("EXTERNAL_ONLY evidence requires artifact_not_retained_reason and no storage reference")
         elif any(value is not None for value in (self.artifact_storage_reference, self.artifact_not_retained_reason)):
             raise ValueError("Artifact retention details require source acceptance metadata")

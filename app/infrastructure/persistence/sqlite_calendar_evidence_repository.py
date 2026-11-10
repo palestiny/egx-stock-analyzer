@@ -57,7 +57,7 @@ class SQLiteCalendarEvidenceRepository:
                     evidence_kind TEXT NOT NULL CHECK (
                         evidence_kind IN (
                             'SCHEDULE', 'CLOSURE', 'CANCELLATION',
-                            'EXCEPTIONAL_HOURS', 'CLOSE_CONFIRMATION'
+                            'EXCEPTIONAL_HOURS', 'CLOSE_CONFIRMATION', 'OPEN_CONFIRMATION'
                         )
                     ),
                     source_type TEXT NOT NULL,
@@ -121,6 +121,90 @@ class SQLiteCalendarEvidenceRepository:
                     connection.execute(
                         f"ALTER TABLE egx_calendar_evidence ADD COLUMN {column} {definition}"
                     )
+
+            table_sql = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'egx_calendar_evidence'"
+            ).fetchone()[0]
+            if "OPEN_CONFIRMATION" not in table_sql:
+                # Existing databases have a CHECK constraint that predates the
+                # OPEN_CONFIRMATION evidence kind. Rebuild without losing immutable rows.
+                connection.execute("PRAGMA foreign_keys = OFF")
+                connection.execute("BEGIN IMMEDIATE")
+                try:
+                    connection.execute("DROP TRIGGER IF EXISTS egx_calendar_evidence_no_update")
+                    connection.execute("DROP TRIGGER IF EXISTS egx_calendar_evidence_no_delete")
+                    connection.execute("DROP INDEX IF EXISTS idx_calendar_evidence_day")
+                    connection.execute("""
+                        CREATE TABLE egx_calendar_evidence_new (
+                            evidence_id TEXT PRIMARY KEY,
+                            calendar_version TEXT NOT NULL REFERENCES egx_calendar_versions(version),
+                            session_date TEXT NOT NULL,
+                            evidence_kind TEXT NOT NULL CHECK (
+                                evidence_kind IN (
+                                    'SCHEDULE', 'CLOSURE', 'CANCELLATION',
+                                    'EXCEPTIONAL_HOURS', 'CLOSE_CONFIRMATION', 'OPEN_CONFIRMATION'
+                                )
+                            ),
+                            source_type TEXT NOT NULL,
+                            source_class TEXT NULL,
+                            source_publisher TEXT NULL,
+                            market_scope TEXT NULL,
+                            effective_from TEXT NULL,
+                            effective_through TEXT NULL,
+                            retrieved_at TEXT NULL,
+                            artifact_sha256 TEXT NULL,
+                            artifact_retention TEXT NULL,
+                            artifact_storage_reference TEXT NULL,
+                            artifact_not_retained_reason TEXT NULL,
+                            source_reference TEXT NOT NULL,
+                            claim TEXT NOT NULL,
+                            recorded_by TEXT NOT NULL REFERENCES users(id),
+                            observed_at TEXT NOT NULL,
+                            recorded_at TEXT NOT NULL,
+                            source_published_at TEXT NULL,
+                            supersedes_evidence_id TEXT NULL
+                                REFERENCES egx_calendar_evidence_new(evidence_id),
+                            supersession_reason TEXT NULL,
+                            content_sha256 TEXT NOT NULL
+                        )
+                    """)
+                    columns = (
+                        "evidence_id, calendar_version, session_date, evidence_kind, source_type, "
+                        "source_class, source_publisher, market_scope, effective_from, effective_through, "
+                        "retrieved_at, artifact_sha256, artifact_retention, artifact_storage_reference, "
+                        "artifact_not_retained_reason, source_reference, claim, recorded_by, observed_at, "
+                        "recorded_at, source_published_at, supersedes_evidence_id, supersession_reason, content_sha256"
+                    )
+                    connection.execute(
+                        f"INSERT INTO egx_calendar_evidence_new ({columns}) SELECT {columns} FROM egx_calendar_evidence"
+                    )
+                    connection.execute("DROP TABLE egx_calendar_evidence")
+                    connection.execute(
+                        "ALTER TABLE egx_calendar_evidence_new RENAME TO egx_calendar_evidence"
+                    )
+                    connection.execute("""
+                        CREATE INDEX idx_calendar_evidence_day
+                        ON egx_calendar_evidence(calendar_version, session_date, evidence_kind)
+                    """)
+                    connection.execute("""
+                        CREATE TRIGGER egx_calendar_evidence_no_update
+                        BEFORE UPDATE ON egx_calendar_evidence
+                        BEGIN SELECT RAISE(ABORT, 'calendar evidence is immutable'); END
+                    """)
+                    connection.execute("""
+                        CREATE TRIGGER egx_calendar_evidence_no_delete
+                        BEFORE DELETE ON egx_calendar_evidence
+                        BEGIN SELECT RAISE(ABORT, 'calendar evidence is immutable'); END
+                    """)
+                    connection.commit()
+                except Exception:
+                    connection.rollback()
+                    raise
+                finally:
+                    connection.execute("PRAGMA foreign_keys = ON")
+                violations = connection.execute("PRAGMA foreign_key_check").fetchall()
+                if violations:
+                    raise RuntimeError("Calendar evidence schema migration produced foreign-key violations")
 
     def append(self, evidence: CalendarEvidence) -> CalendarEvidence:
         with self._connect() as connection:

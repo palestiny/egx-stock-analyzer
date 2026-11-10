@@ -39,6 +39,9 @@ def _evidence(
     evidence_id: UUID | None = None,
     supersedes_evidence_id: UUID | None = None,
     supersession_reason: str | None = None,
+    source_class: CalendarEvidenceSourceClass = CalendarEvidenceSourceClass.A,
+    market_scope: str = "EGX_MARKET_WIDE",
+    effective_from: date | None = None,
 ) -> CalendarEvidence:
     return CalendarEvidence.create(
         calendar_version="atomic-calendar-v1",
@@ -52,10 +55,10 @@ def _evidence(
         evidence_id=evidence_id,
         supersedes_evidence_id=supersedes_evidence_id,
         supersession_reason=supersession_reason,
-        source_class=CalendarEvidenceSourceClass.A,
-        source_publisher="EGX",
-        market_scope="EGX_MARKET_WIDE",
-        effective_from=day,
+        source_class=source_class,
+        source_publisher={CalendarEvidenceSourceClass.A: "EGX", CalendarEvidenceSourceClass.A_R: "FRA", CalendarEvidenceSourceClass.B: "Public authority", CalendarEvidenceSourceClass.C: "Broker"}[source_class],
+        market_scope=market_scope,
+        effective_from=effective_from or day,
         effective_through=day,
         retrieved_at=datetime(2026, 11, day.day, 9, tzinfo=timezone.utc),
         artifact_sha256="a" * 64,
@@ -182,6 +185,15 @@ def test_publication_rejects_evidence_actor_mismatch_before_writes(tmp_path):
             claim=item.claim,
             recorded_by=UUID("20000000-0000-0000-0000-000000000002"),
             observed_at=item.observed_at,
+            source_class=item.source_class,
+            source_publisher=item.source_publisher,
+            market_scope=item.market_scope,
+            effective_from=item.effective_from,
+            effective_through=item.effective_through,
+            retrieved_at=item.retrieved_at,
+            artifact_sha256=item.artifact_sha256,
+            artifact_retention=item.artifact_retention,
+            artifact_not_retained_reason=item.artifact_not_retained_reason,
         )
         for item in _evidence_set()
     )
@@ -320,3 +332,56 @@ def test_in_batch_supersession_preserves_original_and_resolves_claim(tmp_path):
     assert evidence_repository.list_conflicts(
         "atomic-calendar-v1", date(2026, 11, 1)
     ) == ()
+
+
+def test_secondary_source_cannot_authorize_calendar_publication(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(date(2026, 11, 1), "Broker says closure", kind=CalendarEvidenceKind.CLOSURE, source_class=CalendarEvidenceSourceClass.C),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="Class A EGX primary evidence"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject secondary-only evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
+def test_primary_evidence_must_cover_the_exact_day_and_market_scope(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = (
+        _evidence(date(2026, 11, 1), "Wrong effective date", kind=CalendarEvidenceKind.CLOSURE, effective_from=date(2026, 11, 2)),
+        _evidence(date(2026, 11, 2), "EGX says closure", kind=CalendarEvidenceKind.CLOSURE),
+    )
+    with pytest.raises(ValueError, match="inside the source effective date scope"):
+        uow.publish(
+            _calendar(), evidence, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Reject out-of-scope evidence",
+        )
+    assert calendars.list_versions() == ()
+
+
+def test_open_status_requires_schedule_and_open_confirmation(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    open_day = EGXSessionCalendar(
+        version="open-calendar-v1", timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 3), coverage_end=date(2026, 11, 3),
+        days=(EGXCalendarDay(date(2026, 11, 3), CalendarDayStatus.OPEN,
+                             session_open=__import__("datetime").time(10, 0),
+                             session_close=__import__("datetime").time(14, 30)),),
+    )
+    schedule_only = (_evidence(date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE),)
+    with pytest.raises(ValueError, match="OPEN_CONFIRMATION"):
+        uow.publish(
+            open_day, schedule_only, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Require opening confirmation",
+        )
+    with_open = schedule_only + (
+        _evidence(date(2026, 11, 3), "Trading opened", kind=CalendarEvidenceKind.OPEN_CONFIRMATION),
+    )
+    stored, _ = uow.publish(
+        open_day, with_open, published_by=str(ACTOR),
+        source_reference="EGX source bundle", reason="Opening confirmation supplied",
+    )
+    assert calendars.get_version(stored.version) == stored
