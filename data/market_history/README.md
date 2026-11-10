@@ -220,3 +220,12 @@ The JSON report classifies rows into mutually exclusive groups:
 - `rejected_or_invalid`: malformed rows, rows with validation errors, and every row participating in a duplicate `(session_date, symbol)` key.
 
 An optional prior snapshot can be supplied with `--baseline PATH`. The comparison reports added, removed, and changed keys/fields. Duplicate keys in either snapshot are excluded from key-level comparison and make the comparison explicitly partial. A removed key is only a detected difference; it is not automatically evidence of a data error. The baseline is read only and must be retained separately by the operator.
+
+
+## CI-published read-only audit report
+
+The GitHub Actions workflow also runs the canonical audit on push, pull request, and manual `workflow_dispatch`. It validates the JSON report and uploads a GitHub Actions artifact named with the audited commit SHA. Artifacts currently have 14-day retention. This is **not** a scheduled daily trigger or a data-ingestion job; no market rows are fetched or changed by this workflow.
+
+The verified post-merge main run on 2026-11-10 (commit `be8b8fea246870a517f3f80bad9a8123f23efabb`, run #42894527758) published artifact #13799198851. Its report status is `completed_with_findings`: 255 parsed rows, 51 OHLC geometry inconsistencies, 70 review-required rows, 185 structural candidates, zero malformed/invalid/duplicate rows, 61 symbols, and 31 session dates. `traded_value_egp` and `executions_count` are blank in all 255 rows; volume is blank in 23 rows. These blanks remain unavailable, not zero.
+
+The report explicitly retains `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED` analysis eligibility and `NOT_INDEPENDENTLY_VERIFIED` source authenticity. Do not interpret the report as source verification, complete EGX coverage, approval for trading/backtests, or application-database ingestion. Preserve all review flags and raw source values until independent reconciliation.
