@@ -357,3 +357,15 @@ The main report's `analysis_eligibility` is `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURC
 ### CLI findings-path regression
 
 PR #495 merged as `2b18d2d1ac9ea54aa89b17351875802e5970a7ab`; exact-head CI run #42895151535 passed all six jobs on `db52eb8eefa4c54efdd804dfb16d01cd9af111c0`. Its focused subprocess test supplies a structurally parseable CSV with an unlabelled OHLC geometry inconsistency and asserts exit code 1, matching stdout/file JSON, the unlabelled finding count, and unchanged input bytes. PR #496 also merged as `05c3d00e719b3d50c8f9e57dfc73644d54f72a0c` after all six exact-head CI jobs passed in run #42895373313. The latest post-merge main run on the final SHA is queued; verify it before declaring main-line closeout complete.
+
+
+## Daily-history reconciliation protocol — merged, post-merge CI pending (2026-11-10)
+
+- [x] PR #497 reconciled the historical merge/CI record for PRs #495/#496 and merged as `0e9bbeccf71d75cece2585e8a95a98c3ea700617`; exact-head CI run #42896485869 passed 6/6.
+- [x] PR #498 added the evidence-based daily-history reconciliation protocol and merged as `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; exact-head CI run #42897109443 passed 6/6.
+- [x] PR #497 post-merge main CI run #42897359694 passed all six required jobs.
+- [ ] Verify final post-#498 main CI run #42899130922 on `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; at this update five jobs passed and unit tests remained in progress.
+- [ ] Apply the protocol to each of the 70 review-required archive rows using independently captured evidence and explicit reviewer dispositions. The protocol merge itself does not reconcile any row.
+- [ ] Preserve all raw observations; do not repair values, select a provider, ingest data, promote analysis eligibility, or enable M61 without separate evidence and authorization.
+
+The source archive remains structurally auditable but not source-authenticated. Blank volume/traded-value/execution fields remain unavailable, not zero. Review-required rows remain excluded from clean OHLC analysis/backtests until individually reconciled.
