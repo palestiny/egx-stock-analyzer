@@ -210,3 +210,13 @@ The command is intentionally read-only with respect to the source CSV. It does n
 - Application database ingestion: not established by this archive alone.
 - The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
 - M61 and backtesting: not performed.
+
+
+### Audit row classification and optional snapshot comparison
+
+The JSON report classifies rows into mutually exclusive groups:
+- `clean_ohlc_candidates`: structurally valid rows without duplicate keys or review flags. This is only a structural candidate classification; it does not authenticate the source or approve a trading decision.
+- `review_required`: rows carrying a review status or an OHLC geometry issue, unless they are already rejected for a more fundamental row/key problem.
+- `rejected_or_invalid`: malformed rows, rows with validation errors, and every row participating in a duplicate `(session_date, symbol)` key.
+
+An optional prior snapshot can be supplied with `--baseline PATH`. The comparison reports added, removed, and changed keys/fields. Duplicate keys in either snapshot are excluded from key-level comparison and make the comparison explicitly partial. A removed key is only a detected difference; it is not automatically evidence of a data error. The baseline is read only and must be retained separately by the operator.
