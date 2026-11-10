@@ -1,3 +1,28 @@
+## Daily-history source-reconciliation gate — 2026-11-10
+
+**Status: design/research gate documented; no independent provider selected and no source values changed.**
+
+- PRs #489 and #490 are merged; current main is `139386c682fa9ae129b35ae3f9237dd49c13894a`.
+- Main post-merge run #42889360953 has four of five required jobs passed; `unit-tests (3.12)` is still running. Post-merge CI is not yet green.
+- A separate read-only reimplementation of the audit checks against CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57` observed 255 rows, 61 symbols, 31 dates, no malformed rows or duplicate keys, 51 OHLC geometry exceptions, and 70 review-labelled rows. It was not execution of the Python CLI and did not create the official JSON report.
+- Candidate source routes for evaluation only: official EGX evidence (preferred but no verified public machine-readable historical endpoint established in this research); ICE Data Services (commercial historical/end-of-day EGX coverage: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx); DataCedar API (vendor claims daily EGX coverage: https://datacedar.com/markets/egypt); EGX.news data service (vendor claims historical daily and intraday datasets: https://www.egx.news/en/our-data). None has been authenticated, sampled, contract-reviewed, or selected.
+- Investing.com remains a secondary comparison source only when it is also the original archive source; it cannot independently authenticate its own conflicting observation.
+- Provider acceptance requires a dated sample covering all eight flagged 2026-11-10 bars and control rows; preserved raw bytes/payload and digest; timestamp/timezone/unit/price-type semantics; field-level comparison; session/universe coverage and revision policy; written retention/redistribution terms; and explicit human disposition.
+- Preserve original values and provenance. No automatic repairs, substitution, inferred fills, or promotion of structural candidates to authenticated analysis inputs.
+- Missing traded value/executions (255 rows) and missing volume (23 rows) remain unknown, not zero.
+- M61 remains paused. No backtest, provider ingestion, production data-source switch, or trading behavior is enabled by this gate.
+
+### Acceptance checklist
+
+- [ ] Execute the committed Python audit CLI in a supported checkout and retain its generated JSON report with the exact input blob SHA.
+- [ ] Obtain source samples and written terms from at least one candidate provider.
+- [ ] Independently verify all eight flagged rows and a control sample.
+- [ ] Define immutable source-observation and revision lineage before any correction path.
+- [ ] Define exchange coverage/completeness checks, including suspended/delisted instruments and index constituents.
+- [ ] Obtain owner approval before selecting a provider or enabling ingestion/analysis eligibility changes.
+
+---
+
 ## Daily-history read-only audit, classification, and baseline comparison — 2026-11-10
 
 **Status: PRs #487 and #488 merged; structural audit tooling is implemented. Independent source verification, data reconciliation, and analysis acceptance remain open.**

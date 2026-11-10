@@ -1,3 +1,40 @@
+## Latest verified continuation — 2026-11-10 (source-reconciliation gate and docs consolidation)
+
+- PR #490 (daily-history audit/classification/baseline documentation) and PR #489 (archive snapshot statistics and acceptance-gap documentation) are both merged. #490 was merged first; #489 followed, preserving the unique archive statistics/checklist rather than discarding overlapping documentation.
+- Current `main` is `139386c682fa9ae129b35ae3f9237dd49c13894a`, with #489 as its latest commit.
+- Post-merge main workflow run #42889360953 targets this exact main SHA. At this update, frontend tests, dependency audit, container build, and integration tests passed; `unit-tests (3.12)` remained in progress at `Run unit tests with coverage report`. Do not mark this main run green until that job completes.
+- A separate read-only inspection of the canonical CSV at Git blob `3c01a843c225d226dc49e7c302220a280cfafb57` reproduced the committed audit's principal structural findings: 255 rows, 61 symbols, 31 dates (2026-09-28 through 2026-11-10), no malformed rows, no duplicate keys, 51 OHLC geometry exceptions, and 70 review-labelled rows. This was an independent JavaScript reimplementation of the checks, **not execution of the committed Python CLI** and not a persisted official audit report. The official command remains:
+  `python -m tools.egx_daily_history_audit --input data/market_history/egx_daily_history.csv --output reports/egx-daily-history-audit.json`
+- The eight 2026-11-10 OHLC review rows remain `HDBK`, `ORAS`, `PHDC`, `RAYA`, `TMGH`, `EGX30`, `EGX70EWI`, and `EGX100EWI`. No CSV values were repaired, replaced, or deleted.
+- The 255-row archive has blank `traded_value_egp` and `executions_count` in all rows; volume is blank in 23 rows. These fields remain unknown, not zero. Structural candidates remain unauthenticated and are not automatically approved for trading/backtests.
+
+### Source-reconciliation gate (research only; no provider selected)
+
+Potential independent acquisition/verification routes identified for evaluation:
+
+- **EGX / official exchange-origin evidence:** remains the preferred primary operational evidence for exchange-reported values and coverage. The current research did not establish a publicly accessible, machine-readable historical OHLC endpoint or prove that a particular public bulletin resolves the eight flagged bars. This is an open evidence gap, not a claim that no such service exists.
+- **ICE Data Services — EGX product:** its public developer catalogue describes EGX coverage and historical/end-of-day data, including daily frequency and history beginning February 2012. It is a commercial candidate; availability, exact OHLC fields, corrections, symbology, redistribution rights, sample quality, and price must be confirmed directly. Reference: https://developer.ice.com/fixed-income-data-services/catalog/egyptian-exchange-egx
+- **DataCedar — EGX API:** its public page claims daily history and an API for EGX listings, with a free one-year daily window and paid longer history. Treat all coverage, accuracy, continuity, adjustment, and licensing claims as vendor claims pending a sample and written terms. Reference: https://datacedar.com/markets/egypt
+- **EGX.news data service:** its public page advertises historical daily bars and intraday CSV datasets for EGX instruments. It is a commercial candidate only; verify operator identity, source lineage, coverage, sample rows, correction policy, and reuse rights before relying on it. Reference: https://www.egx.news/en/our-data
+- **Investing.com:** keep as a secondary comparison source, not as the sole independent authority for reconciling rows originally collected from Investing.com. A same-provider page showing the same anomalous bar is not independent confirmation.
+
+Acceptance requirements before a provider can be promoted:
+
+1. Obtain a dated sample for at least the eight flagged instruments/session rows plus several unflagged control rows and representative index rows.
+2. Preserve raw payload/file, retrieval timestamp, provider identity, exact endpoint/page, request parameters, timezone, units, price type, and cryptographic digest.
+3. Compare OHLCV field-by-field without overwriting the canonical archive; distinguish provider revision, locale/page rendering conflict, corporate-action adjustment, symbol mapping, and unresolved discrepancy.
+4. Confirm exchange-session coverage, delisted/suspended instruments, missing sessions, symbol changes, index methodology/units, and whether bars are adjusted or unadjusted.
+5. Obtain written licensing/retention/redistribution terms and correction/revision semantics. A matching hash proves byte integrity only, not source authenticity.
+6. Require explicit reviewer disposition for each discrepancy. Only an approved, auditable reconciliation may create a corrected successor observation; retain the original source record and its history.
+7. Keep all review rows excluded from clean OHLC analysis/backtests until the relevant evidence and acceptance checks pass.
+
+**Current decision:** no provider selected; no new data ingestion, source substitution, automatic correction, analysis eligibility promotion, M61 activation, or trading behavior is authorized by this research. M61 remains paused.
+
+**Authority:** GitHub `main` and exact-head workflow evidence.  
+**Last reviewed:** 2026-11-10; main `139386c682fa9ae129b35ae3f9237dd49c13894a`; post-merge CI run #42889360953 has four required jobs passed and unit tests pending.
+
+---
+
 ## Latest verified continuation — 2026-11-10 (daily-history audit and snapshot comparison)
 
 - PR #487 merged into `main` as `5c303ff15b97357d7ab086c921061644265ff309`. It adds a read-only canonical daily-history CSV audit covering schema/row shape, types, provenance shape, quality labels, duplicate keys, OHLC geometry, latest-session summary, byte count, and SHA-256. It does not fetch or authenticate source pages, infer EGX sessions/coverage, repair values, or mutate the source CSV.
