@@ -615,3 +615,21 @@ The owner approved conservative handling of ambiguous Telegram sends: persist `D
 - PR #476 was closed unmerged after its data changes were preserved in #486. PR #482 was closed unmerged as superseded. No source price rows were automatically repaired or replaced.
 
 Current daily-history boundary: the audit is a local artifact-structure/quality check, not an EGX source verification service, ingestion scheduler, completeness guarantee, or M61 acceptance. Preserve all review flags and raw source values until independently reconciled. M61 remains paused; do not enable activation, lifecycle, freshness enforcement, or strategy-performance claims without the separately required owner decisions and evidence.
+
+
+## Verified daily-history audit automation and main-line result — 2026-11-10 (PRs #493–#495)
+
+- PR #493 merged the end-to-end CLI smoke tests as main commit `b9fcc03a35bec54fa6395109dec53da260b51880`. The tests invoke the module as a subprocess, verify stdout and persisted JSON, assert the source archive remains byte-identical, and check the report byte count and SHA-256.
+- PR #494 merged as `be8b8fea246870a517f3f80bad9a8123f23efabb`. It adds a `workflow_dispatch` trigger and a `daily-history-audit-report` GitHub Actions job. The job runs the read-only CLI against the canonical archive, accepts exit code 1 only as the expected findings outcome, validates the JSON report, and uploads it as a GitHub Actions artifact with 14-day retention.
+- The workflow is triggered by push, pull request, and manual dispatch; it does **not** add a scheduled cron collection or daily scheduled audit. It does not modify/commit the CSV, fetch a new provider feed, or change analysis eligibility.
+- PR #494 exact-head CI passed all six jobs on `187e8970e7e0c93331353db86517c5c60f3c8a0a` in run #42893671493. Post-merge main run #42894527758 completed successfully with all six jobs on `be8b8fea246870a517f3f80bad9a8123f23efabb`.
+- The actual post-merge main artifact is GitHub Actions artifact #13799198851, named `egx-daily-history-audit-be8b8fea246870a517f3f80bad9a8123f23efabb`, created 2026-11-10 20:21:51Z and expiring 2026-11-24 20:21:50Z. ZIP SHA-256: `c7e76b51d7a909a421b6437f7328b7dafad9b601743255c5367cf0b795882425`.
+- The report from that main artifact says `completed_with_findings`: 255 rows parsed; zero malformed rows, invalid rows, or duplicate keys; 51 OHLC geometry inconsistencies; 70 review-required rows; 185 structural candidates; zero rejected/invalid rows; 61 symbols; 31 session dates (2026-09-28 through 2026-11-10). The latest session has 23 rows.
+- Missing metrics: `executions_count` is blank in 255 rows, `traded_value_egp` in 255 rows, and `volume_thousands_reported` in 23 rows. Blank remains unavailable, not zero.
+- Report eligibility remains `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED`; source authenticity remains `NOT_INDEPENDENTLY_VERIFIED`. The input archive is 101,315 bytes with SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`.
+- PR #495 is a follow-up test-only change preserving the distinct CLI case where an unlabelled OHLC inconsistency must produce exit code 1 and leave source bytes unchanged. Its exact-head CI is pending at this documentation snapshot.
+
+**Boundary:** this is a repeatable CI artifact check, not a scheduled data collector, market-completeness check, source-authentication service, or permission to use unauthenticated rows in trading analysis/backtests. No prices were repaired or replaced. M61 remains paused; no activation, lifecycle, freshness enforcement, or strategy behavior was enabled.
+
+**Authority:** GitHub `main` and run #42894527758; artifact #13799198851.  
+**Last reviewed:** 2026-11-10; main `be8b8fea246870a517f3f80bad9a8123f23efabb`; post-merge CI passed 6/6.
