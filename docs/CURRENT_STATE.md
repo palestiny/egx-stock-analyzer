@@ -1,5 +1,19 @@
 # EGX Stock Analyzer — Current State
 
+## Latest verified continuation — 2026-11-10 (artifact inventory and SQLite WAL verification)
+
+- PR #483 merged into `main` as `975409d39b2e80ba00e78a96dfda144b21ba802c`. Its exact head `ad0d3ff31a78a1da0c42ed9df7faeb3b70814c1d` passed all five required CI jobs before squash merge. It adds a read-only calendar artifact inventory that classifies referenced-valid, orphaned, missing, integrity-failure, invalid-reference, and invalid-storage-entry findings. It does not repair or delete anything.
+- PR #484 merged into `main` as `9e120eec682d155204c64bce150f3aee9b6cbdcf`. Exact PR head `b4955c3e745593c68c200a1b2038fe9de95a7a2d` passed all five required CI jobs in run #42880047021. The added regression test verifies that a read-only inventory sees committed ARCHIVED evidence in SQLite WAL mode while the writer connection remains open, without changing the database file or WAL bytes. Normal shared-memory WAL reader coordination is not asserted as immutable.
+- Post-merge main run #42879830031 on PR #483 merge commit `975409d...` completed successfully with all five required jobs. Post-merge CI for PR #484 merge commit `9e120eec...` is run #42881049920 and was in progress at the time of this update; do not mark it green until all five jobs finish.
+- PR #476 (original daily-history branch) was closed unmerged as superseded by PR #486. PR #486 reapplies the same two reviewed data-file changes on current `main` after confirming both archive files were unchanged from the original PR base. It preserves 23 Investing.com daily rows (17 equities, six indices), 255 total records, and eight explicit OHLC-review flags. Fresh exact-head CI is required; no application-database ingestion or M61/backtest result is claimed.
+- PR #321 remains Draft and M61 remains paused by explicit owner request.
+- Calendar activation, lifecycle monitoring, freshness enforcement, provider-finality behavior, and M61 remain disabled/paused. No production database/storage inventory, source-authenticity proof, legal retention acceptance, backup/restore test, multi-node acceptance, or orphan cleanup has been performed. The inventory implementation is read-only and must not be described as a production scan.
+
+**Authority:** GitHub `main` + current open pull requests  
+**Last reviewed:** 2026-11-10 (`main` at `9e120eec682d155204c64bce150f3aee9b6cbdcf`; PR #484 merged after all five exact-head CI jobs passed.)
+
+---
+
 ## Latest working continuation — 2026-11-10 (calendar artifact verification)
 
 - PR #477 is merged into `main` as `cea2b8e8620a2ccb96693a20bd00ccc5ca900e63`; its post-merge Main workflow run #42868953457 completed successfully.
