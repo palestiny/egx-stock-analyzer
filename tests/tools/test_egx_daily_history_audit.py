@@ -248,3 +248,76 @@ def test_audit_marks_duplicate_baseline_comparison_as_incomplete(tmp_path: Path)
     assert report["baseline_comparison_complete"] is False
     assert report["baseline_comparison"]["status"] == "partial_due_to_duplicate_keys"
     assert report["status"] == "completed_with_findings"
+
+
+def test_cli_writes_clean_json_report_and_returns_zero(tmp_path: Path) -> None:
+    import json
+    import subprocess
+    import sys
+
+    source = tmp_path / "clean.csv"
+    output = tmp_path / "reports" / "audit.json"
+    original = csv_text(row()).encode("utf-8")
+    source.write_bytes(original)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tools.egx_daily_history_audit",
+            "--input",
+            str(source),
+            "--output",
+            str(output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["status"] == "clean"
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["artifact"]["byte_count"] == len(original)
+    assert len(report["artifact"]["sha256"]) == 64
+    assert source.read_bytes() == original
+
+
+def test_cli_reports_findings_and_returns_one_without_mutating_source(
+    tmp_path: Path,
+) -> None:
+    import json
+    import subprocess
+    import sys
+
+    source = tmp_path / "review.csv"
+    output = tmp_path / "audit.json"
+    original = csv_text(row(
+        open_value="99",
+        low_value="100",
+        quality_status="source_reported",
+    )).encode("utf-8")
+    source.write_bytes(original)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tools.egx_daily_history_audit",
+            "--input",
+            str(source),
+            "--output",
+            str(output),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    stdout_report = json.loads(result.stdout)
+    file_report = json.loads(output.read_text(encoding="utf-8"))
+    assert stdout_report["status"] == "completed_with_findings"
+    assert stdout_report["unlabelled_ohlc_inconsistency_count"] == 1
+    assert file_report == stdout_report
+    assert source.read_bytes() == original
