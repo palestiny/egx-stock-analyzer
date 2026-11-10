@@ -170,3 +170,31 @@ The requested legacy path `data/market_history/egal_daily_2026-09-28_to_2026-10-
 - Verified per-security traded value and execution counts: not available in this collection.
 - Application database ingestion: not established by this archive alone.
 - M61 and backtesting: not performed.
+
+
+## Daily collection: 2026-11-10
+
+Added 23 source-reported daily historical rows for the Tuesday 2026-11-10 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `EGX70EWI`, `EGX100EWI`, `SHARIAH`).
+
+Collection timestamp recorded in every new row: `2026-11-10T19:16:35+02:00` (Africa/Cairo, UTC+02:00). All observations are daily historical-table rows from Investing.com, not intraday candles. Each row links its instrument-specific Investing.com historical-data page. The exact quote latency is not stated consistently by the provider, so `delay_status` records that limitation. Provider-displayed K/M/B volume values were normalized to thousands in `volume_thousands_reported`, with the original displayed value/unit preserved in `notes`. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied by these historical rows. Market-wide turnover or execution totals were not assigned to individual securities.
+
+### Data-quality exceptions retained transparently
+
+- `HDBK`, `ORAS`, `PHDC`, `RAYA`, and `TMGH` report opening values below their reported daily lows.
+- `EGX30`, `EGX70EWI`, and `EGX100EWI` also report opening values below their daily lows.
+- These eight rows are marked exactly `ohlc_inconsistency_review`. The original provider values are preserved; do not use these rows as clean OHLC bars or silently repair them before source reconciliation.
+- The other 15 rows pass the basic OHLC geometry check against the selected historical-table values. This does not independently certify the provider's accuracy or licensing.
+- `EGREAL` had no volume value in the retrieved historical row; its volume field remains blank. Index-page volume values for other indices are preserved as displayed and normalized to thousands, but their comparability as traded share volume is not independently validated.
+- No verified per-security traded value or execution count was available in the retrieved rows. No market-wide total was copied into a per-security field.
+- Coverage remains partial and limited to the 17 equity symbols and six index symbols listed above; no missing instrument row was invented.
+
+## Current coverage status (as of 2026-11-10)
+
+- Total records after the 2026-11-10 collection: 255.
+- Records for 2026-11-10: 23 (17 equities and six indices).
+- Records through 2026-11-09: 232.
+- New 2026-11-10 rows requiring OHLC review: 8 (`HDBK`, `ORAS`, `PHDC`, `RAYA`, `TMGH`, `EGX30`, `EGX70EWI`, `EGX100EWI`).
+- Verified per-security traded value and execution counts: not available in this collection.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
+- M61 and backtesting: not performed.
