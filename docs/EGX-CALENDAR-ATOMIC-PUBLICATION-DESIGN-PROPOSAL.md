@@ -1,6 +1,6 @@
 # EGX Calendar Atomic Publication — Design Proposal
 
-**Status:** Proposed; owner approval required before implementation  
+**Status:** OWNER-APPROVED for implementation on 2026-11-09; exact-head CI pending  
 **Date:** 2026-11-09  
 **Scope:** Calendar version publication plus immutable per-day evidence persistence only
 
@@ -96,10 +96,12 @@ This proposal does not:
 - connect calendar state to lifecycle scheduling;
 - enable freshness enforcement, Crash Radar monitoring, or M61.
 
-## 10. Approval gate
+## 10. Owner approval and implementation status
 
-Before implementation, the owner must explicitly approve this transaction architecture:
+The owner explicitly approved this transaction architecture on 2026-11-09:
 
-**One calendar-specific SQLite Unit of Work must persist the calendar version, its per-day evidence records and explicit links, and publication validation within one transaction; any failure rolls the entire publication back.**
+**One calendar-specific SQLite Unit of Work persists the calendar version, its per-day evidence records and explicit links, and publication validation within one transaction; any failure rolls the entire publication back.**
 
-Until that approval is explicit, this document remains a proposal and no runtime code changes are authorized.
+Implementation is in progress on `feature/atomic-calendar-evidence-publication-v2`. The API requires evidence coverage for every explicit calendar date and status-appropriate evidence kinds; conflicts fail closed. The implementation remains subject to exact-head CI and production-composition tests before merge.
+
+Source-class acceptance, source artifact retention/authenticity, activation bootstrap, and lifecycle integration remain separate gates.

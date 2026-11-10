@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time
+from uuid import UUID
 from sqlite3 import IntegrityError
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
     SessionCalendarStore,
     StoredCalendarVersion,
 )
 from app.application.security.identity import AuthenticatedIdentity
+from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXSessionCalendar,
@@ -29,6 +32,31 @@ class CalendarDayPayload(BaseModel):
     reason: str | None = Field(default=None, max_length=500)
 
 
+class CalendarEvidencePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_id: UUID | None = None
+    session_date: date
+    evidence_kind: CalendarEvidenceKind
+    source_type: str = Field(min_length=1, max_length=100)
+    source_reference: str = Field(min_length=1, max_length=1000)
+    claim: str = Field(min_length=1, max_length=2000)
+    observed_at: datetime
+    source_published_at: datetime | None = None
+    supersedes_evidence_id: UUID | None = None
+    supersession_reason: str | None = Field(default=None, max_length=500)
+
+    @field_validator("source_type", "source_reference", "claim", mode="before")
+    @classmethod
+    def strip_evidence_text(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("value must be non-empty")
+        return normalized
+
+
 class CalendarPublicationPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -41,6 +69,7 @@ class CalendarPublicationPayload(BaseModel):
     coverage_start: date
     coverage_end: date
     days: list[CalendarDayPayload] = Field(min_length=1)
+    evidence: list[CalendarEvidencePayload] = Field(min_length=1, max_length=2000)
     source_reference: str = Field(min_length=1, max_length=1000)
     reason: str = Field(min_length=1, max_length=500)
 
@@ -112,6 +141,7 @@ def create_session_calendar_admin_router(
     *,
     store: SessionCalendarStore | None,
     require_operator,
+    publication_uow: CalendarPublicationUnitOfWork | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -123,6 +153,14 @@ def create_session_calendar_admin_router(
             )
         return store
 
+    def configured_publication_uow() -> CalendarPublicationUnitOfWork:
+        if publication_uow is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Evidence-backed atomic calendar publication is not configured",
+            )
+        return publication_uow
+
     @router.post("/api/v1/owner/session-calendars/versions", status_code=201)
     def publish_calendar_version(
         payload: CalendarPublicationPayload,
@@ -130,7 +168,7 @@ def create_session_calendar_admin_router(
     ) -> dict[str, object]:
         calendar_document = payload.model_dump(
             mode="json",
-            exclude={"source_reference", "reason"},
+            exclude={"source_reference", "reason", "evidence"},
         )
         actor = identity.subject.strip()
         if not actor:
@@ -139,9 +177,28 @@ def create_session_calendar_admin_router(
                 detail="Authenticated operator identity is invalid",
             )
         try:
+            actor_id = UUID(actor)
             calendar = EGXSessionCalendar.from_dict(calendar_document)
-            stored = configured_store().publish(
+            evidence = tuple(
+                CalendarEvidence.create(
+                    calendar_version=calendar.version,
+                    session_date=item.session_date,
+                    evidence_id=item.evidence_id,
+                    evidence_kind=item.evidence_kind,
+                    source_type=item.source_type,
+                    source_reference=item.source_reference,
+                    claim=item.claim,
+                    recorded_by=actor_id,
+                    observed_at=item.observed_at,
+                    source_published_at=item.source_published_at,
+                    supersedes_evidence_id=item.supersedes_evidence_id,
+                    supersession_reason=item.supersession_reason,
+                )
+                for item in payload.evidence
+            )
+            stored, stored_evidence = configured_publication_uow().publish(
                 calendar,
+                evidence,
                 published_by=actor,
                 source_reference=payload.source_reference,
                 reason=payload.reason,
@@ -149,11 +206,21 @@ def create_session_calendar_admin_router(
         except IntegrityError as error:
             raise HTTPException(
                 status_code=409,
-                detail="Calendar version already exists",
+                detail="Calendar version or evidence record already exists",
             ) from error
-        except ValueError as error:
+        except (ValueError, KeyError) as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        return _version_payload(stored, include_calendar=True)
+        response = _version_payload(stored, include_calendar=True)
+        response["evidence"] = [
+            {
+                "evidence_id": str(item.evidence_id),
+                "session_date": item.session_date.isoformat(),
+                "evidence_kind": item.evidence_kind.value,
+                "content_sha256": item.content_sha256,
+            }
+            for item in stored_evidence
+        ]
+        return response
 
     @router.get("/api/v1/owner/session-calendars/versions")
     def list_calendar_versions(

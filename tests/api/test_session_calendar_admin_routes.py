@@ -8,6 +8,10 @@ from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.security.authentication import AuthenticationError
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
+from app.domain.identity.user import User, UserStatus
 from app.infrastructure.persistence.sqlite_session_calendar_repository import (
     SQLiteSessionCalendarRepository,
 )
@@ -37,11 +41,16 @@ class CalendarTestAuthenticator:
 
 
 def make_client(tmp_path):
-    store = SQLiteSessionCalendarRepository(tmp_path / "calendar.db")
+    database = tmp_path / "calendar.db"
+    store = SQLiteSessionCalendarRepository(database)
+    evidence_repository = SQLiteCalendarEvidenceRepository(database)
+    SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
+    publication_uow = SQLiteCalendarPublicationUnitOfWork(store, evidence_repository)
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
         authenticator=CalendarTestAuthenticator(),
         session_calendar_store=store,
+        calendar_publication_uow=publication_uow,
     )
     return TestClient(app), store
 
@@ -66,6 +75,32 @@ def calendar_payload() -> dict[str, object]:
                 "closed_at": "2026-11-02T14:31:00+02:00",
             },
         ],
+        "evidence": [
+            {
+                "session_date": "2026-11-01",
+                "evidence_kind": "CLOSURE",
+                "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                "source_reference": "https://example.invalid/egx/notice-1",
+                "claim": "EGX notice confirms non-trading day",
+                "observed_at": "2026-11-01T09:00:00+02:00",
+            },
+            {
+                "session_date": "2026-11-02",
+                "evidence_kind": "SCHEDULE",
+                "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                "source_reference": "https://example.invalid/egx/schedule-2",
+                "claim": "EGX notice confirms scheduled session hours",
+                "observed_at": "2026-11-02T09:00:00+02:00",
+            },
+            {
+                "session_date": "2026-11-02",
+                "evidence_kind": "CLOSE_CONFIRMATION",
+                "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                "source_reference": "https://example.invalid/egx/notice-2",
+                "claim": "EGX notice confirms session close",
+                "observed_at": "2026-11-02T14:31:00+02:00",
+            },
+        ],
         "source_reference": "EGX notice reference 123",
         "reason": "Publish operator-verified calendar sample",
     }
@@ -87,6 +122,8 @@ def test_operator_can_publish_list_and_read_calendar_version(tmp_path):
     assert body["source_reference"] == "EGX notice reference 123"
     assert body["calendar"]["days"][1]["status"] == "CLOSED"
     assert len(body["sha256"]) == 64
+    assert len(body["evidence"]) == 3
+    assert all(len(item["content_sha256"]) == 64 for item in body["evidence"])
 
     listed = client.get(
         "/api/v1/owner/session-calendars/versions",

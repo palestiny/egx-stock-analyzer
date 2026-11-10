@@ -28,7 +28,7 @@ The current evidence record includes:
 
 Persistence is append-only: database triggers reject UPDATE and DELETE. Conflicting unsuperseded claims of the same kind/day remain visible. A superseding record preserves the prior evidence history.
 
-**Important remaining limitation:** the registry is not yet a publication gate. Calendar publication does not currently require a minimum evidence set for each date, nor does each calendar-day payload carry an explicit evidence-ID list. The registry proves what was recorded; it does not independently prove the source's authenticity or preserve the source artifact.
+**Publication enforcement (implementation pending exact-head CI):** the publication API now requires immutable evidence for every explicit calendar date, validates evidence kinds against the calendar-day status, creates explicit day-to-evidence links, and rejects unresolved conflicting claims inside the same SQLite transaction. The registry and publication gate still do not independently prove source authenticity or preserve the source artifact.
 
 ## 3. Evidence acceptance rules
 
@@ -64,4 +64,14 @@ The operator access model uses named application users with an explicit `OPERATO
 
 Calendar publication remains separate from activation. No calendar has been activated, and lifecycle monitoring remains disabled. No schedule, weekend, holiday, or session time is inferred. Provider completed-bar attestation and cursor-derived coverage validation remain independent activation blockers.
 
-**Gate result:** the approved provenance and individual-operator foundations are implemented, but the evidence acceptance policy, evidence-to-calendar enforcement, and operational activation gates remain open.
+**Gate result:** immutable evidence storage, individual operator identity, atomic per-day evidence linkage, completeness/status-kind validation, and conflict rejection are implemented on PR #471 pending exact-head CI. Source-class acceptance, artifact retention/authenticity, and operational activation gates remain open.
+
+
+## 10. Atomic publication implementation — PR #471
+
+- A calendar-specific SQLite Unit of Work uses one `BEGIN IMMEDIATE` transaction for the immutable calendar version, evidence records, explicit day/evidence links, and conflict validation.
+- The API requires evidence for every explicit date and validates the minimum evidence kind implied by each day status: closure, cancellation, schedule, and close confirmation for a completed session.
+- Evidence corrections can be supplied in order within the same publication batch using caller-provided stable evidence IDs and supersession references; originals remain immutable.
+- Rollback tests inject failures after evidence insertion and after link creation/final validation. A separate SQLite connection is verified not to observe uncommitted publication rows.
+- Exact-head CI is pending. No merge or test-pass claim is made until all required checks pass.
+- Source authenticity, archival of retrieved source artifacts, source-class acceptance policy, activation bootstrap, and lifecycle integration remain outside this implementation.
