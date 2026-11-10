@@ -2,7 +2,7 @@
 
 **Status:** Active non-M61 engineering/acceptance register  
 **Updated:** 2026-11-10  
-**Baseline:** `main` at `d1114c1a020825fb1e8477605c5c18c14bf475e6` (PR #479 merged after all five exact-head CI jobs passed; post-merge main CI run #42874061006 is in progress).  
+**Baseline:** `main` at `c475b076c82c7c91a5671a91baf18a47afad105f` (PR #480 merged after all five exact-head CI jobs passed; main CI run #42874061006 also passed all five required jobs).  
 **M61:** Explicitly paused by owner request; do not advance M61/backtesting work until the owner resumes it.  
 **EGXBot direction:** Owner-approved dual strategy engines (intraday + swing), delayed/daily data, new-opportunity and material-change alerts, manual execution only. See `docs/EGXBOT-DUAL-ENGINE-DESIGN-GATE.md`.
 
@@ -256,4 +256,4 @@ The persistence/recovery foundation is verified; automatic monitoring and lifecy
 - [ ] Close cursor-derived activation coverage/bootstrap and provider completed-bar attestation gates independently.
 - [ ] Keep calendar activation and lifecycle monitoring disabled until every relevant gate passes.
 
-PR #471 and PR #475 are merged; both exact-head CI requirements passed before merge. PR #479 subsequently added byte-storage and publication-time byte verification. PR #480 reconciles this register with the merged state; its exact-head CI remains in progress until all five required jobs complete. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.
+PR #471 and PR #475 are merged; both exact-head CI requirements passed before merge. PR #479 added byte-storage and publication-time byte verification. PR #480 reconciled the merged state and is itself merged as `c475b076c82c7c91a5671a91baf18a47afad105f`; its exact-head CI run #42874761255 passed all five required jobs. Evidence completeness and atomicity do not prove source authenticity, licensing, artifact retrieval/retention legality, full EGX calendar correctness, or provider bar finality.

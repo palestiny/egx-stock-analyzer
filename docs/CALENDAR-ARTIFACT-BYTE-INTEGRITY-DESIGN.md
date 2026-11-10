@@ -1,6 +1,6 @@
 # Calendar Artifact Byte Integrity — Implementation Slice
 
-**Status:** byte-storage, authenticated upload, and publication-time byte verification are merged in `main` (`d1114c1`). All five exact PR-head CI jobs passed; post-merge main CI run #42874061006 is in progress.
+**Status:** byte-storage, authenticated upload, and publication-time byte verification are merged in `main` (`d1114c1`); PR #480 reconciled the implementation status and merged as `c475b076c82c7c91a5671a91baf18a47afad105f`. PR #479 exact-head CI passed all five jobs in run #42873143036; PR #480 exact-head CI passed all five jobs in run #42874761255. Post-merge main CI run #42874061006 passed all five required jobs.
 
 ## Scope implemented
 
