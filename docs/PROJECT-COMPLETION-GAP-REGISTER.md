@@ -282,7 +282,8 @@ PR #471 and PR #475 are merged; both exact-head CI requirements passed before me
 - [x] PR #487 added a read-only CSV audit covering canonical schema/order, malformed rows, dates, symbols, instrument/unit pairing, finite numeric values, source metadata shape, quality statuses, duplicate session/symbol keys, OHLC geometry, missing metrics, and artifact byte count/SHA-256.
 - [x] PR #487 tests include the repository archive and verify the source CSV bytes remain unchanged.
 - [x] PR #487 post-merge main CI run #42886017424 passed all five required jobs on main commit 5c303ff15b97357d7ab086c921061644265ff309.
-- [ ] PR #488 classification/baseline comparison remains unmerged pending all five required CI jobs passing on the exact current head fe9ba50a823f46e6965aa180d7abb4d488a17df3. Four jobs are green; unit-tests (3.12) was still in progress at the latest check. Do not merge while any required job is pending or failed.
+- [x] PR #488 classification/baseline comparison merged as bdef388e06b854324124f5f61099f0f5717e54e6 after all five required CI jobs passed on exact head fe9ba50a823f46e6965aa180d7abb4d488a17df3 in run #42887122981. Structural candidate classification is not source authentication or permission to use unverified rows for trading analysis.
+- [ ] Verify post-merge main CI on bdef388e06b854324124f5f61099f0f5717e54e6 before declaring the main-line closeout complete.
 - [ ] Independently authenticate source pages/values and reconcile review rows against authoritative EGX evidence; the CSV audit validates structure and arithmetic only.
 - [ ] Establish a trusted and repeatable source acquisition process, explicit coverage/completeness evidence, correction/revision handling, and operator review before using these rows as clean analytical history.
 - [ ] Keep rows with review statuses or OHLC geometry failures out of clean OHLC analysis/backtests until independently reconciled. Do not silently repair source values.
