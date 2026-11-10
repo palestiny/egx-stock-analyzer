@@ -219,3 +219,51 @@ def test_inventory_rejects_symlinked_storage_root(tmp_path):
 
     with pytest.raises(ValueError, match="storage root"):
         run_calendar_artifact_inventory(database, root_link)
+
+
+
+def test_inventory_reads_committed_wal_without_changing_database_or_wal(tmp_path):
+    database = tmp_path / "analysis.db"
+    root = tmp_path / "artifacts"
+    root.mkdir()
+    content = b"calendar evidence committed to WAL"
+    reference = store_bytes(root, content)
+    digest = hashlib.sha256(content).hexdigest()
+
+    connection = sqlite3.connect(database)
+    try:
+        connection.execute("PRAGMA journal_mode = WAL")
+        connection.execute(
+            """
+            CREATE TABLE egx_calendar_evidence (
+                evidence_id TEXT PRIMARY KEY,
+                artifact_retention TEXT,
+                artifact_storage_reference TEXT,
+                artifact_sha256 TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO egx_calendar_evidence (
+                evidence_id, artifact_retention,
+                artifact_storage_reference, artifact_sha256
+            ) VALUES (?, ?, ?, ?)
+            """,
+            ("evidence-wal", "ARCHIVED", reference, digest),
+        )
+        connection.commit()
+
+        wal_file = Path(f"{database}-wal")
+        assert wal_file.is_file()
+        database_bytes_before = database.read_bytes()
+        wal_bytes_before = wal_file.read_bytes()
+
+        report = run_calendar_artifact_inventory(database, root)
+
+        assert report.is_clean is True
+        assert report.entries[0].evidence_count == 1
+        assert database.read_bytes() == database_bytes_before
+        assert wal_file.read_bytes() == wal_bytes_before
+    finally:
+        connection.close()
