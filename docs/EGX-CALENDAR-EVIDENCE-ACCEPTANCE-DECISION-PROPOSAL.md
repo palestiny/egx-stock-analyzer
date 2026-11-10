@@ -110,3 +110,18 @@ Please decide these independently; none is silently accepted by this proposal:
 - **D4 — Day-category evidence:** approve the Section 3 minimum evidence matrix, or specify exceptions.
 
 Until these decisions are approved, the existing structural publication controls remain in force, but no source-authenticity or source-acceptance claim is made. Calendar activation and lifecycle monitoring remain disabled.
+
+
+## 8. Review checklist before implementation
+
+The following checklist is intentionally not marked complete. It becomes an implementation acceptance checklist only after D1–D4 are approved:
+
+- [ ] Confirm the source-class taxonomy and authority boundaries for each claim type.
+- [ ] Confirm the retention option and the exact metadata required when source bytes cannot be retained.
+- [ ] Confirm whether publication itself means operationally accepted evidence or whether a separate draft/candidate state is required.
+- [ ] Confirm primary-evidence requirements for every day status and special-hours claim.
+- [ ] Define how an operator records a source that is unavailable, superseded, corrected, or legally non-retainable without weakening the audit trail.
+- [ ] Approve the typed domain representation and migration strategy before changing persistence.
+- [ ] Add domain tests first, then repository/UoW tests, then authenticated API tests through the production runtime composition.
+- [ ] Prove rejected evidence leaves no calendar version, evidence rows, links, active pointer, or success audit event behind.
+- [ ] Update the decision log and design gate with the exact owner-approved policy before implementation.
