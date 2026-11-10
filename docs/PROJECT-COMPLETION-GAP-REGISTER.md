@@ -337,3 +337,23 @@ PR #471 and PR #475 are merged; both exact-head CI requirements passed before me
 - [ ] Do not claim production ingestion, source authenticity, M61 data acceptance, or strategy-performance validation from the read-only audit.
 
 The latest archive snapshot after PR #486 has 255 rows, 61 symbols, and 31 session dates. Its 2026-11-10 batch has 23 rows (17 equities and six indices), eight OHLC-review flags, no duplicate symbols within that batch, and blank traded value/execution counts for all 23 rows; EGREAL also has blank volume. These are observed archive properties, not claims of complete EGX market coverage.
+
+
+## Daily-history audit automation and verified main artifact — 2026-11-10
+
+- [x] PR #493 merged CLI subprocess smoke tests for clean input and the canonical repository archive. They verify exit codes, stdout/persisted report agreement, SHA-256/byte-count metadata, and source CSV immutability.
+- [x] PR #494 merged the GitHub Actions report job and manual `workflow_dispatch` trigger. The job accepts the audit's findings exit code 1, validates the JSON result, and uploads a SHA-tagged artifact for 14 days.
+- [x] PR #494 exact-head CI passed all six jobs on `187e8970e7e0c93331353db86517c5c60f3c8a0a`; post-merge main CI run #42894527758 passed all six jobs on `be8b8fea246870a517f3f80bad9a8123f23efabb`.
+- [x] Downloaded and inspected the actual main artifact #13799198851. The report contains 255 parsed rows, zero malformed/invalid/duplicate rows, 51 OHLC geometry inconsistencies, 70 review-required rows, and 185 structural candidates.
+- [ ] Add a true scheduled audit trigger if the owner wants a GitHub Actions cron schedule. PR #494 currently runs on push, pull request, and manual dispatch only; it does not run daily on a timer.
+- [ ] Independently authenticate the provider values and reconcile all review rows against authoritative EGX evidence.
+- [ ] Establish source coverage/completeness evidence, correction/revision handling, legal reuse/retention terms, and a repeatable trusted acquisition process.
+- [ ] Keep missing volume/traded-value/execution metrics as unavailable; never convert blanks to zero or infer no trading.
+- [ ] Keep all review-required rows out of clean OHLC analysis/backtests until independently reconciled. Structural candidates remain unauthenticated.
+- [ ] Keep M61 paused; no analysis-eligibility promotion, automated price repair, provider substitution, or trading behavior is authorized by the audit workflow.
+
+The main report's `analysis_eligibility` is `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED` and `source_authenticity` is `NOT_INDEPENDENTLY_VERIFIED`. The report is a CI artifact with 14-day retention, not a permanent evidence archive or proof of source authenticity.
+
+### CLI findings-path regression
+
+PR #495 adds a focused subprocess test that supplies a structurally parseable CSV with an unlabelled OHLC geometry inconsistency and asserts exit code 1, matching stdout/file JSON, the unlabelled finding count, and unchanged input bytes. It is test-only and its CI must pass on the exact head before merge.
