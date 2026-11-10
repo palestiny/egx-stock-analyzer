@@ -13,8 +13,7 @@
 
 ## Daily history collection — PR #476 status
 
-- PR #476 remains open and contains 23 2026-11-10 daily historical rows (17 equities, six indices) in the canonical archive, plus README provenance/limitations. Eight rows are marked `ohlc_inconsistency_review`; original provider values are retained and must not be treated as clean OHLC bars until reconciled.
-- The PR's five required checks passed on its recorded head, but comparison with current `main` shows it is 2 commits ahead and 8 behind, diverged from merge base `ec1364e09399932273b87de4ba4761a6bc7161da`. Rebase and rerun exact-head checks before merge.
+- PR #476 was closed unmerged as superseded by PR #486. The replacement reapplies the same two reviewed data files on current `main`; both files' blob SHAs at the original base were confirmed identical to current `main` before replay. PR #486 preserves 23 2026-11-10 daily historical rows (17 equities, six indices), provenance/limitations, and all eight `ohlc_inconsistency_review` flags. Fresh exact-head CI is required before merge.
 - Archive coverage is partial; per-security traded value/execution counts are not established where blank; application DB ingestion is not claimed; M61/backtesting was not performed. PR #321 remains Draft and M61 paused.
 
 
