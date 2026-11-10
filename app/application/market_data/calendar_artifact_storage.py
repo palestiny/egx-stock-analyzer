@@ -14,6 +14,10 @@ class CalendarArtifactIntegrityError(RuntimeError):
     """Raised when stored artifact bytes differ from their expected digest."""
 
 
+class CalendarArtifactStorageNotConfiguredError(RuntimeError):
+    """Raised when publication requires byte verification but no store is configured."""
+
+
 class CalendarArtifactStore(Protocol):
     """Byte-storage port. Implementations must return stable opaque references."""
 

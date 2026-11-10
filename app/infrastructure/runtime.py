@@ -185,16 +185,17 @@ def create_infrastructure_runtime(
     operator_access_service = OperatorAccessService(operator_access_store)
     session_calendar_store = SQLiteSessionCalendarRepository(config.analysis_database_path)
     calendar_evidence_repository = SQLiteCalendarEvidenceRepository(config.analysis_database_path)
-    calendar_publication_uow = SQLiteCalendarPublicationUnitOfWork(
-        session_calendar_store,
-        calendar_evidence_repository,
-    )
     calendar_artifact_service = None
     if config.calendar_artifact_storage_path is not None:
         calendar_artifact_service = CalendarArtifactService(
             FileSystemCalendarArtifactStore(config.calendar_artifact_storage_path),
             max_artifact_bytes=config.calendar_artifact_max_bytes,
         )
+    calendar_publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        session_calendar_store,
+        calendar_evidence_repository,
+        artifact_service=calendar_artifact_service,
+    )
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(

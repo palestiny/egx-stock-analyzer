@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from uuid import UUID
 
 import pytest
 
+from app.application.market_data.calendar_artifact_storage import CalendarArtifactStorageNotConfiguredError
 from app.domain.identity.user import User, UserStatus
 from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass, CalendarArtifactRetention
 from app.domain.market_data.session_calendar import CalendarDayStatus, EGXCalendarDay, EGXSessionCalendar
@@ -461,4 +463,27 @@ def test_exceptional_hours_evidence_requires_explicit_calendar_day_marker(tmp_pa
             _calendar(), evidence, published_by=str(ACTOR),
             source_reference="EGX source bundle", reason="Reject orphan exceptional-hours evidence",
         )
+    assert calendars.list_versions() == ()
+
+
+
+def test_publication_rejects_archived_evidence_without_verifier_before_database_writes(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    evidence = list(_evidence_set())
+    evidence[0] = replace(
+        evidence[0],
+        artifact_retention=CalendarArtifactRetention.ARCHIVED,
+        artifact_storage_reference="sha256:" + "a" * 64,
+        artifact_not_retained_reason=None,
+    )
+
+    with pytest.raises(CalendarArtifactStorageNotConfiguredError, match="required for ARCHIVED"):
+        uow.publish(
+            _calendar(),
+            tuple(evidence),
+            published_by=str(ACTOR),
+            source_reference="EGX source bundle",
+            reason="Reject archived evidence without a byte verifier",
+        )
+
     assert calendars.list_versions() == ()

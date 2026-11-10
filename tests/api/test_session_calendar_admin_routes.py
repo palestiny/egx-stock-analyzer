@@ -47,9 +47,13 @@ def make_client(tmp_path):
     store = SQLiteSessionCalendarRepository(database)
     evidence_repository = SQLiteCalendarEvidenceRepository(database)
     SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
-    publication_uow = SQLiteCalendarPublicationUnitOfWork(store, evidence_repository)
     artifact_service = CalendarArtifactService(
         FileSystemCalendarArtifactStore(tmp_path / "calendar-artifacts")
+    )
+    publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        store,
+        evidence_repository,
+        artifact_service=artifact_service,
     )
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),
@@ -603,10 +607,14 @@ def test_calendar_artifact_upload_enforces_configured_size_limit(tmp_path):
     store = SQLiteSessionCalendarRepository(database)
     evidence_repository = SQLiteCalendarEvidenceRepository(database)
     SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
-    publication_uow = SQLiteCalendarPublicationUnitOfWork(store, evidence_repository)
     artifact_service = CalendarArtifactService(
         FileSystemCalendarArtifactStore(tmp_path / "calendar-artifacts"),
         max_artifact_bytes=8,
+    )
+    publication_uow = SQLiteCalendarPublicationUnitOfWork(
+        store,
+        evidence_repository,
+        artifact_service=artifact_service,
     )
     app = create_app(
         result_store=InMemoryAnalysisResultStore(),

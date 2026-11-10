@@ -11,6 +11,7 @@ from app.application.market_data.calendar_publication import CalendarPublication
 from app.application.market_data.calendar_artifact_storage import (
     CalendarArtifactIntegrityError,
     CalendarArtifactService,
+    CalendarArtifactStorageNotConfiguredError,
 )
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
@@ -243,18 +244,6 @@ def create_session_calendar_admin_router(
         try:
             actor_id = UUID(actor)
             calendar = EGXSessionCalendar.from_dict(calendar_document)
-            archived_evidence = [
-                item
-                for item in payload.evidence
-                if item.artifact_retention is CalendarArtifactRetention.ARCHIVED
-            ]
-            if archived_evidence:
-                service = configured_artifact_service()
-                for item in archived_evidence:
-                    service.verify(
-                        item.artifact_storage_reference or "",
-                        item.artifact_sha256,
-                    )
             evidence = tuple(
                 CalendarEvidence.create(
                     calendar_version=calendar.version,
@@ -289,6 +278,11 @@ def create_session_calendar_admin_router(
                 source_reference=payload.source_reference,
                 reason=payload.reason,
             )
+        except CalendarArtifactStorageNotConfiguredError as error:
+            raise HTTPException(
+                status_code=503,
+                detail="Verified calendar artifact storage is not configured",
+            ) from error
         except FileNotFoundError as error:
             raise HTTPException(
                 status_code=422,

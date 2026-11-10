@@ -9,7 +9,11 @@ from typing import Sequence
 from uuid import UUID
 
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
-from app.domain.market_data.calendar_evidence import CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass
+from app.application.market_data.calendar_artifact_storage import (
+    CalendarArtifactService,
+    CalendarArtifactStorageNotConfiguredError,
+)
+from app.domain.market_data.calendar_evidence import CalendarArtifactRetention, CalendarEvidence, CalendarEvidenceKind, CalendarEvidenceSourceClass
 from app.domain.market_data.session_calendar import CalendarDayStatus, EGXSessionCalendar
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
     SQLiteCalendarEvidenceRepository,
@@ -27,6 +31,7 @@ class SQLiteCalendarPublicationUnitOfWork:
         self,
         calendar_repository: SQLiteSessionCalendarRepository,
         evidence_repository: SQLiteCalendarEvidenceRepository,
+        artifact_service: CalendarArtifactService | None = None,
     ) -> None:
         calendar_path = Path(calendar_repository._database_path).resolve()
         evidence_path = Path(evidence_repository._database_path).resolve()
@@ -35,6 +40,7 @@ class SQLiteCalendarPublicationUnitOfWork:
         self._database_path = str(calendar_path)
         self._calendar_repository = calendar_repository
         self._evidence_repository = evidence_repository
+        self._artifact_service = artifact_service
         self._initialize_links()
 
     def _initialize_links(self) -> None:
@@ -112,6 +118,21 @@ class SQLiteCalendarPublicationUnitOfWork:
             raise ValueError("Every newly published evidence record requires explicit source acceptance metadata")
         if len({item.evidence_id for item in evidence}) != len(evidence):
             raise ValueError("Evidence identifiers must be unique within a publication")
+        archived_evidence = [
+            item
+            for item in evidence
+            if item.artifact_retention is CalendarArtifactRetention.ARCHIVED
+        ]
+        if archived_evidence:
+            if self._artifact_service is None:
+                raise CalendarArtifactStorageNotConfiguredError(
+                    "Verified calendar artifact storage is required for ARCHIVED evidence"
+                )
+            for item in archived_evidence:
+                self._artifact_service.verify(
+                    item.artifact_storage_reference or "",
+                    item.artifact_sha256 or "",
+                )
         evidence_kinds_by_date: dict = {}
         for item in evidence:
             evidence_kinds_by_date.setdefault(item.session_date, set()).add(item.evidence_kind)
