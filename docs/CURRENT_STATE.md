@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-10 (daily-history audit and snapshot comparison)
+
+- PR #487 merged into `main` as `5c303ff15b97357d7ab086c921061644265ff309`. It adds a read-only canonical daily-history CSV audit covering schema/row shape, types, provenance shape, quality labels, duplicate keys, OHLC geometry, latest-session summary, byte count, and SHA-256. It does not fetch or authenticate source pages, infer EGX sessions/coverage, repair values, or mutate the source CSV.
+- PR #488 merged into `main` as `bdef388e06b854324124f5f61099f0f5717e54e6`. Exact PR head `fe9ba50a823f46e6965aa180d7abb4d488a17df3` passed all five required CI jobs in run #42887122981 before squash merge.
+- PR #488 adds mutually exclusive row classifications: `clean_ohlc_candidates` (structural candidates only), `review_required`, and `rejected_or_invalid`. Every row participating in a duplicate `(session_date, symbol)` key is rejected from analysis eligibility. It also adds optional read-only `--baseline` comparison for added/removed/changed keys and fields; duplicate keys make the comparison partial, and malformed row shapes prevent comparison.
+- Structural candidates are explicitly `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED`; they are not source-authenticated bars or automatic approval for trading/backtests. Removed rows are reported as differences, not automatically treated as errors.
+- Post-merge main CI run #42888113689 on `bdef388e06b854324124f5f61099f0f5717e54e6` was in progress at the time of this documentation update. Do not mark post-merge CI green until all five jobs complete.
+- No source CSV values were edited, repaired, inferred, or deleted by PRs #487/#488. Missing volume/traded-value/execution metrics remain unavailable, not zero. Source authenticity and independent source reconciliation remain separate gaps.
+
+**Authority:** GitHub `main` + current open pull requests  
+**Last reviewed:** 2026-11-10 (`main` at `bdef388e06b854324124f5f61099f0f5717e54e6`; PR #488 exact-head CI passed 5/5 before merge; post-merge run #42888113689 pending.)
+
+---
+
 # EGX Stock Analyzer — Current State
 
 ## Latest verified continuation — 2026-11-10 (artifact inventory and SQLite WAL verification)
