@@ -30,6 +30,7 @@ class CalendarDayPayload(BaseModel):
     session_close: time | None = None
     closed_at: datetime | None = None
     reason: str | None = Field(default=None, max_length=500)
+    exceptional_hours: bool = False
 
 
 class CalendarEvidencePayload(BaseModel):
@@ -108,6 +109,7 @@ def _calendar_payload(calendar: EGXSessionCalendar) -> dict[str, object]:
                 "session_close": day.session_close.isoformat() if day.session_close else None,
                 "closed_at": day.closed_at.isoformat() if day.closed_at else None,
                 "reason": day.reason,
+                "exceptional_hours": day.exceptional_hours,
             }
             for day in calendar.days
         ],

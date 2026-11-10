@@ -126,6 +126,8 @@ class SQLiteCalendarPublicationUnitOfWork:
                     CalendarEvidenceKind.CLOSE_CONFIRMATION,
                 },
             }[day.status]
+            if day.exceptional_hours:
+                required_kinds = required_kinds | {CalendarEvidenceKind.EXCEPTIONAL_HOURS}
             missing_kinds = required_kinds - evidence_kinds_by_date.get(day.session_date, set())
             accepted_primary_kinds = {
                 item.evidence_kind for item in evidence

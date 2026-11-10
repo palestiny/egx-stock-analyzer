@@ -27,6 +27,7 @@ class EGXCalendarDay:
     session_close: time | None = None
     closed_at: datetime | None = None
     reason: str | None = None
+    exceptional_hours: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.session_date, date) or isinstance(self.session_date, datetime):
@@ -41,6 +42,8 @@ class EGXCalendarDay:
             raise ValueError("closed_at must be a datetime")
         if self.reason is not None and not isinstance(self.reason, str):
             raise ValueError("Calendar day reason must be text")
+        if not isinstance(self.exceptional_hours, bool):
+            raise ValueError("exceptional_hours must be a boolean")
         is_trading = self.status in {
             CalendarDayStatus.SCHEDULED,
             CalendarDayStatus.OPEN,
@@ -50,6 +53,8 @@ class EGXCalendarDay:
             self.session_open is None or self.session_close is None
         ):
             raise ValueError("Trading calendar days require explicit open and close times")
+        if self.exceptional_hours and not is_trading:
+            raise ValueError("Exceptional hours can only be declared for a trading day")
         if not is_trading and (
             self.session_open is not None or self.session_close is not None
         ):
@@ -223,6 +228,7 @@ class EGXSessionCalendar:
                         else None
                     ),
                     reason=item.get("reason"),
+                    exceptional_hours=item.get("exceptional_hours", False),
                 )
                 for item in raw_days
             )

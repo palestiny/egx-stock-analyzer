@@ -386,3 +386,35 @@ def test_open_status_requires_schedule_and_open_confirmation(tmp_path):
         source_reference="EGX source bundle", reason="Opening confirmation supplied",
     )
     assert calendars.get_version(stored.version) == stored
+
+
+def test_exceptional_hours_requires_its_own_primary_evidence_kind(tmp_path):
+    _database, calendars, _evidence_repository, uow = _setup(tmp_path)
+    exceptional_day = EGXSessionCalendar(
+        version="exceptional-calendar-v1", timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 3), coverage_end=date(2026, 11, 3),
+        days=(EGXCalendarDay(
+            date(2026, 11, 3), CalendarDayStatus.SCHEDULED,
+            session_open=time(10, 0), session_close=time(13, 0),
+            exceptional_hours=True,
+        ),),
+    )
+    schedule = (_evidence(
+        date(2026, 11, 3), "Scheduled", kind=CalendarEvidenceKind.SCHEDULE,
+        calendar_version="exceptional-calendar-v1",
+    ),)
+    with pytest.raises(ValueError, match="EXCEPTIONAL_HOURS"):
+        uow.publish(
+            exceptional_day, schedule, published_by=str(ACTOR),
+            source_reference="EGX source bundle", reason="Require exceptional-hours evidence",
+        )
+    evidence = schedule + (_evidence(
+        date(2026, 11, 3), "EGX confirms shortened session hours",
+        kind=CalendarEvidenceKind.EXCEPTIONAL_HOURS,
+        calendar_version="exceptional-calendar-v1",
+    ),)
+    stored, _ = uow.publish(
+        exceptional_day, evidence, published_by=str(ACTOR),
+        source_reference="EGX source bundle", reason="Publish evidenced exceptional hours",
+    )
+    assert calendars.get_version(stored.version) == stored
