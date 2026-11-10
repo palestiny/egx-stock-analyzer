@@ -1,3 +1,24 @@
+## Daily-history read-only audit, classification, and baseline comparison — 2026-11-10
+
+**Status: PRs #487 and #488 merged; structural audit tooling is implemented. Independent source verification, data reconciliation, and analysis acceptance remain open.**
+
+- PR #487 merged as `5c303ff15b97357d7ab086c921061644265ff309`; it adds `tools/egx_daily_history_audit.py` and tests. The audit checks the canonical CSV header/order, malformed rows, required/optional missing fields, ISO dates, symbols, instrument/price-unit pairing, finite numeric values, OHLC geometry, quality labels, provenance-field shape, duplicate keys, latest-session summary, artifact byte count, and SHA-256.
+- PR #487 is read-only with respect to the source CSV. It does not fetch or authenticate source pages, infer exchange sessions or missing instruments, repair values, or treat missing volume/traded-value/execution counts as zero. Its source-authenticity result is `NOT_INDEPENDENTLY_VERIFIED`.
+- PR #488 merged as `bdef388e06b854324124f5f61099f0f5717e54e6`; exact head `fe9ba50a823f46e6965aa180d7abb4d488a17df3` passed all five required CI jobs in run #42887122981.
+- PR #488 classifies each row into exactly one of: `clean_ohlc_candidates`, `review_required`, or `rejected_or_invalid`. Duplicate-key participants are all rejected from analysis eligibility. “Clean” means structurally eligible only; the report explicitly states `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED`.
+- Optional `--baseline PATH` comparison reports added, removed, and changed keys/fields without modifying either snapshot. Duplicate keys in either snapshot make the comparison partial; malformed CSV row shapes prevent comparison. A removed key is a difference, not automatically a defect.
+- Do not use review-required, rejected, duplicate-key, or otherwise structurally invalid rows as clean OHLC evidence. Do not use structural candidates as authenticated trading/backtest inputs without independent source verification and the applicable acceptance gate.
+- No automatic source correction, deletion, or inferred data fill is implemented. Existing source conflicts and OHLC review flags remain preserved pending reconciliation.
+- Post-merge main CI run #42888113689 on merge commit `bdef388e06b854324124f5f61099f0f5717e54e6` was still in progress at this update; verify all five jobs before recording post-merge success.
+
+### Remaining acceptance work
+
+- [ ] Run the audit against the canonical archive and preserve the generated report as an explicitly dated artifact; record findings without editing source data.
+- [ ] Verify flagged/review rows against trustworthy, independently accessible source evidence; retain original values and append a documented correction/reconciliation only under an approved process.
+- [ ] Establish source authenticity, retrieval reproducibility, licensing/reuse rights, and authoritative market-session coverage independently of CSV shape validation.
+- [ ] Keep missing traded value/execution counts and unavailable volume explicitly unknown; do not infer zero or no trading.
+- [ ] Keep source-conflict and OHLC-review rows excluded from clean technical analysis/backtests until reconciled.
+
 # Project Completion Gap Register
 
 ## Calendar artifact inventory and SQLite WAL regression — 2026-11-10
