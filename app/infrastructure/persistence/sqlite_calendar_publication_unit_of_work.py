@@ -152,15 +152,15 @@ class SQLiteCalendarPublicationUnitOfWork:
                 raise ValueError(
                     f"Exceptional-hours evidence for {day.session_date.isoformat()} requires Class A EGX primary evidence"
                 )
-            if missing_primary_kinds:
-                names = ", ".join(sorted(kind.value for kind in missing_primary_kinds))
-                raise ValueError(
-                    f"Calendar date {day.session_date.isoformat()} requires Class A EGX primary evidence kinds: {names}"
-                )
             if missing_kinds:
                 missing_kind_names = ", ".join(sorted(kind.value for kind in missing_kinds))
                 raise ValueError(
                     f"Calendar date {day.session_date.isoformat()} requires evidence kinds: {missing_kind_names}"
+                )
+            if missing_primary_kinds:
+                names = ", ".join(sorted(kind.value for kind in missing_primary_kinds))
+                raise ValueError(
+                    f"Calendar date {day.session_date.isoformat()} requires Class A EGX primary evidence kinds: {names}"
                 )
 
         payload = self._calendar_repository._calendar_payload(calendar)
