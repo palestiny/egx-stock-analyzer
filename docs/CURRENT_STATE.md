@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-10 (artifact inventory and SQLite WAL verification)
+
+- PR #483 merged into `main` as `975409d39b2e80ba00e78a96dfda144b21ba802c`. Its exact head `ad0d3ff31a78a1da0c42ed9df7faeb3b70814c1d` passed all five required CI jobs before squash merge. It adds a read-only calendar artifact inventory that classifies referenced-valid, orphaned, missing, integrity-failure, invalid-reference, and invalid-storage-entry findings. It does not repair or delete anything.
+- PR #484 merged into `main` as `9e120eec682d155204c64bce150f3aee9b6cbdcf`. Exact PR head `b4955c3e745593c68c200a1b2038fe9de95a7a2d` passed all five required CI jobs in run #42880047021. The added regression test verifies that a read-only inventory sees committed ARCHIVED evidence in SQLite WAL mode while the writer connection remains open, without changing the database file or WAL bytes. Normal shared-memory WAL reader coordination is not asserted as immutable.
+- Post-merge main run #42879830031 on PR #483 merge commit `975409d...` completed successfully with all five required jobs. Post-merge CI for PR #484 merge commit `9e120eec...` is run #42881049920 and was in progress at the time of this update; do not mark it green until all five jobs finish.
+- PR #476 (2026-11-10 daily history append) remains open. It adds 23 Investing.com daily historical rows (17 equities and six indices), bringing the archive to 255 rows. Eight rows are explicitly flagged for OHLC review; per-security traded value and execution counts are blank where not supplied. Coverage is partial; no application-database ingestion or M61/backtest result is claimed. Its existing five checks passed on the PR head, but the branch is now 2 commits ahead and 8 behind current main; it must be rebased/revalidated before merge.
+- PR #321 remains Draft and M61 remains paused by explicit owner request.
+- Calendar activation, lifecycle monitoring, freshness enforcement, provider-finality behavior, and M61 remain disabled/paused. No production database/storage inventory, source-authenticity proof, legal retention acceptance, backup/restore test, multi-node acceptance, or orphan cleanup has been performed. The inventory implementation is read-only and must not be described as a production scan.
+
+**Authority:** GitHub `main` + current open pull requests  
+**Last reviewed:** 2026-11-10 (`main` at `9e120eec682d155204c64bce150f3aee9b6cbdcf`; PR #484 merged after all five exact-head CI jobs passed.)
+
+---
+
 # EGX Stock Analyzer — Current State
 
 ## Latest working continuation — 2026-11-10 (calendar artifact verification)
