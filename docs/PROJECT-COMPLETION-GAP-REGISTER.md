@@ -8,6 +8,18 @@
 
 This register separates verified implementation from incomplete acceptance and decisions. A module, endpoint, or passing unit test alone does not prove an end-to-end user capability is complete. Owner policy baseline DEC-135 was accepted on 2026-10-31; policy approval does not mark the related engineering acceptance items complete.
 
+## Calendar artifact byte integrity and publication enforcement — 2026-11-10
+
+**Status: implementation under review; do not claim full archival or source authenticity yet.**
+
+- PR #478 provides a byte-storage port and content-addressed filesystem adapter. Its exact-head CI remains pending the unit-test/coverage job at the current snapshot.
+- Follow-up branch `feature/calendar-artifact-publication-verification` adds a bounded binary upload endpoint for individually authenticated calendar operators and wires the artifact service into infrastructure composition.
+- Every new `ARCHIVED` evidence item is checked against stored bytes and its expected SHA-256 before the atomic calendar/evidence SQLite publication transaction begins. Missing artifacts and digest mismatches fail closed. `EXTERNAL_ONLY` still requires an explicit non-retention reason.
+- Compose uses the existing persistent `egx-data` volume for `/data/calendar-artifacts`; the default upload ceiling is 20 MiB. Other runtime configurations must explicitly set `EGX_CALENDAR_ARTIFACT_STORAGE_PATH`.
+- The upload endpoint computes the digest from the received bytes; the client-provided digest in a later publication request is only an expected value and must match the bytes re-read from storage.
+- Remaining acceptance gaps: source authenticity, publisher identity verification, legal retention/reuse rights, backup/restore testing, multi-node storage behavior, and reconciliation of uploaded artifacts not linked by a successful publication. No automated deletion is enabled.
+- This branch is stacked on PR #478 and is not yet merged. No activation, lifecycle monitoring, freshness enforcement, or M61 work is included.
+
 ## Verified merged foundations
 
 

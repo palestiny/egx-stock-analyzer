@@ -1,5 +1,16 @@
 # EGX Stock Analyzer — Current State
 
+## Latest working continuation — 2026-11-10 (calendar artifact verification)
+
+- PR #477 is merged into `main` as `cea2b8e8620a2ccb96693a20bd00ccc5ca900e63`; its post-merge Main workflow run #42868953457 completed successfully.
+- PR #478 introduces a content-addressed filesystem adapter and a byte-integrity service. Its current exact head is `dde6315975732b89559aee2fecdbb507b016b86a`; four of five required jobs have passed, while unit tests with coverage are still running. It has not been merged.
+- Follow-up branch `feature/calendar-artifact-publication-verification` at `19c4b278f574273faa4c3b4cc8a5e1dca84afbeb` adds authenticated binary artifact upload, bounded streaming intake, configurable persistent storage, and mandatory read-back digest verification for every `ARCHIVED` evidence item before the SQLite publication transaction.
+- Compose config stores artifacts under `/data/calendar-artifacts` on the existing persistent `egx-data` volume; default upload limit is 20 MiB and can be configured. Non-Compose configurations keep artifact storage disabled unless explicitly configured.
+- The API returns a computed SHA-256 and opaque storage reference after successful write/read-back verification. Publication rejects missing or tampered archived artifacts; `EXTERNAL_ONLY` remains supported with its explicit non-retention reason.
+- New tests cover authenticated upload, successful archived publication, missing/tampered artifact rejection, content-type enforcement, upload size limits, and artifact storage configuration. CI has not yet been observed for this follow-up branch.
+- Remaining gaps: source authenticity is not established; lawful retention/reuse rights, backup/restore acceptance, orphaned uploads after failed publication, and deployment storage operations still need explicit controls. This work does not equate a matching digest with an authentic EGX/FRA source.
+- Calendar activation remains paused. No lifecycle monitoring, freshness enforcement, provider-finality behavior, or M61 work is introduced.
+
 ## Latest verified continuation — 2026-11-10 (PR #475 merged)
 
 - PR #475 merged into `main` as `04f4dce6c2d2e5b0f0a285aa4eb3534c8af55f22`. Exact PR head `6f53e65bdd8615be92c99fc6fcf42308b36624dd` passed all five required CI jobs in run #42866088424.

@@ -4,10 +4,14 @@ from datetime import date, datetime, time
 from uuid import UUID
 from sqlite3 import IntegrityError
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
+from app.application.market_data.calendar_artifact_storage import (
+    CalendarArtifactIntegrityError,
+    CalendarArtifactService,
+)
 from app.application.market_data.session_calendar_store import (
     CalendarActivationEvent,
     SessionCalendarStore,
@@ -154,6 +158,7 @@ def create_session_calendar_admin_router(
     store: SessionCalendarStore | None,
     require_operator,
     publication_uow: CalendarPublicationUnitOfWork | None = None,
+    artifact_service: CalendarArtifactService | None = None,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -173,6 +178,53 @@ def create_session_calendar_admin_router(
             )
         return publication_uow
 
+    def configured_artifact_service() -> CalendarArtifactService:
+        if artifact_service is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Calendar artifact storage is not configured",
+            )
+        return artifact_service
+
+    @router.post("/api/v1/owner/session-calendars/artifacts", status_code=201)
+    async def upload_calendar_artifact(
+        request: Request,
+        _identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        service = configured_artifact_service()
+        content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if content_type != "application/octet-stream":
+            raise HTTPException(
+                status_code=415,
+                detail="Calendar artifacts must be uploaded as application/octet-stream",
+            )
+
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > service.max_artifact_bytes:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Calendar artifact exceeds the configured size limit",
+                )
+            content.extend(chunk)
+
+        try:
+            receipt = service.archive(bytes(content))
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        except (CalendarArtifactIntegrityError, OSError) as error:
+            raise HTTPException(
+                status_code=503,
+                detail="Calendar artifact could not be stored and verified",
+            ) from error
+
+        return {
+            "storage_reference": receipt.storage_reference,
+            "artifact_sha256": receipt.sha256,
+            "size_bytes": receipt.size_bytes,
+            "integrity": "VERIFIED",
+        }
+
     @router.post("/api/v1/owner/session-calendars/versions", status_code=201)
     def publish_calendar_version(
         payload: CalendarPublicationPayload,
@@ -191,6 +243,18 @@ def create_session_calendar_admin_router(
         try:
             actor_id = UUID(actor)
             calendar = EGXSessionCalendar.from_dict(calendar_document)
+            archived_evidence = [
+                item
+                for item in payload.evidence
+                if item.artifact_retention is CalendarArtifactRetention.ARCHIVED
+            ]
+            if archived_evidence:
+                service = configured_artifact_service()
+                for item in archived_evidence:
+                    service.verify(
+                        item.artifact_storage_reference or "",
+                        item.artifact_sha256,
+                    )
             evidence = tuple(
                 CalendarEvidence.create(
                     calendar_version=calendar.version,
@@ -225,6 +289,18 @@ def create_session_calendar_admin_router(
                 source_reference=payload.source_reference,
                 reason=payload.reason,
             )
+        except FileNotFoundError as error:
+            raise HTTPException(
+                status_code=422,
+                detail="Archived calendar artifact does not exist in configured storage",
+            ) from error
+        except CalendarArtifactIntegrityError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        except OSError as error:
+            raise HTTPException(
+                status_code=503,
+                detail="Calendar artifact storage is temporarily unavailable",
+            ) from error
         except IntegrityError as error:
             raise HTTPException(
                 status_code=409,

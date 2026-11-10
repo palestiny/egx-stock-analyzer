@@ -181,3 +181,30 @@ def test_from_environment_rejects_duplicate_crash_radar_symbols(monkeypatch) -> 
 
     with pytest.raises(ValueError, match="duplicate symbols"):
         InfrastructureConfig.from_environment()
+
+
+
+def test_calendar_artifact_storage_is_disabled_by_default() -> None:
+    config = InfrastructureConfig()
+
+    assert config.calendar_artifact_storage_path is None
+    assert config.calendar_artifact_max_bytes == 20 * 1024 * 1024
+
+
+def test_from_environment_reads_calendar_artifact_storage_configuration(monkeypatch) -> None:
+    monkeypatch.setenv("EGX_CALENDAR_ARTIFACT_STORAGE_PATH", "/var/lib/egx/calendar-artifacts")
+    monkeypatch.setenv("EGX_CALENDAR_ARTIFACT_MAX_BYTES", "1048576")
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.calendar_artifact_storage_path == "/var/lib/egx/calendar-artifacts"
+    assert config.calendar_artifact_max_bytes == 1048576
+
+
+def test_from_environment_rejects_invalid_calendar_artifact_size(monkeypatch) -> None:
+    import pytest
+
+    monkeypatch.setenv("EGX_CALENDAR_ARTIFACT_MAX_BYTES", "0")
+
+    with pytest.raises(ValueError, match="EGX_CALENDAR_ARTIFACT_MAX_BYTES"):
+        InfrastructureConfig.from_environment()

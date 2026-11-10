@@ -28,6 +28,8 @@ class InfrastructureConfig:
     news_rss_source_type: str = "other"
     crash_radar_universe_symbols: tuple[str, ...] = ()
     crash_radar_universe_version: str | None = None
+    calendar_artifact_storage_path: str | None = None
+    calendar_artifact_max_bytes: int = 20 * 1024 * 1024
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -43,6 +45,18 @@ class InfrastructureConfig:
                 "EGX_CRASH_RADAR_SYMBOLS and EGX_CRASH_RADAR_UNIVERSE_VERSION "
                 "must be configured together"
             )
+        calendar_artifact_storage_path = (
+            os.getenv("EGX_CALENDAR_ARTIFACT_STORAGE_PATH") or ""
+        ).strip() or None
+        try:
+            calendar_artifact_max_bytes = int(
+                os.getenv("EGX_CALENDAR_ARTIFACT_MAX_BYTES", str(20 * 1024 * 1024))
+            )
+        except ValueError as error:
+            raise ValueError("EGX_CALENDAR_ARTIFACT_MAX_BYTES must be a positive integer") from error
+        if calendar_artifact_max_bytes <= 0:
+            raise ValueError("EGX_CALENDAR_ARTIFACT_MAX_BYTES must be a positive integer")
+
         return cls(
             analysis_database_path=os.getenv(
                 "EGX_ANALYSIS_DATABASE_PATH",
@@ -83,6 +97,8 @@ class InfrastructureConfig:
             ).strip(),
             crash_radar_universe_symbols=crash_radar_universe_symbols,
             crash_radar_universe_version=crash_radar_universe_version,
+            calendar_artifact_storage_path=calendar_artifact_storage_path,
+            calendar_artifact_max_bytes=calendar_artifact_max_bytes,
         )
 
 

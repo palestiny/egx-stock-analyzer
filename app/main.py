@@ -90,6 +90,7 @@ def create_application(
         operator_access_service=getattr(runtime, "operator_access_service", None),
         session_calendar_store=getattr(runtime, "session_calendar_store", None),
         calendar_publication_uow=getattr(runtime, "calendar_publication_uow", None),
+        calendar_artifact_service=getattr(runtime, "calendar_artifact_service", None),
         telegram_delivery_reconciliation_store=getattr(runtime, "telegram_delivery_reconciliation_store", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
