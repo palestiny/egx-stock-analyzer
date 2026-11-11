@@ -6,7 +6,7 @@
 - Post-merge main run #42949638348 completed with conclusion `success` on the exact merge SHA; all six jobs passed, including Python 3.12 unit tests and the daily-history audit report.
 - The merged DataCedar review identifies it only as a candidate for a bounded, no-cost recent-history diagnostic. Explorer's one-year daily-history limit is insufficient for the M61 2021–2025 period plus 252-session warm-up. Actual per-symbol coverage, source lineage, raw/adjusted semantics, revisions, and the exact retained-sample rights remain unverified. The pricing matrix's raw-close-only statement conflicts with API adjustment options; obtain written clarification.
 - No API key, authenticated request, price-row download, paid plan, production adapter, or ingestion was used or authorized. Do not treat documentation or a successful contract probe as data-source acceptance.
-- Current main is `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. PR #321 remains the only open PR and is still Draft/unmerged; keep it blocked pending DEC-130.
+- Current main is `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. PR #321 remains the only pre-existing product/M61 PR and is still Draft/unmerged; PR #503 is this documentation-only closeout. Keep #321 blocked pending DEC-130.
 
 ### Remaining acceptance work
 
