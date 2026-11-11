@@ -6,11 +6,11 @@
 - PR #500 improves provenance reporting only: retrieval metadata is counted as timezone-aware timestamps versus date-only values, and date-only rows are listed without inventing a time or timezone. It does not authenticate the provider or promote analysis eligibility.
 - The canonical CSV remains Git blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`, 101,315 bytes. The exact read-only audit artifact reports 255 rows, 61 symbols, 31 sessions, 51 OHLC geometry exceptions, 70 review-labelled rows, 0 malformed rows, and 0 duplicate keys.
 - The report distinguishes 48 open-below-low cases and 3 open-above-high cases. It records 233 timezone-aware retrieval timestamps and 22 date-only values (all from the initial EGAL seed), 255 missing traded-value fields, 255 missing execution-count fields, and 23 missing volume fields.
-- PR #501 adds `docs/EGX-DAILY-HISTORY-REVIEW-INVENTORY-2026-11-11.md`: all 70 review rows with CSV row number, original OHLC, retrieval metadata, and source URL; 22 date-only rows; and all 19 original source-conflict notes. It is documentation-only and remains open/draft. Current head is `b9f4ec62ef272ee2f31e41bf09edbe632436e26d`; workflow run #42947547289 is pending/in progress. Do not merge until all six jobs pass on this exact head.
+- PR #501 merged into `main` as `6d0cbd50c937f9de584ae0e0186e130eacc1e399`. Exact PR head `b9f4ec62ef272ee2f31e41bf09edbe632436e26d` passed all six CI jobs in run #42947547289. Python unit tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold. The merged `docs/EGX-DAILY-HISTORY-REVIEW-INVENTORY-2026-11-11.md` records all 70 review rows with CSV row number, original OHLC, retrieval metadata, source URL, 22 date-only rows, and all 19 original source-conflict notes.
 - No canonical CSV values were repaired, replaced, or deleted. The 185 structural candidates remain unauthenticated. No provider was selected, no ingestion was enabled, and M61 remains paused.
 
-**Authority:** GitHub `main`, PR #500, exact-head run #42946596578, and audit artifact #13823266584.  
-**Last reviewed:** 2026-11-11; main `386b710cb74e34697ceae7d5a883067d7f1c4699`.
+**Authority:** GitHub `main`, PRs #500/#501, exact-head runs #42946596578/#42947547289, and audit artifact #13823266584.  
+**Last reviewed:** 2026-11-11; main `6d0cbd50c937f9de584ae0e0186e130eacc1e399`.
 
 ---
 
