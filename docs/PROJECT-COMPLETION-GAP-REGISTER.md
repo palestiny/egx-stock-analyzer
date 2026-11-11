@@ -1,3 +1,18 @@
+## OHLC anomaly triage and post-PR #505 CI — 2026-11-11
+
+- [x] PR #505 merged as `cd75815cc749674321ffd273dde917dd44040cf8`; all six exact-head CI jobs passed on `c7f3a5bec3012db3b923384b169ab12eb9580685`.
+- [x] Post-merge `main` run #42953081919 passed all six jobs on the exact merge SHA.
+- [x] Python 3.12: 1,661 passed, 8 deselected, 1 warning; 298.49 seconds; 90.58% coverage. Lint and type-check passed.
+- [x] Captured a read-only audit artifact (#13825822366) and added `docs/OHLC-ANOMALY-FORENSIC-TRIAGE-2026-11-11.md`.
+- [ ] Independently reconcile the 51 OHLC rows under the existing protocol. The 4–5 November cohorts (30 rows) are the first investigation priority; no root cause or replacement value has been established.
+- [ ] Independently reconcile the remaining 19 source/revision-conflict rows.
+- [ ] Obtain EGID sample, exact field/session semantics, revision policy, coverage, and written intended-use/retention terms.
+- [ ] Complete DEC-130 immutable market-data and point-in-time financial evidence before any M61 evaluation.
+
+The triage is diagnostic only. Canonical CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57` and SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3` remain unchanged. Do not repair, replace, delete, forward-fill, or promote any row without independent evidence and explicit review. PR #321 remains Draft/unmerged; M61 remains paused.
+
+---
+
 ## PR #503 merge and post-merge CI closeout — 2026-11-11
 
 **Status: documentation closeout merged; post-merge CI passed 6/6; historical-source acceptance remains open and M61 remains paused.**
