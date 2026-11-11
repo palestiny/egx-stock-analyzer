@@ -1,3 +1,21 @@
+## Latest acquisition checkpoint — 2026-11-11 (PR #508 merged; current-main CI passed)
+
+**Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
+
+- Current GitHub `main`: `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1` (PR #508 squash merge). Its exact-head CI run #42997042867 passed all six required jobs before merge. Post-merge run [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) completed successfully on this exact SHA with all six jobs passed.
+- PR #508 adds a read-only, row-addressable evidence register for 30 OHLC geometry exceptions on 4–5 November and five source-conflict control rows. It transcribes stored values and evidence gaps; it does not establish root cause or corrected values and does not modify the canonical CSV.
+- The archive remains 255 rows, 61 symbols, 31 sessions, 51 OHLC geometry exceptions, 19 source/revision conflicts, and 70 review rows. Canonical CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57` and SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3` remain unchanged.
+- All 51 OHLC exceptions and 19 source/revision conflicts remain unresolved. Investing.com locale pages are not independent corroboration. Do not repair, replace, forward-fill, or promote any row based on correlation or page locale alone.
+- EGID remains the preferred first authorized-source contact route, but no sample, feed contract, authenticated entitlement, historical coverage, correction policy, or archival/backtest license has been verified. DataCedar remains a candidate only; no credentials or paid plan are authorized.
+- PR #321 remains Draft and unmerged (head `690141bd6b391e2bde5dceb2d4e115045200f5bc`). No provider selection, ingestion, production adapter, canonical CSV edit, analysis-eligibility promotion, or M61 activation is authorized.
+
+**Next evidence gate:** acquire authorized raw evidence and written rights; preserve original payloads and metadata; compare disputed rows and controls field-by-field; record reviewer-backed dispositions. DEC-130 must pass before M61 can be reconsidered.
+
+**Authority:** GitHub PR #508, exact-head run #42997042867, merge SHA `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`, post-merge CI run #42998190190, and canonical CSV blob/hash above.  
+**Last reviewed:** 2026-11-11; main `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest acquisition checkpoint — 2026-11-11 (post-PR #506/#504 current-main CI)
 
 **Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
