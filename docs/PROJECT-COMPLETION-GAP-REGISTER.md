@@ -1,3 +1,22 @@
+## PR #503 merge and post-merge CI closeout — 2026-11-11
+
+**Status: documentation closeout merged; post-merge CI passed 6/6; historical-source acceptance remains open and M61 remains paused.**
+
+- PR #503 merged into `main` as `f9a75726f6ca61924f64886b169830a555b019e6` after all six exact-head jobs passed in run #42950852464 on PR head `ff8cdc2d386a0278ddc3eb529ff67d05360bb3dc`.
+- Post-merge run #42951664652 completed successfully on that exact merge SHA; all six jobs passed.
+- Python 3.12 unit tests: 1,661 passed, 8 deselected, 1 warning; runtime 309.44 seconds; coverage 90.58% against the 85% minimum. Lint and type-check passed. The test duration explains the earlier apparent delay; it is not evidence of a stalled test process.
+- No timeout change was made because this run establishes a baseline but does not determine an appropriate timeout threshold. The Starlette/httpx deprecation warning and Node.js 20 action deprecation notices are maintenance observations, not CI failures.
+- PR #321 remains Draft/unmerged. Keep it blocked pending DEC-130 evidence acceptance. No historical source is accepted, and M61 remains paused.
+
+### Remaining acceptance work
+
+- [ ] Contact EGID for a dated sample, field semantics, source lineage, revision/correction policy, coverage, and written licensing/retention terms.
+- [ ] If the owner deliberately provisions an authorized free DataCedar key, perform only the bounded metadata-first diagnostic after confirming permitted query and retention scope; do not expand into archive replication.
+- [ ] Independently reconcile the 70 review rows and 51 OHLC geometry exceptions without editing canonical observations absent evidence and explicit review.
+- [ ] Obtain point-in-time financial snapshots and complete the DEC-130 immutable evidence package before any M61 evaluation.
+
+---
+
 ## DataCedar candidate review and post-merge CI closeout — 2026-11-11
 
 **Status: PR #502 merged; post-merge CI passed 6/6; no source accepted and M61 remains paused.**

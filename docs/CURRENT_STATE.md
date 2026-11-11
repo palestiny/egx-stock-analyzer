@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-11 (PR #503 merge and post-merge CI closeout)
+
+- PR #503, documentation-only historical data source review closeout, merged into `main` as `f9a75726f6ca61924f64886b169830a555b019e6`. Its exact PR head `ff8cdc2d386a0278ddc3eb529ff67d05360bb3dc` passed all six required CI jobs before merge.
+- Post-merge workflow run [#42951664652](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42951664652) completed with conclusion `success` on the exact merge SHA `f9a75726f6ca61924f64886b169830a555b019e6`. All six jobs passed.
+- Python 3.12 unit tests completed: **1,661 passed, 8 deselected, 1 warning** in 309.44 seconds. Total coverage was **90.58%**, exceeding the configured 85% minimum. Lint and mypy type-check also passed. The observed duration is the test suite's measured runtime, not evidence of a hung runner.
+- The sole test warning was Starlette's deprecation notice about using httpx with `starlette.testclient`; it did not fail the job. The logs also reported upstream Node.js 20 deprecation notices for the pinned checkout/setup actions. Track these as maintenance items; do not conflate them with test failures.
+- No workflow timeout change was made: this run provides a measured baseline of approximately 5m 9s for pytest, but does not by itself justify an arbitrary timeout value.
+- Current `main` is `f9a75726f6ca61924f64886b169830a555b019e6`. PR #321 remains Draft and unmerged; M61 remains blocked pending DEC-130 evidence acceptance. No provider selection, paid plan, ingestion, canonical CSV edit, or analysis-eligibility promotion is authorized.
+
+**Authority:** GitHub PR #503, exact-head CI run #42950852464, post-merge run #42951664652 and its unit-test job logs.  
+**Last reviewed:** 2026-11-11; main `f9a75726f6ca61924f64886b169830a555b019e6`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (DataCedar candidate review and post-merge CI closeout)
 
 - PR #502, **DataCedar EGX source candidate review**, merged into `main` as `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. Its exact PR head `783c34ae092a96ca651985f0837e7d1a40da2481` passed all six required CI jobs in run #42949076002 before merge.
