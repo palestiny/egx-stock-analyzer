@@ -1,5 +1,6 @@
 ## Daily-history retrieval precision and row-level review inventory — 2026-11-11
 
+- First authorized-source contact identified: EGID states that it is a fully owned EGX subsidiary and sole authorized market-data provider; its Market Data Department contact is `marketdata@egidegypt.com`. Arab Finance's 2023 interview also describes EGID as EGX's sole distributor and says other vendors receive data from EGID. Request an exact dated sample and written terms; no EGID data sample, feed contract, or field semantics have yet been verified. References: https://egidegypt.com/ ; https://egidegypt.com/contact-us.html ; https://arabfinance.com/en/News/newdetails/5055
 **Status: retrieval-precision audit improvement merged; 70-row review inventory documented; independent source reconciliation remains open.**
 
 - PR #500 merged as `386b710cb74e34697ceae7d5a883067d7f1c4699` after all six exact-head CI jobs passed in run #42946596578. Python tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold.
