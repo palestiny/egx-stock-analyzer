@@ -1,3 +1,24 @@
+## Daily-history retrieval precision and row-level review inventory — 2026-11-11
+
+**Status: retrieval-precision audit improvement merged; 70-row review inventory documented; independent source reconciliation remains open.**
+
+- PR #500 merged as `386b710cb74e34697ceae7d5a883067d7f1c4699` after all six exact-head CI jobs passed in run #42946596578. Python tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold.
+- The audit now distinguishes 233 timezone-aware retrieval timestamps from 22 date-only values. All 22 date-only values belong to the EGAL seed and retain their original date-only form.
+- Canonical CSV identity: Git blob `3c01a843c225d226dc49e7c302220a280cfafb57`; SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`. Structural findings: 255 rows, 61 symbols, 31 sessions, 51 OHLC exceptions, 70 review rows, no malformed rows, and no duplicate keys.
+- PR #501 adds a row-level review inventory with all 70 keys, source links, original OHLC values, 22 date-only retrieval rows, and the 19 original source-conflict notes. It is open/draft at head `b9f4ec62ef272ee2f31e41bf09edbe632436e26d`; CI run #42947547289 is still pending/in progress.
+- All source conflicts and OHLC exceptions remain unresolved pending independent evidence. No values were changed, no source provider was selected, and no analysis/backtest eligibility was promoted.
+
+### Remaining acceptance work
+
+- [ ] Verify all 70 review items against official EGX evidence or contractually authorized/independent sources.
+- [ ] Preserve raw evidence, exact source identity, retrieval timestamps, timezone, units, price semantics, and checksums.
+- [ ] Record one explicit reviewer disposition and rationale for each item; second-review proposed alternatives/rejections.
+- [ ] Establish exchange-session/universe coverage, revision handling, and written licensing/retention/redistribution terms.
+- [ ] Keep all review rows excluded from clean OHLC analysis/backtests until their relevant evidence passes.
+- [ ] Keep M61 paused; no provider selection, ingestion, automated correction, or eligibility promotion without separate approval.
+
+---
+
 ## Daily-history source-reconciliation gate — 2026-11-10
 
 **Status: design/research gate documented; no independent provider selected and no source values changed.**
