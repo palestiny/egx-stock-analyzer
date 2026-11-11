@@ -1,3 +1,16 @@
+## Latest verified continuation — 2026-11-11 (current-main CI and OHLC triage closeout)
+
+- PR #506 forensic triage merged as `c531969245591e93b817b542452470a7899dc4b6`; post-merge run #42988609864 passed all six jobs.
+- PR #504 introduced bounded CI job timeouts and merged; exact-head run #42952211069 passed.
+- Current `main` is `cc08f399779164ad0d40a4375f5ca4e310c88009`; post-merge run #42989380564 passed all six jobs on that exact SHA. The latest unit-test job, integration tests, frontend, dependency audit, container build, and read-only daily-history audit all succeeded.
+- Operational follow-up remains evidence acquisition/reconciliation, not price correction: 51 OHLC geometry exceptions and 19 source/revision conflicts remain unresolved (70 review rows total). Preserve the canonical CSV unchanged.
+- DEC-130 remains open. EGID is the preferred authorized-source contact route; DataCedar is a bounded diagnostic candidate only. No source is accepted, and no provider selection, paid plan, ingestion, adapter, eligibility promotion, or M61 activation is authorized. PR #321 remains Draft/unmerged.
+
+**Baseline:** `main` `cc08f399779164ad0d40a4375f5ca4e310c88009`; post-merge CI run #42989380564 passed 6/6.  
+**Last reviewed:** 2026-11-11.
+
+---
+
 ## OHLC anomaly triage and post-PR #505 CI — 2026-11-11
 
 - [x] PR #505 merged as `cd75815cc749674321ffd273dde917dd44040cf8`; all six exact-head CI jobs passed on `c7f3a5bec3012db3b923384b169ab12eb9580685`.
