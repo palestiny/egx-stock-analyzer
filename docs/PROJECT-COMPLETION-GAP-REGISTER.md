@@ -6,7 +6,7 @@
 - PR #500 merged as `386b710cb74e34697ceae7d5a883067d7f1c4699` after all six exact-head CI jobs passed in run #42946596578. Python tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold.
 - The audit now distinguishes 233 timezone-aware retrieval timestamps from 22 date-only values. All 22 date-only values belong to the EGAL seed and retain their original date-only form.
 - Canonical CSV identity: Git blob `3c01a843c225d226dc49e7c302220a280cfafb57`; SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`. Structural findings: 255 rows, 61 symbols, 31 sessions, 51 OHLC exceptions, 70 review rows, no malformed rows, and no duplicate keys.
-- PR #501 adds a row-level review inventory with all 70 keys, source links, original OHLC values, 22 date-only retrieval rows, and the 19 original source-conflict notes. It is open/draft at head `b9f4ec62ef272ee2f31e41bf09edbe632436e26d`; CI run #42947547289 is still pending/in progress.
+- PR #501 merged as `6d0cbd50c937f9de584ae0e0186e130eacc1e399` after all six exact-head CI jobs passed in run #42947547289 on `b9f4ec62ef272ee2f31e41bf09edbe632436e26d`. Python unit tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58%. The merged inventory preserves all 70 row keys, source links, original OHLC values, 22 date-only retrieval rows, and 19 original source-conflict notes.
 - All source conflicts and OHLC exceptions remain unresolved pending independent evidence. No values were changed, no source provider was selected, and no analysis/backtest eligibility was promoted.
 
 ### Remaining acceptance work
