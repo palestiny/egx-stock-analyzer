@@ -62,11 +62,12 @@ def _decimal(value: str, field: str, row_number: int) -> Decimal | None:
     return parsed
 
 
-def _validate_retrieved_at(value: str, row_number: int) -> None:
+def _validate_retrieved_at(value: str, row_number: int) -> str:
+    """Validate retrieval provenance and report its available time precision."""
     raw = value.strip()
     try:
         date.fromisoformat(raw)
-        return
+        return "date_only"
     except ValueError:
         pass
     try:
@@ -75,6 +76,7 @@ def _validate_retrieved_at(value: str, row_number: int) -> None:
         raise ValueError(f"row[{row_number}]:invalid_retrieved_at={value!r}") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError(f"row[{row_number}]:retrieved_at_timezone_missing")
+    return "timezone_aware_timestamp"
 
 
 def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, object]:
@@ -119,6 +121,8 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
     ohlc_failures: list[dict[str, object]] = []
     unlabelled_ohlc_failures: list[dict[str, object]] = []
     review_rows: list[dict[str, str]] = []
+    retrieval_time_precision_counts: Counter[str] = Counter()
+    date_only_retrieval_rows: list[dict[str, str]] = []
     parsed_dates: list[date] = []
     symbols: set[str] = set()
     session_counts: Counter[str] = Counter()
@@ -165,7 +169,15 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
             row_problems.append("unknown_quality_status")
         if row["retrieved_at"].strip():
             try:
-                _validate_retrieved_at(row["retrieved_at"], row_number)
+                precision = _validate_retrieved_at(row["retrieved_at"], row_number)
+                retrieval_time_precision_counts[precision] += 1
+                if precision == "date_only":
+                    date_only_retrieval_rows.append({
+                        "row": str(row_number),
+                        "session_date": session,
+                        "symbol": symbol,
+                        "retrieved_at": row["retrieved_at"].strip(),
+                    })
             except ValueError as exc:
                 row_problems.append(str(exc).split(":", 1)[-1])
 
@@ -272,6 +284,11 @@ def audit_csv_text(content: str, source_path: str = "<memory>") -> dict[str, obj
             if latest_date and row["session_date"].strip() == latest_date
         }),
         "quality_status_counts": dict(sorted(quality_counts.items())),
+        "retrieval_time_precision_counts": {
+            "timezone_aware_timestamp": retrieval_time_precision_counts["timezone_aware_timestamp"],
+            "date_only": retrieval_time_precision_counts["date_only"],
+        },
+        "date_only_retrieval_rows": date_only_retrieval_rows,
         "missing_value_counts": dict(sorted(missing_counts.items())),
         "duplicate_keys": duplicates,
         "duplicate_extra_rows": duplicate_extra_rows,
