@@ -1,3 +1,16 @@
+## Latest verified continuation — 2026-11-11 (PR #508 post-merge CI closeout)
+
+- Post-merge main run [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) completed successfully on exact main SHA `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; all six required jobs passed.
+- The Python 3.12 unit-test job completed successfully, including lint, type-check, and coverage test steps. The read-only daily-history audit artifact is #13845680026.
+- PR #508's Nov 4–5 evidence register is merged. It records evidence and unresolved discrepancies; it does not authorize corrections.
+- The 70 review rows (51 OHLC geometry exceptions and 19 source/revision conflicts) remain unresolved. Canonical CSV unchanged; preserve every original observation.
+- DEC-130 remains open. No source accepted, provider selected, paid plan, ingestion, adapter, eligibility promotion, or M61 activation. PR #321 remains Draft/unmerged.
+
+**Baseline:** `main` `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; post-merge CI run #42998190190 passed 6/6.  
+**Last reviewed:** 2026-11-11.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (current-main CI and OHLC triage closeout)
 
 - PR #506 forensic triage merged as `c531969245591e93b817b542452470a7899dc4b6`; post-merge run #42988609864 passed all six jobs.
