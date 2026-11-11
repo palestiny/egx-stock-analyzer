@@ -1,3 +1,20 @@
+## Latest acquisition checkpoint — 2026-11-11 (PR #508 post-merge CI)
+
+**Status: CI green; no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
+
+- Main commit: `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1` (PR #508).
+- Post-merge run [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) completed successfully on that exact SHA; all six jobs passed, including Python unit tests, lint, type-check, integration tests, frontend tests, dependency audit, container build, and daily-history audit.
+- Read-only audit artifact: #13845680026. Canonical CSV identity remains blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`.
+- The Nov 4–5 evidence register is documentation-only. The 51 OHLC geometry exceptions and 19 source/revision conflicts remain unresolved; do not infer corrected values or promote rows.
+- EGID remains the preferred authorized-source contact route; DataCedar remains a diagnostic candidate only. No source is accepted and no provider selection, paid plan, authenticated access, ingestion, adapter, eligibility promotion, or M61 activation is authorized. PR #321 remains Draft/unmerged.
+
+**Next gate:** DEC-130 requires immutable authorized market-data evidence, field/session semantics, revision policy, coverage, written use/retention rights, and point-in-time financial evidence before M61 evaluation.
+
+**Authority:** GitHub `main`, PR #508, post-merge CI run #42998190190, artifact #13845680026.  
+**Last reviewed:** 2026-11-11; post-merge CI 6/6 successful.
+
+---
+
 ## Latest acquisition checkpoint — 2026-11-11 (post-PR #506/#504 current-main CI)
 
 **Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
