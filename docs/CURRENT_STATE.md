@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-11 (DataCedar candidate review and post-merge CI closeout)
+
+- PR #502, **DataCedar EGX source candidate review**, merged into `main` as `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. Its exact PR head `783c34ae092a96ca651985f0837e7d1a40da2481` passed all six required CI jobs in run #42949076002 before merge.
+- Post-merge workflow run #42949638348 completed successfully on that exact merge commit. All six jobs passed: dependency audit, integration tests (Python 3.12), container build, frontend tests, daily-history audit report, and unit tests (Python 3.12). The unit-test job completed; the workflow conclusion is `success`. This closes the previously pending post-merge CI check.
+- PR #502 adds `docs/M61-DATACEDAR-EGX-SOURCE-CANDIDATE-REVIEW.md` and `docs/M61-DATACEDAR-LIVE-DOCS-RECHECK-2026-11-11.md`. DataCedar remains a candidate for a bounded recent-history diagnostic only, not an accepted M61 source. Explorer's documented one-year daily-history limit cannot meet the 2021–2025 evaluation period plus 252-session warm-up. The pricing matrix's raw-close-only statement conflicts with the API adjustment parameters and requires written clarification.
+- No DataCedar API key was used; no authenticated request, price-row download, or persistent market-data extraction was performed. No plan was purchased. Provider selection, ingestion, production adapter, canonical CSV edits, analysis eligibility promotion, and M61 activation remain unauthorized.
+- The latest read-only daily-history audit artifact for this main commit is artifact #13824232626. The canonical market-history CSV was not modified by PR #502. Existing 70-row review inventory and 51 OHLC exceptions remain unresolved; structural validity is not source authentication.
+- Current `main` remains `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. PR #321 remains the only pre-existing product/M61 PR; it is Draft and unmerged, and its M61 Strategy v0 COMI test remains blocked pending DEC-130 evidence acceptance. PR #503 is this documentation-only closeout PR.
+
+**Authority:** GitHub `main`, PR #502, exact-head run #42949076002, post-merge run #42949638348, and artifact #13824232626.  
+**Last reviewed:** 2026-11-11; main `33abc76c322f90af5a5ff583dd0a956ee1aabea7`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (retrieval precision and row-level review inventory)
 
 - **Authorized source route identified for follow-up:** EGID's own site states that it is a fully owned EGX subsidiary and the sole authorized EGX market-data provider, and describes its market-data feed service. Its contact page lists `marketdata@egidegypt.com`. A 2023 Arab Finance interview independently describes EGID as EGX's sole distributor and says other data vendors obtain data from EGID. This makes EGID the preferred first commercial/technical contact for an authorized sample; it does **not** mean a sample, contract, historical OHLC fields, or redistribution rights have been verified. References: https://egidegypt.com/ ; https://egidegypt.com/contact-us.html ; https://arabfinance.com/en/News/newdetails/5055
