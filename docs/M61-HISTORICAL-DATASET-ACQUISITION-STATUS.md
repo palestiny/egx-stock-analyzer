@@ -1,27 +1,31 @@
-## Latest acquisition checkpoint — 2026-11-11 (supersedes earlier candidate ordering)
+## Latest acquisition checkpoint — 2026-11-11 (post-PR #505 CI and OHLC triage)
 
 **Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
 
-This checkpoint supersedes the older "next source-validation target is Mansa Markets" ordering below. That statement records the research state as of 2026-09-25 and is retained as historical context, not as the current acquisition instruction.
+- Current GitHub `main`: `cd75815cc749674321ffd273dde917dd44040cf8`. Post-merge CI run [#42953081919](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42953081919) passed all six jobs on that exact SHA. Python 3.12 tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58%.
+- Latest read-only audit artifact #13825822366 confirms 255 rows, 61 symbols, 31 sessions, 51 OHLC geometry exceptions and 70 review rows. Canonical CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57` and SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3` remain unchanged.
+- The 51 OHLC exceptions have a diagnostic triage in `docs/OHLC-ANOMALY-FORENSIC-TRIAGE-2026-11-11.md`: 30 occur on 4–5 November; 22 of 40 comparable opens match the previous same-symbol close within 1e-8; 34 rows are equities and 17 are indices. These patterns are not a root-cause determination or independent source reconciliation. All remain unresolved.
+- **EGID remains the preferred first authorized-source contact**. No sample, feed contract, authenticated access, coverage, correction policy, or licensing/retention rights have been verified.
+- **DataCedar remains a candidate only** for a bounded recent-history diagnostic, not an accepted M61 archive source. Its public Explorer limit and adjustment-semantics discrepancy remain as documented in PR #502; no key or paid plan is authorized.
+- PR #321 remains Draft/unmerged. No provider selection, paid plan, ingestion, production adapter, canonical CSV edit, analysis-eligibility promotion, or M61 activation is authorized.
 
 ### Current source priority and evidence boundary
 
-1. **EGID is the preferred first authorized-source contact**, based on its stated EGX ownership/authorized distributor role. Its public site/contact information identifies the Market Data Department (marketdata@egidegypt.com). This is a contact route, not proof that a sample, historical OHLCV coverage, API entitlement, correction policy, or long-term storage/backtest license has been obtained.
-2. **DataCedar remains a candidate only for a bounded recent-history diagnostic**, not an accepted M61 archive source. PR #502's review documents an Explorer one-year daily-history limit, insufficient for the 2021–2025 evaluation window plus 252-session warm-up. Its public pricing matrix says Explorer has raw-close-only corporate-action data, while API docs expose adjustment parameters; obtain written clarification and actual authorized response evidence before interpreting this capability. The EGX sitemap statement about pages with sufficient history is not proof that the API has zero history for every symbol; actual authorized per-symbol range evidence is still required.
-3. **Mansa Markets, ICE, EGX.news, Yahoo, and other candidates remain unaccepted** unless current exact coverage, raw artifact retention, source lineage, field semantics, revision behavior, and written intended-use rights are independently verified. Mansa's previously documented API capability does not by itself grant long-term immutable archival/backtest rights.
-
-### Current archive evidence
-
-The committed daily-history audit and review inventory identify 255 observations across 61 symbols and 31 sessions, 51 OHLC geometry exceptions, and 70 rows requiring review. The canonical CSV has not been repaired or replaced. Structural candidates are not source-authenticated. Missing volume, traded value, and execution counts remain unknown rather than zero. Preserve the original CSV and row provenance; any successor observation requires independent evidence and explicit review.
+1. **EGID is the preferred first authorized-source contact**, based on its stated EGX ownership/authorized distributor role. Its public site/contact information identifies the Market Data Department (`marketdata@egidegypt.com`). This is a contact route, not proof that a sample, historical OHLCV coverage, API entitlement, correction policy, or long-term storage/backtest license has been obtained.
+2. **DataCedar remains a candidate only for a bounded recent-history diagnostic**, not an accepted M61 archive source. Explorer's documented one-year daily-history limit is insufficient for the 2021–2025 evaluation window plus 252-session warm-up. Obtain written clarification of the raw/adjusted data discrepancy and actual authorized response evidence.
+3. **Mansa Markets, ICE, EGX.news, Yahoo, and other candidates remain unaccepted** unless current exact coverage, raw artifact retention, source lineage, field semantics, revision behavior, and written intended-use rights are independently verified.
 
 ### Next authorized work
 
 - Request from EGID a dated sample covering disputed rows and controls, plus complete field/timezone/unit definitions, source lineage, correction/revision policy, symbol/index coverage, and written licensing/retention/backtest rights.
+- Apply the reconciliation protocol to the 70 review rows with immutable evidence and explicit reviewer dispositions.
 - Do not buy a plan, use credentials, make authenticated requests, bulk-extract, retain raw vendor rows, build a production adapter, or change the canonical archive without explicit owner authorization and verified permitted scope.
 - Do not activate M61 or merge PR #321 until market data and point-in-time financial evidence satisfy DEC-130, including the immutable manifest and all acceptance checks.
 
-**Authority:** DEC-130, PR #502 and its merged DataCedar review documents, daily-history audit/inventory, and GitHub main at 33abc76c322f90af5a5ff583dd0a956ee1aabea7.  
-**Last reviewed:** 2026-11-11.
+**Authority:** DEC-130, PR #502/#505, post-merge CI run #42953081919, audit artifact #13825822366, canonical CSV identity above, and GitHub `main`.  
+**Last reviewed:** 2026-11-11; main `cd75815cc749674321ffd273dde917dd44040cf8`; post-merge CI 6/6 successful.
+
+---
 
 ---
 
