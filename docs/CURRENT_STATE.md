@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-11 (PR #508 post-merge main CI closeout)
+
+- PR #508, `docs(data): add Nov 4–5 OHLC evidence register`, is merged as `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`. The merged evidence register is `docs/EGX-2026-11-04-05-OHLC-EVIDENCE-REGISTER.md`; it is documentation-only and does not alter market observations.
+- Post-merge main workflow run [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) completed with conclusion `success` on the exact merge SHA `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`.
+- All six required jobs passed: `unit-tests (3.12)`, `integration-tests (3.12)`, `frontend-tests`, `dependency-audit`, `container-build`, and `daily-history-audit-report`. The Python unit-test job's full step sequence completed successfully, including lint, type checking, and unit tests with coverage. Do not infer a specific test count or coverage percentage from this run's job summary; only the successful job conclusion is confirmed here.
+- The read-only daily-history audit artifact is #13845680026 (`egx-daily-history-audit-cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`), 3,523 bytes, not expired at the time of verification.
+- Canonical CSV remains unchanged: blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`. The 70 review rows, including 51 OHLC geometry exceptions and 19 source/revision conflicts, remain unresolved. The evidence register and forensic triage are not proof of root cause or corrected values.
+- DEC-130 remains the historical-data acceptance gate. EGID remains the preferred authorized-source contact route; DataCedar remains an unaccepted candidate for bounded diagnostics only. No provider selection, paid plan, credential use, ingestion, production adapter, canonical CSV edit, analysis-eligibility promotion, or M61 activation is authorized. PR #321 remains Draft/unmerged.
+
+**Authority:** GitHub `main`, merged PR #508, post-merge run #42998190190, unit-test job #130447433869, and audit artifact #13845680026.  
+**Last reviewed:** 2026-11-11; main `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (PR #506/#504 and current-main CI closeout)
 
 - PR #506, read-only OHLC anomaly forensic triage, is merged as `c531969245591e93b817b542452470a7899dc4b6`. Its post-merge main run [#42988609864](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42988609864) completed successfully with all six jobs.
