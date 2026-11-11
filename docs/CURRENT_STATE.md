@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-11 (PR #505 merged; post-merge CI passed; OHLC triage recorded)
+
+- PR #505, documentation-only CI closeout, merged as `cd75815cc749674321ffd273dde917dd44040cf8`. Its exact head `c7f3a5bec3012db3b923384b169ab12eb9580685` passed all six required CI jobs in run #42952568050 before merge.
+- Post-merge `main` run [#42953081919](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42953081919) completed successfully on the exact merge SHA; all six jobs passed.
+- Python 3.12 tests: **1,661 passed, 8 deselected, 1 warning** in 298.49 seconds; coverage **90.58%**, above the 85% minimum. Ruff lint and mypy type-check passed. The warning is Starlette's httpx/TestClient deprecation; Node.js 20 / punycode deprecation notices are maintenance items, not CI failures.
+- The post-merge audit artifact is #13825822366. Canonical CSV remains blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`, 255 rows, 61 symbols, 31 sessions, 70 review rows, and 51 OHLC exceptions.
+- Read-only forensic triage is documented in `docs/OHLC-ANOMALY-FORENSIC-TRIAGE-2026-11-11.md`: 48 open-below-low, 3 open-above-high; 34 equities and 17 indices; 30 exceptions occur on 4–5 November; 22 of 40 comparable opens match the preceding same-symbol close within 1e-8. All flagged rows remain within the Investing.com source family. These correlations are investigation clues, not proof of root cause or corrected values.
+- The canonical CSV was not edited. No source was accepted, no ingestion/provider selection or eligibility promotion occurred, and M61 remains paused. PR #321 remains Draft/unmerged pending DEC-130.
+  
+**Authority:** GitHub PR #505, exact-head run #42952568050, post-merge run #42953081919, artifact #13825822366, and canonical CSV blob above.  
+**Last reviewed:** 2026-11-11; main `cd75815cc749674321ffd273dde917dd44040cf8`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (PR #503 merge and post-merge CI closeout)
 
 - PR #503, documentation-only historical data source review closeout, merged into `main` as `f9a75726f6ca61924f64886b169830a555b019e6`. Its exact PR head `ff8cdc2d386a0278ddc3eb529ff67d05360bb3dc` passed all six required CI jobs before merge.
