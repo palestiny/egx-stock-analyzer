@@ -151,7 +151,33 @@ Every item remains pending evidence review. This inventory does not assign a for
 | 255 | 2026-11-10 | EGX70EWI | OHLC inconsistency | 17959.58 | 18495.97 | 17999.03 | 18495.97 | Open < Low | 2026-11-10T19:16:35+02:00 | [source](https://www.investing.com/indices/egx-70-historical-data) |
 | 256 | 2026-11-10 | EGX100EWI | OHLC inconsistency | 23869.07 | 24495.46 | 23939.07 | 24495.46 | Open < Low | 2026-11-10T19:16:35+02:00 | [source](https://www.investing.com/indices/egx-100-ewi-historical-data) |
 
-## 4. Evidence and disposition rules
+## 4. Preserved source-conflict notes
+
+The notes below retain the conflict descriptions already present in the canonical CSV. They are observations and comparison leads, not independently verified conclusions. Localized pages from Investing.com remain same-provider evidence and are not independent corroboration.
+
+| CSV row | Session | Symbol | Original canonical note | Selected source |
+|---:|---|---|---|---|
+| 2 | 2026-10-28 | EGAL | Archived values retained. Current same-provider page shows open=305.00 high=307.20 volume=191.13K versus archived open=303.50 high=307.00 volume=189.55K. Reconciliation pending. | [source](https://ng.investing.com/equities/egypt-aluminum-historical-data) |
+| 56 | 2026-11-01 | VERT | Historical-data table reports close=4.050 and volume=224.90K; another Investing.com quote result showed 4.130 and 177.65K. Preserved the historical-table row pending reconciliation. | [source](https://ng.investing.com/equities/vertika-historical-data) |
+| 67 | 2026-11-01 | EGX30 | Source displayed volume=222.10M, normalized to thousands. Other Investing.com result variants reported a different open and/or volume for this date; values retained from the NG historical-data result pending reconciliation. | [source](https://ng.investing.com/indices/egx30-historical-data) |
+| 68 | 2026-11-01 | EGX30CAP | Source displayed volume=222.10M, normalized to thousands. Other Investing.com result variants reported a different open and/or volume for this date; values retained from the NG historical-data result pending reconciliation. | [source](https://ng.investing.com/indices/egx-20-capped-historical-data) |
+| 69 | 2026-11-01 | EGX33 | Source displayed volume=126.07M, normalized to thousands. Another Investing.com result variant reported close=5876.90 with different range and volume; retained this historical-data result pending reconciliation. | [source](https://ng.investing.com/indices/egx-33-shariah-compliant-index-historical-data) |
+| 95 | 2026-11-02 | CIEB | Selected global Investing.com table reports close=22.50 and volume=220.37K. Another regional Investing.com result reports close=22.48 and volume=315.61K; retain selected row pending reconciliation. | [source](https://www.investing.com/equities/credit-agricol-historical-data) |
+| 96 | 2026-11-02 | ELEC | Selected global Investing.com table reports close=1.490 and volume=21.89M. Other regional results report materially different close and volume; retain selected row pending reconciliation. | [source](https://www.investing.com/equities/electro-cable-historical-data) |
+| 97 | 2026-11-02 | FAIT | Polish Investing.com result reports close=43.60 and volume=3.66K. Turkish result reports close=42.50 and volume=16.13K; retain selected row pending reconciliation. | [source](https://pl.investing.com/equities/faisal-islmc-e-historical-data) |
+| 98 | 2026-11-02 | EGX30 | Source displayed volume=202.52M normalized to thousands. Another retrieved Investing.com result variant reported close=47,862.37 and volume=162.94M; preserve this selected result pending reconciliation. | [source](https://ng.investing.com/indices/egx30-historical-data) |
+| 127 | 2026-11-03 | EGX30 | Source displayed volume=176.08M; normalized to thousands in volume_thousands_reported. Selected NG historical table reports these values. Other regional Investing.com result variants disagree on the 2026-11-03 close and/or volume; reconciliation pending. | [source](https://ng.investing.com/indices/egx30-historical-data) |
+| 141 | 2026-11-04 | ETEL | Source-displayed volume=943.95K normalized to thousands. Page header quote/change differs from historical table close/change; historical table OHLC is internally consistent. | [source](https://ph.investing.com/equities/telecom-egypt-historical-data) |
+| 177 | 2026-11-05 | FWRY | Main historical table reports 17.32 close and 1.68M volume; PH and CA locales report 17.36 and about 6.1-6.2M volume. Preserve selected page values pending reconciliation. | [source](https://www.investing.com/equities/fawry-banking-and-payment-historical-data) |
+| 178 | 2026-11-05 | EGX30 | Selected Turkish historical row has internally consistent OHLC and 51,152.73 close, corroborated by same-day Egyptian market recap; other localized pages disagree on open and volume. Source displayed volume 260.89M is normalized to thousands; index-volume meaning is not independently validated. | [source](https://tr.investing.com/indices/egx30-historical-data) |
+| 179 | 2026-11-05 | EGX30CAP | Selected main-page historical row is internally consistent; CA locale shows a different close/open/volume for the same date. Preserve selected page values pending reconciliation. | [source](https://www.investing.com/indices/egx-20-capped-historical-data) |
+| 185 | 2026-11-05 | ADIB | Selected ZA historical row reports 49.01 close and 2.56M volume, matching same-day market recap change near -1.0%; main-domain historical page reports 50.00 close and 1.64M volume. Preserve selected page pending reconciliation. | [source](https://za.investing.com/equities/abu-dhabi-islamic-bank-egypt-historical-data) |
+| 203 | 2026-11-08 | ORAS | Selected PH historical row reports close=801.00 and volume=124.43K. An Italian localized page reports close=811.00 and volume=1.94K (+0.12%). Preserved the PH row pending reconciliation; volume normalized to thousands. | [source](https://ph.investing.com/equities/orascom-construction-ltd-historical-data) |
+| 204 | 2026-11-08 | HELI | Selected CA historical row reports close=6.90 and volume=5.68M (-0.58%). A Dutch localized page reports close=6.88 and volume=5.47M (-0.86%). Preserved the CA row pending reconciliation; volume normalized to thousands. | [source](https://ca.investing.com/equities/heliopolis-housing-historical-data) |
+| 217 | 2026-11-09 | PHDC | Source displayed volume=2.02M; normalized to thousands. Per-security traded value and execution count were not supplied by the retrieved daily row. Selected English historical row reports close=11.940, low=11.940, volume=2.02M and -0.58%. A Philippines-localized Investing.com page reports close=11.900, low=11.820, volume=5.33M and -0.92%. Preserved the selected English row pending reconciliation. | [source](https://www.investing.com/equities/palm-hill-dev-historical-data) |
+| 228 | 2026-11-09 | EGX30 | Source displayed index-page volume=186.17M; normalized to thousands. Index-page volume comparability is not independently verified; per-instrument traded value and execution count were not supplied. Selected English historical row reports open=50,841.73, high=51,432.95, low=50,831.06, close=51,414.93 and volume=186.17M. NG-localized page reports different open/high/low (50,812.07/51,433.14/50,827.90) with the same close, change and volume. Preserved English row pending reconciliation; index-page volume comparability is unverified. | [source](https://www.investing.com/indices/egx30-historical-data) |
+
+## 5. Evidence and disposition rules
 
 Follow `docs/EGX-DAILY-HISTORY-RECONCILIATION-PROTOCOL.md`:
 
@@ -163,7 +189,7 @@ Follow `docs/EGX-DAILY-HISTORY-RECONCILIATION-PROTOCOL.md`:
 6. A geometrically valid OHLC bar is not proof of source accuracy. A mismatch with another provider is not, by itself, proof of invalidity.
 7. Keep unresolved/review rows excluded from clean OHLC analysis and backtesting until the relevant evidence and acceptance checks pass.
 
-## 5. Downstream boundary
+## 6. Downstream boundary
 
 - No source data was changed by this inventory.
 - No price, volume, traded value, or executions count was repaired or inferred.
