@@ -1,3 +1,19 @@
+## Latest verified continuation — 2026-11-11 (retrieval precision and row-level review inventory)
+
+- **Authorized source route identified for follow-up:** EGID's own site states that it is a fully owned EGX subsidiary and the sole authorized EGX market-data provider, and describes its market-data feed service. Its contact page lists `marketdata@egidegypt.com`. A 2023 Arab Finance interview independently describes EGID as EGX's sole distributor and says other data vendors obtain data from EGID. This makes EGID the preferred first commercial/technical contact for an authorized sample; it does **not** mean a sample, contract, historical OHLC fields, or redistribution rights have been verified. References: https://egidegypt.com/ ; https://egidegypt.com/contact-us.html ; https://arabfinance.com/en/News/newdetails/5055
+- PR #500 merged into `main` as `386b710cb74e34697ceae7d5a883067d7f1c4699`. Exact PR head `a747e775e2acf239f4b07b1ebf7cf9f445bf1369` passed all six required CI jobs in run #42946596578 before merge.
+- The Python unit-test job completed with **1,661 passed, 8 deselected, 1 warning** in 308.25 seconds. Total measured coverage was **90.58%**, above the configured 85% threshold. Lint, type checking, frontend tests/build, deterministic integration tests, dependency audit, container build, and the read-only daily-history audit all passed on the exact PR head.
+- PR #500 improves provenance reporting only: retrieval metadata is counted as timezone-aware timestamps versus date-only values, and date-only rows are listed without inventing a time or timezone. It does not authenticate the provider or promote analysis eligibility.
+- The canonical CSV remains Git blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`, 101,315 bytes. The exact read-only audit artifact reports 255 rows, 61 symbols, 31 sessions, 51 OHLC geometry exceptions, 70 review-labelled rows, 0 malformed rows, and 0 duplicate keys.
+- The report distinguishes 48 open-below-low cases and 3 open-above-high cases. It records 233 timezone-aware retrieval timestamps and 22 date-only values (all from the initial EGAL seed), 255 missing traded-value fields, 255 missing execution-count fields, and 23 missing volume fields.
+- PR #501 merged into `main` as `6d0cbd50c937f9de584ae0e0186e130eacc1e399`. Exact PR head `b9f4ec62ef272ee2f31e41bf09edbe632436e26d` passed all six CI jobs in run #42947547289. Python unit tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold. The merged `docs/EGX-DAILY-HISTORY-REVIEW-INVENTORY-2026-11-11.md` records all 70 review rows with CSV row number, original OHLC, retrieval metadata, source URL, 22 date-only rows, and all 19 original source-conflict notes.
+- No canonical CSV values were repaired, replaced, or deleted. The 185 structural candidates remain unauthenticated. No provider was selected, no ingestion was enabled, and M61 remains paused.
+
+**Authority:** GitHub `main`, PRs #500/#501, exact-head runs #42946596578/#42947547289, and audit artifact #13823266584.  
+**Last reviewed:** 2026-11-11; main `6d0cbd50c937f9de584ae0e0186e130eacc1e399`.
+
+---
+
 ## Latest verified continuation — 2026-11-10 (source-reconciliation gate and docs consolidation)
 
 - PR #490 (daily-history audit/classification/baseline documentation) and PR #489 (archive snapshot statistics and acceptance-gap documentation) are both merged. #490 was merged first; #489 followed, preserving the unique archive statistics/checklist rather than discarding overlapping documentation.
@@ -635,3 +651,15 @@ Current daily-history boundary: the audit is a local artifact-structure/quality 
 
 **Authority:** GitHub `main` and run #42894527758; artifact #13799198851.  
 **Last reviewed:** 2026-11-10; main `be8b8fea246870a517f3f80bad9a8123f23efabb`; post-merge CI passed 6/6.
+
+
+## Latest verified continuation — 2026-11-10 (daily-history reconciliation protocol merged)
+
+- PR #497 merged as `0e9bbeccf71d75cece2585e8a95a98c3ea700617`. Its exact-head CI run #42896485869 passed all six required jobs on `fa365a2bc273ded88ccfbc54d1eeca407a35a7e1`. It reconciles the merge state and CI record for PRs #495/#496.
+- PR #498 merged as `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`. Its exact-head CI run #42897109443 passed all six required jobs on `32c4f2aee4dd59a62f583f2f1f07d9d6cbbc2e9a`. It adds `docs/EGX-DAILY-HISTORY-RECONCILIATION-PROTOCOL.md`, defining evidence hierarchy, immutable evidence capture, field-by-field comparison, explicit reviewer dispositions, and closeout criteria. It does not select a provider or authorize data correction/ingestion.
+- Post-merge main CI run #42897359694 on PR #497 merge commit `0e9bbeccf71d75cece2585e8a95a98c3ea700617` completed successfully with all six jobs.
+- Post-merge main CI run #42899130922 targets current main `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`. At this documentation snapshot, five of six jobs have passed and `unit-tests (3.12)` is still running; do not mark the final post-#498 main line green until it completes successfully.
+- The reconciliation protocol is process documentation only. No archive values were repaired/replaced, no provider was selected, no ingestion or eligibility promotion was enabled, and M61 remains paused.
+
+**Authority:** GitHub `main`, PR #497/#498, and exact-head Actions runs above.  
+**Last reviewed:** 2026-11-10; main `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; post-merge run #42899130922 pending unit tests.

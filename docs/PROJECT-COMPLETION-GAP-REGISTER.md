@@ -1,3 +1,25 @@
+## Daily-history retrieval precision and row-level review inventory — 2026-11-11
+
+- First authorized-source contact identified: EGID states that it is a fully owned EGX subsidiary and sole authorized market-data provider; its Market Data Department contact is `marketdata@egidegypt.com`. Arab Finance's 2023 interview also describes EGID as EGX's sole distributor and says other vendors receive data from EGID. Request an exact dated sample and written terms; no EGID data sample, feed contract, or field semantics have yet been verified. References: https://egidegypt.com/ ; https://egidegypt.com/contact-us.html ; https://arabfinance.com/en/News/newdetails/5055
+**Status: retrieval-precision audit improvement merged; 70-row review inventory documented; independent source reconciliation remains open.**
+
+- PR #500 merged as `386b710cb74e34697ceae7d5a883067d7f1c4699` after all six exact-head CI jobs passed in run #42946596578. Python tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58% against an 85% threshold.
+- The audit now distinguishes 233 timezone-aware retrieval timestamps from 22 date-only values. All 22 date-only values belong to the EGAL seed and retain their original date-only form.
+- Canonical CSV identity: Git blob `3c01a843c225d226dc49e7c302220a280cfafb57`; SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`. Structural findings: 255 rows, 61 symbols, 31 sessions, 51 OHLC exceptions, 70 review rows, no malformed rows, and no duplicate keys.
+- PR #501 merged as `6d0cbd50c937f9de584ae0e0186e130eacc1e399` after all six exact-head CI jobs passed in run #42947547289 on `b9f4ec62ef272ee2f31e41bf09edbe632436e26d`. Python unit tests: 1,661 passed, 8 deselected, 1 warning; coverage 90.58%. The merged inventory preserves all 70 row keys, source links, original OHLC values, 22 date-only retrieval rows, and 19 original source-conflict notes.
+- All source conflicts and OHLC exceptions remain unresolved pending independent evidence. No values were changed, no source provider was selected, and no analysis/backtest eligibility was promoted.
+
+### Remaining acceptance work
+
+- [ ] Verify all 70 review items against official EGX evidence or contractually authorized/independent sources.
+- [ ] Preserve raw evidence, exact source identity, retrieval timestamps, timezone, units, price semantics, and checksums.
+- [ ] Record one explicit reviewer disposition and rationale for each item; second-review proposed alternatives/rejections.
+- [ ] Establish exchange-session/universe coverage, revision handling, and written licensing/retention/redistribution terms.
+- [ ] Keep all review rows excluded from clean OHLC analysis/backtests until their relevant evidence passes.
+- [ ] Keep M61 paused; no provider selection, ingestion, automated correction, or eligibility promotion without separate approval.
+
+---
+
 ## Daily-history source-reconciliation gate — 2026-11-10
 
 **Status: design/research gate documented; no independent provider selected and no source values changed.**
@@ -357,3 +379,15 @@ The main report's `analysis_eligibility` is `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURC
 ### CLI findings-path regression
 
 PR #495 merged as `2b18d2d1ac9ea54aa89b17351875802e5970a7ab`; exact-head CI run #42895151535 passed all six jobs on `db52eb8eefa4c54efdd804dfb16d01cd9af111c0`. Its focused subprocess test supplies a structurally parseable CSV with an unlabelled OHLC geometry inconsistency and asserts exit code 1, matching stdout/file JSON, the unlabelled finding count, and unchanged input bytes. PR #496 also merged as `05c3d00e719b3d50c8f9e57dfc73644d54f72a0c` after all six exact-head CI jobs passed in run #42895373313. The latest post-merge main run on the final SHA is queued; verify it before declaring main-line closeout complete.
+
+
+## Daily-history reconciliation protocol — merged, post-merge CI pending (2026-11-10)
+
+- [x] PR #497 reconciled the historical merge/CI record for PRs #495/#496 and merged as `0e9bbeccf71d75cece2585e8a95a98c3ea700617`; exact-head CI run #42896485869 passed 6/6.
+- [x] PR #498 added the evidence-based daily-history reconciliation protocol and merged as `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; exact-head CI run #42897109443 passed 6/6.
+- [x] PR #497 post-merge main CI run #42897359694 passed all six required jobs.
+- [ ] Verify final post-#498 main CI run #42899130922 on `ca556e1c3dd109f6ccb0f981b1c57398ff54e1e5`; at this update five jobs passed and unit tests remained in progress.
+- [ ] Apply the protocol to each of the 70 review-required archive rows using independently captured evidence and explicit reviewer dispositions. The protocol merge itself does not reconcile any row.
+- [ ] Preserve all raw observations; do not repair values, select a provider, ingest data, promote analysis eligibility, or enable M61 without separate evidence and authorization.
+
+The source archive remains structurally auditable but not source-authenticated. Blank volume/traded-value/execution fields remain unavailable, not zero. Review-required rows remain excluded from clean OHLC analysis/backtests until individually reconciled.
