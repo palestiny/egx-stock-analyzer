@@ -12,6 +12,7 @@ concurrency:
 
 jobs:
   unit-tests:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,6 +34,7 @@ jobs:
         run: pytest --cov=app --cov-report=term-missing --cov-fail-under=85 -m "not integration"
 
   integration-tests:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,6 +52,7 @@ jobs:
         run: pytest -m "integration and not external"
 
   frontend-tests:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +78,7 @@ jobs:
         run: npm run build
 
   dependency-audit:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +91,7 @@ jobs:
         run: pip-audit
 
   container-build:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     env:
       EGX_OPERATOR_TOKEN: ci-only-placeholder-token
@@ -114,6 +119,7 @@ jobs:
         run: docker compose down -v
 
   daily-history-audit-report:
+    timeout-minutes: 10
     name: daily-history-audit-report
     runs-on: ubuntu-latest
     permissions:
