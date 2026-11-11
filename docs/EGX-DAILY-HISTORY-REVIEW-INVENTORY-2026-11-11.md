@@ -177,6 +177,10 @@ The notes below retain the conflict descriptions already present in the canonica
 | 217 | 2026-11-09 | PHDC | Source displayed volume=2.02M; normalized to thousands. Per-security traded value and execution count were not supplied by the retrieved daily row. Selected English historical row reports close=11.940, low=11.940, volume=2.02M and -0.58%. A Philippines-localized Investing.com page reports close=11.900, low=11.820, volume=5.33M and -0.92%. Preserved the selected English row pending reconciliation. | [source](https://www.investing.com/equities/palm-hill-dev-historical-data) |
 | 228 | 2026-11-09 | EGX30 | Source displayed index-page volume=186.17M; normalized to thousands. Index-page volume comparability is not independently verified; per-instrument traded value and execution count were not supplied. Selected English historical row reports open=50,841.73, high=51,432.95, low=50,831.06, close=51,414.93 and volume=186.17M. NG-localized page reports different open/high/low (50,812.07/51,433.14/50,827.90) with the same close, change and volume. Preserved English row pending reconciliation; index-page volume comparability is unverified. | [source](https://www.investing.com/indices/egx30-historical-data) |
 
+## 4A. Read-only OHLC anomaly triage — 2026-11-11
+
+The follow-up diagnostic in [OHLC Anomaly Forensic Triage](OHLC-ANOMALY-FORENSIC-TRIAGE-2026-11-11.md) groups the 51 existing geometry exceptions by session and retrieval batch. It finds 30 cases on 4–5 November, 34 equity rows and 17 index rows, and 22 prior-close matches among 40 comparable rows using a numeric tolerance of 1e-8. All flagged source URLs remain within the Investing.com source family. These are diagnostic patterns only: they do not establish a root cause, independent corroboration, or a corrected value. The canonical CSV is unchanged; all 51 rows remain unresolved.
+
 ## 5. Evidence and disposition rules
 
 Follow `docs/EGX-DAILY-HISTORY-RECONCILIATION-PROTOCOL.md`:
