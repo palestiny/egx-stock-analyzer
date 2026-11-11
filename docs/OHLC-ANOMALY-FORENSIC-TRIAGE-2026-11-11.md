@@ -76,6 +76,16 @@ For 40 flagged rows with a preceding same-symbol observation in this archive, 22
 
 This pattern is consistent with several competing possibilities, including a source/display convention, a capture or parsing issue, a genuine market-data representation, or a mismatch in session/field semantics. The present archive cannot distinguish among them. Equality with a prior close is not proof that the open was copied, nor proof that either value is correct.
 
+## 4. Existing collection-log cross-check
+
+The repository's `data/market_history/README.md` supplies additional context about how these batches were recorded:
+
+- For 2026-11-04, it says the collection used per-instrument Investing.com Philippines historical-data pages. It separately records page-header versus historical-table discrepancies for `ETEL`, `FWRY`, `PHAR`, and `MFPC`. Those four are a concrete subset for a field-selection review, but the README does not preserve the original page payloads/screenshots needed to determine which representation was selected for each field.
+- For 2026-11-05, it records differing values across localized Investing.com historical pages for `ABUK`, `ETEL`, `COMI`, `RAYA`, `FWRY`, and `ADIB`. It also documents the 11 OHLC exceptions retained in the archive. This reinforces that locale disagreement is a known same-provider issue, not independent corroboration.
+- For 2026-11-08, the README records an index-page locale discrepancy for `EGX30` and an OHLC open-above-high exception for both `EGX30` and `EGX30CAP`.
+
+This collection-log context makes page-header versus historical-table selection and localized-page disagreement testable review questions. It does not establish that either caused all 51 exceptions. The original captured page payloads are not present in the canonical CSV, so current page content cannot retrospectively prove what was displayed at the recorded retrieval time.
+
 ## 4. Diagnostic interpretation — hypotheses, not findings
 
 1. **Batch-level concentration:** the 19-row and 11-row cohorts on 4 and 5 November deserve first review because many instruments share one retrieval timestamp and the same geometry direction.
