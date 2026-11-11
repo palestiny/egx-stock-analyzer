@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-11 (PR #506/#504 and current-main CI closeout)
+
+- PR #506, read-only OHLC anomaly forensic triage, is merged as `c531969245591e93b817b542452470a7899dc4b6`. Its post-merge main run [#42988609864](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42988609864) completed successfully with all six jobs.
+- PR #504, CI job timeout bounds, is merged. Its exact-head workflow run #42952211069 passed; the change sets explicit per-job timeouts in the test workflow and does not change application behavior or market data.
+- Current `main` is `cc08f399779164ad0d40a4375f5ca4e310c88009`. Post-merge main run [#42989380564](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42989380564) completed with conclusion `success` on that exact SHA; all six jobs passed: unit tests (Python 3.12), integration tests (Python 3.12), frontend tests, dependency audit, container build, and daily-history audit report.
+- The read-only daily-history audit artifact for this run is #13841695149 (`egx-daily-history-audit-cc08f399779164ad0d40a4375f5ca4e310c88009`).
+- The 51 OHLC exceptions and 19 source/revision conflicts remain unresolved; all 70 review rows remain under review. The forensic triage is diagnostic only and does not prove a root cause or corrected value.
+- Canonical market-history CSV remains unchanged. No provider selection, paid plan, ingestion, production adapter, source-authenticity promotion, or M61 activation is authorized. EGID remains the preferred authorized-source contact route; DataCedar remains a candidate for bounded diagnostics only. PR #321 remains Draft/unmerged; M61 remains paused pending DEC-130.
+  
+**Authority:** GitHub `main`, PR #504/#506, post-merge runs #42988609864/#42989380564, and current-main audit artifact.  
+**Last reviewed:** 2026-11-11; main `cc08f399779164ad0d40a4375f5ca4e310c88009`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (PR #505 merged; post-merge CI passed; OHLC triage recorded)
 
 - PR #505, documentation-only CI closeout, merged as `cd75815cc749674321ffd273dde917dd44040cf8`. Its exact head `c7f3a5bec3012db3b923384b169ab12eb9580685` passed all six required CI jobs in run #42952568050 before merge.

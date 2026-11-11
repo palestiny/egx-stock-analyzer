@@ -1,3 +1,21 @@
+## Latest acquisition checkpoint — 2026-11-11 (post-PR #506/#504 current-main CI)
+
+**Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
+
+- Current `main` is `cc08f399779164ad0d40a4375f5ca4e310c88009`. Post-merge CI run [#42989380564](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42989380564) completed successfully on this exact SHA with all six jobs passed.
+- PR #506's read-only forensic triage is merged; its post-merge run #42988609864 passed all six jobs. It classifies 51 OHLC geometry exceptions (48 open-below-low, 3 open-above-high), but does not assign root cause or corrected values.
+- PR #504's CI timeout bounds are merged; its exact-head CI run #42952211069 passed. No application or market-data behavior changed.
+- The 51 OHLC exceptions plus 19 source/revision conflicts remain unresolved (70 review rows). Do not alter canonical prices or mark rows clean based on correlation alone.
+- EGID remains the preferred first authorized-source contact route; no sample, feed contract, authenticated entitlement, coverage, correction policy, or archival license has been verified. DataCedar remains a bounded diagnostic candidate only; no key or paid plan is authorized.
+- PR #321 remains Draft/unmerged. No provider selection, paid plan, ingestion, production adapter, canonical CSV edit, analysis-eligibility promotion, or M61 activation is authorized.
+
+**Next evidence gate:** obtain authorized raw evidence and written rights; preserve original payloads and metadata; compare disputed rows and controls field-by-field; retain explicit per-row dispositions. Do not infer missing data or synthesize observations.
+
+**Authority:** GitHub `main`, PR #504/#506, post-merge CI run #42989380564, and the forensic triage record.  
+**Last reviewed:** 2026-11-11; main `cc08f399779164ad0d40a4375f5ca4e310c88009`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest acquisition checkpoint — 2026-11-11 (post-PR #505 CI and OHLC triage)
 
 **Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
