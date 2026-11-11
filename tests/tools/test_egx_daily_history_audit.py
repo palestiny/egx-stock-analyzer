@@ -56,6 +56,11 @@ def test_audit_reports_canonical_rows_and_missing_optional_metrics() -> None:
         "traded_value_egp": 1,
     }
     assert report["source_authenticity"] == "NOT_INDEPENDENTLY_VERIFIED"
+    assert report["retrieval_time_precision_counts"] == {
+        "timezone_aware_timestamp": 1,
+        "date_only": 0,
+    }
+    assert report["date_only_retrieval_rows"] == []
 
 
 def test_audit_accepts_negative_daily_change_and_date_only_retrieval_time() -> None:
@@ -66,6 +71,16 @@ def test_audit_accepts_negative_daily_change_and_date_only_retrieval_time() -> N
 
     assert report["invalid_row_count"] == 0
     assert report["ohlc_inconsistency_count"] == 0
+    assert report["retrieval_time_precision_counts"] == {
+        "timezone_aware_timestamp": 0,
+        "date_only": 1,
+    }
+    assert report["date_only_retrieval_rows"] == [{
+        "row": "2",
+        "session_date": "2026-11-10",
+        "symbol": "COMI",
+        "retrieved_at": "2026-11-10",
+    }]
 
 
 def test_audit_flags_ohlc_geometry_and_preserves_existing_review_label() -> None:
