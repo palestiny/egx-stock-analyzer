@@ -1,3 +1,22 @@
+## DataCedar candidate review and post-merge CI closeout — 2026-11-11
+
+**Status: PR #502 merged; post-merge CI passed 6/6; no source accepted and M61 remains paused.**
+
+- PR #502 merged as `33abc76c322f90af5a5ff583dd0a956ee1aabea7` after all six exact-head jobs passed in run #42949076002 (PR head `783c34ae092a96ca651985f0837e7d1a40da2481`).
+- Post-merge main run #42949638348 completed with conclusion `success` on the exact merge SHA; all six jobs passed, including Python 3.12 unit tests and the daily-history audit report.
+- The merged DataCedar review identifies it only as a candidate for a bounded, no-cost recent-history diagnostic. Explorer's one-year daily-history limit is insufficient for the M61 2021–2025 period plus 252-session warm-up. Actual per-symbol coverage, source lineage, raw/adjusted semantics, revisions, and the exact retained-sample rights remain unverified. The pricing matrix's raw-close-only statement conflicts with API adjustment options; obtain written clarification.
+- No API key, authenticated request, price-row download, paid plan, production adapter, or ingestion was used or authorized. Do not treat documentation or a successful contract probe as data-source acceptance.
+- Current main is `33abc76c322f90af5a5ff583dd0a956ee1aabea7`. PR #321 remains the only open PR and is still Draft/unmerged; keep it blocked pending DEC-130.
+
+### Remaining acceptance work
+
+- [ ] Contact EGID for a dated sample, field semantics, source lineage, revision/correction policy, coverage, and written licensing/retention terms.
+- [ ] If the owner deliberately provisions an authorized free DataCedar key, perform only the bounded metadata-first diagnostic after confirming permitted query and retention scope; do not expand into archive replication.
+- [ ] Independently reconcile the 70 review rows and 51 OHLC geometry exceptions without editing canonical observations absent evidence and explicit review.
+- [ ] Obtain point-in-time financial snapshots and complete the DEC-130 immutable evidence package before any M61 evaluation.
+
+---
+
 ## Daily-history retrieval precision and row-level review inventory — 2026-11-11
 
 - First authorized-source contact identified: EGID states that it is a fully owned EGX subsidiary and sole authorized market-data provider; its Market Data Department contact is `marketdata@egidegypt.com`. Arab Finance's 2023 interview also describes EGID as EGX's sole distributor and says other vendors receive data from EGID. Request an exact dated sample and written terms; no EGID data sample, feed contract, or field semantics have yet been verified. References: https://egidegypt.com/ ; https://egidegypt.com/contact-us.html ; https://arabfinance.com/en/News/newdetails/5055
