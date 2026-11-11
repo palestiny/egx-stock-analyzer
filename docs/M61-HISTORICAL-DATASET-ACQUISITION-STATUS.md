@@ -1,3 +1,30 @@
+## Latest acquisition checkpoint — 2026-11-11 (supersedes earlier candidate ordering)
+
+**Status: no historical source or dataset accepted; DEC-130 remains open; M61 remains paused.**
+
+This checkpoint supersedes the older "next source-validation target is Mansa Markets" ordering below. That statement records the research state as of 2026-09-25 and is retained as historical context, not as the current acquisition instruction.
+
+### Current source priority and evidence boundary
+
+1. **EGID is the preferred first authorized-source contact**, based on its stated EGX ownership/authorized distributor role. Its public site/contact information identifies the Market Data Department (marketdata@egidegypt.com). This is a contact route, not proof that a sample, historical OHLCV coverage, API entitlement, correction policy, or long-term storage/backtest license has been obtained.
+2. **DataCedar remains a candidate only for a bounded recent-history diagnostic**, not an accepted M61 archive source. PR #502's review documents an Explorer one-year daily-history limit, insufficient for the 2021–2025 evaluation window plus 252-session warm-up. Its public pricing matrix says Explorer has raw-close-only corporate-action data, while API docs expose adjustment parameters; obtain written clarification and actual authorized response evidence before interpreting this capability. The EGX sitemap statement about pages with sufficient history is not proof that the API has zero history for every symbol; actual authorized per-symbol range evidence is still required.
+3. **Mansa Markets, ICE, EGX.news, Yahoo, and other candidates remain unaccepted** unless current exact coverage, raw artifact retention, source lineage, field semantics, revision behavior, and written intended-use rights are independently verified. Mansa's previously documented API capability does not by itself grant long-term immutable archival/backtest rights.
+
+### Current archive evidence
+
+The committed daily-history audit and review inventory identify 255 observations across 61 symbols and 31 sessions, 51 OHLC geometry exceptions, and 70 rows requiring review. The canonical CSV has not been repaired or replaced. Structural candidates are not source-authenticated. Missing volume, traded value, and execution counts remain unknown rather than zero. Preserve the original CSV and row provenance; any successor observation requires independent evidence and explicit review.
+
+### Next authorized work
+
+- Request from EGID a dated sample covering disputed rows and controls, plus complete field/timezone/unit definitions, source lineage, correction/revision policy, symbol/index coverage, and written licensing/retention/backtest rights.
+- Do not buy a plan, use credentials, make authenticated requests, bulk-extract, retain raw vendor rows, build a production adapter, or change the canonical archive without explicit owner authorization and verified permitted scope.
+- Do not activate M61 or merge PR #321 until market data and point-in-time financial evidence satisfy DEC-130, including the immutable manifest and all acceptance checks.
+
+**Authority:** DEC-130, PR #502 and its merged DataCedar review documents, daily-history audit/inventory, and GitHub main at 33abc76c322f90af5a5ff583dd0a956ee1aabea7.  
+**Last reviewed:** 2026-11-11.
+
+---
+
 # M61 — Historical Dataset Acquisition Status
 
 **Status:** Acquisition boundary accepted; real dataset not yet accepted for evaluation.  
