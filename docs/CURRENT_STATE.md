@@ -1,3 +1,16 @@
+## Latest verified continuation — 2026-11-11 (PR #508 merged; post-merge main CI closed)
+
+- PR #508, `docs(data): add Nov 4–5 OHLC evidence register`, merged as `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`. The documentation-only change adds `docs/EGX-2026-11-04-05-OHLC-EVIDENCE-REGISTER.md` with row-addressable evidence for 30 OHLC geometry exceptions from 4–5 November and five source-conflict control rows. It changes no market data.
+- Exact PR-head workflow run #42997042867 passed all six required jobs before merge. Post-merge `main` run [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) then completed with conclusion `success` on the exact merge SHA `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; all six jobs passed: unit tests (Python 3.12), integration tests (Python 3.12), frontend tests, dependency audit, container build, and daily-history audit report. The unit-test job's lint, type-check, and coverage-test steps all completed successfully.
+- The current canonical archive remains unchanged: 255 rows, 61 symbols, 31 sessions; 51 OHLC geometry exceptions plus 19 source/revision conflicts (70 review rows). Canonical CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57`, SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3`. No row was repaired, replaced, or promoted.
+- The new evidence register is diagnostic only. The 51 OHLC exceptions remain unresolved; localized Investing.com pages are one provider family, not independent corroboration. DEC-130 remains the mandatory historical evidence/acceptance gate. EGID remains the preferred authorized-source contact route; DataCedar remains a candidate only.
+- No provider selection, paid plan, credentials, ingestion, production adapter, canonical CSV edit, source-authenticity/analysis-eligibility promotion, or M61 activation is authorized. PR #321 remains Draft/unmerged; M61 remains paused.
+
+**Authority:** GitHub PR #508, exact-head run #42997042867, merge commit `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`, post-merge run #42998190190, and canonical CSV blob/hash above.  
+**Last reviewed:** 2026-11-11; `main` `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; post-merge CI 6/6 successful.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (PR #506/#504 and current-main CI closeout)
 
 - PR #506, read-only OHLC anomaly forensic triage, is merged as `c531969245591e93b817b542452470a7899dc4b6`. Its post-merge main run [#42988609864](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42988609864) completed successfully with all six jobs.

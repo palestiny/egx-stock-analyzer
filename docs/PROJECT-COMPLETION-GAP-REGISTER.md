@@ -1,3 +1,20 @@
+## Latest verified continuation — 2026-11-11 (PR #508 post-merge CI passed)
+
+- [x] PR #508 merged as `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; row-addressable 4–5 November OHLC evidence register added (30 geometry exceptions plus five conflict-control rows). Documentation-only; canonical CSV unchanged.
+- [x] Exact-head CI run #42997042867 passed all six required jobs before merge.
+- [x] Post-merge `main` workflow [#42998190190](https://github.com/palestiny/egx-stock-analyzer/actions/runs/42998190190) completed successfully on the exact merge SHA; all six jobs passed, including Python unit tests, integration tests, frontend tests, dependency audit, container build, and daily-history audit report.
+- [ ] Reconcile the 51 OHLC geometry exceptions using independent, authorized source evidence and the existing protocol; do not infer replacement values from prior-close correlations.
+- [ ] Reconcile the 19 source/revision-conflict rows separately; retain explicit per-row dispositions.
+- [ ] Obtain an authorized EGID sample, field/session semantics, revision policy, coverage, and written intended-use/retention terms.
+- [ ] Complete DEC-130 immutable market-data and point-in-time financial evidence before any M61 evaluation.
+
+The current archive remains 255 rows, 61 symbols, 31 sessions, and 70 review rows. Canonical CSV blob `3c01a843c225d226dc49e7c302220a280cfafb57` / SHA-256 `c2b6cc78dd2e661bc3936e9cac4891d8af0b93ce117a354e5c3638683efa4ef3` is unchanged. PR #321 remains Draft/unmerged; M61 remains paused. No source acceptance, provider selection, paid plan, ingestion, adapter, canonical-data correction, eligibility promotion, or activation is authorized.
+
+**Baseline:** `main` `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; post-merge run #42998190190 passed 6/6.  
+**Last reviewed:** 2026-11-11.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (current-main CI and OHLC triage closeout)
 
 - PR #506 forensic triage merged as `c531969245591e93b817b542452470a7899dc4b6`; post-merge run #42988609864 passed all six jobs.
