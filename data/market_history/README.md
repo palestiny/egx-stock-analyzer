@@ -200,7 +200,7 @@ The report checks the exact canonical column contract, row shape, dates, symbols
 
 The command is intentionally read-only with respect to the source CSV. It does not fetch source pages, establish source authenticity, infer exchange sessions, repair prices, or convert blank volume/traded-value/execution fields to zero. A report with findings exits with code 1; malformed input/schema errors fail with an exception. Review-labelled rows and OHLC-inconsistent rows must remain excluded from clean OHLC analysis until reconciled.
 
-## Current coverage status (as of 2026-11-10)
+## Historical coverage status (as of 2026-11-10)
 
 - Total records after the 2026-11-10 collection: 255.
 - Records for 2026-11-10: 23 (17 equities and six indices).
@@ -229,3 +229,68 @@ The GitHub Actions workflow also runs the canonical audit on push, pull request,
 The verified post-merge main run on 2026-11-10 (commit `be8b8fea246870a517f3f80bad9a8123f23efabb`, run #42894527758) published artifact #13799198851. Its report status is `completed_with_findings`: 255 parsed rows, 51 OHLC geometry inconsistencies, 70 review-required rows, 185 structural candidates, zero malformed/invalid/duplicate rows, 61 symbols, and 31 session dates. `traded_value_egp` and `executions_count` are blank in all 255 rows; volume is blank in 23 rows. These blanks remain unavailable, not zero.
 
 The report explicitly retains `STRUCTURAL_CANDIDATE_ONLY_NOT_SOURCE_AUTHENTICATED` analysis eligibility and `NOT_INDEPENDENTLY_VERIFIED` source authenticity. Do not interpret the report as source verification, complete EGX coverage, approval for trading/backtests, or application-database ingestion. Preserve all review flags and raw source values until independent reconciliation.
+
+
+## Daily collection: 2026-11-11
+
+Added 23 source-reported daily historical rows for the Wednesday 2026-11-11 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+
+Collection timestamp recorded in every new row: `2026-11-11T19:17:27+02:00` (Africa/Cairo, UTC+02:00). All observations are daily historical-table rows from Investing.com, not intraday candles. Each row links the instrument-specific Investing.com historical-data page. Exact quote latency is not consistently stated, so `delay_status` records that limitation. Provider-displayed K/M/B volume values were normalized to thousands in `volume_thousands_reported`, with original displayed values/units preserved in `notes`. `EGREAL` had no volume value in its historical row and remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied. Index-page volume is retained as provider-reported context only; its comparability as share volume is not independently verified.
+
+### Data-quality exceptions retained transparently
+
+- `EGAL`: localized Investing.com pages disagree. The selected English historical row reports close=321.00, open=321.99 and volume=265.56K; a Portuguese-localized page reports open=321.01 and volume=260.77K, while a German-localized page reports close=320.00 and volume=164.85K. The English-page values are preserved and the row is marked `source_conflict_review`.
+- `EGX30`: a Dutch-localized result reports open=52,531.80, while the selected English historical row reports open=52,483.46. The English-page row is preserved and marked `source_conflict_review`.
+- `EGX30CAP`: a Malay-localized result reports close=64,834.96, open=64,973.59 and volume=211.36M, while the selected English historical row reports close=64,998.35, open=64,900.65 and volume=254.79M. The English-page row is preserved and marked `source_conflict_review`.
+- `EGX70EWI`: a Malay-localized result reports open=18,541.70, high=18,619.39 and volume=1.02B, while the selected English historical row reports open=18,495.97, high=18,619.54 and volume=1.34B. The English-page row is preserved and marked `source_conflict_review`.
+- `EGX100EWI`: a Malay-localized result reports open=24,549.25, high=24,672.48, low=24,195.92 and volume=1.16B, while the selected English historical row reports open=24,495.46, high=24,672.59, low=24,195.07 and volume=1.59B. The English-page row is preserved and marked `source_conflict_review`.
+- All 23 selected rows pass the basic OHLC geometry check. The five localized-source conflicts remain flagged despite valid geometry; the other 18 rows pass only structural checks, not independent source authentication.
+- No values were averaged, reconstructed or silently repaired. Review-labelled rows must not be treated as fully reconciled market observations.
+- No verified per-security traded value or execution count was available. No market-wide total was copied into per-security fields.
+
+## Current coverage status (as of 2026-11-11)
+
+- Total records after the 2026-11-11 collection: 278.
+- Records for 2026-11-11: 23 (17 equities and six indices).
+- Records through 2026-11-10: 255.
+- Records with `source_conflict_review` in the 2026-11-11 collection: five (`EGAL`, `EGX30`, `EGX30CAP`, `EGX70EWI`, `EGX100EWI`); all five remain review-required.
+- All 23 new rows pass basic OHLC geometry; this does not independently certify provider accuracy.
+- `traded_value_egp` and `executions_count` remain blank where verified per-instrument values are unavailable. `EGREAL` has blank volume because the historical row did not report it.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
+- Coverage remains partial, and provider licensing/reuse rights have not been independently established.
+- M61 and backtesting: not performed.
+
+## Daily collection: 2026-11-12
+
+Added 23 source-reported daily historical rows for the Thursday 2026-11-12 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+
+Collection timestamp recorded in every new row: `2026-11-12T19:26:35+02:00` (Africa/Cairo, UTC+02:00). All observations are rows from Investing.com daily historical tables, not intraday candles. Each row links the instrument-specific historical-data page. Exact quote latency is not stated consistently, so `delay_status` records that limitation. Provider-displayed K/M volumes were normalized to thousands in `volume_thousands_reported`, with original displayed values and units preserved in `notes`. `EGREAL` did not report volume in the selected historical row and remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied. Index-page volume is retained as provider-reported context only; its comparability as share volume is not independently verified.
+
+### Data-quality exceptions retained transparently
+
+- `ABUK`: the selected English historical row reports close=77.50, open=78.25 and volume=855.72K; a Dutch-localized Investing.com result reports close=77.72, open=78.00 and volume=637.78K. The English-page values are preserved and the row is marked `source_conflict_review`.
+- `ADIB`: the selected English row reports close=49.40, open=49.88 and volume=603.96K; a Dutch-localized result reports open=49.99 and volume=554.33K. The selected English OHLC passes geometry, but the row is marked `source_conflict_review`.
+- `HDBK`: the source reports open=103.02 below low=103.06. Raw values are preserved and the row is marked `ohlc_inconsistency_review`.
+- `EGX30`: the selected English historical row reports high=52,686.62, while an NG-localized Investing.com row reports high=52,691.32. The selected English values are preserved and the row is marked `source_conflict_review`.
+- `EGREAL`: the selected English historical row reports close=5,606.24 and change=-0.70%, while a Dutch-localized row reports close=5,607.41 and change=-0.68%. The English-page values are preserved and the row is marked `source_conflict_review`.
+- `EGX100EWI`: the selected English row reports close=24,485.12 and volume=591.37M, while a Dutch-localized row reports close=24,421.82 and volume=484.68M. The selected English values are preserved and the row is marked `source_conflict_review`.
+- The other 17 selected rows pass basic OHLC geometry. The six flagged rows remain review-required; geometry checks do not independently authenticate source accuracy.
+- No values were averaged, reconstructed or silently repaired. Review-labelled rows must not be treated as fully reconciled observations.
+- No verified per-security traded value or execution count was available. No market-wide total was copied into per-security fields.
+
+## Current coverage status (as of 2026-11-12)
+
+- Total records after the 2026-11-12 collection: 301.
+- Records for 2026-11-12: 23 (17 equities and six indices).
+- Records through 2026-11-11: 278.
+- The archive contains 33 distinct session dates and 61 distinct instrument symbols after this append.
+- New rows flagged for source conflicts: `ABUK`, `ADIB`, `EGX30`, `EGREAL`, and `EGX100EWI`; all five remain review-required.
+- New rows flagged for OHLC geometry: `HDBK`; it remains review-required.
+- No duplicate `(session_date, symbol)` keys or malformed CSV row lengths were introduced by this append.
+- `traded_value_egp` and `executions_count` remain blank where verified per-instrument values are unavailable. `EGREAL` has blank volume because the selected historical row did not report it.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
+- Coverage remains partial, and provider licensing/reuse rights have not been independently established.
+- M61 and backtesting: not performed.
+
