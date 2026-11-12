@@ -260,3 +260,37 @@ Collection timestamp recorded in every new row: `2026-11-11T19:17:27+02:00` (Afr
 - The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
 - Coverage remains partial, and provider licensing/reuse rights have not been independently established.
 - M61 and backtesting: not performed.
+
+## Daily collection: 2026-11-12
+
+Added 23 source-reported daily historical rows for the Thursday 2026-11-12 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+
+Collection timestamp recorded in every new row: `2026-11-12T19:26:35+02:00` (Africa/Cairo, UTC+02:00). All observations are rows from Investing.com daily historical tables, not intraday candles. Each row links the instrument-specific historical-data page. Exact quote latency is not stated consistently, so `delay_status` records that limitation. Provider-displayed K/M volumes were normalized to thousands in `volume_thousands_reported`, with original displayed values and units preserved in `notes`. `EGREAL` did not report volume in the selected historical row and remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied. Index-page volume is retained as provider-reported context only; its comparability as share volume is not independently verified.
+
+### Data-quality exceptions retained transparently
+
+- `ABUK`: the selected English historical row reports close=77.50, open=78.25 and volume=855.72K; a Dutch-localized Investing.com result reports close=77.72, open=78.00 and volume=637.78K. The English-page values are preserved and the row is marked `source_conflict_review`.
+- `ADIB`: the selected English row reports close=49.40, open=49.88 and volume=603.96K; a Dutch-localized result reports open=49.99 and volume=554.33K. The selected English OHLC passes geometry, but the row is marked `source_conflict_review`.
+- `HDBK`: the source reports open=103.02 below low=103.06. Raw values are preserved and the row is marked `ohlc_inconsistency_review`.
+- `EGX30`: the selected English historical row reports high=52,686.62, while an NG-localized Investing.com row reports high=52,691.32. The selected English values are preserved and the row is marked `source_conflict_review`.
+- `EGREAL`: the selected English historical row reports close=5,606.24 and change=-0.70%, while a Dutch-localized row reports close=5,607.41 and change=-0.68%. The English-page values are preserved and the row is marked `source_conflict_review`.
+- `EGX100EWI`: the selected English row reports close=24,485.12 and volume=591.37M, while a Dutch-localized row reports close=24,421.82 and volume=484.68M. The selected English values are preserved and the row is marked `source_conflict_review`.
+- The other 17 selected rows pass basic OHLC geometry. The six flagged rows remain review-required; geometry checks do not independently authenticate source accuracy.
+- No values were averaged, reconstructed or silently repaired. Review-labelled rows must not be treated as fully reconciled observations.
+- No verified per-security traded value or execution count was available. No market-wide total was copied into per-security fields.
+
+## Current coverage status (as of 2026-11-12)
+
+- Total records after the 2026-11-12 collection: 301.
+- Records for 2026-11-12: 23 (17 equities and six indices).
+- Records through 2026-11-11: 278.
+- The archive contains 33 distinct session dates and 61 distinct instrument symbols after this append.
+- New rows flagged for source conflicts: `ABUK`, `ADIB`, `EGX30`, `EGREAL`, and `EGX100EWI`; all five remain review-required.
+- New rows flagged for OHLC geometry: `HDBK`; it remains review-required.
+- No duplicate `(session_date, symbol)` keys or malformed CSV row lengths were introduced by this append.
+- `traded_value_egp` and `executions_count` remain blank where verified per-instrument values are unavailable. `EGREAL` has blank volume because the selected historical row did not report it.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file remains absent from `main`; the 22 existing EGAL seed rows remain preserved, but row-for-row equivalence with the unavailable original CSV is still unverified. No original file was deleted.
+- Coverage remains partial, and provider licensing/reuse rights have not been independently established.
+- M61 and backtesting: not performed.
+
