@@ -185,7 +185,8 @@ The same draft branch now also contains:
 - Twenty-session expiry: a separate `EXPIRED` terminal event is emitted only after 20 chronologically completed, calendar-eligible sessions have each passed the provider-finality gate and have an accepted bar.
 - Chronological recovery: the latest append-only observation per opportunity is the durable cursor. The evaluator resumes after that cursor, stops at the first missing/unverified session, and does not process later sessions.
 - Durable stale-gap events: missing/invalid session evidence is recorded as append-only `STALE` events; a later successfully committed observation appends a `RESOLVED` event.
-- Explicit source correction records: a corrected source revision is recorded append-only with operator identity, reason, calendar version, and `RECORDED_NOT_REEVALUATED` disposition. The original observation and lifecycle result are not overwritten or silently re-evaluated.
+- Explicit source correction records: a corrected source revision is recorded append-only with operator identity, reason, calendar version, and `RECORDED_NOT_REEVALUATED` disposition. Immutable review decisions (`REJECTED`, `ACCEPTED_NO_STATE_CHANGE`, `REPLAY_REQUIRED`) are also persisted append-only; progression fails closed until the latest decision explicitly rejects the correction or confirms no lifecycle-state change. `REPLAY_REQUIRED` remains blocking because corrected-candle replay/rebuild and downstream compensating-notification semantics are not implemented.
+- Protected operator APIs expose correction history and accept attributed review decisions. They require an active, individually attributable operator credential; the legacy shared operator identity is not sufficient.
 - Authenticated per-user lifecycle history now includes linked revision metadata; it is scoped to Telegram publication events addressed to that user.
 
 ### Remaining activation and acceptance blockers
@@ -193,8 +194,8 @@ The same draft branch now also contains:
 - The evaluator and recovery use cases are not wired to a production scheduled worker.
 - No production provider finality verifier is implemented. The current Yahoo Finance adapter cannot satisfy the accepted final/complete-bar contract.
 - No accepted active EGX session-calendar version has been verified in the target deployment.
-- A correction record is intentionally not a correction approval: an operator-approved disposition/re-evaluation workflow is still required before a corrected candle may alter a lifecycle state.
+- Corrected-candle replay/rebuild is still not implemented. `REPLAY_REQUIRED` intentionally blocks progression; there is no automated reconstruction of downstream lifecycle events or defined compensating-notification policy.
 - No full end-to-end run has yet verified provider retrieval, calendar gating, chronological recovery, expiry, Telegram delivery, and authenticated user history together.
-- The draft PR has not been merged, and CI has not been run/verified on the final head.
+- The draft PR has not been merged. CI for the latest exact head is running; success is not claimed until all jobs complete on that SHA.
 
 **Gate remains GAP / NOT ACTIVATED.** The domain and persistence foundations are implemented on the isolated branch, but do not enable production monitoring or describe Opportunity Lifecycle as complete until the production provider, active calendar, worker wiring, correction disposition, and exact-head CI/e2e gates pass.
