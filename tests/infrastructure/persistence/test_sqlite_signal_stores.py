@@ -278,3 +278,56 @@ def test_sqlite_signal_revision_links_are_append_only(tmp_path) -> None:
             )
     finally:
         connection.close()
+
+
+
+def test_sqlite_active_published_projection_scales_on_disk_and_survives_reopen(tmp_path) -> None:
+    database = tmp_path / "active-opportunity-projection.db"
+    store = SQLiteSignalHistoryStore(database)
+    expected_active_revisions = 0
+
+    # Exercise a disk-backed SQLite file with active, terminal, and superseded
+    # opportunity identities. Revisions retain their own publication event.
+    for index in range(240):
+        generated_at = NOW + timedelta(minutes=index)
+        terminal = index % 5 == 0
+        original_signal = make_signal(
+            status=SignalStatus.TRIGGERED if terminal else SignalStatus.ACTIVE,
+            generated_at=generated_at,
+        )
+        original = store.record(original_signal, "PUBLISHED", generated_at)
+
+        if terminal:
+            continue
+        if index % 10 == 1:
+            revised_signal = Signal(
+                **{
+                    **original_signal.__dict__,
+                    "targets": (
+                        Target(Decimal("108"), "T1"),
+                        Target(Decimal("112"), "T2"),
+                    ),
+                }
+            )
+            store.record_revision(
+                revised_signal,
+                "PUBLISHED_VERSION",
+                generated_at + timedelta(minutes=1),
+                parent_signal_id=original.signal_id,
+                reason="Projection regression fixture revision",
+            )
+        expected_active_revisions += 1
+
+    reopened = SQLiteSignalHistoryStore(database)
+    projected = reopened.latest_active_published_opportunities()
+
+    assert len(projected) == expected_active_revisions
+    assert all(item.latest.signal.status is SignalStatus.ACTIVE for item in projected)
+    assert all(
+        item.publication.event in {"PUBLISHED", "PUBLISHED_VERSION"}
+        for item in projected
+    )
+    assert len({item.latest.signal_id for item in projected}) == len(projected)
+    assert [str(item.latest.signal_id) for item in projected] == sorted(
+        str(item.latest.signal_id) for item in projected
+    )
