@@ -271,15 +271,15 @@ def test_orchestrator_rejects_pre_generation_observation_before_writing_history(
     assert history.all_records() == ()
 
 
-def make_completed_bar(*, high="105", low="98", observed_hour=16, revision="r1"):
+def make_completed_bar(*, high="105", low="98", observed_hour=16, revision="r1", candle_day=4):
     return CompletedDailyBarObservation(
         symbol="COMI",
         provider="attested-provider",
         timeframe="DAILY",
-        candle_at=datetime(2026, 10, 4, tzinfo=timezone.utc),
-        observed_at=datetime(2026, 10, 4, observed_hour, tzinfo=timezone.utc),
+        candle_at=datetime(2026, 10, candle_day, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, candle_day, observed_hour, tzinfo=timezone.utc),
         revision=revision,
-        source_reference="https://provider.example/COMI/2026-10-04",
+        source_reference=f"https://provider.example/COMI/2026-10-{candle_day:02d}",
         finality_attestation="provider-finality-assertion",
         is_final=True,
         open=Decimal("100"),
@@ -379,5 +379,7 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
         close=Decimal("102"),
     )
     orchestrator.process_completed_daily_bar(later)
+    replay = orchestrator.process_completed_daily_bar(make_completed_bar())
+    assert replay is not None and replay.changed is False
     with pytest.raises(ValueError, match="out-of-order"):
-        orchestrator.process_completed_daily_bar(make_completed_bar())
+        orchestrator.process_completed_daily_bar(make_completed_bar(candle_day=3))
