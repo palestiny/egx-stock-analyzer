@@ -221,6 +221,9 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
             raise ValueError("parent signal identity does not exist")
         if parent.signal.status is not SignalStatus.ACTIVE:
             raise ValueError("terminal opportunities cannot be revised")
+        latest = self.latest(parent.signal.symbol)
+        if latest is None or latest.signal_id != parent_signal_id:
+            raise ValueError("revision parent must be the latest opportunity revision")
         if (
             parent.signal.symbol.strip().upper() != signal.symbol.strip().upper()
             or parent.signal.strategy_id != signal.strategy_id
