@@ -1,6 +1,6 @@
 # EGX Calendar Source Authenticity — Owner Decision Proposal
 
-**Status:** PROPOSAL — no source-authenticity method is approved or implemented  
+**Status:** OWNER-APPROVED — Option B, separate reviewer, and external re-fetch approved  
 **Date:** 2026-11-13  
 **Scope:** Independent verification of the publisher and exact artifact supporting calendar evidence. This proposal does not approve a publisher, domain, calendar, provider, activation, or production operation.
 
@@ -75,7 +75,7 @@ Important constraints:
 - Retention permission remains a separate gate; source authenticity does not grant copyright or reuse rights.
 - No automatic scraping, calendar ingestion, activation endpoint, worker, monitoring, or production state change is part of this proposal.
 
-## 5. Decisions required from the owner
+## 5. Owner-approved decisions (2026-11-13)
 
 1. **Approach:** approve Option A, Option B, or Option C (not recommended as a standalone control).
 2. **Origin trust:** approve a process in which exact origins are added only after an explicit owner decision, with the trust basis recorded per origin. No origins are pre-approved here.
@@ -99,7 +99,7 @@ Important constraints:
 
 ## 7. Current operational boundary
 
-Until these decisions and implementation tests are complete:
+Until the approved design is fully implemented and its remaining acceptance tests pass:
 - Existing evidence metadata remains operator-asserted, not independently authenticated.
 - Calendar activation remains blocked.
 - No calendar is activated; no lifecycle worker or monitoring is enabled.
