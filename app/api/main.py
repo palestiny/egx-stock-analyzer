@@ -16,6 +16,7 @@ from app.api.telegram_delivery_reconciliation_routes import create_telegram_deli
 from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
+from app.api.signal_lifecycle_correction_admin_routes import create_signal_lifecycle_correction_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -125,6 +126,7 @@ from app.application.market_data.session_calendar_store import SessionCalendarSt
 from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
 from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
 from app.application.security.operator_access import OperatorAccessService
+from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +185,7 @@ def create_app(
     session_calendar_store: SessionCalendarStore | None = None,
     calendar_publication_uow: CalendarPublicationUnitOfWork | None = None,
     calendar_artifact_service: CalendarArtifactService | None = None,
+    signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -338,6 +341,13 @@ def create_app(
             require_operator=require_individual_calendar_operator,
             publication_uow=calendar_publication_uow,
             artifact_service=calendar_artifact_service,
+        )
+    )
+
+    app.include_router(
+        create_signal_lifecycle_correction_admin_router(
+            orchestrator=signal_lifecycle_orchestrator,
+            require_operator=require_operator,
         )
     )
 
