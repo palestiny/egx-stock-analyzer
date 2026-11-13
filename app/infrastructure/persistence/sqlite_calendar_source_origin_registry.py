@@ -242,8 +242,10 @@ class SQLiteCalendarSourceOriginRegistry:
     ) -> None:
         row = connection.execute(
             """
-            SELECT 1 FROM users u
+            SELECT 1
+            FROM users u
             JOIN user_credentials c ON c.user_id = u.id
+            JOIN operator_access_current g ON g.user_id = u.id
             WHERE u.id = ? AND u.status = 'active'
               AND c.id = ? AND c.status = 'active'
             """,
