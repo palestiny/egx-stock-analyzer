@@ -225,13 +225,15 @@ This matrix is the current source of truth for PR #515. It supersedes earlier sn
 | Compensating notification behavior for corrected outcomes | IMPLEMENTED | Unsent alerts/recipient rows are superseded; confirmed delivered recipients receive a scoped corrective event; DELIVERY_UNKNOWN is not resent; in-flight sends block replay |
 | Production DailyBarFinalityVerifier/provider | NOT IMPLEMENTED | The application boundary accepts an injected verifier and fails closed when finality is not verified, but runtime has no production verifier and no provider is approved. Yahoo remains ineligible |
 | Active accepted EGX calendar version in target deployment | NOT VERIFIED / NOT ACTIVE | Calendar domain, immutable persistence, evidence-gated publication, individual operator identity, and audit primitives exist; no evidenced calendar version is published/activated in target deployment |
-| Calendar activation policy | OWNER DECISION / IMPLEMENTATION GAP | Cursor-derived coverage is proposed but not approved; no durable lifecycle evaluation cursor or bootstrap policy is implemented. Activation endpoints remain unavailable |
+| Calendar activation policy | PARTIALLY APPROVED / IMPLEMENTATION GAP | Owner approved cursor-derived coverage and Option 3 (no activation until a controlled durable cursor exists). The separate audited bootstrap-cursor contract is not implemented; activation endpoints remain unavailable |
 | Scheduled production worker | DESIGN PROPOSED / NOT WIRED | See the scheduled-worker design gate; existing in-process scheduler is not durable and the generic durable analysis runner is not lifecycle-compatible as-is. Keep disabled until provider and calendar gates pass |
 | Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, correction replay, and per-user authorization together |
 | Provider outreach / selection | NOT AUTHORIZED | EGID is research-only; no provider contact, quote request, credential request, or selection is authorized |
 | CI for code implementation | PASS | Run #43405799607 on code commit `1d2b902a646174521b143cf19c1b7c7c126cd072`; all six jobs successful |
 | CI for documentation-only updates | TRACK LIVE CHECKS | Documentation-only commits trigger the repository CI workflow; use the current PR checks for the latest head and never infer success from an earlier commit |
 | PR state | OPEN / DRAFT / NOT MERGED | PR #515 remains draft and unmerged; do not merge or activate production monitoring while activation blockers remain |
+
+**Owner decision recorded (2026-11-13):** cursor-derived coverage plus Option 3 bootstrap — no activation until a controlled, durable, audited cursor exists. This does not authorize activation or monitoring.
 
 **Gate decision: GAP / NOT ACTIVATED.** Correction replay/rebuild and notification compensation are implemented; the remaining blockers are provider finality, an evidence-backed active calendar and approved activation/bootstrap policy, scheduled worker wiring, and full deployment-level E2E acceptance. CI success does not substitute for those operational gates. Automatic monitoring must remain disabled.
 
