@@ -208,9 +208,13 @@ class CalendarSourceAuthenticityVerifier:
         _require_aware(timestamp, "verification timestamp")
         _require_individual_operator(uploader, "Uploader")
         _require_individual_operator(verifier, "Verifier")
-        if uploader.user_id != evidence.recorded_by:
+        if (
+            uploader.user_id != evidence.recorded_by
+            or evidence.recorded_by_credential_id is None
+            or uploader.credential_id != evidence.recorded_by_credential_id
+        ):
             raise CalendarSourceAuthenticityError(
-                "Uploader identity does not match the immutable evidence actor"
+                "Uploader identity and durable credential do not match the immutable evidence actor"
             )
         if (
             verifier.user_id == uploader.user_id
@@ -308,6 +312,9 @@ class CalendarSourceAuthenticityVerifier:
             trust is None
             or not trust.is_active_at(timestamp)
             or trust.registry_version != prior.registry_version
+            or trust.publisher != evidence.source_publisher
+            or trust.source_class != (evidence.source_class.value if evidence.source_class else None)
+            or trust.market_scope != evidence.market_scope
         ):
             raise CalendarSourceAuthenticityError("The source origin trust approval is missing, revoked, or changed")
         if evidence.artifact_retention is CalendarArtifactRetention.EXTERNAL_ONLY:
