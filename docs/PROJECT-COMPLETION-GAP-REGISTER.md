@@ -1,17 +1,19 @@
 ## Latest verified continuation — 2026-11-13 (Lifecycle gates, provider-neutral contract, and separate data track)
 
-**Source snapshot reviewed before this register update:** PR #515 head `5b954d03bacd8f7e4c269a51711b10ef826b35f0`; exact-head CI run #43435283080 was still in progress at review time. PR #515 remains OPEN / DRAFT / NOT MERGED.
+**Verified PR #515 head:** `a52a5cac7a02916746a8c41d19f4f237ccd235d6`. Exact-head GitHub Actions run [#43435524481](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43435524481) completed successfully: **6/6 jobs passed**. Python 3.12 unit suite: **1,799 passed, 8 deselected, 89.70% coverage** (85% minimum); lint and type-check passed. One non-failing Starlette/httpx deprecation warning remains. PR #515 is still OPEN / DRAFT / NOT MERGED (384 commits, 75 changed files).
 
-- [x] Lifecycle implementation, immutable bootstrap baseline, cursor-derived calendar validation, atomic SQLite activation coordinator, Option-B calendar evidence authenticity workflow, and authenticated per-user lifecycle history are implemented on the PR branch.
-- [x] Provider-neutral `CompletedDailyBarSource` port and `ProviderDailyBarEvidence` envelope are now defined and tested. The envelope carries provider contract version, symbol, explicit `Africa/Cairo` session date, source timestamp, retrieval timestamp, and the typed daily bar.
-- [ ] The provider-specific adapter, durable persistence of the full envelope, production finality verifier, and provider evidence remain open. No provider contact or selection is authorized.
-- [ ] Calendar production trust remains blocked: the exact-origin registry is empty, no real EGX evidence has passed independent review, and deployment network/TLS plus backup/restore checks remain outstanding.
-- [ ] The scheduled worker remains unwired. It still needs deterministic active-opportunity enumeration, a provider adapter, durable occurrence/claim storage with fencing and restart recovery, runtime composition, outbox orchestration, observability, and worker-level E2E.
-- [ ] The full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history deployment E2E remains unproven.
+- [x] Completed daily-OHLC lifecycle transitions, append-only observation/history/outbox persistence, correction replay/rebuild, immutable publication bootstrap baseline, cursor-derived calendar validation, atomic SQLite activation coordinator, Option-B exact-origin authenticity workflow, and authenticated per-user lifecycle history are implemented on the PR branch.
+- [x] Provider-neutral `CompletedDailyBarSource` port and `ProviderDailyBarEvidence` envelope are defined and contract-tested. The envelope carries provider contract version, symbol, Cairo session date, source timestamp, retrieval timestamp, and typed lifecycle bar.
+- [ ] **Important integration gap:** the new envelope is not yet consumed by `EvaluateCompletedDailyBar` or `EvaluateOpportunityLifecycleSessions`; both currently receive bare `CompletedDailyBarObservation` values, and the finality-verifier protocol receives only the bare bar. Provider contract/session/retrieval metadata is therefore not yet carried through the actual evaluation boundary or durably persisted. Do not treat the provider-neutral port as an integrated provider bridge.
+- [ ] Provider-specific adapter, durable evidence-envelope persistence, production finality verifier, and independently verified provider guarantees/rights remain open. No provider contact or selection is authorized.
+- [ ] Calendar production trust remains blocked: exact-origin trust registry is empty, no real EGX evidence has passed independent review, and deployment network/TLS plus backup/restore checks remain outstanding. No calendar activation is authorized.
+- [ ] Scheduled lifecycle worker remains unwired. It still needs deterministic active-opportunity enumeration, an evidence-aware provider adapter, durable occurrence/claim storage with fencing and restart recovery, runtime composition, outbox orchestration, observability, and worker-level E2E.
+- [ ] Full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history deployment E2E remains unproven.
 - [x] PR #514 exact-head CI passed 6/6 on `d9947ae5409c417703b17e8c7ea37d0b0f030296`; audit findings remain 81 review-required rows and source authenticity `NOT_INDEPENDENTLY_VERIFIED`. Keep unmerged pending independent source review.
 - [x] PR #321 exact-head CI passed 5/5 on `690141bd6b391e2bde5dceb2d4e115045200f5bc`; COMI/Mubasher outputs remain diagnostic only, with source rights/provenance/corporate-action and point-in-time evidence unaccepted. Keep Draft/unmerged; M61 paused.
 
 **Authorization boundary:** no contact with EGID or any provider; no calendar activation; no worker/monitoring enablement; no M61 or canonical market-data changes under lifecycle work. Older register statements about contacting EGID or seeking samples are superseded by the owner's 2026-11-13 instruction.
+
 
 ---
 
