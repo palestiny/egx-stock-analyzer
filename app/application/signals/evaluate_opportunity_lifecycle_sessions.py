@@ -141,6 +141,13 @@ class EvaluateOpportunityLifecycleSessions:
 
             bar = bars_by_session.get(session_date)
             if bar is None:
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="MISSING_ELIGIBLE_BAR",
+                    detected_at=evaluated_at,
+                )
                 return OpportunitySessionEvaluation(
                     "STALE_SESSION_DATA_GAP",
                     active_calendar.version,
@@ -151,6 +158,13 @@ class EvaluateOpportunityLifecycleSessions:
 
             bar_session_date = bar.candle_at.astimezone(timezone).date()
             if bar_session_date != session_date:
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="BAR_SESSION_DATE_MISMATCH",
+                    detected_at=evaluated_at,
+                )
                 return OpportunitySessionEvaluation(
                     "BAR_SESSION_DATE_MISMATCH",
                     active_calendar.version,
@@ -159,6 +173,13 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
             if bar.observed_at > evaluated_at:
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="OBSERVATION_FROM_FUTURE",
+                    detected_at=evaluated_at,
+                )
                 return OpportunitySessionEvaluation(
                     "OBSERVATION_FROM_FUTURE",
                     active_calendar.version,
@@ -167,6 +188,13 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
             if not self._finality_verifier.verify_finality(bar):
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="PROVIDER_FINALITY_NOT_VERIFIED",
+                    detected_at=evaluated_at,
+                )
                 return OpportunitySessionEvaluation(
                     "PROVIDER_FINALITY_NOT_VERIFIED",
                     active_calendar.version,
@@ -177,6 +205,13 @@ class EvaluateOpportunityLifecycleSessions:
 
             day = calendar.day_for(session_date)
             if day.session_close is None or day.closed_at is None:
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="SESSION_CLOSE_EVIDENCE_INCOMPLETE",
+                    detected_at=evaluated_at,
+                )
                 return OpportunitySessionEvaluation(
                     "SESSION_CLOSE_EVIDENCE_INCOMPLETE",
                     active_calendar.version,
@@ -203,6 +238,13 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
 
+            self._lifecycle.resolve_session_gap(
+                signal_id,
+                session_date=session_date,
+                calendar_version=active_calendar.version,
+                reason="ELIGIBLE_BAR_RECONCILED",
+                resolved_at=evaluated_at,
+            )
             last_result = self._lifecycle.process_completed_daily_bar(
                 signal_id,
                 bar,
