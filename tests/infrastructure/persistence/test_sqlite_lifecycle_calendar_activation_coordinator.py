@@ -455,3 +455,33 @@ def test_concurrent_calendar_writer_waits_until_lifecycle_validation_and_audit_c
     assert "already active" in str(second_result)
     assert calendar_repository.get_active().version == "v1"
     assert len(calendar_repository.list_activation_events()) == 1
+
+
+
+def test_real_validator_rejects_evidence_store_outside_coordinator_database(tmp_path):
+    database = tmp_path / "shared.db"
+    wrong_database = tmp_path / "evidence.db"
+    calendar_repository = SQLiteSessionCalendarRepository(database)
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+    wrong_evidence_repository = SQLiteCalendarEvidenceRepository(wrong_database)
+    schedule = CalendarBackedLifecycleEvaluationSchedule(
+        calendar_store=calendar_repository,
+        candidate_calendar_version="calendar-v1",
+    )
+    validator = ValidateLifecycleCalendarActivation(
+        history=history,
+        calendar_store=calendar_repository,
+        unit_of_work=unit_of_work,
+        schedule=schedule,
+        evidence_store=wrong_evidence_repository,
+    )
+
+    with pytest.raises(ValueError, match="all activation validation stores"):
+        SQLiteLifecycleCalendarActivationCoordinator(
+            calendar_repository=calendar_repository,
+            lifecycle_unit_of_work=unit_of_work,
+            validator=validator,
+        )
