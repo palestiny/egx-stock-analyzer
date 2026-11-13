@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from uuid import UUID
 
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.domain.identity.user import UserStatus
 from app.application.market_data.calendar_artifact_storage import (
     CalendarArtifactService,
 )
@@ -160,6 +161,7 @@ def _require_aware(value: datetime, label: str) -> None:
 def _require_individual_operator(identity: AuthenticatedIdentity, label: str) -> None:
     if (
         Permission.OPERATOR not in identity.permissions
+        or identity.user_status is not UserStatus.ACTIVE
         or identity.user_id is None
         or identity.credential_id is None
         or identity.subject != str(identity.user_id)
@@ -211,6 +213,7 @@ class CalendarSourceAuthenticityVerifier:
         verifier: AuthenticatedIdentity,
         reviewed_claim: str,
         claim_supported: bool,
+        review_reason: str | None = None,
         at: datetime | None = None,
     ) -> CalendarEvidenceVerificationRecord:
         timestamp = at or datetime.now(timezone.utc)
@@ -234,9 +237,13 @@ class CalendarSourceAuthenticityVerifier:
             raise CalendarSourceAuthenticityError(
                 "Evidence uploader and independent verifier must be different people and credentials"
             )
-        if reviewed_claim != evidence.claim or not claim_supported:
+        if reviewed_claim != evidence.claim:
             raise CalendarSourceAuthenticityError(
-                "Independent reviewer did not confirm the exact evidence claim"
+                "Independent reviewer must review the exact immutable evidence claim"
+            )
+        if not claim_supported and (review_reason is None or not review_reason.strip()):
+            raise CalendarSourceAuthenticityError(
+                "A reason is required when an independent reviewer rejects the evidence claim"
             )
         if evidence.artifact_sha256 is None or evidence.source_publisher is None:
             raise CalendarSourceAuthenticityError("Evidence lacks required source and artifact metadata")
@@ -279,7 +286,11 @@ class CalendarSourceAuthenticityVerifier:
 
         record = CalendarEvidenceVerificationRecord(
             evidence_id=evidence.evidence_id,
-            decision=CalendarSourceVerificationDecision.VERIFIED,
+            decision=(
+                CalendarSourceVerificationDecision.VERIFIED
+                if claim_supported
+                else CalendarSourceVerificationDecision.REJECTED
+            ),
             source_origin=origin,
             registry_version=trust.registry_version,
             artifact_sha256=fetched_digest,
@@ -290,7 +301,12 @@ class CalendarSourceAuthenticityVerifier:
             reviewed_claim_sha256=_claim_digest(evidence),
             method_version=self.METHOD_VERSION,
             verified_at=timestamp,
-            reason="Independent reviewer confirmed the exact claim against bytes retrieved from the owner-approved origin",
+            reason=(
+                (review_reason.strip() if review_reason else
+                 "Independent reviewer confirmed the exact claim against bytes retrieved from the owner-approved origin")
+                if claim_supported
+                else review_reason.strip()
+            ),
         )
         self._records.append(record)
         return record
