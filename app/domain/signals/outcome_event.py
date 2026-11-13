@@ -30,6 +30,7 @@ class OutcomeEvent:
     outcome: SignalOutcomeRecord | None = None
     supersedes_event_id: UUID | None = None
     decision: OutcomeCorrectionDecision | None = None
+    actor_credential_id: UUID | None = None
 
     def __post_init__(self) -> None:
         if self.recorded_at.tzinfo is None or self.recorded_at.utcoffset() is None:
