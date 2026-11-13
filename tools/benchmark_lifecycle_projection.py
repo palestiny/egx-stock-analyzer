@@ -33,24 +33,16 @@ SELECT
     latest.signal_id, latest.event, latest.recorded_at, latest.signal_json,
     publication.signal_id, publication.event,
     publication.recorded_at, publication.signal_json
-FROM signal_history AS latest
-JOIN (
-    SELECT signal_id, MAX(id) AS latest_id
-    FROM signal_history
-    GROUP BY signal_id
-) AS current ON current.latest_id = latest.id
+FROM signal_opportunity_projection AS projection
+JOIN signal_history AS latest
+  ON latest.id = projection.latest_history_id
 JOIN signal_history AS publication
-  ON publication.id = (
-    SELECT MIN(p.id)
-    FROM signal_history AS p
-    WHERE p.signal_id = latest.signal_id
-      AND p.event IN ('PUBLISHED', 'PUBLISHED_VERSION')
-  )
+  ON publication.id = projection.publication_history_id
 WHERE NOT EXISTS (
     SELECT 1 FROM signal_revision_links AS revision
-    WHERE revision.parent_signal_id = latest.signal_id
+    WHERE revision.parent_signal_id = projection.signal_id
 )
-ORDER BY latest.signal_id ASC
+ORDER BY projection.signal_id ASC
 """
 
 
