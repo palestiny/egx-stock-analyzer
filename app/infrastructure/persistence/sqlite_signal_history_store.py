@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from app.application.signals.store import (
     PublishedOpportunityRevision,
     SignalHistoryStore,
+    SignalPublicationRecord,
     SignalRecord,
     SignalRevisionLink,
 )
@@ -481,7 +482,7 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 SELECT
                     latest.signal_id, latest.event, latest.recorded_at, latest.signal_json,
                     publication.signal_id, publication.event,
-                    publication.recorded_at, publication.signal_json
+                    publication.recorded_at
                 FROM signal_opportunity_projection AS projection
                 JOIN signal_history AS latest
                   ON latest.id = projection.latest_history_id
@@ -507,7 +508,11 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
             latest = self._to_record(row[:4])
             if latest.signal.status.value != "ACTIVE":
                 continue
-            publication = self._to_record(row[4:8])
+            publication = SignalPublicationRecord(
+                signal_id=UUID(str(row[4])),
+                event=str(row[5]),
+                recorded_at=datetime.fromisoformat(str(row[6])),
+            )
             candidates.append(PublishedOpportunityRevision(latest=latest, publication=publication))
         return tuple(candidates)
 
