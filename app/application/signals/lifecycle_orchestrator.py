@@ -5,6 +5,7 @@ import json
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from typing import Callable, TypeVar
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
@@ -33,6 +34,9 @@ from app.domain.signals.lifecycle import (
 )
 from app.domain.signals.model import Signal, SignalDirection, SignalStatus
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
+
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -71,9 +75,9 @@ class SignalLifecycleOrchestrator:
 
     def _execute_in_transaction(
         self,
-        operation,
+        operation: Callable[[SignalLifecycleTransaction], T],
         transaction: SignalLifecycleTransaction | None,
-    ):
+    ) -> T:
         if transaction is not None:
             return operation(transaction)
         return self._unit_of_work.execute(operation)
