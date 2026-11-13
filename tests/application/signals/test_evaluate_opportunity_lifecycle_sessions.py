@@ -13,6 +13,7 @@ from app.application.signals.evaluate_opportunity_lifecycle_sessions import (
     EvaluateOpportunityLifecycleSessions,
 )
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.signals.occurrence_claims import LifecycleRetryPolicy
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapBatchRecord,
     LifecycleBootstrapRecord,
@@ -459,6 +460,7 @@ def test_sqlite_claim_fence_rolls_back_real_session_evaluator_effects(tmp_path):
         "worker-a",
         now=claim_time,
         lease_seconds=10,
+        retry_policy=LifecycleRetryPolicy(max_attempts=2, retry_delays_seconds=(0,)),
     )
     assert claim is not None
 
