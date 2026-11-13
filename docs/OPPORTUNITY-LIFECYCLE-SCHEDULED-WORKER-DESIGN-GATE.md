@@ -20,7 +20,7 @@ This worker must remain disabled until all activation gates in Section 8 pass. T
 | Existing component | Verified responsibility | Limitation for worker use |
 |---|---|---|
 | `EvaluateOpportunityLifecycleSessions` | Reconciles a single opportunity against a supplied `bars_by_session` mapping and active calendar; blocks on missing, future, mismatched, or unverified bars | Does not acquire provider data or enumerate opportunities |
-| `SignalHistoryStore` | Exposes `all_records()`, per-signal history, revision links, and current signal records; bootstrap currently selects only the latest active published revision deterministically | The bootstrap selection path scans all history and performs per-signal lookups; a bounded worker-facing SQLite projection and query-plan/performance verification are still required |
+| `SignalHistoryStore` | Exposes a deterministic `latest_active_published_opportunities()` projection; SQLite selects latest signal revisions and their first publication event in one indexed query, excluding superseded parents and non-ACTIVE latest states | The projection is now reused by bootstrap and is covered for revision, unpublished, terminal, and restart behavior; realistic-volume query-plan/latency verification remains before worker-scale adoption |
 | `SignalLifecycleOrchestrator` | Provides per-opportunity latest-observation cursor, append-only gap events, lifecycle transitions, expiry, and correction-aware history | Does not schedule or claim work |
 | `CompletedDailyBarObservation` | Carries daily OHLC, source/provider/revision/finality references, and timezone-aware timestamps | Its metadata is not proof by itself; a production verifier must validate provider guarantees |
 | `MarketDataProvider` | Current generic port returns `RawPriceBarObservation` daily rows | It lacks the accepted finality, source-revision, and session-provenance contract; do not feed its raw rows directly into lifecycle transitions |
@@ -80,7 +80,7 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 
 ## 7. Implementation sequence after gates
 
-1. Verify deterministic latest-active-opportunity enumeration against the SQLite-backed history store, including revisions and terminal states.
+1. Verify the new deterministic latest-active-published projection against realistic SQLite history volumes, including query-plan/index use, revisions, unpublished records, and terminal states.
 2. Define and test the completed-bar source port contract without implementing a provider adapter.
 3. Implement a durable occurrence/claim boundary and restart/retry tests using test doubles only.
 4. Compose the worker with the existing evaluator and lifecycle Unit of Work; test multiple opportunities for one symbol, multiple symbols, partial failure, and concurrent duplicate occurrence.
@@ -105,6 +105,6 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 
 ## 10. Current result
 
-**DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is a bounded, query-efficient active-opportunity enumeration projection (the current bootstrap scan is deterministic but not yet suitable as a scalable worker query), a provider-specific source adapter, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
+**DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is a provider-specific source adapter, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, realistic-volume query-plan/latency verification for the new active-opportunity projection, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
 
 **External-contact boundary:** no provider outreach, quote request, account request, or credential request is authorized. EGID remains a research candidate only. M61/backtesting remains paused.
