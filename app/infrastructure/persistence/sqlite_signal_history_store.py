@@ -119,6 +119,69 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 ON signal_revision_links(parent_signal_id)
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_opportunity_projection (
+                    signal_id TEXT PRIMARY KEY,
+                    latest_history_id INTEGER NOT NULL,
+                    publication_history_id INTEGER NOT NULL,
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    FOREIGN KEY(latest_history_id) REFERENCES signal_history(id),
+                    FOREIGN KEY(publication_history_id) REFERENCES signal_history(id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_signal_history_projection_insert
+                AFTER INSERT ON signal_history
+                BEGIN
+                    INSERT INTO signal_opportunity_projection(
+                        signal_id, latest_history_id, publication_history_id
+                    )
+                    SELECT
+                        NEW.signal_id,
+                        NEW.id,
+                        CASE
+                            WHEN NEW.event IN ('PUBLISHED', 'PUBLISHED_VERSION') THEN NEW.id
+                            ELSE NULL
+                        END
+                    WHERE NEW.event IN ('PUBLISHED', 'PUBLISHED_VERSION')
+                    ON CONFLICT(signal_id) DO UPDATE SET
+                        latest_history_id = NEW.id,
+                        publication_history_id = COALESCE(
+                            signal_opportunity_projection.publication_history_id,
+                            excluded.publication_history_id
+                        );
+
+                    UPDATE signal_opportunity_projection
+                    SET latest_history_id = NEW.id
+                    WHERE signal_id = NEW.signal_id
+                      AND NEW.event NOT IN ('PUBLISHED', 'PUBLISHED_VERSION');
+                END
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO signal_opportunity_projection(
+                    signal_id, latest_history_id, publication_history_id
+                )
+                SELECT
+                    signal_id,
+                    MAX(id),
+                    MIN(CASE
+                        WHEN event IN ('PUBLISHED', 'PUBLISHED_VERSION') THEN id
+                    END)
+                FROM signal_history
+                GROUP BY signal_id
+                HAVING MIN(CASE
+                    WHEN event IN ('PUBLISHED', 'PUBLISHED_VERSION') THEN id
+                END) IS NOT NULL
+                ON CONFLICT(signal_id) DO UPDATE SET
+                    latest_history_id = excluded.latest_history_id,
+                    publication_history_id = excluded.publication_history_id
+                """
+            )
 
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord:
         if not event.strip():
@@ -419,24 +482,16 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                     latest.signal_id, latest.event, latest.recorded_at, latest.signal_json,
                     publication.signal_id, publication.event,
                     publication.recorded_at, publication.signal_json
-                FROM signal_history AS latest
-                JOIN (
-                    SELECT signal_id, MAX(id) AS latest_id
-                    FROM signal_history
-                    GROUP BY signal_id
-                ) AS current ON current.latest_id = latest.id
+                FROM signal_opportunity_projection AS projection
+                JOIN signal_history AS latest
+                  ON latest.id = projection.latest_history_id
                 JOIN signal_history AS publication
-                  ON publication.id = (
-                    SELECT MIN(p.id)
-                    FROM signal_history AS p
-                    WHERE p.signal_id = latest.signal_id
-                      AND p.event IN ('PUBLISHED', 'PUBLISHED_VERSION')
-                  )
+                  ON publication.id = projection.publication_history_id
                 WHERE NOT EXISTS (
                     SELECT 1 FROM signal_revision_links AS revision
-                    WHERE revision.parent_signal_id = latest.signal_id
+                    WHERE revision.parent_signal_id = projection.signal_id
                 )
-                ORDER BY latest.signal_id ASC
+                ORDER BY projection.signal_id ASC
                 """
             ).fetchall()
         candidates: list[PublishedOpportunityRevision] = []
