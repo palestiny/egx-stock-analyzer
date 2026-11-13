@@ -146,6 +146,7 @@ class SignalLifecycleOrchestrator:
         calendar_version: str,
         policy_version: str = "dec138-daily-ohlc-v1",
         resolved_gap_session_date: date | None = None,
+        resolved_gap_at: datetime | None = None,
     ) -> SignalLifecycleResult | None:
         """Evaluate one provider-attested completed candle for a published signal.
 
@@ -156,6 +157,10 @@ class SignalLifecycleOrchestrator:
             raise ValueError("policy_version is required")
         if not calendar_version or not calendar_version.strip():
             raise ValueError("calendar_version is required")
+        if resolved_gap_at is not None and (
+            resolved_gap_at.tzinfo is None or resolved_gap_at.utcoffset() is None
+        ):
+            raise ValueError("resolved_gap_at must be timezone-aware")
 
         def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
             latest = transaction.latest_for_signal(signal_id)
@@ -256,7 +261,7 @@ class SignalLifecycleOrchestrator:
                             calendar_version=calendar_version.strip(),
                             status="RESOLVED",
                             reason="ELIGIBLE_BAR_RECONCILED",
-                            recorded_at=bar.observed_at,
+                            recorded_at=resolved_gap_at or bar.observed_at,
                         )
                     )
             if transitioned.status is current.status:
