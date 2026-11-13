@@ -172,3 +172,8 @@ SQLiteLifecycleOccurrenceClaimStore.renew() atomically extends a claim with a co
 - The application claim-store protocol now exposes the renewal operation.
 
 This remains a persistence primitive only. No heartbeat loop, worker, scheduler, runtime composition, provider retrieval, calendar activation, monitoring, or outbound delivery has been added. Before activation, an owner-approved operational policy must define trusted clock source, lease duration, heartbeat interval, maximum renewals/runtime, cancellation and shutdown semantics, and retry/backoff. The claim store and lifecycle Unit of Work must continue to share the same SQLite database.
+
+
+## 14. Claim-store database binding — implementation added 2026-11-13
+
+SQLiteSignalLifecycleUnitOfWork accepts an explicit SQLiteLifecycleOccurrenceClaimStore binding for claimed execution. Construction rejects a claim store whose resolved database path differs from the lifecycle history/track-record/outbox database. execute_claimed() refuses to run unless this binding was supplied, preventing accidental validation/completion against a missing or separate claims table. Tests cover mismatched database paths and missing binding. This is dependency-boundary enforcement only; no worker runtime composition has been introduced.
