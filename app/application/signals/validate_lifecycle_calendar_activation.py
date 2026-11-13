@@ -6,7 +6,11 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.session_calendar_store import SessionCalendarStore
-from app.application.signals.lifecycle_unit_of_work import (\n    LifecycleObservationRecord,\n    SignalLifecycleTransaction,\n    SignalLifecycleUnitOfWork,\n)
+from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleObservationRecord,
+    SignalLifecycleTransaction,
+    SignalLifecycleUnitOfWork,
+)
 from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.domain.market_data.session_calendar import CalendarDayStatus
 from app.domain.signals.model import SignalStatus
