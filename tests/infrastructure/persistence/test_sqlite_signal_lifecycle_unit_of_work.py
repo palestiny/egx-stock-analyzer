@@ -421,6 +421,7 @@ def test_sqlite_daily_observation_ledger_is_append_only(tmp_path):
                 signal_id=created.signal_id,
                 bar=bar,
                 policy_version="dec138-daily-ohlc-v1",
+                calendar_version="calendar-v1",
                 resulting_status=SignalStatus.ACTIVE,
             )
         )
