@@ -366,7 +366,7 @@ def test_calendar_activation_validation_rejects_cursor_on_publication_baseline()
 
 
 def test_calendar_activation_validation_requires_next_evaluation_after_cursor():
-    validator, _, publication, uow, _ = setup()
+    validator, _, publication, uow, _, _ = setup()
     record_cursor(uow, publication, date(2026, 10, 6))
     result = validator.execute(
         calendar_version="calendar-v1",
