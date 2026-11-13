@@ -280,9 +280,42 @@ def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path
         coverage_end=date(2026, 11, 4),
         days=calendar_days,
     )
-    calendar_repository.publish(
+    actor = UUID("10000000-0000-0000-0000-000000000001")
+    SQLiteUserStore(database).save(User(actor, UserStatus.ACTIVE))
+    evidence_repository = SQLiteCalendarEvidenceRepository(database)
+    evidence = tuple(
+        CalendarEvidence.create(
+            calendar_version="verified-v1",
+            session_date=session_date,
+            evidence_kind=CalendarEvidenceKind.SCHEDULE,
+            source_type="OFFICIAL_EXCHANGE_NOTICE",
+            source_reference=f"https://example.invalid/calendar/verified-v1/{session_date.isoformat()}",
+            claim=f"EGX session scheduled on {session_date.isoformat()}",
+            recorded_by=actor,
+            observed_at=datetime(2026, 11, 1, 9, tzinfo=CAIRO),
+            recorded_at=datetime(2026, 11, 1, 10, tzinfo=CAIRO),
+            source_class=CalendarEvidenceSourceClass.A,
+            source_publisher="EGX",
+            market_scope="EGX_MARKET_WIDE",
+            effective_from=session_date,
+            effective_through=session_date,
+            retrieved_at=datetime(2026, 11, 1, 9, 30, tzinfo=CAIRO),
+            artifact_sha256="a" * 64,
+            artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+            artifact_not_retained_reason="Fixture retains the official reference only",
+        )
+        for session_date in (
+            date(2026, 11, 2),
+            date(2026, 11, 3),
+            date(2026, 11, 4),
+        )
+    )
+    SQLiteCalendarPublicationUnitOfWork(
+        calendar_repository, evidence_repository
+    ).publish(
         calendar,
-        published_by="operator",
+        evidence,
+        published_by=str(actor),
         source_reference="calendar-evidence-2026-11",
         reason="verified schedule fixture",
         published_at=datetime(2026, 11, 1, 12, tzinfo=CAIRO),
@@ -322,7 +355,6 @@ def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path
         calendar_store=calendar_repository,
         candidate_calendar_version="verified-v1",
     )
-    evidence_repository = SQLiteCalendarEvidenceRepository(database)
     validator = ValidateLifecycleCalendarActivation(
         history=history,
         calendar_store=calendar_repository,
