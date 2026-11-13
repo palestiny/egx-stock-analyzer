@@ -449,3 +449,61 @@ Therefore the remaining application orchestration gap is narrower and explicit: 
 No scheduler technology or deployment topology is selected here. In-process timers, external cron/webhook, and a durable worker process have different restart, duplicate-trigger, availability, and operations trade-offs. The current repository does not establish the intended deployment class, number of replicas, process supervisor, trusted clock source, or operational SLO. Those are owner/deployment decisions, not safe assumptions for implementation.
 
 **Next design increment:** specify a disabled-by-default worker coordinator contract and deterministic tests using fake schedule/source/clock ports, without wiring it into production runtime, adding a recurring trigger, enabling Telegram dispatch, or claiming provider finality. Keep provider-specific adapter, source authenticity, commercial rights, calendar activation, and production SLO as independent blockers.
+
+
+## 28. Disabled worker coordinator contract and atomicity gate — 2026-11-13
+
+### Coordinator contract
+
+The next application layer is a single-invocation coordinator. It is not a scheduler, daemon, web endpoint, or deployment decision. Its proposed contract is:
+
+1. It is constructed disabled by default and is not composed by `create_infrastructure_runtime`.
+2. Each invocation receives an explicit owner/worker identity, a bounded work limit, and one timezone-aware cutoff from an injected clock. It never samples wall-clock time independently during one occurrence.
+3. It reads the deterministic `latest_active_published_opportunities()` projection and processes identities in the store's stable order. It does not scan all historical signal records.
+4. For each opportunity, it derives the next unprocessed EGX session from the active calendar and the latest lifecycle observation (or immutable publication date when no observation exists). A session is eligible only when the trusted calendar says it is scheduled and the evaluator's Cairo post-close rules have elapsed.
+5. It creates the occurrence identity from the active calendar version, one session date, and opportunity ID, then obtains the durable fenced claim before requesting market evidence.
+6. It requests evidence for that single session through the provider-neutral `CompletedDailyBarSource` port. The coordinator does not infer finality, synthesize evidence, substitute a different session, or silently skip a missing session.
+7. It evaluates at the same immutable cutoff, with the active calendar version and the matching provider evidence. A missing, invalid, or non-final session remains a blocking gap; later sessions cannot be advanced past it.
+8. A completed occurrence is idempotent. A stale/fenced claim must cause all lifecycle effects to roll back. External alert delivery is not part of this coordinator; it may only persist the existing outbox effects.
+9. The invocation returns per-opportunity outcomes and counts (claimed, completed, deferred, blocked, failed) for tests and future operational reporting. It does not log provider payloads or expose credentials.
+
+### Atomicity blocker discovered in the current implementation
+
+The existing durable primitives are not yet composable into the above contract:
+
+- `SQLiteSignalLifecycleUnitOfWork.execute_claimed()` correctly wraps claim validation, caller-supplied lifecycle transaction work, and claim completion in one `BEGIN IMMEDIATE` transaction.
+- However, `EvaluateOpportunityLifecycleSessions.execute()` calls `SignalLifecycleOrchestrator.process_completed_daily_bar()`, which independently invokes `self._unit_of_work.execute(persist)`. Its session-gap path also persists through the orchestrator's own unit-of-work call.
+- Therefore, calling the current evaluator from inside `execute_claimed()` would start a separate transaction rather than use the claim-fenced transaction. Claim completion could not be guaranteed atomic with observations, status history, session-gap resolution, and outbox writes. The coordinator must not be implemented on top of this unsafe composition.
+
+**Required prerequisite:** introduce a transaction-aware lifecycle evaluation path. The evaluator/orchestrator must accept a caller-owned `SignalLifecycleTransaction` for all reads and writes in one occurrence, including session-gap recording/resolution, observation persistence, status history, and outbox events. The ordinary non-worker API may continue to own its own unit of work. The worker path must pass the transaction supplied by `execute_claimed()`; it must not open a nested unit of work.
+
+### Retry and recovery blocker
+
+The current occurrence claim store supports `CLAIMED`, `FAILED`, and `COMPLETED`; failed claims can be reclaimed with an incremented attempt and fencing token. It has no persistent maximum-attempt policy or terminal/quarantined state. Repeatedly invoking the coordinator could therefore retry a permanently failing occurrence indefinitely.
+
+Before implementation, the claim contract needs an explicit bounded-retry decision: configured maximum attempts, retry eligibility/backoff semantics, and a terminal state (for example `EXHAUSTED`) that cannot be reclaimed without an explicit operator recovery action. Do not approximate this with an in-memory counter, because that resets on process restart and differs across replicas.
+
+### Deterministic acceptance suite
+
+The coordinator and transaction-aware evaluator are not accepted until tests prove:
+
+- stable projection order and one-session-per-occurrence identity;
+- no claim for a future, unscheduled, or not-yet-post-close session;
+- duplicate invocations cannot process the same occurrence concurrently;
+- a missing/ineligible bar records a gap and blocks every later session;
+- a later retry can resolve the same gap without duplicating observations or outbox events;
+- a stale fencing token or expired lease rolls back all lifecycle and outbox effects;
+- claim completion and all lifecycle writes commit or roll back together;
+- retry exhaustion is durable across process reconstruction;
+- a disabled coordinator performs no source retrieval, claim acquisition, lifecycle mutation, or alert dispatch.
+
+### Gate status
+
+- Coordinator contract: **SPECIFIED** (application-level, one session per occurrence).
+- Transaction-aware evaluator prerequisite: **GAP — NOT IMPLEMENTED**.
+- Durable bounded retry/exhaustion: **GAP — NOT IMPLEMENTED**.
+- Provider adapter and independent finality verifier: **NOT AVAILABLE / NOT APPROVED**.
+- Runtime composition, recurring trigger, calendar activation, monitoring, and outbound delivery: **DISABLED / NOT AUTHORIZED**.
+- Worker implementation acceptance: **NOT ACCEPTED** until the atomicity and retry blockers are closed with deterministic tests.
+
+This contract deliberately does not choose in-process timers, cron/webhook, a durable worker deployment, replica count, process supervision, production SLO, or a market-data provider. Those remain separate owner decisions. PR #515 remains OPEN + DRAFT.
