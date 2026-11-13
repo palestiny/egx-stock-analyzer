@@ -45,9 +45,11 @@ class LifecycleCalendarActivationValidation:
 class ValidateLifecycleCalendarActivation:
     """Fail-closed precondition check for a candidate lifecycle calendar.
 
-    This validator deliberately does not activate a calendar. The activation
-    command/API must call it before changing the active pointer. A production
-    schedule adapter is mandatory; no request-supplied date is accepted.
+    This validator never mutates the active pointer. The atomic SQLite
+    coordinator supplies a caller-owned lifecycle transaction so bootstrap
+    and cursor reads are serialized with the subsequent pointer and audit
+    writes. A trusted schedule adapter is mandatory; no request-supplied date
+    is accepted.
     """
 
     def __init__(
