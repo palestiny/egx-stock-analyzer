@@ -133,7 +133,7 @@ The future evaluation date must be explicitly `SCHEDULED` (not merely historical
 
 Regression tests now cover a non-closed cursor rejection, a closed cursor acceptance, rollback-time revalidation against the currently persisted cursor, and the no-active-opportunities case. The validator remains a pure precondition check: it does not serialize validation with calendar pointer mutation. A controlled activation/rollback transaction is still required before operational use.
 
-Exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Additional cursor/rollback/empty-workload tests and stricter future-session checks were added in `6578e4a` and `81a5e8d`; exact-head CI for `81a5e8d` is pending.
+Historical checkpoint: exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Cursor/rollback/empty-workload tests and stricter future-session checks were subsequently added in `6578e4a` and `81a5e8d`; the then-pending CI state was superseded by later exact-head verification recorded in Section 8.
 
 
 ## Owner-approved trusted schedule policy and adapter — 2026-11-13
@@ -146,7 +146,7 @@ Exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Additional 
 
 Implementation added as `CalendarBackedLifecycleEvaluationSchedule`, with tests for initial activation, change/rollback source preservation, no-future-session fail-closed behavior, and missing candidate fail-closed behavior.
 
-**Boundary:** the adapter is a provider-neutral schedule source, not an activation command. It is not yet wired to an activation endpoint. It does not solve the validation-to-pointer-mutation race. Activation and rollback remain disabled until validation, active-calendar pointer mutation, and append-only audit are serialized in one transaction and covered by concurrency/failure tests.
+**Historical boundary at this checkpoint:** the adapter was a provider-neutral schedule source and was not yet serialized with pointer mutation. This gap was subsequently closed by the SQLite activation coordinator described below, which joins the lifecycle Unit of Work to the calendar repository's `BEGIN IMMEDIATE` transaction and atomically validates, changes the pointer, and appends the audit event. The coordinator remains an internal capability only; no operational activation endpoint/command is exposed.
 
 
 ## Atomic calendar activation implementation increment — 2026-11-13
