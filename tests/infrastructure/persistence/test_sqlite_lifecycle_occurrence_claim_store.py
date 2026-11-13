@@ -93,8 +93,8 @@ def test_expired_lease_reclaim_increments_fencing_token_and_rejects_old_owner(tm
     assert first is not None
 
     second = store.claim(
-        "occurrence-2", "worker-b", now=NOW + timedelta(seconds=31), lease_seconds=30
-    , retry_policy=TEST_RETRY_POLICY)
+        "occurrence-2", "worker-b", now=NOW + timedelta(seconds=31), lease_seconds=30,
+        retry_policy=TEST_RETRY_POLICY)
 
     assert second is not None
     assert second.fencing_token == first.fencing_token + 1
@@ -111,8 +111,8 @@ def test_failed_occurrence_can_be_retried_with_a_new_fencing_token(tmp_path):
     assert store.mark_failed(first, failed_at=NOW + timedelta(seconds=5), reason="provider timeout")
 
     second = store.claim(
-        "occurrence-3", "worker-b", now=NOW + timedelta(seconds=6), lease_seconds=60
-    , retry_policy=TEST_RETRY_POLICY)
+        "occurrence-3", "worker-b", now=NOW + timedelta(seconds=6), lease_seconds=60,
+        retry_policy=TEST_RETRY_POLICY)
     assert second is not None
     assert second.fencing_token == 2
     assert second.attempt == 2
@@ -134,8 +134,8 @@ def test_completed_occurrence_cannot_be_claimed_again(tmp_path):
 
     assert store.get("occurrence-4")["status"] == "COMPLETED"
     assert store.claim(
-        "occurrence-4", "worker-b", now=NOW + timedelta(seconds=3), lease_seconds=60
-    , retry_policy=TEST_RETRY_POLICY) is None
+        "occurrence-4", "worker-b", now=NOW + timedelta(seconds=3), lease_seconds=60,
+        retry_policy=TEST_RETRY_POLICY) is None
     assert len(history.all_records()) == 1
 
 
@@ -146,8 +146,8 @@ def test_stale_fencing_token_cannot_write_lifecycle_history(tmp_path):
     old_claim = store.claim("occurrence-5", "worker-a", now=NOW, lease_seconds=10, retry_policy=TEST_RETRY_POLICY)
     assert old_claim is not None
     new_claim = store.claim(
-        "occurrence-5", "worker-b", now=NOW + timedelta(seconds=11), lease_seconds=30
-    , retry_policy=TEST_RETRY_POLICY)
+        "occurrence-5", "worker-b", now=NOW + timedelta(seconds=11), lease_seconds=30,
+        retry_policy=TEST_RETRY_POLICY)
     assert new_claim is not None
 
     with pytest.raises(StaleLifecycleOccurrenceClaimError):
@@ -209,8 +209,8 @@ def test_claim_survives_store_restart_and_can_be_reclaimed_after_expiry(tmp_path
     database = tmp_path / "analysis.db"
     first_store = SQLiteLifecycleOccurrenceClaimStore(database)
     first_claim = first_store.claim(
-        "occurrence-restart", "worker-before-restart", now=NOW, lease_seconds=10
-    , retry_policy=TEST_RETRY_POLICY)
+        "occurrence-restart", "worker-before-restart", now=NOW, lease_seconds=10,
+        retry_policy=TEST_RETRY_POLICY)
     assert first_claim is not None
 
     restarted_store = SQLiteLifecycleOccurrenceClaimStore(database)
@@ -226,7 +226,7 @@ def test_claim_survives_store_restart_and_can_be_reclaimed_after_expiry(tmp_path
         "worker-after-restart",
         now=NOW + timedelta(seconds=11),
         lease_seconds=30,
-    , retry_policy=TEST_RETRY_POLICY) is not None
+        retry_policy=TEST_RETRY_POLICY) is not None
     recovered = restarted_store.get("occurrence-restart")
     assert recovered is not None
     assert recovered["owner_id"] == "worker-after-restart"
@@ -278,7 +278,7 @@ def test_old_owner_and_fencing_token_cannot_renew_after_reclaim(tmp_path):
         "worker-b",
         now=NOW + timedelta(seconds=11),
         lease_seconds=30,
-    , retry_policy=TEST_RETRY_POLICY)
+        retry_policy=TEST_RETRY_POLICY)
     assert current_claim is not None
 
     assert store.renew(
@@ -349,8 +349,8 @@ def test_execute_claimed_requires_explicit_database_bound_claim_store(tmp_path):
     unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
 
     claim = SQLiteLifecycleOccurrenceClaimStore(database).claim(
-        "occurrence-no-bound-store", "worker-a", now=NOW, lease_seconds=30
-    , retry_policy=TEST_RETRY_POLICY)
+        "occurrence-no-bound-store", "worker-a", now=NOW, lease_seconds=30,
+        retry_policy=TEST_RETRY_POLICY)
     assert claim is not None
 
     with pytest.raises(RuntimeError, match="requires an occurrence claim store"):
