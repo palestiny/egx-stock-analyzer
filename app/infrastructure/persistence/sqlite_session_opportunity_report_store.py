@@ -182,4 +182,18 @@ class SQLiteSessionOpportunityReportStore:
         value = json.loads(str(row[0]))
         if not isinstance(value, dict):
             raise ValueError("stored session report is invalid")
+        opportunities = value.get("opportunities")
+        if isinstance(opportunities, list):
+            for item in opportunities:
+                if not isinstance(item, dict) or "outcome_knowledge_status" in item:
+                    continue
+                has_event_provenance = bool(
+                    item.get("outcome_event_id") and item.get("outcome_recorded_at")
+                )
+                if has_event_provenance:
+                    item["outcome_knowledge_status"] = "RECORDED"
+                elif item.get("market_proxy_outcome") is not None:
+                    item["outcome_knowledge_status"] = "LEGACY_UNKNOWN"
+                else:
+                    item["outcome_knowledge_status"] = "UNRESOLVED"
         return value
