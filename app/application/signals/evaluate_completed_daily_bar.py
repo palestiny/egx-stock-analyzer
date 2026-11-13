@@ -90,7 +90,7 @@ class EvaluateCompletedDailyBar:
         )
         eligible_at = max(
             configured_close + self.POST_CLOSE_BUFFER,
-            day.closed_at.astimezone(timezone) + self.POST_CLOSE_BUFFER,
+            day.closed_at.astimezone(timezone),
         )
         if (
             evaluated_at.astimezone(timezone) < eligible_at
