@@ -62,11 +62,14 @@ class PublishSignalOpportunity:
                 for item in history_records
             )
             if latest.signal != signal:
-                signal_record = self._history.record(
+                signal_record = self._history.record_revision(
                     signal,
                     "PUBLISHED_VERSION",
                     recorded_at,
+                    parent_signal_id=latest.signal_id,
+                    reason="material opportunity setup changed",
                 )
+                signal_id = signal_record.signal_id
             elif already_recorded:
                 signal_record = latest
             else:
