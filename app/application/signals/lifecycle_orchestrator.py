@@ -10,6 +10,7 @@ from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
+    LifecycleCorrectionReviewDecision,
     LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     InMemorySignalLifecycleUnitOfWork,
@@ -217,6 +218,25 @@ class SignalLifecycleOrchestrator:
                     changed=False,
                     outcome_recorded=False,
                     alert_published=False,
+                )
+
+            corrections = transaction.corrections(signal_id)
+            review_decisions = transaction.correction_review_decisions(signal_id)
+            latest_decision_by_correction: dict[UUID, LifecycleCorrectionReviewDecision] = {}
+            for decision in review_decisions:
+                latest_decision_by_correction[decision.correction_id] = decision
+            unresolved_corrections = [
+                correction
+                for correction in corrections
+                if (
+                    correction.correction_id not in latest_decision_by_correction
+                    or latest_decision_by_correction[correction.correction_id].decision
+                    not in {"REJECTED", "ACCEPTED_NO_STATE_CHANGE"}
+                )
+            ]
+            if unresolved_corrections:
+                raise ValueError(
+                    "unresolved daily-bar correction review blocks lifecycle progression"
                 )
 
             previous_observation = transaction.latest_observation(latest.signal_id)
@@ -465,6 +485,70 @@ class SignalLifecycleOrchestrator:
     ) -> tuple[LifecycleCorrectionRecord, ...]:
         return self._unit_of_work.execute(
             lambda transaction: transaction.corrections(signal_id)
+        )
+
+    def record_daily_bar_correction_review(
+        self,
+        signal_id: UUID,
+        correction_id: UUID,
+        *,
+        decision: str,
+        reviewer_id: str,
+        reason: str,
+        recorded_at: datetime,
+    ) -> LifecycleCorrectionReviewDecision:
+        allowed_decisions = {
+            "REJECTED",
+            "ACCEPTED_NO_STATE_CHANGE",
+            "REPLAY_REQUIRED",
+        }
+        normalized_decision = decision.strip().upper()
+        if normalized_decision not in allowed_decisions:
+            raise ValueError("unsupported lifecycle correction review decision")
+        if not reviewer_id.strip() or not reason.strip():
+            raise ValueError("reviewer_id and review reason are required")
+        if recorded_at.tzinfo is None or recorded_at.utcoffset() is None:
+            raise ValueError("recorded_at must be timezone-aware")
+
+        decision_id = uuid5(
+            NAMESPACE_URL,
+            (
+                f"signal-correction-review:{signal_id}:{correction_id}:"
+                f"{normalized_decision}:{reviewer_id.strip()}:{reason.strip()}"
+            ),
+        )
+        review = LifecycleCorrectionReviewDecision(
+            decision_id=decision_id,
+            correction_id=correction_id,
+            signal_id=signal_id,
+            decision=normalized_decision,
+            reviewer_id=reviewer_id.strip(),
+            reason=reason.strip(),
+            recorded_at=recorded_at,
+        )
+
+        def persist(transaction: SignalLifecycleTransaction) -> LifecycleCorrectionReviewDecision:
+            correction = next(
+                (
+                    item for item in transaction.corrections(signal_id)
+                    if item.correction_id == correction_id
+                ),
+                None,
+            )
+            if correction is None:
+                raise ValueError("correction identity does not exist")
+            if recorded_at < correction.recorded_at:
+                raise ValueError("review cannot precede correction intake")
+            transaction.record_correction_review_decision(review)
+            return review
+
+        return self._unit_of_work.execute(persist)
+
+    def lifecycle_correction_review_decisions(
+        self, signal_id: UUID
+    ) -> tuple[LifecycleCorrectionReviewDecision, ...]:
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.correction_review_decisions(signal_id)
         )
 
     def latest_completed_observation(
