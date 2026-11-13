@@ -532,6 +532,16 @@ def test_sqlite_correction_is_append_only_and_does_not_rewrite_lifecycle_outcome
     assert original.bar.high == Decimal("105")
     assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
     assert track_record.all() == ()
+    import sqlite3
+    connection = sqlite3.connect(str(database))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_lifecycle_daily_bar_corrections WHERE correction_id = ?",
+                (str(correction.correction_id),),
+            )
+    finally:
+        connection.close()
 
 
 def test_sqlite_correction_ledger_rejects_same_revision_as_original(tmp_path):
