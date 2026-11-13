@@ -14,7 +14,6 @@ from app.application.signals.lifecycle_orchestrator import (
 )
 from app.application.signals.store import SignalHistoryStore
 from app.domain.market_data.session_calendar import CalendarCoverageError
-from app.domain.signals.lifecycle import CompletedDailyBarObservation
 from app.domain.signals.model import SignalStatus
 
 
