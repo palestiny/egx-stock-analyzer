@@ -760,6 +760,7 @@ class SQLiteSignalLifecycleUnitOfWork:
                 BEGIN
                     SELECT RAISE(ABORT, 'lifecycle correction reviews are append-only');
                 END
+                """
             )
             connection.execute(
                 """
