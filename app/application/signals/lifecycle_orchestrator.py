@@ -539,6 +539,13 @@ class SignalLifecycleOrchestrator:
                 raise ValueError("correction identity does not exist")
             if recorded_at < correction.recorded_at:
                 raise ValueError("review cannot precede correction intake")
+            prior_reviews = [
+                item
+                for item in transaction.correction_review_decisions(signal_id)
+                if item.correction_id == correction_id
+            ]
+            if prior_reviews and recorded_at < prior_reviews[-1].recorded_at:
+                raise ValueError("correction review decisions must be chronological")
             transaction.record_correction_review_decision(review)
             return review
 
