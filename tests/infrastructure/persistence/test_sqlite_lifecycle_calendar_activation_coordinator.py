@@ -1,9 +1,9 @@
 import sqlite3
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.validate_lifecycle_calendar_activation import (
     LifecycleCalendarActivationValidation,
 )
@@ -30,7 +30,7 @@ from app.infrastructure.persistence.sqlite_track_record_store import (
 )
 
 
-CAIRO = timezone.utc
+CAIRO = ZoneInfo("Africa/Cairo")
 
 
 class StubValidator:
@@ -41,7 +41,7 @@ class StubValidator:
     def execute(self, *, calendar_version, as_of, transaction):
         assert transaction.bootstrap_batches() == ()
         self.received_transaction = True
-        blockers = () if self.eligible else ()
+        blockers = ()
         return LifecycleCalendarActivationValidation(
             eligible=self.eligible,
             calendar_version=calendar_version,
