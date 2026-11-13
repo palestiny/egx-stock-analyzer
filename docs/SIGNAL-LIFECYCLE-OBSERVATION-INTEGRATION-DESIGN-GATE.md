@@ -247,3 +247,10 @@ This matrix is the current source of truth for PR #515. It supersedes earlier sn
 6. Pass full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance.
 
 M61/backtesting remains paused and outside this gate.
+
+
+## Atomic calendar activation / rollback transaction — implementation added 2026-11-13
+
+The PR branch now contains a controlled SQLite coordinator. It acquires `BEGIN IMMEDIATE` before lifecycle validation, runs bootstrap and cursor reads through the same caller-owned lifecycle transaction, and commits the active-calendar pointer update together with the append-only activation event. A validation rejection or any exception (including audit insert failure) rolls the entire transaction back. The coordinator refuses calendar/lifecycle stores that do not share the same database file.
+
+Focused tests cover transaction joining without a nested UoW, validation rejection preserving pointer and audit history, and an injected audit failure preserving the previous active calendar. This is not yet production activation: no API/admin route or runtime activation command is wired; the scheduled worker and monitoring remain disabled. Provider finality remains unaccepted. Exact-head CI is pending.
