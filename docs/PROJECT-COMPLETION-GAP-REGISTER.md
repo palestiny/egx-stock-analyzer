@@ -1,3 +1,18 @@
+## Current verified continuation — 2026-11-13 (Crash Radar freshness implementation pending CI)
+
+- [x] Added per-symbol Crash Radar source-data freshness evaluation against explicit completed EGX sessions in the persisted active calendar, with `FRESH`, `STALE`, `UNKNOWN`, and `FUTURE` states.
+- [x] Freshness uses source-bar timestamps rather than the analysis execution date; timezone-naive/missing timestamps remain unknown.
+- [x] Missing active calendar, unconfirmed SCHEDULED/OPEN sessions, future source timestamps, and calendar coverage gaps fail closed to UNKNOWN/FUTURE rather than being represented as fresh.
+- [x] Wired the existing `SessionCalendarStore` into Crash Radar API composition without publishing or activating any calendar.
+- [x] Added regression tests for one completed session becoming stale, same-session freshness, unconfirmed session, absent active calendar, future timestamp, and naive evaluation cutoff.
+- [ ] Exact-head CI verification is pending for the current PR #515 head. No test pass is claimed until all six jobs succeed on that SHA.
+- [ ] Calendar authenticity remains blocked by the empty trusted-origin registry and lack of independently reviewed real EGX evidence. No activation was performed or authorized.
+- [ ] The 50/40/10 heuristic is unchanged; no minimum coverage threshold, score suppression, historical score ledger, or alerts were introduced.
+
+This increment closes only the completed-session freshness calculation and its API evidence metadata. It does not make Crash Radar a validated crash predictor or a trading signal.
+
+---
+
 ## Current verified continuation — 2026-11-13 (post-claim hardening and on-disk projection regression)
 
 **Current PR #515 branch:** `feature/opportunity-lifecycle-completion`. The current implementation supersedes older checklist lines below where they still describe active-opportunity enumeration or durable occurrence claims as missing. PR #515 remains OPEN / DRAFT / NOT MERGED.
