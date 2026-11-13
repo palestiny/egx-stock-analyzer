@@ -5,8 +5,6 @@ from uuid import UUID
 import pytest
 
 from app.application.market_data.calendar_source_authenticity import (
-    CalendarEvidenceVerificationRecord,
-    CalendarEvidenceVerificationStore,
     CalendarSourceAuthenticityError,
     CalendarSourceAuthenticityVerifier,
     RetrievedCalendarSourceArtifact,
