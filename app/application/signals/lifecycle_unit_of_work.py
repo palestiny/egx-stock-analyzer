@@ -26,6 +26,7 @@ class LifecycleCorrectionRecord:
     corrected_bar: CompletedDailyBarObservation
     operator_id: str
     reason: str
+    calendar_version: str
     recorded_at: datetime
 
 
@@ -106,6 +107,8 @@ class _InMemoryTransaction:
         )
 
     def record_correction(self, record: LifecycleCorrectionRecord) -> None:
+        if self.get_observation(record.signal_id, record.original_identity) is None:
+            raise ValueError("correction references a missing original observation")
         existing = self._corrections.get(record.correction_id)
         if existing is not None:
             if existing != record:
