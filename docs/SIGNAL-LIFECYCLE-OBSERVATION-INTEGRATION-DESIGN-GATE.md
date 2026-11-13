@@ -16,7 +16,7 @@ PR #515 now contains the core completed-daily-OHLC lifecycle path and tests for:
 - Expiry after 20 eligible EGX sessions, without creating a realized return/R record.
 - Immutable opportunity revision links and append-only correction intake records.
 
-**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. PR #515 remains Draft and must not be merged or activated until these gates and exact-head CI pass.
+**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. Exact-head CI passed on `d348dc92e263990ff6a32428cb392fc4dbc91d44` (run #43396429794; all six required jobs successful). PR #515 remains Draft and must not be merged or activated until the remaining operational gates pass.
 
 ## 1. Verified current composition
 
