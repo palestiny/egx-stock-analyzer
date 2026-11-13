@@ -1,6 +1,6 @@
 # EGX Lifecycle Bootstrap Cursor — Approved Design
 
-**Status:** OWNER-APPROVED DESIGN — implementation in progress  
+**Status:** OWNER-APPROVED DESIGN — IMPLEMENTATION COMPLETE IN PR #515; production activation remains blocked  
 **Decision date:** 2026-11-13  
 **Decision record:** `docs/EGX-LIFECYCLE-BOOTSTRAP-CURSOR-OWNER-DECISION.md`  
 **Related:** `docs/EGX-SESSION-CALENDAR-ACTIVATION-DESIGN-GATE.md`, `docs/OPPORTUNITY-LIFECYCLE-SCHEDULED-WORKER-DESIGN-GATE.md`, DEC-138, DEC-139.
@@ -162,3 +162,15 @@ A provider-neutral SQLite activation coordinator is now implemented on the PR br
 Focused persistence tests cover joining the caller-owned transaction (no nested UoW), rejection with no pointer/audit change, audit-insert failure rolling back a pointer update, and refusal to coordinate repositories backed by different database files. A validator test covers use of a caller-owned lifecycle transaction.
 
 **Important boundary:** this is an application/infrastructure capability and test increment only. No activation API route, admin UI, runtime activation command, production active-calendar change, worker, or monitoring has been wired or enabled. Provider-finality remains an independent blocker. Exact-head CI is required before treating this increment as verified.
+
+
+## 8. Implementation completion and exact-head verification — 2026-11-13
+
+The approved bootstrap design is implemented on PR #515:
+- Append-only bootstrap batch and per-opportunity records are persisted separately from daily-bar evidence, with immutable publication provenance, calendar-version identity, digest/idempotency, and SQLite no-update/no-delete enforcement.
+- The application workflow enumerates active latest immutable revisions, derives each Cairo-local baseline from `PUBLISHED` / `PUBLISHED_VERSION` history, verifies explicit calendar coverage, and persists the batch atomically.
+- The evaluator rejects missing/mismatched bootstrap evidence and superseded parent revisions. Baselines remain exclusive lower bounds and are excluded from eligible-session expiry counts.
+- Calendar activation validation checks all active latest revisions, matching bootstrap evidence, candidate coverage through a trusted calendar-backed next-evaluation date, and reconciled-cursor compatibility.
+- A SQLite coordinator serializes authenticity preflight proof checks, lifecycle validation, active-pointer mutation, and append-only activation audit in one transaction. The coordinator is not exposed as an operational activation API/command.
+
+The current PR head `2585eb9cbd9ad4cf4f4f5883395987f2f054d9ee` passed all six GitHub Actions checks in run `43432642040`. This verifies repository CI only. It does not establish a real provider, production calendar origin, deployment network/recovery behavior, worker, or end-to-end operation. Keep activation, worker, and monitoring disabled; PR #515 remains Draft and unmerged.
