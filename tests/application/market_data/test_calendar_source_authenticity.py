@@ -166,7 +166,6 @@ def test_unapproved_origin_fails_even_when_publisher_metadata_says_egx():
 
 @pytest.mark.parametrize("url", [
     "http://calendar.example.test/notice",
-    "https://calendar.example.test.evil.test/notice",
     "https://calendar.example.test:444/notice",
     "https://user@calendar.example.test/notice",
 ])
@@ -175,6 +174,26 @@ def test_unsafe_or_lookalike_source_urls_are_rejected(url):
     with pytest.raises(CalendarSourceAuthenticityError):
         normalize_calendar_source_origin(url)
 
+
+
+def test_lookalike_domain_is_not_implicitly_trusted():
+    evidence = _evidence(
+        source_reference="https://calendar.example.test.evil.test/notice"
+    )
+    verifier, records = _verifier()
+    with pytest.raises(
+        CalendarSourceAuthenticityError,
+        match="not explicitly owner-approved",
+    ):
+        verifier.verify_for_activation(
+            evidence,
+            uploader=_identity(UPLOADER_ID, UPLOADER_CREDENTIAL),
+            verifier=_identity(REVIEWER_ID, REVIEWER_CREDENTIAL),
+            reviewed_claim=evidence.claim,
+            claim_supported=True,
+            at=NOW,
+        )
+    assert records.items == []
 
 def test_cross_origin_redirect_is_rejected():
     retrieved = RetrievedCalendarSourceArtifact(
