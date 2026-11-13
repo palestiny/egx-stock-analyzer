@@ -98,12 +98,12 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 
 ## 9. Owner decisions still open
 
-1. **Calendar bootstrap:** choose operator-supplied start date, calendar-start bootstrap with an explicit backfill cap, or no activation until a controlled cursor exists. The existing activation gate recommends cursor-derived coverage after a durable cursor exists; this document does not select a bootstrap policy.
+1. **Calendar bootstrap:** OWNER APPROVED OPTION 3 — no activation until a controlled, durable, audited cursor exists. The exact cursor semantics and atomic persistence contract remain to be designed; do not use a synthetic completed-bar observation or skip unreconciled sessions.
 2. **Worker deployment model:** choose the deployment scheduler/hosting mechanism only after the durable occurrence contract is accepted. The current in-process scheduler is not sufficient.
 3. **Operational retry window:** approve retry/backoff and alerting thresholds after provider rate limits and service-level expectations are known.
 
 ## 10. Current result
 
-**DESIGN PROPOSED / WORKER NOT WIRED / NOT ACTIVATED.** Existing evaluation and lifecycle semantics should be reused. Provider retrieval, production finality, calendar bootstrap/activation, durable worker execution, and full end-to-end proof remain separate gates.
+**DESIGN PROPOSED / WORKER NOT WIRED / NOT ACTIVATED.** Calendar bootstrap policy Option 3 and cursor-derived coverage are owner-approved; durable bootstrap-cursor semantics and implementation remain open. Existing evaluation and lifecycle semantics should be reused. Provider retrieval, production finality, calendar bootstrap/activation, durable worker execution, and full end-to-end proof remain separate gates.
 
 **External-contact boundary:** no provider outreach, quote request, account request, or credential request is authorized. EGID remains a research candidate only. M61/backtesting remains paused.
