@@ -316,6 +316,32 @@ class SQLiteCalendarEvidenceRepository:
             ).fetchone()
         return self._from_row(row) if row else None
 
+    def list_for_calendar_day(
+        self, calendar_version: str, session_date: date
+    ) -> tuple[CalendarEvidence, ...]:
+        """Return hash-verified evidence linked to this exact published calendar day."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT e.evidence_id, e.calendar_version, e.session_date, e.evidence_kind,
+                       e.source_type, e.source_reference, e.claim, e.recorded_by, e.observed_at,
+                       e.recorded_at, e.source_published_at, e.supersedes_evidence_id,
+                       e.supersession_reason, e.content_sha256, e.source_class, e.source_publisher,
+                       e.market_scope, e.effective_from, e.effective_through, e.retrieved_at,
+                       e.artifact_sha256, e.artifact_retention, e.artifact_storage_reference,
+                       e.artifact_not_retained_reason
+                FROM egx_calendar_evidence AS e
+                INNER JOIN egx_calendar_day_evidence_links AS l
+                    ON l.evidence_id = e.evidence_id
+                   AND l.calendar_version = e.calendar_version
+                   AND l.session_date = e.session_date
+                WHERE l.calendar_version = ? AND l.session_date = ?
+                ORDER BY e.recorded_at ASC, e.evidence_id ASC
+                """,
+                (calendar_version, session_date.isoformat()),
+            ).fetchall()
+        return tuple(self._from_row(row) for row in rows)
+
     def list_for_day(
         self, calendar_version: str, session_date: date
     ) -> tuple[CalendarEvidence, ...]:
