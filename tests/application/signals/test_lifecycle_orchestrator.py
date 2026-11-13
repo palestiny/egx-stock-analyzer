@@ -356,7 +356,7 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
     )
     signal = make_signal()
     history.record(signal, "PUBLISHED", signal.generated_at)
-    orchestrator.process_completed_daily_bar(make_completed_bar())
+    orchestrator.process_completed_daily_bar(make_completed_bar(), calendar_version="calendar-v1")
 
     with pytest.raises(ValueError, match="conflicting replay"):
         orchestrator.process_completed_daily_bar(
