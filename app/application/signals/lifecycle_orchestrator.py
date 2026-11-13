@@ -154,7 +154,15 @@ class SignalLifecycleOrchestrator:
                 return None
             if latest.signal.symbol.strip().upper() != bar.symbol.strip().upper():
                 raise ValueError("daily candle symbol does not match opportunity")
-            if latest.event not in {"PUBLISHED", "PUBLISHED_VERSION"}:
+            if latest.event not in {
+                "PUBLISHED",
+                "PUBLISHED_VERSION",
+                "STATUS_TRIGGERED",
+                "STATUS_INVALIDATED",
+                "STATUS_EXPIRED",
+                "STATUS_CLOSED",
+                "EVIDENCE_CHANGED_INVALIDATED",
+            }:
                 return None
             if latest.signal.status is not SignalStatus.ACTIVE:
                 return SignalLifecycleResult(
