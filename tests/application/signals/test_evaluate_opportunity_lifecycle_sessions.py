@@ -409,8 +409,8 @@ def test_session_evaluator_uses_caller_owned_transaction_for_gap_and_recovery():
         raise AssertionError("worker evaluation must not open a nested unit of work")
 
     unit_of_work.execute = reject_nested_unit_of_work
-    session = expected_sessions()[0]
-    cutoff = datetime(2026, 10, 2, 16, tzinfo=CAIRO)
+    session = expected_sessions()[1]
+    cutoff = datetime(2026, 10, 5, 16, tzinfo=CAIRO)
 
     gap = service.execute(
         publication.signal_id,
@@ -453,7 +453,7 @@ def test_sqlite_claim_fence_rolls_back_real_session_evaluator_effects(tmp_path):
     )
     unit_of_work = lifecycle._unit_of_work
     claim_store = SQLiteLifecycleOccurrenceClaimStore(database)
-    claim_time = datetime(2026, 10, 2, 16, tzinfo=CAIRO)
+    claim_time = datetime(2026, 10, 5, 16, tzinfo=CAIRO)
     claim = claim_store.claim(
         "sqlite-session-evaluator-atomicity",
         "worker-a",
@@ -462,7 +462,7 @@ def test_sqlite_claim_fence_rolls_back_real_session_evaluator_effects(tmp_path):
     )
     assert claim is not None
 
-    session = expected_sessions()[0]
+    session = expected_sessions()[1]
     target_bar = replace(
         make_bar(session),
         high=Decimal("121"),
