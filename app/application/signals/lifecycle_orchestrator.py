@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -9,6 +9,7 @@ from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleCorrectionRecord,
     LifecycleObservationRecord,
     InMemorySignalLifecycleUnitOfWork,
     SignalLifecycleTransaction,
@@ -274,6 +275,75 @@ class SignalLifecycleOrchestrator:
             )
 
         return self._unit_of_work.execute(persist)
+
+    def record_daily_bar_correction(
+        self,
+        signal_id: UUID,
+        *,
+        original_identity: tuple[str, str, str, datetime, str],
+        corrected_bar: CompletedDailyBarObservation,
+        operator_id: str,
+        reason: str,
+        calendar_version: str,
+        recorded_at: datetime,
+    ) -> LifecycleCorrectionRecord:
+        if not operator_id.strip():
+            raise ValueError("operator_id is required")
+        if not reason.strip():
+            raise ValueError("correction reason is required")
+        if not calendar_version.strip():
+            raise ValueError("calendar_version is required")
+        if recorded_at.tzinfo is None or recorded_at.utcoffset() is None:
+            raise ValueError("recorded_at must be timezone-aware")
+        if recorded_at < corrected_bar.observed_at:
+            raise ValueError("correction cannot be recorded before corrected evidence")
+        normalized_original = (
+            original_identity[0].strip().casefold(),
+            original_identity[1].strip().upper(),
+            original_identity[2].strip().upper(),
+            original_identity[3].astimezone(timezone.utc),
+            original_identity[4].strip(),
+        )
+        corrected_identity = corrected_bar.identity
+        if corrected_identity[:4] != normalized_original[:4]:
+            raise ValueError("correction must refer to the same provider, symbol, timeframe, and candle")
+        if corrected_identity[4] == normalized_original[4]:
+            raise ValueError("correction must carry a new source revision")
+
+        correction_id = uuid5(
+            NAMESPACE_URL,
+            (
+                f"signal-correction:{signal_id}:{normalized_original!r}:"
+                f"{corrected_identity!r}:{operator_id.strip()}:{reason.strip()}"
+            ),
+        )
+        record = LifecycleCorrectionRecord(
+            correction_id=correction_id,
+            signal_id=signal_id,
+            original_identity=normalized_original,
+            corrected_bar=corrected_bar,
+            operator_id=operator_id.strip(),
+            reason=reason.strip(),
+            calendar_version=calendar_version.strip(),
+            recorded_at=recorded_at,
+        )
+
+        def persist(transaction: SignalLifecycleTransaction) -> LifecycleCorrectionRecord:
+            if transaction.latest_for_signal(signal_id) is None:
+                raise ValueError("opportunity identity does not exist")
+            if transaction.get_observation(signal_id, normalized_original) is None:
+                raise ValueError("correction references a missing original observation")
+            transaction.record_correction(record)
+            return record
+
+        return self._unit_of_work.execute(persist)
+
+    def lifecycle_corrections(
+        self, signal_id: UUID
+    ) -> tuple[LifecycleCorrectionRecord, ...]:
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.corrections(signal_id)
+        )
 
     def latest_completed_observation(
         self, signal_id: UUID
