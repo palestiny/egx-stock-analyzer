@@ -5,9 +5,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.application.market_data.calendar_source_authenticity import (
-    CalendarSourceAuthenticityError,
-)
 from app.application.market_data.review_calendar_evidence_authenticity import (
     ReviewCalendarEvidenceAuthenticity,
 )
