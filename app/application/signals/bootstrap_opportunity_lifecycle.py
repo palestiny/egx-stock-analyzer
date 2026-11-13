@@ -85,29 +85,11 @@ class BootstrapOpportunityLifecycle:
         ):
             raise ValueError("candidate calendar publication evidence is incomplete")
 
-        all_records = self._history.all_records()
-        signal_ids = {record.signal_id for record in all_records}
-        child_signal_ids = {
-            link.parent_signal_id
-            for signal_id in signal_ids
-            if (link := self._history.revision_link(signal_id)) is not None
-        }
-
+        published_opportunities = self._history.latest_active_published_opportunities()
         candidates: list[tuple[SignalRecord, SignalRecord, date]] = []
-        for signal_id in sorted(signal_ids - child_signal_ids, key=str):
-            latest = self._history.get(signal_id)
-            if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
-                continue
-            publication = next(
-                (
-                    item
-                    for item in self._history.history(signal_id)
-                    if item.event in self.PUBLICATION_EVENTS
-                ),
-                None,
-            )
-            if publication is None:
-                continue
+        for opportunity in published_opportunities:
+            latest = opportunity.latest
+            publication = opportunity.publication
             baseline_date = publication.recorded_at.astimezone(CAIRO).date()
             if next_evaluation_date < baseline_date:
                 raise ValueError("next evaluation date precedes publication baseline")
@@ -130,10 +112,11 @@ class BootstrapOpportunityLifecycle:
                 raise ValueError("next evaluation date is not a scheduled EGX session")
             candidates.append((latest, publication, baseline_date))
 
+        candidate_signal_ids = {latest.signal_id for latest, _, _ in candidates}
         existing_by_signal = self._unit_of_work.execute(
             lambda transaction: {
                 signal_id: transaction.bootstrap_records(signal_id)
-                for signal_id in signal_ids
+                for signal_id in candidate_signal_ids
             }
         )
 
