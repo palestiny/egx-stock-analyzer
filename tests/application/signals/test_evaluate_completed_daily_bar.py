@@ -167,7 +167,10 @@ def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
 
 def test_daily_bar_requires_post_close_plus_sixty_minutes():
     service, verifier, lifecycle = evaluator(active=make_calendar())
-    bar = make_bar()
+    bar = replace(
+        make_bar(),
+        observed_at=datetime(2026, 10, 4, 15, 10, tzinfo=CAIRO),
+    )
     evidence = replace(
         make_evidence(bar),
         source_timestamp=datetime(2026, 10, 4, 15, 0, tzinfo=CAIRO),
