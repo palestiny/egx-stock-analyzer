@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
 
-from app.application.market_data.calendar_source_authenticity import (
+from app.application.market_data.review_calendar_evidence_authenticity import (
     CalendarEvidenceUploaderIdentityResolver,
 )
 from app.application.security.identity import AuthenticatedIdentity, Permission
