@@ -23,6 +23,7 @@ from app.domain.signals.lifecycle import (
 from app.application.signals.lifecycle_unit_of_work import LifecycleObservationRecord
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
     SQLiteSignalLifecycleUnitOfWork,
@@ -716,6 +717,73 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
             )
     finally:
         connection.close()
+
+
+def test_correction_rebuild_supersedes_unsent_recipients_and_notifies_only_confirmed_deliveries(tmp_path):
+    database = tmp_path / "correction-recipient-cohort.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    deliveries = SQLiteSignalAlertDeliveryStore(database)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history, outbox, track_record, unit_of_work=unit_of_work
+    )
+    original = make_completed_bar(high="109")
+    result = orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1"
+    )
+    assert result is not None and result.signal.status is SignalStatus.TRIGGERED
+    original_event = outbox.pending(10)[0].event
+
+    delivered_user, unknown_user, pending_user = uuid4(), uuid4(), uuid4()
+    deliveries.create_pending(original_event.event_id, delivered_user, "telegram", now=OBSERVED)
+    deliveries.mark_delivered(original_event.event_id, delivered_user, "telegram", now=OBSERVED)
+    deliveries.create_pending(original_event.event_id, unknown_user, "telegram", now=OBSERVED)
+    claim = uuid4()
+    assert deliveries.claim(
+        original_event.event_id, unknown_user, "telegram",
+        claim_token=claim, now=OBSERVED, lease_until=OBSERVED + timedelta(minutes=1),
+    )
+    assert deliveries.mark_sending(
+        original_event.event_id, unknown_user, "telegram", claim_token=claim, now=OBSERVED
+    )
+    assert deliveries.mark_delivery_unknown(
+        original_event.event_id, unknown_user, "telegram", "ambiguous send",
+        claim_token=claim, now=OBSERVED,
+    )
+    deliveries.create_pending(original_event.event_id, pending_user, "telegram", now=OBSERVED)
+
+    corrected = replace(
+        original, revision="r2", high=Decimal("105"),
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        observed_at=original.observed_at + timedelta(hours=1),
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id, original_identity=original.identity,
+        corrected_bar=corrected, operator_id="operator-1",
+        reason="Corrected provider high", calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at,
+    )
+    orchestrator.record_daily_bar_correction_review(
+        published.signal_id, correction.correction_id, decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1", reason="Outcome may change",
+        recorded_at=corrected.observed_at + timedelta(minutes=1),
+    )
+    rebuilt = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id, correction.correction_id, operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=2),
+    )
+
+    assert outbox.get(original_event.event_id).status.value == "SUPERSEDED"
+    assert deliveries.get(original_event.event_id, delivered_user, "telegram").status.value == "DELIVERED"
+    assert deliveries.get(original_event.event_id, unknown_user, "telegram").status.value == "DELIVERY_UNKNOWN"
+    assert deliveries.get(original_event.event_id, pending_user, "telegram").status.value == "SUPERSEDED"
+    assert rebuilt.correction_event_id is not None
+    correction_event = outbox.get(rebuilt.correction_event_id).event
+    assert correction_event.recipient_user_ids == (delivered_user,)
+    assert correction_event.correction_of_event_id == original_event.event_id
+    assert [item.event.event_id for item in outbox.pending(10)] == [rebuilt.correction_event_id]
 
 
 def test_sqlite_correction_review_is_durable_append_only_and_gates_lifecycle(tmp_path):
