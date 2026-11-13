@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import StrEnum
 from hashlib import sha256
+import ipaddress
 from typing import Protocol
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -133,6 +134,14 @@ def normalize_calendar_source_origin(url: str) -> str:
         raise CalendarSourceAuthenticityError("Calendar source URL has an invalid authority")
     if parsed.fragment:
         raise CalendarSourceAuthenticityError("Calendar source URL must not contain a fragment")
+    if parsed.hostname.endswith("."):
+        raise CalendarSourceAuthenticityError("Trailing-dot source hostnames are not accepted")
+    try:
+        ipaddress.ip_address(parsed.hostname)
+    except ValueError:
+        pass
+    else:
+        raise CalendarSourceAuthenticityError("Calendar source origins must use an approved DNS hostname, not an IP literal")
     try:
         port = parsed.port
     except ValueError as error:
