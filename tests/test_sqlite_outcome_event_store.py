@@ -83,3 +83,37 @@ def test_sqlite_batched_outcome_lookup_requires_timezone_aware_cutoff(tmp_path):
 
     with pytest.raises(ValueError, match="cutoff must be timezone-aware"):
         store.outcomes_as_of([], cutoff=naive_cutoff)
+
+
+def test_sqlite_batched_lookup_executes_one_filtered_select(tmp_path, monkeypatch):
+    from app.infrastructure.persistence import sqlite_outcome_event_store as module
+
+    now = dt.datetime(2026, 10, 15, 12, tzinfo=timezone.utc)
+    store = SQLiteOutcomeEventStore(tmp_path / "query-count.db", clock=lambda: now)
+    first = store.record_initial(
+        make_outcome(), actor_id="operator-1", idempotency_key="query-count-1"
+    )
+    second = store.record_initial(
+        make_outcome(), actor_id="operator-1", idempotency_key="query-count-2"
+    )
+    statements = []
+    original_connect = module.connect_sqlite
+
+    def traced_connect(path):
+        connection = original_connect(path)
+        connection.set_trace_callback(statements.append)
+        return connection
+
+    monkeypatch.setattr(module, "connect_sqlite", traced_connect)
+
+    result = store.outcomes_as_of(
+        [first.signal_id, second.signal_id, uuid4()], cutoff=now
+    )
+
+    selects = [
+        statement for statement in statements
+        if statement.lstrip().upper().startswith("SELECT")
+    ]
+    assert set(result) == {first.signal_id, second.signal_id}
+    assert len(selects) == 1
+    assert "WHERE signal_id IN" in selects[0]
