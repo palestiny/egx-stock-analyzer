@@ -74,7 +74,7 @@ class SQLiteLifecycleOccurrenceClaimStore:
             raise ValueError("occurrence_id is required")
         if not owner_id.strip():
             raise ValueError("owner_id is required")
-        if isinstance(lease_seconds, bool) or lease_seconds < 1:
+        if isinstance(lease_seconds, bool) or not isinstance(lease_seconds, int) or lease_seconds < 1:
             raise ValueError("lease_seconds must be a positive integer")
         now_utc = self._aware_utc(now, "now")
         now_text = now_utc.isoformat()
