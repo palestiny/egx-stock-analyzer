@@ -711,8 +711,8 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
         provider_contract_version="contract-v2",
         instrument_symbol="COMI",
         session_date=date(2026, 10, 4),
-        source_timestamp=datetime(2026, 10, 4, 16, 50, tzinfo=timezone.utc),
-        retrieved_at=datetime(2026, 10, 4, 16, 55, tzinfo=timezone.utc),
+        source_timestamp=datetime(2026, 10, 4, 17, 1, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 17, 5, tzinfo=timezone.utc),
         bar=corrected,
     )
     correction = orchestrator.record_daily_bar_correction(
@@ -722,7 +722,7 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
         operator_id="operator-1",
         reason="Provider corrected the high",
         calendar_version="calendar-v1",
-        recorded_at=corrected.observed_at,
+        recorded_at=corrected.observed_at + timedelta(minutes=10),
         provider_evidence=corrected_evidence,
     )
     orchestrator.record_daily_bar_correction_review(
@@ -731,13 +731,13 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
         decision="REPLAY_REQUIRED",
         reviewer_id="reviewer-1",
         reason="Corrected evidence changes the prior trigger",
-        recorded_at=corrected.observed_at + timedelta(minutes=1),
+        recorded_at=corrected.observed_at + timedelta(minutes=11),
     )
     rebuild = orchestrator.rebuild_daily_bar_correction(
         published.signal_id,
         correction.correction_id,
         operator_id="operator-1",
-        recorded_at=corrected.observed_at + timedelta(minutes=2),
+        recorded_at=corrected.observed_at + timedelta(minutes=12),
     )
     assert rebuild.previous_status is SignalStatus.TRIGGERED
     assert rebuild.resulting_status is SignalStatus.ACTIVE
