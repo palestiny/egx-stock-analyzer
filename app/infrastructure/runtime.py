@@ -36,6 +36,7 @@ from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSig
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.infrastructure.persistence.sqlite_outcome_event_store import SQLiteOutcomeEventStore
+from app.application.signals.outcome_correction_service import OutcomeCorrectionService
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.application.identity.user_management import UserManagementService
@@ -139,6 +140,7 @@ class InfrastructureRuntime:
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
     signal_outcome_event_store: SQLiteOutcomeEventStore | None = None
+    outcome_correction_service: OutcomeCorrectionService | None = None
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
@@ -277,6 +279,7 @@ def create_infrastructure_runtime(
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
     signal_outcome_event_store = SQLiteOutcomeEventStore(config.analysis_database_path)
+    outcome_correction_service = OutcomeCorrectionService(signal_outcome_event_store)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
     signal_lifecycle_unit_of_work = SQLiteSignalLifecycleUnitOfWork(
         history=signal_history_store,
@@ -458,6 +461,7 @@ def create_infrastructure_runtime(
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
         signal_outcome_event_store=signal_outcome_event_store,
+        outcome_correction_service=outcome_correction_service,
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
         build_session_opportunity_ledger=build_session_opportunity_ledger,
