@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
+from app.application.signals.occurrence_claims import LifecycleOccurrenceClaim
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapBatchRecord,
     LifecycleBootstrapRecord,
@@ -28,6 +29,9 @@ from app.domain.signals.model import Signal, SignalStatus
 from app.domain.signals.outcome import SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
+from app.infrastructure.persistence.sqlite_lifecycle_occurrence_claim_store import (
+    SQLiteLifecycleOccurrenceClaimStore,
+)
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 
@@ -1270,6 +1274,39 @@ class SQLiteSignalLifecycleUnitOfWork:
             self._outbox,
         )
         return operation(transaction)
+
+    def execute_claimed(
+        self,
+        claim: LifecycleOccurrenceClaim,
+        operation: Callable[[SignalLifecycleTransaction], T],
+        *,
+        clock: Callable[[], datetime],
+    ) -> T:
+        """Atomically validate/fence a claim, persist lifecycle effects, and complete it.
+
+        The claim check, lifecycle history/observation/outbox writes, and claim
+        completion share one BEGIN IMMEDIATE transaction. The clock is sampled
+        both before and after the operation so a lease that expires while the
+        operation is running causes the complete transaction to roll back.
+        """
+        connection = connect_sqlite(self._database_path)
+        connection.execute("PRAGMA foreign_keys = ON")
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            SQLiteLifecycleOccurrenceClaimStore.assert_current_claim(
+                connection, claim, now=clock()
+            )
+            result = self.execute_in_transaction(connection, operation)
+            SQLiteLifecycleOccurrenceClaimStore.complete_claim(
+                connection, claim, completed_at=clock()
+            )
+            connection.commit()
+            return result
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         connection = connect_sqlite(self._database_path)
