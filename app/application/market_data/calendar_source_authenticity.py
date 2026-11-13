@@ -186,7 +186,7 @@ def _claim_digest(evidence: CalendarEvidence) -> str:
 
 
 class CalendarSourceAuthenticityVerifier:
-    """Fail-closed Option-B verifier; deliberately not wired to runtime activation."""
+    """Fail-closed Option-B verifier used by the activation preflight gate."""
 
     METHOD_VERSION = "origin-and-independent-review-v1"
 
@@ -265,9 +265,6 @@ class CalendarSourceAuthenticityVerifier:
                 raise CalendarSourceAuthenticityError(
                     "Archived evidence cannot be verified without configured byte storage"
                 )
-            receipt = self._artifact_service.verify(
-                evidence.artifact_storage_reference, evidence.artifact_sha256
-            )
             stored_bytes = self._artifact_service.read_verified(
                 evidence.artifact_storage_reference, evidence.artifact_sha256
             )
@@ -275,8 +272,6 @@ class CalendarSourceAuthenticityVerifier:
                 raise CalendarSourceAuthenticityError(
                     "Archived bytes differ from the bytes retrieved from the approved source origin"
                 )
-            if receipt.sha256 != fetched_digest:
-                raise CalendarSourceAuthenticityError("Archived artifact digest mismatch")
         elif evidence.artifact_retention is not CalendarArtifactRetention.EXTERNAL_ONLY:
             raise CalendarSourceAuthenticityError("Unsupported artifact retention mode")
 
