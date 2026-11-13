@@ -1,3 +1,21 @@
+## Latest verified continuation — 2026-11-13 (Opportunity Lifecycle / PR #515)
+
+**Baseline:** PR #515 head `2585eb9cbd9ad4cf4f4f5883395987f2f054d9ee`; workflow run [#43432642040](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43432642040) passed all six jobs on that exact SHA. PR #515 remains OPEN / DRAFT / NOT MERGED (370 commits, 72 files).
+
+- [x] Completed daily-OHLC lifecycle transition semantics, durable observation/history/outbox transaction boundary, correction replay/rebuild, append-only bootstrap baseline, cursor-derived calendar validation, and provider-neutral SQLite activation coordinator are implemented on PR #515.
+- [x] Bootstrap owner decision is recorded: `PUBLICATION_BASELINE` is separate from `RECONCILED_SESSION`; each immutable opportunity revision has its own append-only baseline; no synthetic bar; baseline excluded from the 20-session expiry count.
+- [x] Calendar source authenticity code implements Option B: exact-origin trust registry, separate uploader/reviewer identities and credentials, EXTERNAL_ONLY re-fetch at activation preflight, digest comparison, and SQLite-backed audit. Registry remains empty; no real source origin/evidence is approved.
+- [x] Updated provider, calendar activation, and scheduled-worker design gates to reflect the current implementation rather than stale pre-implementation descriptions.
+- [ ] Provider finality remains blocked: generic `MarketDataProvider` still returns raw bars; no adapter bridge or production `DailyBarFinalityVerifier`; no provider has supplied verified finality, revision, timestamp/session semantics, or intended-use rights.
+- [ ] Calendar authenticity is not established in production: no exact origin is approved, no real EGX evidence has passed independent review, and deployment network/TLS plus backup/restore validation remain outstanding.
+- [ ] Scheduled lifecycle worker remains unwired: durable occurrence/claim storage, fencing, restart/retry recovery, deterministic opportunity enumeration, provider retrieval, runtime composition, operational metrics, and worker E2E are not complete.
+- [ ] Full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history deployment E2E remains unproven.
+- [ ] PR #515 remains Draft/unmerged. Exact-head CI success is not merge approval or production readiness.
+
+**Authorization boundary reaffirmed:** no contact with EGID or any provider; no calendar activation; no worker or monitoring enablement; no M61 or canonical market-data changes under this lifecycle work. Historical statements elsewhere in this register about contacting EGID or seeking samples are superseded by the owner's 2026-11-13 instruction not to contact any provider.
+
+---
+
 ## Latest verified continuation — 2026-11-11 (PR #508 post-merge CI passed)
 
 - [x] PR #508 merged as `cbbfa4d9622b54be6a42aa5979d12f6fe00856f1`; row-addressable 4–5 November OHLC evidence register added (30 geometry exceptions plus five conflict-control rows). Documentation-only; canonical CSV unchanged.
