@@ -177,3 +177,14 @@ This remains a persistence primitive only. No heartbeat loop, worker, scheduler,
 ## 14. Claim-store database binding — implementation added 2026-11-13
 
 SQLiteSignalLifecycleUnitOfWork accepts an explicit SQLiteLifecycleOccurrenceClaimStore binding for claimed execution. Construction rejects a claim store whose resolved database path differs from the lifecycle history/track-record/outbox database. execute_claimed() refuses to run unless this binding was supplied, preventing accidental validation/completion against a missing or separate claims table. Tests cover mismatched database paths and missing binding. This is dependency-boundary enforcement only; no worker runtime composition has been introduced.
+
+## 15. Verified engineering delta — 2026-11-13
+
+The earlier Section 11 statement that deterministic active-opportunity enumeration and the durable occurrence/claim primitive were still outstanding is superseded by the implementation recorded in Sections 12–14 and the current PR branch.
+
+- Deterministic `latest_active_published_opportunities()` projection is implemented in the SQLite history store and consumed by lifecycle bootstrap.
+- Durable occurrence claims, monotonic fencing, stale-owner rejection, fenced lease renewal, and explicit same-database binding are implemented and covered by persistence tests.
+- Added an on-disk SQLite regression test that seeds 240 opportunity identities, including terminal opportunities and superseded revisions, reopens the database, and verifies deterministic active-published projection results. This is a correctness/regression test, not a P50/P95 performance acceptance benchmark.
+- The worker remains intentionally unwired and disabled. No provider retrieval, production finality verifier, calendar activation, runtime scheduler, outbox dispatcher, or monitoring is enabled.
+
+Remaining engineering before any worker activation: provider adapter and production finality contract; owner-approved deployment scheduler and trusted-clock/lease/retry/shutdown policy; runtime composition; outbox orchestration; operational observability; automated on-disk latency/query-plan benchmark with warm/cold P50/P95 and concurrent read/write pressure; and worker-level concurrency/restart/E2E acceptance. External provider rights/finality and authentic calendar evidence remain independent blockers.
