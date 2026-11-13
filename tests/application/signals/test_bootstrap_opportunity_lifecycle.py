@@ -274,6 +274,7 @@ def test_sqlite_active_published_projection_is_deterministic_across_revisions_an
     reopened = SQLiteSignalHistoryStore(database)
     assert reopened.latest_active_published_opportunities() == expected
 
+
 def test_bootstrap_application_persists_through_sqlite_restart(tmp_path):
     database = tmp_path / "analysis.db"
     history = SQLiteSignalHistoryStore(database)
