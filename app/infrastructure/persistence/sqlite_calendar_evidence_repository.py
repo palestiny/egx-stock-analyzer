@@ -226,6 +226,18 @@ class SQLiteCalendarEvidenceRepository:
             raise ValueError("New evidence requires explicit source acceptance and artifact retention metadata")
         if evidence.recorded_at > datetime.now(timezone.utc):
             raise ValueError("recorded_at cannot be in the future")
+        if evidence.recorded_by_credential_id is not None:
+            credential = connection.execute(
+                """
+                SELECT 1 FROM user_credentials
+                WHERE id = ? AND user_id = ? AND status = 'active'
+                """,
+                (str(evidence.recorded_by_credential_id), str(evidence.recorded_by)),
+            ).fetchone()
+            if credential is None:
+                raise ValueError(
+                    "Evidence uploader credential must be active and belong to the recorded user"
+                )
         if evidence.supersedes_evidence_id == evidence.evidence_id:
             raise ValueError("Evidence cannot supersede itself")
         payload = self._payload(evidence)
