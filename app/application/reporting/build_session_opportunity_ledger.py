@@ -10,6 +10,7 @@ from app.domain.signals.outcome import SignalOutcomeRecord
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
+    OutcomeKnowledgeStatus,
 )
 
 
@@ -51,20 +52,28 @@ class BuildSessionOpportunityLedger:
 
         outcomes: dict[UUID, SignalOutcomeRecord] = {}
         outcome_events: dict[UUID, OutcomeEvent] = {}
+        knowledge_status: dict[UUID, OutcomeKnowledgeStatus] = {}
+        legacy_outcomes = {item.signal_id: item for item in self._track_record.all()}
         if self._outcome_events is not None:
             for signal_id in records_by_signal:
                 event = self._outcome_events.outcome_as_of(signal_id, cutoff=generated_at)
                 if event is not None and event.outcome is not None:
                     outcome_events[signal_id] = event
                     outcomes[signal_id] = event.outcome
+                    knowledge_status[signal_id] = OutcomeKnowledgeStatus.RECORDED
+                elif signal_id in legacy_outcomes:
+                    # The legacy store has no trustworthy ingestion timestamp.
+                    # Do not expose it as a historical/as-of outcome.
+                    knowledge_status[signal_id] = OutcomeKnowledgeStatus.LEGACY_UNKNOWN
         else:
-            for outcome_record in self._track_record.all():
+            for outcome_record in legacy_outcomes.values():
                 if outcome_record.observed_at.tzinfo is None or outcome_record.observed_at.utcoffset() is None:
                     raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
                 if outcome_record.data_timestamp.tzinfo is None or outcome_record.data_timestamp.utcoffset() is None:
                     raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
                 if outcome_record.observed_at <= generated_at:
                     outcomes[outcome_record.signal_id] = outcome_record
+                    knowledge_status[outcome_record.signal_id] = OutcomeKnowledgeStatus.LEGACY_UNKNOWN
         entries: list[SessionOpportunityEntry] = []
         for signal_id, history in records_by_signal.items():
             if not history:
@@ -112,6 +121,9 @@ class BuildSessionOpportunityLedger:
                 outcome_data_timestamp=outcome.data_timestamp if outcome is not None else None,
                 outcome_event_id=outcome_event.event_id if outcome_event is not None else None,
                 outcome_recorded_at=outcome_event.recorded_at if outcome_event is not None else None,
+                outcome_knowledge_status=knowledge_status.get(
+                    signal_id, OutcomeKnowledgeStatus.UNRESOLVED
+                ),
             ))
 
         entries.sort(key=lambda item: (item.publication_time, item.symbol, str(item.signal_id)))
