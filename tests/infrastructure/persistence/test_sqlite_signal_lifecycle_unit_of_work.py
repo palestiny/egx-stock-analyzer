@@ -683,8 +683,18 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
     published = history.record(signal, "PUBLISHED", GENERATED)
     orchestrator = SignalLifecycleOrchestrator(history, outbox, track_record, unit_of_work=unit_of_work)
     original = make_completed_bar(high="109")
+    original_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v1",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 15, 55, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 10, tzinfo=timezone.utc),
+        bar=original,
+    )
     triggered = orchestrator.process_completed_daily_bar(
-        published.signal_id, original, calendar_version="calendar-v1"
+        published.signal_id, original, calendar_version="calendar-v1",
+        provider_evidence=original_evidence,
     )
     assert triggered is not None and triggered.signal.status is SignalStatus.TRIGGERED
 
@@ -696,6 +706,15 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
         high=Decimal("105"),
         observed_at=original.observed_at + timedelta(hours=1),
     )
+    corrected_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v2",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 16, 50, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 55, tzinfo=timezone.utc),
+        bar=corrected,
+    )
     correction = orchestrator.record_daily_bar_correction(
         published.signal_id,
         original_identity=original.identity,
@@ -704,6 +723,7 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
         reason="Provider corrected the high",
         calendar_version="calendar-v1",
         recorded_at=corrected.observed_at,
+        provider_evidence=corrected_evidence,
     )
     orchestrator.record_daily_bar_correction_review(
         published.signal_id,
@@ -735,7 +755,11 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
     )
     persisted = reopened.lifecycle_correction_rebuilds(published.signal_id)
     assert persisted == (rebuild,)
-    assert reopened.latest_completed_observation(published.signal_id).bar.revision == "r2"
+    persisted_correction = reopened.lifecycle_corrections(published.signal_id)[0]
+    assert persisted_correction.provider_evidence == corrected_evidence
+    reopened_observation = reopened.latest_completed_observation(published.signal_id)
+    assert reopened_observation.bar.revision == "r2"
+    assert reopened_observation.provider_evidence == corrected_evidence
     assert reopened_history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
 
     later = replace(
