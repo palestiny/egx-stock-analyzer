@@ -1,13 +1,13 @@
 # EGX Market-Data Provider Discovery — 2026-11-13
 
-**Status:** Preliminary desk research — no provider approved; no credentials or contractual evidence received.
+**Status:** Preliminary desk research — no provider approved; no credentials or contractual evidence received; no external outreach authorized.
 **Owner decision:** Begin provider discovery from zero.
 **Related gate:** `docs/MARKET-DATA-PROVIDER-RELIABILITY-DESIGN-GATE.md`
 **Scope:** Daily EGX OHLCV source eligibility for opportunity lifecycle monitoring, plus commercial use in a potentially subscriber-facing product.
 
 ## 1. Executive result
 
-**Primary provider to contact: Egypt for Information Dissemination (EGID).**
+**Priority research candidate: Egypt for Information Dissemination (EGID) — not selected or approved.**
 
 EGID's own website states that it is a wholly owned subsidiary of the Egyptian Exchange (EGX) and the sole authorized EGX market-data provider. Its Market Data page describes real-time Level 1/Level 2 feeds, 15-minute delayed data, historical prices, and end-of-day reports. EGID is therefore the strongest source candidate discovered so far, but it is **not yet accepted**: the public material does not establish the precise daily-bar finality signal, correction/revision contract, or our intended commercial rights.
 
@@ -24,8 +24,8 @@ EGID's public API documentation lists endpoints under both `Feed` and `DelayedFe
 
 | Candidate | Verified public evidence | Lifecycle finality / corrections | Commercial boundary | Current disposition |
 |---|---|---|---|---|
-| **EGID** | EGX-owned subsidiary; says it is the sole authorized EGX data provider; offers historical prices, EOD reports, real-time Level 1/2, and 15-minute delayed feed. Public API UI lists symbol-history and market-status endpoints. | Not proven from public pages/API UI. Must obtain EOD publication/finality semantics, revision/correction process, stable candle identity, timestamps and sample payloads. | Need written permission for non-display algorithmic use, persistent storage, derived analytics, subscriber-facing display and/or redistribution. | **Priority 1 — contact and request a technical/commercial pack. Not approved yet.** |
-| **ICE Data Services** | ICE's EGX catalog explicitly lists real-time, delayed, end-of-day and historical data, equities/indices, and delivery through ICE Data API, Files, Consolidated Feed and Consolidated History. | Strong enterprise candidate, but exact EGX daily-bar finality and correction SLA must be confirmed contractually. | Enterprise licensing and any derived-data/display/redistribution rights need a quote and written agreement. | **Priority 2 — request quote/specification if EGID cannot meet the contract.** |
+| **EGID** | EGX-owned subsidiary; says it is the sole authorized EGX data provider; offers historical prices, EOD reports, real-time Level 1/2, and 15-minute delayed feed. Public API UI lists symbol-history and market-status endpoints. | Not proven from public pages/API UI. Must obtain EOD publication/finality semantics, revision/correction process, stable candle identity, timestamps and sample payloads. | Need written permission for non-display algorithmic use, persistent storage, derived analytics, subscriber-facing display and/or redistribution. | **Priority 1 research candidate — no outreach authorized; not approved.** |
+| **ICE Data Services** | ICE's EGX catalog explicitly lists real-time, delayed, end-of-day and historical data, equities/indices, and delivery through ICE Data API, Files, Consolidated Feed and Consolidated History. | Strong enterprise candidate, but exact EGX daily-bar finality and correction SLA must be confirmed contractually. | Enterprise licensing and any derived-data/display/redistribution rights need a quote and written agreement. | **Priority 2 research fallback — no outreach authorized; not approved.** |
 | **DataCedar** | EGX market page advertises 260 listings and daily/intraday bars through REST API. Docs describe daily bars as fetched separately from upstream and say data is for research/screening/backtesting, not a consolidated exchange feed or suitable for best-execution/regulatory records. | Public API schema documents OHLCV and timestamps but does not document an explicit provider-finality attestation or stable correction/revision contract. | Terms grant internal research, analysis, model development, backtesting and trading use; prohibit raw/substantially similar redistribution and third-party access absent separate written agreement. | **Research-only fallback; not acceptable for subscriber-facing raw-data distribution under published default terms. Not approved for lifecycle transitions.** |
 | **EGXAPI** | Public site markets real-time/historical EGX data and REST/WebSocket trading APIs, but labels itself a developer preview. | Public claims are not a finality/correction contract. | Its legal page explicitly labels the Terms of Service a design draft with placeholder body text awaiting counsel. | **Do not rely on it until legal terms, operator identity, exchange data authorization and technical contract are verifiable.** |
 | **EGX.news** | Public site markets EGX daily historical and 1-minute datasets and a RapidAPI live feed. | Public marketing does not establish authoritative source lineage, finality, correction/revision behavior or operational SLA. | Must verify data source authorization and commercial reuse/redistribution rights in writing. | **Unverified alternative; not shortlisted ahead of EGID/ICE.** |
@@ -39,14 +39,11 @@ Additional references:
 - EGXAPI legal page: https://www.egxapi.com/legal/
 - EGX.news data offer: https://egx.news/en/our-data
 
-## 3. EGID due-diligence request
+## 3. EGID due-diligence checklist (future use only if outreach is explicitly authorized)
 
-Contact:
-- Market Data Department: marketdata@egidegypt.com
-- Commercial Department: commercial@egidegypt.com
-- Telephone: +20 2 2614 5000
+No email, call, message, quote request, account request, or credential request has been sent. Do not initiate external contact unless the owner explicitly authorizes it in a later decision.
 
-Request the following in writing before implementation or payment:
+If outreach is authorized in the future, request the following in writing before implementation or payment:
 
 ### Technical contract
 1. A daily EOD OHLCV API/feed product for all EGX equities and required indices; clarify raw versus adjusted prices and corporate-action handling.
@@ -85,6 +82,6 @@ Until then:
 - Do not wire a provider merely because an endpoint returns OHLC values.
 - Keep the PR Draft and unmerged; provider discovery is not provider approval.
 
-## 5. Next action
+## 5. Current next action and authorization boundary
 
-The next external dependency is a response from EGID Market Data / Commercial with the technical pack, sample EOD payloads, and a written licensing proposal. If EGID cannot provide the required guarantees or rights, request an ICE quote/specification and compare the written contracts. No provider-specific adapter should be implemented before that evidence is received.
+**No external action is authorized or planned now.** Do not contact EGID, ICE, DataCedar, or another provider; do not request quotes, accounts, credentials, samples, or contracts. Continue only internal provider-neutral design, contract tests, and fail-closed behavior. If the owner later authorizes outreach, obtain written technical and commercial evidence before selecting a provider or implementing a provider-specific adapter.
