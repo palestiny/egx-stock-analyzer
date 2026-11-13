@@ -347,7 +347,7 @@ def create_app(
     app.include_router(
         create_signal_lifecycle_correction_admin_router(
             orchestrator=signal_lifecycle_orchestrator,
-            require_operator=require_operator,
+            require_operator=require_individual_calendar_operator,
         )
     )
 
