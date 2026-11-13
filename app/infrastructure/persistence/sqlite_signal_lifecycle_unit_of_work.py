@@ -397,7 +397,6 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             if (
                 record.signal.strategy_id == strategy_id
                 and record.signal.strategy_version == strategy_version
-                and record.signal.generated_at == generated_at
             ):
                 return record
         return None
