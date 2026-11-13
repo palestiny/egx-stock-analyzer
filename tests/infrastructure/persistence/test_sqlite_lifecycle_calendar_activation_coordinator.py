@@ -64,6 +64,11 @@ from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 CAIRO = ZoneInfo("Africa/Cairo")
 
 
+class AlwaysVerifiedAuthenticity:
+    def revalidate_for_activation(self, evidence, *, at):
+        return True
+
+
 class StubValidator:
     def __init__(self, *, eligible=True):
         self.eligible = eligible
@@ -362,6 +367,7 @@ def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path
         unit_of_work=unit_of_work,
         schedule=schedule,
         evidence_store=evidence_repository,
+        authenticity_verifier=AlwaysVerifiedAuthenticity(),
     )
     coordinator = SQLiteLifecycleCalendarActivationCoordinator(
         calendar_repository=calendar_repository,
