@@ -227,7 +227,11 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
         failed_url = "https://calendar.example.test/notices/session"
         original_session_bytes = content_by_url[failed_url]
         content_by_url[failed_url] = b"changed bytes after independent review"
-        failed_at = datetime(2026, 11, 13, 16, tzinfo=timezone(timedelta(hours=2)))
+        # The owner trust approval and independent reviews above are timestamped
+        # at execution time. Keep activation decisions after those durable records
+        # so this integration test exercises the intended chronology rather than
+        # attempting to activate a calendar before its trust anchor existed.
+        failed_at = datetime.now(timezone.utc) + timedelta(minutes=1)
         rejected = coordinator.activate(
             "authenticity-activation-v1",
             performed_by="integration-test-owner",
