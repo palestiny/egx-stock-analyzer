@@ -71,6 +71,7 @@ class SQLiteCalendarEvidenceRepository:
                     artifact_retention TEXT NULL,
                     artifact_storage_reference TEXT NULL,
                     artifact_not_retained_reason TEXT NULL,
+                    recorded_by_credential_id TEXT NULL,
                     source_reference TEXT NOT NULL,
                     claim TEXT NOT NULL,
                     recorded_by TEXT NOT NULL REFERENCES users(id),
@@ -115,6 +116,7 @@ class SQLiteCalendarEvidenceRepository:
                 "artifact_retention": "TEXT NULL",
                 "artifact_storage_reference": "TEXT NULL",
                 "artifact_not_retained_reason": "TEXT NULL",
+                "recorded_by_credential_id": "TEXT NULL",
             }
             for column, definition in migrations.items():
                 if column not in existing_columns:
@@ -156,6 +158,7 @@ class SQLiteCalendarEvidenceRepository:
                             artifact_retention TEXT NULL,
                             artifact_storage_reference TEXT NULL,
                             artifact_not_retained_reason TEXT NULL,
+                            recorded_by_credential_id TEXT NULL,
                             source_reference TEXT NOT NULL,
                             claim TEXT NOT NULL,
                             recorded_by TEXT NOT NULL REFERENCES users(id),
@@ -172,7 +175,7 @@ class SQLiteCalendarEvidenceRepository:
                         "evidence_id, calendar_version, session_date, evidence_kind, source_type, "
                         "source_class, source_publisher, market_scope, effective_from, effective_through, "
                         "retrieved_at, artifact_sha256, artifact_retention, artifact_storage_reference, "
-                        "artifact_not_retained_reason, source_reference, claim, recorded_by, observed_at, "
+                        "artifact_not_retained_reason, recorded_by_credential_id, source_reference, claim, recorded_by, observed_at, "
                         "recorded_at, source_published_at, supersedes_evidence_id, supersession_reason, content_sha256"
                     )
                     connection.execute(
@@ -268,8 +271,8 @@ class SQLiteCalendarEvidenceRepository:
                 supersession_reason, content_sha256, source_class, source_publisher,
                 market_scope, effective_from, effective_through, retrieved_at,
                 artifact_sha256, artifact_retention, artifact_storage_reference,
-                artifact_not_retained_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                artifact_not_retained_reason, recorded_by_credential_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(evidence.evidence_id),
@@ -298,6 +301,7 @@ class SQLiteCalendarEvidenceRepository:
                 evidence.artifact_retention.value if evidence.artifact_retention else None,
                 evidence.artifact_storage_reference,
                 evidence.artifact_not_retained_reason,
+                str(evidence.recorded_by_credential_id) if evidence.recorded_by_credential_id else None,
             ),
         )
         row = connection.execute(
@@ -329,7 +333,7 @@ class SQLiteCalendarEvidenceRepository:
                        e.supersession_reason, e.content_sha256, e.source_class, e.source_publisher,
                        e.market_scope, e.effective_from, e.effective_through, e.retrieved_at,
                        e.artifact_sha256, e.artifact_retention, e.artifact_storage_reference,
-                       e.artifact_not_retained_reason
+                       e.artifact_not_retained_reason, e.recorded_by_credential_id
                 FROM egx_calendar_evidence AS e
                 INNER JOIN egx_calendar_day_evidence_links AS l
                     ON l.evidence_id = e.evidence_id
@@ -391,13 +395,13 @@ class SQLiteCalendarEvidenceRepository:
                    supersession_reason, content_sha256, source_class, source_publisher,
                    market_scope, effective_from, effective_through, retrieved_at,
                    artifact_sha256, artifact_retention, artifact_storage_reference,
-                   artifact_not_retained_reason
+                   artifact_not_retained_reason, recorded_by_credential_id
             FROM egx_calendar_evidence
         """
 
     @staticmethod
     def _payload(evidence: CalendarEvidence) -> dict:
-        return {
+        payload = {
             "evidence_id": str(evidence.evidence_id),
             "calendar_version": evidence.calendar_version,
             "session_date": evidence.session_date.isoformat(),
@@ -424,6 +428,9 @@ class SQLiteCalendarEvidenceRepository:
             "artifact_storage_reference": evidence.artifact_storage_reference,
             "artifact_not_retained_reason": evidence.artifact_not_retained_reason,
         }
+        if evidence.recorded_by_credential_id is not None:
+            payload["recorded_by_credential_id"] = str(evidence.recorded_by_credential_id)
+        return payload
 
     @classmethod
     def _from_row(cls, row: tuple) -> CalendarEvidence:
@@ -433,7 +440,7 @@ class SQLiteCalendarEvidenceRepository:
             supersession_reason, digest, raw_source_class, source_publisher,
             market_scope, raw_effective_from, raw_effective_through, raw_retrieved_at,
             artifact_sha256, raw_artifact_retention, artifact_storage_reference,
-            artifact_not_retained_reason,
+            artifact_not_retained_reason, recorded_by_credential,
         ) = row
         evidence = CalendarEvidence(
             evidence_id=UUID(raw_id),
@@ -444,6 +451,7 @@ class SQLiteCalendarEvidenceRepository:
             source_reference=source_reference,
             claim=claim,
             recorded_by=UUID(actor),
+            recorded_by_credential_id=UUID(recorded_by_credential) if recorded_by_credential else None,
             observed_at=datetime.fromisoformat(observed),
             recorded_at=datetime.fromisoformat(recorded),
             source_published_at=datetime.fromisoformat(source_published)
