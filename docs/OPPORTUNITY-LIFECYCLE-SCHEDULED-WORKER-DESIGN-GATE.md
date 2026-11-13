@@ -188,3 +188,20 @@ The earlier Section 11 statement that deterministic active-opportunity enumerati
 - The worker remains intentionally unwired and disabled. No provider retrieval, production finality verifier, calendar activation, runtime scheduler, outbox dispatcher, or monitoring is enabled.
 
 Remaining engineering before any worker activation: provider adapter and production finality contract; owner-approved deployment scheduler and trusted-clock/lease/retry/shutdown policy; runtime composition; outbox orchestration; operational observability; automated on-disk latency/query-plan benchmark with warm/cold P50/P95 and concurrent read/write pressure; and worker-level concurrency/restart/E2E acceptance. External provider rights/finality and authentic calendar evidence remain independent blockers.
+
+
+## 16. Reproducible on-disk projection benchmark harness — 2026-11-13
+
+A manual benchmark harness is now available at `tools/benchmark_lifecycle_projection.py`. It creates temporary disk-backed SQLite databases with synthetic active, terminal, and revised opportunities, then measures the actual `latest_active_published_opportunities()` implementation (including row deserialization and ACTIVE-state filtering).
+
+Run from the repository root:
+
+```powershell
+python -m tools.benchmark_lifecycle_projection --sizes 10000 50000 100000 --samples 7 --warmups 2 --writer-operations 250 --output reports/lifecycle-projection-benchmark.json
+```
+
+The JSON report includes database size, first-query and reopened-store timings, warm P50/P95 samples, timings under a concurrent SQLite writer, and `EXPLAIN QUERY PLAN` output. The writer only appends synthetic history events to the temporary benchmark database. The harness does not open the canonical market-data archive or mutate application data.
+
+**Measurement caveat:** reopened-store timing is a process/store-initialization approximation. It does not flush the operating-system page cache and must not be described as a physical cold-disk measurement. Percentiles are diagnostic samples, not production SLOs.
+
+**Status:** BENCHMARK HARNESS IMPLEMENTED / MEASURED ACCEPTANCE RUN PENDING. Do not mark projection performance accepted until the harness is executed on the intended deployment class, its JSON artifact is reviewed, and query-plan/index behavior plus P50/P95 under writer pressure are assessed. This does not authorize worker wiring or activation.
