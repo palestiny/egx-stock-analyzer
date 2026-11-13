@@ -1,9 +1,22 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** DEC-138/139 core implementation in progress on PR #515; provider verification, durable session recovery, expiry/revision semantics, and production runtime activation remain open  
+**Status:** Core DEC-138/139 lifecycle implementation is present on PR #515; production activation remains blocked by provider finality, active deployment calendar, correction/reconciliation, scheduled-worker, and end-to-end acceptance gates.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
+
+## 0. Implementation status — 2026-11-13
+
+PR #515 now contains the core completed-daily-OHLC lifecycle path and tests for:
+
+- Append-only SQLite daily-observation evidence with transactionally persisted lifecycle history and alert-outbox intent.
+- Idempotent replay, conflicting-payload and out-of-order rejection, and conservative same-candle dual-touch handling.
+- Calendar-gated eligibility using an explicitly closed session, close confirmation, and the accepted 60-minute post-close buffer.
+- Durable chronological recovery using the latest committed observation as the cursor; missing/unverified expected sessions create an append-only gap and stop advancement.
+- Expiry after 20 eligible EGX sessions, without creating a realized return/R record.
+- Immutable opportunity revision links and append-only correction intake records.
+
+**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. PR #515 remains Draft and must not be merged or activated until these gates and exact-head CI pass.
 
 ## 1. Verified current composition
 
