@@ -58,18 +58,26 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             (str(batch.batch_id),),
         ).fetchone()
         expected_batch = (
-            batch.calendar_version, batch.operator_id, batch.reason, batch.recorded_at.isoformat(),
+            batch.calendar_version, batch.operator_id, batch.reason,
             batch.opportunity_count, batch.batch_digest,
         )
         if existing_batch is not None:
-            if tuple(existing_batch) != expected_batch:
+            existing_identity = (
+                str(existing_batch[0]), str(existing_batch[1]), str(existing_batch[2]),
+                int(existing_batch[4]), str(existing_batch[5]),
+            )
+            if existing_identity != expected_batch:
                 raise ValueError("conflicting lifecycle bootstrap batch replay")
             for record in records:
                 existing = self._connection.execute(
                     """SELECT payload_json FROM signal_lifecycle_bootstrap_records
                        WHERE idempotency_key = ?""", (record.idempotency_key,)
                 ).fetchone()
-                if existing is None or str(existing[0]) != self._serialize_bootstrap_record(record):
+                if existing is None:
+                    raise ValueError("conflicting lifecycle bootstrap record replay")
+                stored_record = self._deserialize_bootstrap_record(str(existing[0]))
+                from dataclasses import replace
+                if replace(stored_record, recorded_at=record.recorded_at) != record:
                     raise ValueError("conflicting lifecycle bootstrap record replay")
             return
         if len({record.signal_id for record in records}) != len(records):
