@@ -54,6 +54,9 @@ class LifecycleObservationRecord:
 
 class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
+    def latest_for_identity(
+        self, symbol: str, strategy_id: str, strategy_version: str, generated_at: datetime
+    ) -> SignalRecord | None: ...
     def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None: ...
     def record_signal(
         self, signal: Signal, event: str, recorded_at: datetime, *, signal_id: UUID | None = None
@@ -97,6 +100,11 @@ class _InMemoryTransaction:
 
     def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None:
         return self._history.get(signal_id)
+
+    def latest_for_identity(self, symbol, strategy_id, strategy_version, generated_at):
+        return self._history.latest_for_identity(
+            symbol, strategy_id, strategy_version, generated_at
+        )
 
     def record_signal(self, signal: Signal, event: str, recorded_at, *, signal_id=None):
         if signal_id is not None:
