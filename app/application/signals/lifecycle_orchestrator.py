@@ -69,9 +69,23 @@ class SignalLifecycleOrchestrator:
             )
         self._unit_of_work = unit_of_work
 
-    def bootstrap_records(self, signal_id: UUID) -> tuple[LifecycleBootstrapRecord, ...]:
-        return self._unit_of_work.execute(
-            lambda transaction: transaction.bootstrap_records(signal_id)
+    def _execute_in_transaction(
+        self,
+        operation,
+        transaction: SignalLifecycleTransaction | None,
+    ):
+        if transaction is not None:
+            return operation(transaction)
+        return self._unit_of_work.execute(operation)
+
+    def bootstrap_records(
+        self,
+        signal_id: UUID,
+        *,
+        transaction: SignalLifecycleTransaction | None = None,
+    ) -> tuple[LifecycleBootstrapRecord, ...]:
+        return self._execute_in_transaction(
+            lambda current: current.bootstrap_records(signal_id), transaction
         )
 
     def process(
@@ -174,6 +188,7 @@ class SignalLifecycleOrchestrator:
         resolved_gap_session_date: date | None = None,
         resolved_gap_at: datetime | None = None,
         provider_evidence: ProviderDailyBarEvidence | None = None,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> SignalLifecycleResult | None:
         """Evaluate one provider-attested completed candle for a published signal.
 
@@ -367,7 +382,7 @@ class SignalLifecycleOrchestrator:
                 alert_published=True,
             )
 
-        return self._unit_of_work.execute(persist)
+        return self._execute_in_transaction(persist, transaction)
 
     def mark_session_gap(
         self,
@@ -377,6 +392,7 @@ class SignalLifecycleOrchestrator:
         calendar_version: str,
         reason: str,
         detected_at: datetime,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> LifecycleSessionGapEvent:
         if not calendar_version.strip() or not reason.strip():
             raise ValueError("calendar_version and gap reason are required")
@@ -403,7 +419,7 @@ class SignalLifecycleOrchestrator:
             transaction.record_session_gap_event(event)
             return event
 
-        return self._unit_of_work.execute(persist)
+        return self._execute_in_transaction(persist, transaction)
 
     def resolve_session_gap(
         self,
@@ -413,6 +429,7 @@ class SignalLifecycleOrchestrator:
         calendar_version: str,
         reason: str,
         resolved_at: datetime,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> LifecycleSessionGapEvent | None:
         if not calendar_version.strip() or not reason.strip():
             raise ValueError("calendar_version and resolution reason are required")
@@ -444,7 +461,7 @@ class SignalLifecycleOrchestrator:
             transaction.record_session_gap_event(resolved)
             return resolved
 
-        return self._unit_of_work.execute(persist)
+        return self._execute_in_transaction(persist, transaction)
 
     def session_gap_events(
         self, signal_id: UUID
@@ -819,10 +836,13 @@ class SignalLifecycleOrchestrator:
         )
 
     def latest_completed_observation(
-        self, signal_id: UUID
+        self,
+        signal_id: UUID,
+        *,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> LifecycleObservationRecord | None:
-        return self._unit_of_work.execute(
-            lambda transaction: transaction.latest_observation(signal_id)
+        return self._execute_in_transaction(
+            lambda current: current.latest_observation(signal_id), transaction
         )
 
     def expire_opportunity(
@@ -832,6 +852,7 @@ class SignalLifecycleOrchestrator:
         eligible_sessions: tuple[date, ...],
         calendar_version: str,
         evaluated_at: datetime,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> SignalLifecycleResult | None:
         if len(eligible_sessions) < 20:
             raise ValueError("opportunity expiry requires 20 eligible sessions")
@@ -888,7 +909,7 @@ class SignalLifecycleOrchestrator:
                 alert_published=True,
             )
 
-        return self._unit_of_work.execute(persist)
+        return self._execute_in_transaction(persist, transaction)
 
     def invalidate_for_evidence_change(
         self,
