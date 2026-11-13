@@ -81,10 +81,15 @@ def test_changed_signal_evidence_creates_a_new_publication_event(tmp_path) -> No
 
     assert first is not None
     assert revised is not None
-    assert revised.signal_id == first.signal_id
+    assert revised.signal_id != first.signal_id
     assert revised.event_id != first.event_id
     assert revised.queued_new_event is True
-    assert history.history(first.signal_id)[-1].event == "PUBLISHED_VERSION"
+    assert history.history(first.signal_id)[-1].event == "PUBLISHED"
+    assert history.history(revised.signal_id)[-1].event == "PUBLISHED_VERSION"
+    revision_link = history.revision_link(revised.signal_id)
+    assert revision_link is not None
+    assert revision_link.parent_signal_id == first.signal_id
+    assert revision_link.revision_number == 2
     assert len(outbox.pending()) == 2
 
 
