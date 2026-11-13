@@ -118,6 +118,16 @@ Repository inspection on 2026-11-13 confirms the current persistence contracts a
 5. Give each report snapshot an explicit revision ID and predecessor/supersedes link. Keep the existing session/methodology/cutoff identity as occurrence context, not as the sole identity for corrected content.
 6. A corrected report must reference the exact outcome revision set it used, explain what changed, and never update the original snapshot in place. Delivery of corrections remains separately gated by the unresolved audience, entitlement, and duplicate-delivery policy.
 
+### Additional verified read-selection gap: methodology versions
+
+The current snapshot primary key permits more than one methodology version for the same session and UTC generation timestamp. However, `get_latest(session_date, as_of=...)` orders by `generated_at DESC, methodology_version ASC` and returns one row, while the authenticated GET API does not accept a methodology-version selector. If two methodology versions share the same generation timestamp, the endpoint silently chooses the lexicographically first version. That ordering is deterministic but is not a documented business rule and must not be mistaken for "the latest" methodology.
+
+**Proposed resolution — design only:** expose an optional exact `methodology_version` selector. If omitted and the latest timestamp has multiple methodology versions, return an explicit ambiguity result (or require an owner-selected default policy); never use lexical ordering as a proxy for semantic recency. Define whether a new methodology version supersedes an older one for the same session before implementing an automatic default. Add tests for same-cutoff multi-methodology snapshots, explicit selection, and ambiguous unqualified reads.
+
+**Gate:** no API or persistence contract changed in this increment.
+
+---
+
 ### Decisions still required before implementation
 
 - Who may authorize an outcome correction, and what durable actor identity is recorded?
