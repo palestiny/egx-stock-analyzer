@@ -176,8 +176,10 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         return self._history._to_record(row) if row else None
 
     def record_signal(
-        self, signal: Signal, event: str, recorded_at: datetime
+        self, signal: Signal, event: str, recorded_at: datetime, *, signal_id: UUID | None = None
     ) -> SignalRecord:
+        if signal_id is not None:
+            return self._history.record_for_signal(signal_id, signal, event, recorded_at)
         if not event.strip():
             raise ValueError("event is required")
         self._history._require_aware(recorded_at, "recorded_at")
