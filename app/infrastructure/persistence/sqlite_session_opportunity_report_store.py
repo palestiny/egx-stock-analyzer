@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from app.domain.reporting.session_opportunity_ledger import SessionOpportunityLedgerReport
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+)
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
@@ -126,20 +129,51 @@ class SQLiteSessionOpportunityReportStore:
         session_date: date,
         *,
         as_of: datetime | None = None,
+        methodology_version: str | None = None,
     ) -> dict[str, Any] | None:
         cutoff = as_of or datetime.now(timezone.utc)
         if cutoff.tzinfo is None or cutoff.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
+        cutoff_value = cutoff.astimezone(timezone.utc).isoformat()
         with self._connect() as connection:
-            row = connection.execute(
-                """
-                SELECT report_json FROM session_opportunity_reports
-                WHERE session_date = ? AND generated_at <= ?
-                ORDER BY generated_at DESC, methodology_version ASC
-                LIMIT 1
-                """,
-                (session_date.isoformat(), cutoff.astimezone(timezone.utc).isoformat()),
-            ).fetchone()
+            if methodology_version is not None:
+                row = connection.execute(
+                    """
+                    SELECT report_json FROM session_opportunity_reports
+                    WHERE session_date = ? AND methodology_version = ? AND generated_at <= ?
+                    ORDER BY generated_at DESC
+                    LIMIT 1
+                    """,
+                    (session_date.isoformat(), methodology_version, cutoff_value),
+                ).fetchone()
+            else:
+                latest = connection.execute(
+                    """
+                    SELECT generated_at, COUNT(DISTINCT methodology_version)
+                    FROM session_opportunity_reports
+                    WHERE session_date = ? AND generated_at <= ?
+                    GROUP BY generated_at
+                    ORDER BY generated_at DESC
+                    LIMIT 1
+                    """,
+                    (session_date.isoformat(), cutoff_value),
+                ).fetchone()
+                if latest is None:
+                    return None
+                latest_generated_at, methodology_count = latest
+                if int(methodology_count) > 1:
+                    raise AmbiguousSessionOpportunityReportError(
+                        "multiple methodology versions exist at the latest report cutoff; "
+                        "specify methodology_version"
+                    )
+                row = connection.execute(
+                    """
+                    SELECT report_json FROM session_opportunity_reports
+                    WHERE session_date = ? AND generated_at = ?
+                    LIMIT 1
+                    """,
+                    (session_date.isoformat(), str(latest_generated_at)),
+                ).fetchone()
         if row is None:
             return None
         value = json.loads(str(row[0]))
