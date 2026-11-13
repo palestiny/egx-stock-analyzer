@@ -592,6 +592,756 @@ def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path)
     assert runtime.closed is True
 
 
+def test_runtime_composes_and_executes_durable_calendar_authenticity_workflow(tmp_path) -> None:
+    from hashlib import sha256
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+
+    from app.application.market_data.calendar_source_authenticity import (
+        RetrievedCalendarSourceArtifact,
+    )
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    content = b"owner-approved EGX calendar notice test bytes"
+    source_url = "https://calendar.example.test/notices/2026-11-13"
+    claim = "The official notice confirms the EGX non-trading date"
+
+    class FakeRetriever:
+        def retrieve(self, url: str) -> RetrievedCalendarSourceArtifact:
+            assert url == source_url
+            return RetrievedCalendarSourceArtifact(
+                requested_url=url,
+                final_url=url,
+                redirect_urls=(),
+                tls_verified=True,
+                status_code=200,
+                content=content,
+                content_type="application/pdf",
+            )
+
+    owner_id, uploader_id, reviewer_id = uuid4(), uuid4(), uuid4()
+    database = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database),
+            calendar_source_trust_owner_user_id=owner_id,
+        ),
+        result_store=SQLiteAnalysisResultStore(database),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.calendar_source_origin_registry is not None
+    assert runtime.calendar_evidence_verification_store is not None
+    assert runtime.calendar_source_authenticity_verifier is not None
+    assert runtime.calendar_evidence_uploader_identity_resolver is not None
+    assert runtime.user_store is not None
+    assert runtime.credential_service is not None
+    assert runtime.operator_access_store is not None
+    assert runtime.calendar_source_origin_registry.list_events() == ()
+
+    for user_id in (owner_id, uploader_id, reviewer_id):
+        runtime.user_store.save(User(user_id, UserStatus.ACTIVE))
+    owner_credential = runtime.credential_service.provision(owner_id)
+    uploader_credential = runtime.credential_service.provision(uploader_id)
+    reviewer_credential = runtime.credential_service.provision(reviewer_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        owner_id,
+        reason="Calendar source trust owner integration test",
+    )
+    for user_id in (uploader_id, reviewer_id):
+        runtime.operator_access_store.grant(
+            user_id,
+            actor_user_id=owner_id,
+            actor_credential_id=owner_credential.id,
+            reason="Individual operator integration test",
+        )
+
+    # Exercise the real runtime verifier, SQLite stores, durable authenticator,
+    # owner/reviewer routes, and uploader provenance resolver without network I/O.
+    runtime.calendar_source_authenticity_verifier._retriever = FakeRetriever()
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        owner_headers = {"Authorization": "Bearer " + owner_credential.secret}
+        uploader_headers = {"Authorization": "Bearer " + uploader_credential.secret}
+        reviewer_headers = {"Authorization": "Bearer " + reviewer_credential.secret}
+
+        approval = client.post(
+            "/api/v1/owner/session-calendar-source-origins",
+            headers=owner_headers,
+            json={
+                "origin": "https://calendar.example.test",
+                "publisher": "EGX",
+                "source_class": "A",
+                "market_scope": "EGX_MARKET_WIDE",
+                "trust_basis": "Isolated integration fixture; not a production trust anchor",
+                "registry_version": "integration-trust-v1",
+            },
+        )
+        assert approval.status_code == 201
+
+        publication = client.post(
+            "/api/v1/owner/session-calendars/versions",
+            headers=uploader_headers,
+            json={
+                "version": "runtime-authenticity-v1",
+                "timezone": "Africa/Cairo",
+                "coverage_start": "2026-11-13",
+                "coverage_end": "2026-11-13",
+                "days": [{"date": "2026-11-13", "status": "NON_TRADING"}],
+                "evidence": [{
+                    "session_date": "2026-11-13",
+                    "evidence_kind": "CLOSURE",
+                    "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                    "source_class": "A",
+                    "source_publisher": "EGX",
+                    "market_scope": "EGX_MARKET_WIDE",
+                    "effective_from": "2026-11-13",
+                    "effective_through": "2026-11-13",
+                    "retrieved_at": "2026-11-13T09:00:00+02:00",
+                    "artifact_sha256": sha256(content).hexdigest(),
+                    "artifact_retention": "EXTERNAL_ONLY",
+                    "artifact_not_retained_reason": "Integration fixture does not retain source bytes",
+                    "source_reference": source_url,
+                    "claim": claim,
+                    "observed_at": "2026-11-13T09:00:00+02:00",
+                }],
+                "source_reference": "isolated authenticity integration fixture",
+                "reason": "Exercise durable authenticity workflow composition",
+            },
+        )
+        assert publication.status_code == 201
+        evidence_id = publication.json()["evidence"][0]["evidence_id"]
+
+        review = client.post(
+            f"/api/v1/operator/session-calendars/evidence/{evidence_id}/authenticity-review",
+            headers=reviewer_headers,
+            json={"reviewed_claim": claim, "claim_supported": True},
+        )
+        assert review.status_code == 201
+        assert review.json()["decision"] == "VERIFIED"
+        assert review.json()["uploader_user_id"] == str(uploader_id)
+        assert review.json()["verifier_user_id"] == str(reviewer_id)
+
+        owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers=owner_headers,
+        )
+        non_owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers=reviewer_headers,
+        )
+        legacy_shared_token = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert owner_events.status_code == 200
+    assert len(owner_events.json()["events"]) == 1
+    assert non_owner_events.status_code == 403
+    assert legacy_shared_token.status_code == 403
+    persisted = runtime.calendar_evidence_verification_store.latest(UUID(evidence_id))
+    assert persisted is not None
+    assert persisted.decision.value == "VERIFIED"
+    assert runtime.closed is True
+from uuid import UUID
+
+from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.analysis.runtime import StockAnalysisRuntime
+from app.application.execution.retry import RetryPolicy
+from app.application.stocks.catalog import InMemoryStockCatalog
+from app.domain.stocks.stock import Stock
+from app.infrastructure.config import InfrastructureConfig
+from app.infrastructure.market_data.yahoo_finance import (
+    YahooFinanceAdapter,
+    YahooFinanceFundamentalDataSource,
+)
+from app.infrastructure.persistence.sqlite_analysis_result_store import SQLiteAnalysisResultStore
+from app.infrastructure.runtime import InfrastructureRuntime, create_infrastructure_runtime
+
+
+class FakeYFinanceModule:
+    pass
+
+
+def test_create_infrastructure_runtime_composes_real_adapters() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token", ),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime, InfrastructureRuntime)
+    assert isinstance(runtime.application_runtime, StockAnalysisRuntime)
+    assert isinstance(runtime.market_data_provider, YahooFinanceAdapter)
+    assert isinstance(
+        runtime.fundamental_data_provider,
+        YahooFinanceFundamentalDataSource,
+    )
+
+    runtime.close()
+
+
+def test_infrastructure_runtime_owns_shared_result_store() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    result_store = InMemoryAnalysisResultStore()
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token", ),
+        result_store=result_store,
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.application_runtime.result_store is result_store
+    runtime.close()
+
+
+def test_infrastructure_runtime_close_is_idempotent() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token", ),
+    )
+
+    assert runtime.closed is False
+    runtime.close()
+    assert runtime.closed is True
+    runtime.close()
+    assert runtime.closed is True
+
+
+
+def _make_persisted_result():
+    from datetime import date
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from app.application.analysis.stock_analysis import StockAnalysisResult
+    from app.domain.entry_analysis.context import EntryContext
+    from app.domain.entry_analysis.scoring import EntryQualityScore
+    from app.domain.fundamental_analysis.growth import GrowthEvidence, GrowthStatus
+    from app.domain.fundamental_analysis.liquidity import LiquidityEvidence, LiquidityStatus
+    from app.domain.fundamental_analysis.profitability import ProfitabilityEvidence, ProfitabilityStatus
+    from app.domain.fundamental_analysis.result import FundamentalAnalysisResult
+    from app.domain.fundamental_analysis.scoring import FundamentalScore, ScoreContribution
+    from app.domain.market_data.price import Price
+    from app.domain.market_data.timeframe import Timeframe
+    from app.domain.opportunity.classification import OpportunityClassification, OpportunityClassificationResult
+    from app.domain.scoring.stock_quality import StockQualityScore
+    from app.domain.technical_analysis.momentum import MomentumEvidence, MomentumStatus
+    from app.domain.technical_analysis.result import TechnicalAnalysisResult
+    from app.domain.technical_analysis.scoring import TechnicalScore
+    from app.domain.technical_analysis.support_resistance import SupportResistanceEvidence
+    from app.domain.technical_analysis.trend import TrendEvidence, TrendStatus
+    from app.domain.technical_analysis.volume import VolumeEvidence, VolumeStatus
+
+    stock_id = uuid4()
+    technical = TechnicalAnalysisResult(
+        stock_id=stock_id,
+        timeframe=Timeframe.DAILY,
+        trend=TrendEvidence(TrendStatus.UPTREND),
+        support_resistance=SupportResistanceEvidence((), ()),
+        momentum=MomentumEvidence(MomentumStatus.POSITIVE, Decimal("2.5")),
+        volume=VolumeEvidence(VolumeStatus.ABOVE_AVERAGE, Decimal("1.25")),
+    )
+    fundamental = FundamentalAnalysisResult(
+        stock_id=stock_id,
+        period_end=date(2026, 9, 17),
+        profitability=ProfitabilityEvidence(ProfitabilityStatus.PROFITABLE, Decimal("0.15")),
+        liquidity=LiquidityEvidence(LiquidityStatus.ABOVE_ONE, Decimal("1.8")),
+        growth=GrowthEvidence(GrowthStatus.POSITIVE, Decimal("0.2")),
+    )
+    technical_score = TechnicalScore(1, 1, 1, 3)
+    fundamental_score = FundamentalScore(
+        total=3,
+        contributions=(
+            ScoreContribution("profitability", 1),
+            ScoreContribution("liquidity", 1),
+            ScoreContribution("growth", 1),
+        ),
+    )
+    stock_quality = StockQualityScore(
+        fundamental_score=fundamental_score,
+        technical_score=technical_score,
+        total_score=6,
+    )
+    return StockAnalysisResult(
+        technical_analysis=technical,
+        fundamental_analysis=fundamental,
+        technical_score=technical_score,
+        fundamental_score=fundamental_score,
+        stock_quality=stock_quality,
+        entry_context=EntryContext(current_price=Price(Decimal("350.5")), nearest_support=None, nearest_resistance=None),
+        entry_quality=EntryQualityScore(1, 1, 2),
+        opportunity=OpportunityClassificationResult(OpportunityClassification.BUY),
+    )
+
+def test_infrastructure_runtime_uses_sqlite_store_by_default(tmp_path) -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token", analysis_database_path=str(database_path)),
+    )
+
+    assert isinstance(
+        runtime.application_runtime.result_store,
+        SQLiteAnalysisResultStore,
+    )
+    assert database_path.exists()
+    runtime.close()
+
+
+def test_infrastructure_runtime_persists_analysis_across_runtime_recreation(tmp_path) -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    config = InfrastructureConfig(operator_token="test-token", analysis_database_path=str(database_path))
+
+    first_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+    first_result_store = first_runtime.application_runtime.result_store
+    first_result_store.save("EGAL", _make_persisted_result(), date(2026, 9, 18))
+    first_runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert second_runtime.application_runtime.result_store.get("EGAL") is not None
+    record = second_runtime.application_runtime.result_store.get_record("EGAL")
+    assert record is not None
+    assert record.analysis_date == date(2026, 9, 18)
+    second_runtime.close()
+
+
+def test_infrastructure_runtime_composes_telegram_delivery_when_configured() -> None:
+    from app.application.execution.run_configured_market_analysis_with_automatic_alert_delivery import RunConfiguredMarketAnalysisWithAutomaticAlertDelivery
+    from app.application.notifications.deliver_alert import DeliverAlert
+    from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(operator_token="test-token", 
+            telegram_bot_token="token",
+            telegram_chat_id="chat",
+        ),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
+    assert isinstance(runtime.deliver_alert, DeliverAlert)
+    assert isinstance(
+        runtime.run_configured_market_analysis_with_automatic_alert_delivery,
+        RunConfiguredMarketAnalysisWithAutomaticAlertDelivery,
+    )
+    runtime.close()
+
+
+def test_infrastructure_runtime_allows_bot_token_without_legacy_chat_id(tmp_path) -> None:
+    from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
+    from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
+    from app.application.subscriptions.entitlements import EntitlementService
+    from app.infrastructure.notifications.telegram_provider import TelegramNotificationProvider
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            telegram_bot_token="token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+        ),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert isinstance(runtime.telegram_notification_provider, TelegramNotificationProvider)
+    assert isinstance(runtime.dispatch_signal_alert_outbox, DispatchSignalAlertOutbox)
+    assert isinstance(runtime.publish_signal_opportunity, PublishSignalOpportunity)
+    assert isinstance(runtime.entitlement_service, EntitlementService)
+    assert runtime.deliver_alert is None
+    runtime.close()
+
+
+def test_infrastructure_runtime_rejects_chat_id_without_bot_token() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(operator_token="test-token", telegram_chat_id="chat"),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "Telegram chat ID requires a bot token"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_infrastructure_runtime_requires_operator_token() -> None:
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(operator_token=None),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "EGX_OPERATOR_TOKEN must be configured"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+
+def test_infrastructure_runtime_composes_durable_authentication(tmp_path) -> None:
+    from app.application.security.credentials import CredentialService
+    from app.application.security.durable_authentication import DurableBearerTokenAuthenticator
+    from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "auth.db"
+    config = InfrastructureConfig(
+        operator_token="test-token",
+        analysis_database_path=str(database_path),
+    )
+
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert isinstance(runtime.authenticator, DurableBearerTokenAuthenticator)
+    from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
+    assert isinstance(runtime.operator_access_store, SQLiteOperatorAccessStore)
+    assert runtime.operator_access_service is not None
+    assert isinstance(runtime.credential_service, CredentialService)
+    assert SQLiteCredentialStore(database_path)
+
+    runtime.close()
+
+
+def test_infrastructure_runtime_composes_durable_signal_lifecycle(tmp_path) -> None:
+    from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+    from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+    from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+    from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+    from app.application.subscriptions.entitlement_evaluator import EntitlementEvaluator
+    from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
+
+    database_path = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+
+    assert isinstance(runtime.signal_history_store, SQLiteSignalHistoryStore)
+    assert isinstance(runtime.signal_track_record_store, SQLiteTrackRecordStore)
+    assert isinstance(runtime.signal_alert_outbox, SQLiteAlertOutbox)
+    assert isinstance(runtime.signal_lifecycle_orchestrator, SignalLifecycleOrchestrator)
+    assert isinstance(runtime.subscription_store, SQLiteSubscriptionStore)
+    assert isinstance(runtime.entitlement_evaluator, EntitlementEvaluator)
+    runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+    assert isinstance(second_runtime.signal_history_store, SQLiteSignalHistoryStore)
+    assert isinstance(second_runtime.signal_track_record_store, SQLiteTrackRecordStore)
+    assert isinstance(second_runtime.signal_alert_outbox, SQLiteAlertOutbox)
+    assert isinstance(second_runtime.subscription_store, SQLiteSubscriptionStore)
+    assert isinstance(second_runtime.entitlement_evaluator, EntitlementEvaluator)
+    second_runtime.close()
+
+
+def test_infrastructure_runtime_rejects_empty_telegram_webhook_secret() -> None:
+    try:
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(
+                operator_token="test-token",
+                telegram_bot_token="token",
+                telegram_webhook_secret="   ",
+            ),
+            result_store=InMemoryAnalysisResultStore(),
+            retry_policy=RetryPolicy(1),
+        )
+    except ValueError as error:
+        assert str(error) == "Telegram webhook secret cannot be empty"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_runtime_composes_persistent_news_store_without_live_feed_by_default(tmp_path) -> None:
+    from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database_path),
+        ),
+    )
+
+    assert isinstance(runtime.news_event_store, SQLiteNewsEventStore)
+    assert runtime.news_ingestion_service is None
+    assert database_path.exists()
+    runtime.close()
+
+
+def test_runtime_composes_configured_news_feed_without_fetching_during_startup(tmp_path) -> None:
+    from app.application.news.ingestion import NewsIngestionService
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+            news_rss_feed_url="https://news.example.test/feed.xml",
+            news_rss_source_name="Configured EGX Feed",
+        ),
+    )
+
+    assert isinstance(runtime.news_ingestion_service, NewsIngestionService)
+    assert runtime.news_event_store is not None
+    runtime.close()
+
+
+def test_runtime_rejects_unsupported_configured_news_source_type(tmp_path) -> None:
+    import pytest
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    with pytest.raises(ValueError, match="EGX_NEWS_RSS_SOURCE_TYPE"):
+        create_infrastructure_runtime(
+            stock_catalog=InMemoryStockCatalog([stock]),
+            yfinance_module=FakeYFinanceModule(),
+            config=InfrastructureConfig(
+                operator_token="test-token",
+                analysis_database_path=str(tmp_path / "analysis.db"),
+                news_rss_feed_url="https://news.example.test/feed.xml",
+                news_rss_source_type="unknown_source",
+            ),
+        )
+
+
+def test_infrastructure_runtime_composes_persistent_session_calendar_store(tmp_path) -> None:
+    from app.domain.market_data.session_calendar import (
+        CalendarDayStatus,
+        EGXCalendarDay,
+        EGXSessionCalendar,
+    )
+    from app.infrastructure.persistence.sqlite_session_calendar_repository import (
+        SQLiteSessionCalendarRepository,
+    )
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    database_path = tmp_path / "analysis.db"
+    config = InfrastructureConfig(
+        operator_token="test-token",
+        analysis_database_path=str(database_path),
+    )
+
+    first_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+
+    assert isinstance(
+        first_runtime.session_calendar_store,
+        SQLiteSessionCalendarRepository,
+    )
+    from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+    from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
+    assert isinstance(first_runtime.calendar_evidence_repository, SQLiteCalendarEvidenceRepository)
+    assert isinstance(first_runtime.calendar_publication_uow, SQLiteCalendarPublicationUnitOfWork)
+    calendar = EGXSessionCalendar(
+        version="runtime-calendar-v1",
+        timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 1),
+        coverage_end=date(2026, 11, 1),
+        days=(
+            EGXCalendarDay(
+                session_date=date(2026, 11, 1),
+                status=CalendarDayStatus.NON_TRADING,
+            ),
+        ),
+    )
+    first_runtime.session_calendar_store.publish(
+        calendar,
+        published_by="runtime-test-operator",
+        source_reference="runtime-test-source",
+        reason="Verify persistent runtime composition",
+    )
+    first_runtime.close()
+
+    second_runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=config,
+    )
+    restored = second_runtime.session_calendar_store.get_version("runtime-calendar-v1")
+    assert restored is not None
+    assert restored.calendar == calendar
+    second_runtime.close()
+
+
+def test_production_application_exposes_calendar_api_only_to_individual_operator(tmp_path) -> None:
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    stock = Stock.create("EGAL", "Egypt Aluminum")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([stock]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+        ),
+    )
+    assert runtime.user_store is not None
+    assert runtime.credential_service is not None
+    assert runtime.operator_access_store is not None
+    operator_user_id = uuid4()
+    runtime.user_store.save(User(operator_user_id, UserStatus.ACTIVE))
+    issued = runtime.credential_service.provision(operator_user_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        operator_user_id,
+        reason="Production composition integration test",
+    )
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        unauthorized = client.get("/api/v1/owner/session-calendars/versions")
+        legacy_shared = client.get(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer test-token"},
+        )
+        authorized = client.get(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer " + issued.secret},
+        )
+
+    assert unauthorized.status_code == 401
+    assert legacy_shared.status_code == 403
+    assert authorized.status_code == 200
+    assert authorized.json() == {"items": []}
+    assert runtime.closed is True
+
+
+
+def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path):
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    database = tmp_path / "calendar-publication.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="legacy-token",
+            analysis_database_path=str(database),
+        ),
+    )
+    operator_id = uuid4()
+    runtime.user_store.save(User(operator_id, UserStatus.ACTIVE))
+    credential = runtime.credential_service.provision(operator_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        operator_id,
+        reason="Atomic publication integration test",
+    )
+    app = create_application(runtime, operator_token="legacy-token")
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/owner/session-calendars/versions",
+            headers={"Authorization": "Bearer " + credential.secret},
+            json={
+                "version": "runtime-atomic-calendar-v1",
+                "timezone": "Africa/Cairo",
+                "coverage_start": "2026-11-01",
+                "coverage_end": "2026-11-01",
+                "days": [{"date": "2026-11-01", "status": "NON_TRADING"}],
+                "evidence": [{
+                    "session_date": "2026-11-01",
+                    "evidence_kind": "CLOSURE",
+                    "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                    "source_class": "A",
+                    "source_publisher": "EGX",
+                    "market_scope": "EGX_MARKET_WIDE",
+                    "effective_from": "2026-11-01",
+                    "effective_through": "2026-11-01",
+                    "retrieved_at": "2026-11-01T09:00:00+02:00",
+                    "artifact_sha256": "f" * 64,
+                    "artifact_retention": "EXTERNAL_ONLY",
+                    "artifact_not_retained_reason": "Runtime integration fixture retains the official reference only",
+                    "source_reference": "https://example.invalid/egx/runtime-notice",
+                    "claim": "EGX notice confirms non-trading day",
+                    "observed_at": "2026-11-01T09:00:00+02:00",
+                }],
+                "source_reference": "EGX runtime notice",
+                "reason": "Verify production atomic publication",
+            },
+        )
+        assert response.status_code == 201
+        assert runtime.session_calendar_store.get_version("runtime-atomic-calendar-v1") is not None
+        stored = runtime.calendar_evidence_repository.list_for_day(
+            "runtime-atomic-calendar-v1",
+            date(2026, 11, 1),
+        )
+        assert len(stored) == 1
+
+    assert runtime.closed is True
+
+
 def test_runtime_composes_empty_calendar_source_trust_registry_only_when_owner_is_configured(tmp_path) -> None:
     from uuid import uuid4
 
