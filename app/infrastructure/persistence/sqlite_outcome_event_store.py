@@ -101,7 +101,9 @@ class SQLiteOutcomeEventStore:
                 FROM signal_outcome_events
             """
             parameters: tuple[str, ...] = ()
-            if signal_ids is not None:
+            # Stay below SQLite's conservative host-parameter limit. For very
+            # large batches, one full ordered scan is safer than an oversized IN.
+            if signal_ids is not None and len(signal_ids) <= 900:
                 placeholders = ", ".join("?" for _ in signal_ids)
                 query += f" WHERE signal_id IN ({placeholders})"
                 parameters = tuple(str(signal_id) for signal_id in signal_ids)
