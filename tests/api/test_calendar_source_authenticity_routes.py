@@ -235,6 +235,22 @@ def test_non_owner_cannot_change_source_origin_trust(tmp_path):
     assert response.status_code == 403
 
 
+
+def test_origin_audit_is_visible_only_to_the_configured_owner(tmp_path):
+    client, _evidence, _origins, _records, _owner, _uploader, _reviewer = make_client(tmp_path)
+    owner_response = client.get(
+        "/api/v1/owner/session-calendar-source-origins/events",
+        headers=_headers("owner-test-token"),
+    )
+    assert owner_response.status_code == 200
+    assert owner_response.json()["events"] == []
+
+    reviewer_response = client.get(
+        "/api/v1/owner/session-calendar-source-origins/events",
+        headers=_headers("reviewer-test-token"),
+    )
+    assert reviewer_response.status_code == 403
+
 def test_uploader_cannot_review_own_evidence_and_rejection_is_audited(tmp_path):
     client, evidence, _origins, records, _owner, _uploader, _reviewer = make_client(tmp_path)
     approval = client.post(
