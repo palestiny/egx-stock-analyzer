@@ -145,6 +145,7 @@ class SignalLifecycleOrchestrator:
         *,
         calendar_version: str,
         policy_version: str = "dec138-daily-ohlc-v1",
+        resolved_gap_session_date: date | None = None,
     ) -> SignalLifecycleResult | None:
         """Evaluate one provider-attested completed candle for a published signal.
 
@@ -234,6 +235,30 @@ class SignalLifecycleOrchestrator:
                     resulting_status=transitioned.status,
                 )
             )
+            if resolved_gap_session_date is not None:
+                matching_gaps = [
+                    event
+                    for event in transaction.session_gap_events(signal_id)
+                    if event.session_date == resolved_gap_session_date
+                    and event.calendar_version == calendar_version.strip()
+                ]
+                if matching_gaps and matching_gaps[-1].status == "STALE":
+                    previous_gap = matching_gaps[-1]
+                    transaction.record_session_gap_event(
+                        LifecycleSessionGapEvent(
+                            event_id=uuid5(
+                                NAMESPACE_URL,
+                                f"{previous_gap.gap_id}:RESOLVED:ELIGIBLE_BAR_RECONCILED",
+                            ),
+                            gap_id=previous_gap.gap_id,
+                            signal_id=signal_id,
+                            session_date=resolved_gap_session_date,
+                            calendar_version=calendar_version.strip(),
+                            status="RESOLVED",
+                            reason="ELIGIBLE_BAR_RECONCILED",
+                            recorded_at=bar.observed_at,
+                        )
+                    )
             if transitioned.status is current.status:
                 return SignalLifecycleResult(
                     signal_id=latest.signal_id,
