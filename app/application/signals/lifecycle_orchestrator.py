@@ -9,6 +9,7 @@ from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleObservationRecord,
     InMemorySignalLifecycleUnitOfWork,
     SignalLifecycleTransaction,
     SignalLifecycleUnitOfWork,
@@ -16,7 +17,12 @@ from app.application.signals.lifecycle_unit_of_work import (
 from app.application.signals.store import InMemorySignalHistoryStore, SignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore, TrackRecordStore
 from app.domain.alerts.model import AlertEvent, AlertEventType
-from app.domain.signals.lifecycle import SignalMarketState, transition_signal
+from app.domain.signals.lifecycle import (
+    CompletedDailyBarObservation,
+    SignalMarketState,
+    transition_signal,
+    transition_signal_from_completed_daily_bar,
+)
 from app.domain.signals.model import Signal, SignalDirection, SignalStatus
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 
@@ -119,6 +125,132 @@ class SignalLifecycleOrchestrator:
                 signal=transitioned,
                 changed=True,
                 outcome_recorded=outcome is not None,
+                alert_published=True,
+            )
+
+        return self._unit_of_work.execute(persist)
+
+    def process_completed_daily_bar(
+        self,
+        bar: CompletedDailyBarObservation,
+        *,
+        policy_version: str = "dec138-daily-ohlc-v1",
+    ) -> SignalLifecycleResult | None:
+        """Evaluate one provider-attested completed candle for a published signal.
+
+        This path records market-level evidence only. It never invents an entry
+        fill or creates realized return/R accounting.
+        """
+        if not policy_version or not policy_version.strip():
+            raise ValueError("policy_version is required")
+
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
+            latest = transaction.latest(bar.symbol)
+            if latest is None:
+                return None
+            if latest.event not in {"PUBLISHED", "PUBLISHED_VERSION"}:
+                return None
+            if latest.signal.status is not SignalStatus.ACTIVE:
+                return SignalLifecycleResult(
+                    signal_id=latest.signal_id,
+                    signal=latest.signal,
+                    changed=False,
+                    outcome_recorded=False,
+                    alert_published=False,
+                )
+
+            existing = transaction.get_observation(bar.identity)
+            if existing is not None:
+                previous = existing.bar
+                same_source_payload = (
+                    previous.symbol.strip().upper() == bar.symbol.strip().upper()
+                    and previous.provider.strip().casefold() == bar.provider.strip().casefold()
+                    and previous.timeframe.strip().upper() == bar.timeframe.strip().upper()
+                    and previous.candle_at == bar.candle_at
+                    and previous.revision.strip() == bar.revision.strip()
+                    and previous.source_reference == bar.source_reference
+                    and previous.finality_attestation == bar.finality_attestation
+                    and previous.is_final == bar.is_final
+                    and previous.open == bar.open
+                    and previous.high == bar.high
+                    and previous.low == bar.low
+                    and previous.close == bar.close
+                )
+                if not same_source_payload or existing.signal_id != latest.signal_id:
+                    raise ValueError(
+                        "conflicting replay for completed daily candle identity; "
+                        "a correction requires a new revision and explicit reconciliation"
+                    )
+                return SignalLifecycleResult(
+                    signal_id=latest.signal_id,
+                    signal=latest.signal,
+                    changed=False,
+                    outcome_recorded=False,
+                    alert_published=False,
+                )
+
+            previous_observation = transaction.latest_observation(latest.signal_id)
+            if previous_observation is not None:
+                previous_bar = previous_observation.bar
+                if bar.candle_at < previous_bar.candle_at:
+                    raise ValueError("out-of-order daily candle cannot advance lifecycle")
+                if bar.candle_at == previous_bar.candle_at:
+                    raise ValueError(
+                        "same-session correction requires explicit reconciliation"
+                    )
+
+            current = latest.signal
+            transitioned = transition_signal_from_completed_daily_bar(current, bar)
+            transaction.record_observation(
+                LifecycleObservationRecord(
+                    signal_id=latest.signal_id,
+                    bar=bar,
+                    policy_version=policy_version.strip(),
+                    resulting_status=transitioned.status,
+                )
+            )
+            if transitioned.status is current.status:
+                return SignalLifecycleResult(
+                    signal_id=latest.signal_id,
+                    signal=current,
+                    changed=False,
+                    outcome_recorded=False,
+                    alert_published=False,
+                )
+
+            event_type = (
+                AlertEventType.SIGNAL_TRIGGERED
+                if transitioned.status is SignalStatus.TRIGGERED
+                else AlertEventType.SIGNAL_INVALIDATED
+            )
+            event_id = uuid5(
+                NAMESPACE_URL,
+                f"signal-daily-bar:{latest.signal_id}:{bar.identity!r}:{policy_version.strip()}",
+            )
+            transaction.record_signal(
+                transitioned,
+                f"STATUS_{transitioned.status.value}",
+                bar.observed_at,
+            )
+            transaction.publish_alert(
+                AlertEvent(
+                    event_id=event_id,
+                    signal_id=latest.signal_id,
+                    symbol=transitioned.symbol,
+                    event_type=event_type,
+                    occurred_at=bar.observed_at,
+                    message=(
+                        f"{transitioned.symbol} opportunity "
+                        f"{transitioned.status.value.lower()} from completed daily candle"
+                    ),
+                    signal_snapshot=snapshot_signal(transitioned),
+                )
+            )
+            return SignalLifecycleResult(
+                signal_id=latest.signal_id,
+                signal=transitioned,
+                changed=True,
+                outcome_recorded=False,
                 alert_published=True,
             )
 
