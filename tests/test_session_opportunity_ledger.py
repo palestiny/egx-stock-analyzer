@@ -243,10 +243,48 @@ def test_report_uses_outcome_recorded_at_and_preserves_event_provenance() -> Non
 
     assert before_knowledge.opportunities[0].market_proxy_outcome is None
     assert before_knowledge.opportunities[0].outcome_event_id is None
+    assert before_knowledge.opportunities[0].outcome_knowledge_status.value == "UNRESOLVED"
     resolved = after_knowledge.opportunities[0]
     assert resolved.market_proxy_outcome is SignalOutcome.INVALIDATED
     assert resolved.outcome_event_id == event.event_id
     assert resolved.outcome_recorded_at == dt(11)
+    assert resolved.outcome_knowledge_status.value == "RECORDED"
     response = SessionOpportunityLedgerResponse.from_report(after_knowledge)
     assert response["opportunities"][0]["outcome_event_id"] == str(event.event_id)
     assert response["opportunities"][0]["outcome_recorded_at"] == dt(11).isoformat()
+
+
+
+def test_legacy_outcome_is_marked_unknown_and_not_used_for_historical_as_of_report() -> None:
+    history = InMemorySignalHistoryStore()
+    track = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", dt(9))
+    legacy = SignalOutcomeRecord(
+        signal_id=published.signal_id,
+        symbol="EGAL",
+        outcome=SignalOutcome.INVALIDATED,
+        direction=SignalDirection.BUY,
+        observed_at=dt(9),
+        entry_price=Decimal("101"),
+        exit_price=Decimal("95"),
+        realized_return=Decimal("-0.0594"),
+        realized_r=Decimal("-1"),
+        invalidation=Decimal("95"),
+        target_label=None,
+        strategy_id="trend-breakout",
+        strategy_version="1",
+        data_timestamp=dt(9),
+    )
+    track.record(legacy)
+    builder = BuildSessionOpportunityLedger(
+        history, track, outcome_events=InMemoryOutcomeEventStore(clock=lambda: dt(12))
+    )
+
+    report = builder.execute(date(2026, 10, 26), generated_at=dt(12))
+    item = report.opportunities[0]
+
+    assert item.market_proxy_outcome is None
+    assert item.outcome_event_id is None
+    assert item.outcome_knowledge_status.value == "LEGACY_UNKNOWN"
+    assert report.unresolved_count == 1
