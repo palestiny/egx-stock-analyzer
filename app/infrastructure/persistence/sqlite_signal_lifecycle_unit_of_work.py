@@ -179,7 +179,35 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         self, signal: Signal, event: str, recorded_at: datetime, *, signal_id: UUID | None = None
     ) -> SignalRecord:
         if signal_id is not None:
-            return self._history.record_for_signal(signal_id, signal, event, recorded_at)
+            if not event.strip():
+                raise ValueError("event is required")
+            self._history._require_aware(recorded_at, "recorded_at")
+            payload = self._history._serialize_signal(signal)
+            identity = self._connection.execute(
+                "SELECT 1 FROM signal_identities WHERE signal_id = ?",
+                (str(signal_id),),
+            ).fetchone()
+            if identity is None:
+                raise ValueError("signal identity does not exist")
+            existing = self._connection.execute(
+                """
+                SELECT signal_json FROM signal_history
+                WHERE signal_id = ? AND event = ? AND recorded_at = ?
+                """,
+                (str(signal_id), event.strip(), recorded_at.isoformat()),
+            ).fetchone()
+            if existing is not None:
+                if str(existing[0]) != payload:
+                    raise ValueError("different signal event already recorded")
+                return SignalRecord(signal_id, signal, recorded_at, event.strip())
+            self._connection.execute(
+                """
+                INSERT INTO signal_history(signal_id, event, recorded_at, signal_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (str(signal_id), event.strip(), recorded_at.isoformat(), payload),
+            )
+            return SignalRecord(signal_id, signal, recorded_at, event.strip())
         if not event.strip():
             raise ValueError("event is required")
         self._history._require_aware(recorded_at, "recorded_at")
