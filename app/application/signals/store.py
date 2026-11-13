@@ -74,6 +74,17 @@ class InMemorySignalHistoryStore:
             raise ValueError("signal identity does not exist")
         if not event.strip():
             raise ValueError("event is required")
+        existing = next(
+            (
+                item for item in self._records.get(signal_id, ())
+                if item.event == event.strip() and item.recorded_at == recorded_at
+            ),
+            None,
+        )
+        if existing is not None:
+            if existing.signal != signal:
+                raise ValueError("different signal event already recorded")
+            return existing
         record = SignalRecord(signal_id, signal, recorded_at, event.strip())
         self._records.setdefault(signal_id, []).append(record)
         self._by_symbol[signal.symbol.strip().upper()] = signal_id
@@ -88,6 +99,8 @@ class InMemorySignalHistoryStore:
         parent_signal_id: UUID,
         reason: str,
     ) -> SignalRecord:
+        if not event.strip():
+            raise ValueError("event is required")
         parent = self.get(parent_signal_id)
         if parent is None:
             raise ValueError("parent signal identity does not exist")
