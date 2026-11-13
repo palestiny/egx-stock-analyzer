@@ -9,6 +9,8 @@ from typing import Callable, TypeVar
 from uuid import UUID, uuid4
 
 from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleBootstrapBatchRecord,
+    LifecycleBootstrapRecord,
     LifecycleCorrectionRecord,
     LifecycleCorrectionReviewDecision,
     LifecycleCorrectionRebuildRecord,
@@ -41,6 +43,136 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         self._history = history
         self._track_record = track_record
         self._outbox = outbox
+
+
+    def record_bootstrap_batch(self, batch: LifecycleBootstrapBatchRecord, records: tuple[LifecycleBootstrapRecord, ...]) -> None:
+        if batch.opportunity_count != len(records) or not records:
+            raise ValueError("bootstrap batch record count mismatch")
+        if not batch.operator_id.strip() or not batch.reason.strip() or not batch.calendar_version.strip() or not batch.batch_digest.strip():
+            raise ValueError("bootstrap batch audit fields are required")
+        if batch.recorded_at.tzinfo is None or batch.recorded_at.utcoffset() is None:
+            raise ValueError("bootstrap batch timestamp must be timezone-aware")
+        existing_batch = self._connection.execute(
+            """SELECT calendar_version, operator_id, reason, recorded_at, opportunity_count, batch_digest
+               FROM signal_lifecycle_bootstrap_batches WHERE batch_id = ?""",
+            (str(batch.batch_id),),
+        ).fetchone()
+        expected_batch = (
+            batch.calendar_version, batch.operator_id, batch.reason, batch.recorded_at.isoformat(),
+            batch.opportunity_count, batch.batch_digest,
+        )
+        if existing_batch is not None:
+            if tuple(existing_batch) != expected_batch:
+                raise ValueError("conflicting lifecycle bootstrap batch replay")
+            for record in records:
+                existing = self._connection.execute(
+                    """SELECT payload_json FROM signal_lifecycle_bootstrap_records
+                       WHERE idempotency_key = ?""", (record.idempotency_key,)
+                ).fetchone()
+                if existing is None or str(existing[0]) != self._serialize_bootstrap_record(record):
+                    raise ValueError("conflicting lifecycle bootstrap record replay")
+            return
+        if len({record.signal_id for record in records}) != len(records):
+            raise ValueError("bootstrap batch contains duplicate opportunity identities")
+        payloads = []
+        for record in records:
+            if (
+                record.batch_id != batch.batch_id
+                or record.calendar_version != batch.calendar_version
+                or record.operator_id != batch.operator_id
+                or record.reason != batch.reason
+                or not record.publication_event.strip()
+                or not record.idempotency_key.strip()
+                or record.publication_recorded_at.tzinfo is None
+                or record.publication_recorded_at.utcoffset() is None
+                or record.recorded_at.tzinfo is None
+                or record.recorded_at.utcoffset() is None
+            ):
+                raise ValueError("invalid lifecycle bootstrap record")
+            payload = self._serialize_bootstrap_record(record)
+            existing = self._connection.execute(
+                "SELECT payload_json FROM signal_lifecycle_bootstrap_records WHERE idempotency_key = ?",
+                (record.idempotency_key,),
+            ).fetchone()
+            if existing is not None and str(existing[0]) != payload:
+                raise ValueError("conflicting lifecycle bootstrap record replay")
+            conflict = self._connection.execute(
+                """SELECT 1 FROM signal_lifecycle_bootstrap_records
+                   WHERE signal_id = ? AND calendar_version = ? AND idempotency_key != ?""",
+                (str(record.signal_id), record.calendar_version, record.idempotency_key),
+            ).fetchone()
+            if conflict is not None:
+                raise ValueError("opportunity already bootstrapped for this calendar version")
+            payloads.append((record, payload))
+        self._connection.execute(
+            """INSERT INTO signal_lifecycle_bootstrap_batches(
+                batch_id, calendar_version, operator_id, reason, recorded_at, opportunity_count, batch_digest
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (str(batch.batch_id), batch.calendar_version, batch.operator_id, batch.reason,
+             batch.recorded_at.isoformat(), batch.opportunity_count, batch.batch_digest),
+        )
+        for record, payload in payloads:
+            self._connection.execute(
+                """INSERT OR IGNORE INTO signal_lifecycle_bootstrap_records(
+                    idempotency_key, batch_id, signal_id, baseline_date, publication_event,
+                    publication_recorded_at, operator_id, reason, calendar_version, recorded_at, payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (record.idempotency_key, str(record.batch_id), str(record.signal_id),
+                 record.baseline_date.isoformat(), record.publication_event,
+                 record.publication_recorded_at.isoformat(), record.operator_id, record.reason,
+                 record.calendar_version, record.recorded_at.isoformat(), payload),
+            )
+
+    @staticmethod
+    def _serialize_bootstrap_record(record: LifecycleBootstrapRecord) -> str:
+        return json.dumps({
+            "batch_id": str(record.batch_id),
+            "signal_id": str(record.signal_id),
+            "baseline_date": record.baseline_date.isoformat(),
+            "publication_event": record.publication_event,
+            "publication_recorded_at": record.publication_recorded_at.isoformat(),
+            "operator_id": record.operator_id,
+            "reason": record.reason,
+            "calendar_version": record.calendar_version,
+            "recorded_at": record.recorded_at.isoformat(),
+            "idempotency_key": record.idempotency_key,
+        }, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _deserialize_bootstrap_record(payload_text: str) -> LifecycleBootstrapRecord:
+        payload = json.loads(payload_text)
+        return LifecycleBootstrapRecord(
+            batch_id=UUID(str(payload["batch_id"])),
+            signal_id=UUID(str(payload["signal_id"])),
+            baseline_date=date.fromisoformat(str(payload["baseline_date"])),
+            publication_event=str(payload["publication_event"]),
+            publication_recorded_at=datetime.fromisoformat(str(payload["publication_recorded_at"])),
+            operator_id=str(payload["operator_id"]),
+            reason=str(payload["reason"]),
+            calendar_version=str(payload["calendar_version"]),
+            recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
+            idempotency_key=str(payload["idempotency_key"]),
+        )
+
+    def bootstrap_records(self, signal_id: UUID) -> tuple[LifecycleBootstrapRecord, ...]:
+        rows = self._connection.execute(
+            """SELECT payload_json FROM signal_lifecycle_bootstrap_records
+               WHERE signal_id = ? ORDER BY recorded_at ASC, calendar_version ASC""",
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(self._deserialize_bootstrap_record(str(row[0])) for row in rows)
+
+    def bootstrap_batches(self) -> tuple[LifecycleBootstrapBatchRecord, ...]:
+        rows = self._connection.execute(
+            """SELECT batch_id, calendar_version, operator_id, reason, recorded_at,
+                      opportunity_count, batch_digest
+               FROM signal_lifecycle_bootstrap_batches ORDER BY recorded_at ASC, batch_id ASC"""
+        ).fetchall()
+        return tuple(LifecycleBootstrapBatchRecord(
+            batch_id=UUID(str(row[0])), calendar_version=str(row[1]), operator_id=str(row[2]),
+            reason=str(row[3]), recorded_at=datetime.fromisoformat(str(row[4])),
+            opportunity_count=int(row[5]), batch_digest=str(row[6]),
+        ) for row in rows)
 
     def get_observation(self, signal_id: UUID, identity):
         key = json.dumps(
@@ -771,6 +903,68 @@ class SQLiteSignalLifecycleUnitOfWork:
     def _initialize_observation_ledger(self) -> None:
         connection = connect_sqlite(self._database_path)
         try:
+
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_bootstrap_batches (
+                    batch_id TEXT PRIMARY KEY,
+                    calendar_version TEXT NOT NULL,
+                    operator_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    opportunity_count INTEGER NOT NULL CHECK(opportunity_count > 0),
+                    batch_digest TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_bootstrap_records (
+                    idempotency_key TEXT PRIMARY KEY,
+                    batch_id TEXT NOT NULL,
+                    signal_id TEXT NOT NULL,
+                    baseline_date TEXT NOT NULL,
+                    publication_event TEXT NOT NULL,
+                    publication_recorded_at TEXT NOT NULL,
+                    operator_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    calendar_version TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    FOREIGN KEY(batch_id) REFERENCES signal_lifecycle_bootstrap_batches(batch_id),
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    UNIQUE(signal_id, calendar_version)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bootstrap_batches_no_update
+                BEFORE UPDATE ON signal_lifecycle_bootstrap_batches
+                BEGIN SELECT RAISE(ABORT, 'lifecycle bootstrap batches are append-only'); END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bootstrap_batches_no_delete
+                BEFORE DELETE ON signal_lifecycle_bootstrap_batches
+                BEGIN SELECT RAISE(ABORT, 'lifecycle bootstrap batches are append-only'); END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bootstrap_records_no_update
+                BEFORE UPDATE ON signal_lifecycle_bootstrap_records
+                BEGIN SELECT RAISE(ABORT, 'lifecycle bootstrap records are append-only'); END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bootstrap_records_no_delete
+                BEFORE DELETE ON signal_lifecycle_bootstrap_records
+                BEGIN SELECT RAISE(ABORT, 'lifecycle bootstrap records are append-only'); END
+                """
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS signal_lifecycle_daily_observations (
