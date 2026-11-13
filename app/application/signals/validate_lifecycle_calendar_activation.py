@@ -68,6 +68,7 @@ class ValidateLifecycleCalendarActivation:
         *,
         calendar_version: str,
         as_of: datetime,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> LifecycleCalendarActivationValidation:
         if not isinstance(calendar_version, str) or not calendar_version.strip():
             raise ValueError("calendar_version is required")
@@ -136,13 +137,21 @@ class ValidateLifecycleCalendarActivation:
             if latest is not None and latest.signal.status is SignalStatus.ACTIVE:
                 active.append(latest)
 
-        bootstrap_by_signal = self._unit_of_work.execute(
-            lambda tx: {
+        def read_bootstrap_records(tx: SignalLifecycleTransaction):
+            return {
                 signal_id: tx.bootstrap_records(signal_id)
                 for signal_id in signal_ids
             }
-        )
-        batches = self._unit_of_work.execute(lambda tx: tx.bootstrap_batches())
+
+        def read_bootstrap_batches(tx: SignalLifecycleTransaction):
+            return tx.bootstrap_batches()
+
+        if transaction is None:
+            bootstrap_by_signal = self._unit_of_work.execute(read_bootstrap_records)
+            batches = self._unit_of_work.execute(read_bootstrap_batches)
+        else:
+            bootstrap_by_signal = read_bootstrap_records(transaction)
+            batches = read_bootstrap_batches(transaction)
         batch_by_id = {item.batch_id: item for item in batches}
         actual_batch_counts: dict[object, int] = {}
         for records in bootstrap_by_signal.values():
@@ -241,7 +250,11 @@ class ValidateLifecycleCalendarActivation:
             ) -> LifecycleObservationRecord | None:
                 return transaction.latest_observation(signal_id)
 
-            cursor = self._unit_of_work.execute(read_latest_cursor)
+            cursor = (
+                self._unit_of_work.execute(read_latest_cursor)
+                if transaction is None
+                else read_latest_cursor(transaction)
+            )
             if cursor is not None:
                 cursor_date = cursor.bar.candle_at.astimezone(CAIRO).date()
                 if cursor_date <= baseline:
