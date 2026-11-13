@@ -1,6 +1,5 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
 from decimal import Decimal
 from uuid import uuid4
 
@@ -130,7 +129,7 @@ def test_sqlite_outcome_event_store_persists_credential_identity(tmp_path):
         idempotency_key="correction-1",
     )
     now[0] += timedelta(minutes=1)
-    review = store.review_correction(
+    store.review_correction(
         correction.event_id,
         reviewer_id="reviewer-1",
         reviewer_credential_id=reviewer_credential,
