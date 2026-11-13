@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from datetime import datetime, timezone
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -476,3 +477,87 @@ def test_sqlite_lifecycle_transition_stays_on_revised_opportunity_identity(tmp_p
     assert history.get(child.signal_id).signal.status is SignalStatus.TRIGGERED
     assert history.revision_link(child.signal_id).parent_signal_id == parent.signal_id
     assert track_record.all() == ()
+
+
+def test_sqlite_correction_is_append_only_and_does_not_rewrite_lifecycle_outcome(tmp_path):
+    database = tmp_path / "daily-bar-correction.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    original_bar = make_completed_bar()
+    orchestrator.process_completed_daily_bar(
+        published.signal_id,
+        original_bar,
+        calendar_version="calendar-v1",
+    )
+    corrected_bar = replace(
+        original_bar,
+        revision="r2",
+        source_reference="https://provider.example/COMI/2026-10-04/revision-2",
+        finality_attestation="provider-finality-v2",
+        high=Decimal("109"),
+        observed_at=original_bar.observed_at + timedelta(hours=1),
+    )
+
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original_bar.identity,
+        corrected_bar=corrected_bar,
+        operator_id="operator-1",
+        reason="Provider published a corrected daily candle",
+        calendar_version="calendar-v1",
+        recorded_at=corrected_bar.observed_at,
+    )
+    replay = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original_bar.identity,
+        corrected_bar=corrected_bar,
+        operator_id="operator-1",
+        reason="Provider published a corrected daily candle",
+        calendar_version="calendar-v1",
+        recorded_at=corrected_bar.observed_at,
+    )
+
+    assert replay == correction
+    assert orchestrator.lifecycle_corrections(published.signal_id) == (correction,)
+    original = orchestrator.latest_completed_observation(published.signal_id)
+    assert original.bar.revision == "r1"
+    assert original.bar.high == Decimal("105")
+    assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+    assert track_record.all() == ()
+
+
+def test_sqlite_correction_ledger_rejects_same_revision_as_original(tmp_path):
+    database = tmp_path / "daily-bar-correction-invalid.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    original_bar = make_completed_bar()
+    orchestrator.process_completed_daily_bar(
+        published.signal_id,
+        original_bar,
+        calendar_version="calendar-v1",
+    )
+
+    with pytest.raises(ValueError, match="new source revision"):
+        orchestrator.record_daily_bar_correction(
+            published.signal_id,
+            original_identity=original_bar.identity,
+            corrected_bar=original_bar,
+            operator_id="operator-1",
+            reason="No revision change",
+            calendar_version="calendar-v1",
+            recorded_at=original_bar.observed_at,
+        )
