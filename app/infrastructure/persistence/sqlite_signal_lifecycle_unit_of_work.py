@@ -375,6 +375,33 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         ).fetchone()
         return self._history._to_record(row) if row else None
 
+    def latest_for_identity(
+        self,
+        symbol: str,
+        strategy_id: str,
+        strategy_version: str,
+        generated_at: datetime,
+    ) -> SignalRecord | None:
+        rows = self._connection.execute(
+            """
+            SELECT h.signal_id, h.event, h.recorded_at, h.signal_json
+            FROM signal_history h
+            JOIN signal_identities i ON i.signal_id = h.signal_id
+            WHERE i.symbol = ?
+            ORDER BY h.id DESC
+            """,
+            (symbol.strip().upper(),),
+        ).fetchall()
+        for row in rows:
+            record = self._history._to_record(row)
+            if (
+                record.signal.strategy_id == strategy_id
+                and record.signal.strategy_version == strategy_version
+                and record.signal.generated_at == generated_at
+            ):
+                return record
+        return None
+
     def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None:
         row = self._connection.execute(
             """
