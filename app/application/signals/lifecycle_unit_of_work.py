@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from threading import RLock
 from typing import Callable, Protocol, TypeVar
@@ -176,7 +176,11 @@ class _InMemoryTransaction:
             raise ValueError("bootstrap batch timestamp must be timezone-aware")
         existing_batch = self._bootstrap_batches.get(batch.batch_id)
         if existing_batch is not None:
-            if existing_batch != batch or any(self._bootstrap_records.get(r.idempotency_key) != r for r in records):
+            if replace(existing_batch, recorded_at=batch.recorded_at) != batch or any(
+                self._bootstrap_records.get(r.idempotency_key) is None
+                or replace(self._bootstrap_records[r.idempotency_key], recorded_at=r.recorded_at) != r
+                for r in records
+            ):
                 raise ValueError("conflicting lifecycle bootstrap batch replay")
             return
         if len({r.signal_id for r in records}) != len(records):
