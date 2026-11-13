@@ -14,6 +14,17 @@ class UserOpportunityLifecycleHistoryResponse:
         return {
             **UserOpportunityNotificationResponse.from_notification(item.notification),
             "current_status": item.current_status,
+            "revision": (
+                {
+                    "signal_id": str(item.revision_link.signal_id),
+                    "parent_signal_id": str(item.revision_link.parent_signal_id),
+                    "revision_number": item.revision_link.revision_number,
+                    "reason": item.revision_link.reason,
+                    "recorded_at": item.revision_link.recorded_at.isoformat(),
+                }
+                if item.revision_link is not None
+                else None
+            ),
             "lifecycle_history": [
                 {
                     "event": record.event,
