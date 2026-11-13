@@ -161,7 +161,7 @@ def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date
 
 
 def test_calendar_activation_validation_fails_closed_without_trusted_schedule_date():
-    validator, schedule, _, _ = setup()
+    validator, schedule, _, _, _ = setup()
     schedule.next_date = None
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -237,7 +237,7 @@ def test_calendar_activation_validation_accepts_closed_reconciled_cursor():
 
 
 def test_rollback_candidate_is_revalidated_against_latest_reconciled_cursor():
-    validator, _, publication, uow = setup(
+    validator, _, publication, uow, _ = setup(
         version="calendar-v2",
         closed_dates={date(2026, 10, 5)},
     )
