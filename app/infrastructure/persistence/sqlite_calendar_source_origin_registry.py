@@ -136,6 +136,7 @@ class SQLiteCalendarSourceOriginRegistry:
         occurred_at: datetime | None = None,
     ) -> None:
         self._require_owner(owner)
+        assert owner.user_id is not None and owner.credential_id is not None
         canonical_origin = normalize_calendar_source_origin(origin)
         if not reason.strip() or not registry_version.strip():
             raise ValueError("Revocation reason and registry version are required")
