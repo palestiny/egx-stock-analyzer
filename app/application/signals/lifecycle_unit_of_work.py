@@ -168,7 +168,10 @@ class _InMemoryTransaction:
                     event for event in self._gap_events.values()
                     if event.signal_id == signal_id
                 ),
-                key=lambda event: (event.session_date, event.recorded_at, str(event.event_id)),
+                # Preserve append order for events on the same session date.
+                # recorded_at may legitimately tie (e.g. deterministic replay in tests),
+                # and UUID ordering is not event chronology.
+                key=lambda event: event.session_date,
             )
         )
 
