@@ -109,8 +109,6 @@ def test_market_state_rejects_data_timestamp_after_observation() -> None:
         SignalMarketState(observed_at, Decimal("100"), future_data)
 
 
-
-
 def completed_bar(*, high="110", low="98", direction_symbol="COMI", final=True):
     return CompletedDailyBarObservation(
         symbol=direction_symbol,
@@ -125,7 +123,7 @@ def completed_bar(*, high="110", low="98", direction_symbol="COMI", final=True):
         open=Decimal("100"),
         high=Decimal(high),
         low=Decimal(low),
-        close=Decimal("105"),
+        close=Decimal("100"),
     )
 
 
@@ -169,6 +167,8 @@ def test_completed_daily_bar_requires_provider_finality_and_valid_ohlc():
             candle_at=datetime(2026, 10, 4, tzinfo=timezone.utc),
             observed_at=datetime(2026, 10, 4, 16, tzinfo=timezone.utc),
             revision="r1",
+            source_reference="https://provider.example/daily/COMI/2026-10-04",
+            finality_attestation="provider-final-bar-v1",
             is_final=True,
             open=Decimal("100"),
             high=Decimal("99"),
@@ -209,6 +209,8 @@ def test_completed_daily_bar_rejects_wrong_symbol_and_pre_generation_candle():
         candle_at=datetime(2026, 10, 2, tzinfo=timezone.utc),
         observed_at=datetime(2026, 10, 4, 16, tzinfo=timezone.utc),
         revision="r1",
+        source_reference="https://provider.example/daily/COMI/2026-10-02",
+        finality_attestation="provider-final-bar-v1",
         is_final=True,
         open=Decimal("100"),
         high=Decimal("105"),
