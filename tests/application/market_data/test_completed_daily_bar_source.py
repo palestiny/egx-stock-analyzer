@@ -98,7 +98,10 @@ def test_provider_daily_bar_evidence_rejects_ambiguous_or_mismatched_metadata(
 
 def test_provider_daily_bar_evidence_uses_cairo_session_date_not_utc_date() -> None:
     evidence = _evidence(
-        bar=_bar(candle_at=datetime(2026, 11, 11, 22, 30, tzinfo=timezone.utc)),
+        bar=_bar(
+            candle_at=datetime(2026, 11, 11, 22, 30, tzinfo=timezone.utc),
+            observed_at=datetime(2026, 11, 12, 0, 10, tzinfo=timezone.utc),
+        ),
         source_timestamp=datetime(2026, 11, 12, 0, 5, tzinfo=timezone.utc),
         retrieved_at=datetime(2026, 11, 12, 0, 15, tzinfo=timezone.utc),
     )
