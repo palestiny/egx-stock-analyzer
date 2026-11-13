@@ -228,3 +228,97 @@ def test_claim_survives_store_restart_and_can_be_reclaimed_after_expiry(tmp_path
     assert recovered["owner_id"] == "worker-after-restart"
     assert recovered["fencing_token"] == 2
     assert recovered["attempt"] == 2
+
+
+def test_current_owner_can_renew_live_claim_without_changing_identity_or_attempt(tmp_path):
+    database = tmp_path / "analysis.db"
+    store = SQLiteLifecycleOccurrenceClaimStore(database)
+    claim = store.claim("occurrence-renew", "worker-a", now=NOW, lease_seconds=10)
+    assert claim is not None
+
+    renewed = store.renew(
+        claim, now=NOW + timedelta(seconds=5), lease_seconds=40
+    )
+
+    assert renewed is not None
+    assert renewed.occurrence_id == claim.occurrence_id
+    assert renewed.owner_id == claim.owner_id
+    assert renewed.fencing_token == claim.fencing_token
+    assert renewed.attempt == claim.attempt
+    assert renewed.lease_until == NOW + timedelta(seconds=45)
+    persisted = store.get("occurrence-renew")
+    assert persisted is not None
+    assert persisted["lease_until"] == renewed.lease_until
+    assert persisted["claimed_at"] == NOW
+
+
+def test_expired_claim_cannot_be_renewed_including_at_exact_expiry(tmp_path):
+    store = SQLiteLifecycleOccurrenceClaimStore(tmp_path / "analysis.db")
+    claim = store.claim("occurrence-renew-expired", "worker-a", now=NOW, lease_seconds=10)
+    assert claim is not None
+
+    assert store.renew(
+        claim, now=NOW + timedelta(seconds=10), lease_seconds=30
+    ) is None
+    assert store.renew(
+        claim, now=NOW + timedelta(seconds=11), lease_seconds=30
+    ) is None
+
+
+def test_old_owner_and_fencing_token_cannot_renew_after_reclaim(tmp_path):
+    store = SQLiteLifecycleOccurrenceClaimStore(tmp_path / "analysis.db")
+    old_claim = store.claim("occurrence-renew-fenced", "worker-a", now=NOW, lease_seconds=10)
+    assert old_claim is not None
+    current_claim = store.claim(
+        "occurrence-renew-fenced",
+        "worker-b",
+        now=NOW + timedelta(seconds=11),
+        lease_seconds=30,
+    )
+    assert current_claim is not None
+
+    assert store.renew(
+        old_claim, now=NOW + timedelta(seconds=12), lease_seconds=60
+    ) is None
+    wrong_token = type(current_claim)(
+        occurrence_id=current_claim.occurrence_id,
+        owner_id=current_claim.owner_id,
+        fencing_token=current_claim.fencing_token + 1,
+        attempt=current_claim.attempt,
+        lease_until=current_claim.lease_until,
+    )
+    assert store.renew(
+        wrong_token, now=NOW + timedelta(seconds=12), lease_seconds=60
+    ) is None
+    assert store.get("occurrence-renew-fenced")["owner_id"] == "worker-b"
+    assert store.get("occurrence-renew-fenced")["fencing_token"] == current_claim.fencing_token
+
+
+def test_renewed_lease_survives_store_reopen(tmp_path):
+    database = tmp_path / "analysis.db"
+    store = SQLiteLifecycleOccurrenceClaimStore(database)
+    claim = store.claim("occurrence-renew-restart", "worker-a", now=NOW, lease_seconds=10)
+    assert claim is not None
+    renewed = store.renew(
+        claim, now=NOW + timedelta(seconds=5), lease_seconds=50
+    )
+    assert renewed is not None
+
+    reopened = SQLiteLifecycleOccurrenceClaimStore(database)
+    persisted = reopened.get("occurrence-renew-restart")
+    assert persisted is not None
+    assert persisted["lease_until"] == NOW + timedelta(seconds=55)
+    assert persisted["claimed_at"] == NOW
+    assert persisted["fencing_token"] == claim.fencing_token
+    assert persisted["attempt"] == claim.attempt
+
+
+def test_renew_rejects_naive_time_and_invalid_lease(tmp_path):
+    store = SQLiteLifecycleOccurrenceClaimStore(tmp_path / "analysis.db")
+    claim = store.claim("occurrence-renew-invalid", "worker-a", now=NOW, lease_seconds=10)
+    assert claim is not None
+
+    with pytest.raises(ValueError, match="timezone-aware"):
+        store.renew(claim, now=datetime(2026, 11, 13), lease_seconds=10)
+    with pytest.raises(ValueError, match="positive integer"):
+        store.renew(claim, now=NOW + timedelta(seconds=1), lease_seconds=0)
