@@ -98,12 +98,12 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 
 ## 9. Owner decisions still open
 
-1. **Calendar bootstrap:** OWNER APPROVED OPTION 3 — no activation until a controlled, durable, audited cursor exists. The exact cursor semantics and atomic persistence contract remain to be designed; do not use a synthetic completed-bar observation or skip unreconciled sessions.
+1. **Calendar bootstrap:** OWNER APPROVED OPTION 3 — the `PUBLICATION_BASELINE` / `RECONCILED_SESSION` semantics, append-only bootstrap persistence, batch atomicity, cursor-derived coverage validator, calendar-backed schedule adapter, and SQLite activation coordinator are implemented on PR #515. The coordinator is not exposed as an operational API/command; no real calendar is active. Do not use a synthetic completed-bar observation or skip unreconciled sessions.
 2. **Worker deployment model:** choose the deployment scheduler/hosting mechanism only after the durable occurrence contract is accepted. The current in-process scheduler is not sufficient.
 3. **Operational retry window:** approve retry/backoff and alerting thresholds after provider rate limits and service-level expectations are known.
 
 ## 10. Current result
 
-**DESIGN PROPOSED / WORKER NOT WIRED / NOT ACTIVATED.** Calendar bootstrap policy Option 3 and cursor-derived coverage are owner-approved; durable bootstrap-cursor semantics and implementation remain open. Existing evaluation and lifecycle semantics should be reused. Provider retrieval, production finality, calendar bootstrap/activation, durable worker execution, and full end-to-end proof remain separate gates.
+**DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is deterministic active-opportunity enumeration, a completed-bar source port/approved source integration, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
 
 **External-contact boundary:** no provider outreach, quote request, account request, or credential request is authorized. EGID remains a research candidate only. M61/backtesting remains paused.
