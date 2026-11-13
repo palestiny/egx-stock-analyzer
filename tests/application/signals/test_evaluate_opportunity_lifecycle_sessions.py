@@ -5,6 +5,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.evaluate_opportunity_lifecycle_sessions import (
     EvaluateOpportunityLifecycleSessions,
@@ -50,8 +51,8 @@ class FakeFinalityVerifier:
     def __init__(self, rejected_dates=()):
         self.rejected_dates = set(rejected_dates)
 
-    def verify_finality(self, bar):
-        return bar.candle_at.astimezone(CAIRO).date() not in self.rejected_dates
+    def verify_finality(self, evidence):
+        return evidence.bar.candle_at.astimezone(CAIRO).date() not in self.rejected_dates
 
 
 def make_calendar(version="calendar-v1"):
@@ -138,6 +139,18 @@ def make_bar(session_date):
     )
 
 
+def make_evidence(bar):
+    return ProviderDailyBarEvidence(
+        provider_id=bar.provider,
+        provider_contract_version="test-contract-v1",
+        instrument_symbol=bar.symbol,
+        session_date=bar.candle_at.astimezone(CAIRO).date(),
+        source_timestamp=bar.observed_at,
+        retrieved_at=bar.observed_at,
+        bar=bar,
+    )
+
+
 def build_service(*, rejected_dates=(), bootstrap=True, active_calendar_version="calendar-v1"):
     calendar_store = FakeCalendarStore(make_calendar(active_calendar_version))
     verifier = FakeFinalityVerifier(rejected_dates)
@@ -194,7 +207,7 @@ def expected_sessions():
 def test_lifecycle_session_recovery_processes_twenty_closed_sessions_then_expires():
     service, history, lifecycle, publication, alerts, track_record = build_service()
     sessions = expected_sessions()[:20]
-    bars = {session: make_bar(session) for session in sessions}
+    bars = {session: make_evidence(make_bar(session)) for session in sessions}
 
     result = service.execute(
         publication.signal_id,
@@ -217,7 +230,7 @@ def test_lifecycle_session_recovery_stops_at_first_missing_session_and_resumes()
     service, history, lifecycle, publication, alerts, track_record = build_service()
     sessions = expected_sessions()[:20]
     bars = {
-        session: make_bar(session)
+        session: make_evidence(make_bar(session))
         for index, session in enumerate(sessions)
         if index != 1
     }
@@ -237,7 +250,7 @@ def test_lifecycle_session_recovery_stops_at_first_missing_session_and_resumes()
         (sessions[1], "STALE")
     ]
 
-    bars[sessions[1]] = make_bar(sessions[1])
+    bars[sessions[1]] = make_evidence(make_bar(sessions[1]))
     recovered = service.execute(
         publication.signal_id,
         through_date=sessions[-1],
