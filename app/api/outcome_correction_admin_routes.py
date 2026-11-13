@@ -20,6 +20,7 @@ class OutcomeCorrectionPayload(BaseModel):
 
     supersedes_event_id: UUID
     idempotency_key: str = Field(min_length=1, max_length=200)
+    symbol: str = Field(min_length=1, max_length=32)
     outcome: Literal["TARGET_HIT", "INVALIDATED"]
     direction: Literal["BUY", "SELL"]
     observed_at: datetime
@@ -118,7 +119,7 @@ def create_outcome_correction_admin_router(
         try:
             outcome = SignalOutcomeRecord(
                 signal_id=signal_id,
-                symbol="",
+                symbol=payload.symbol,
                 outcome=SignalOutcome(payload.outcome),
                 direction=SignalDirection(payload.direction),
                 observed_at=payload.observed_at,
@@ -134,22 +135,6 @@ def create_outcome_correction_admin_router(
             )
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        outcome = SignalOutcomeRecord(
-            signal_id=signal_id,
-            symbol=payload.model_extra.get("symbol", "") if payload.model_extra else "",
-            outcome=outcome.outcome,
-            direction=outcome.direction,
-            observed_at=outcome.observed_at,
-            entry_price=outcome.entry_price,
-            exit_price=outcome.exit_price,
-            realized_return=outcome.realized_return,
-            realized_r=outcome.realized_r,
-            invalidation=outcome.invalidation,
-            target_label=outcome.target_label,
-            strategy_id=outcome.strategy_id,
-            strategy_version=outcome.strategy_version,
-            data_timestamp=outcome.data_timestamp,
-        )
         try:
             event = configured_service().submit_correction(
                 signal_id,
