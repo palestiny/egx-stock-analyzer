@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import Mock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
@@ -97,7 +97,9 @@ def test_outcome_correction_routes_require_independent_active_credentials():
     assert reviewed.status_code == 201
     assert reviewed.json()["actor_id"] == reviewer.subject
     assert reviewed.json()["actor_credential_id"] == str(reviewer.credential_id)
-    assert events.outcome_as_of(signal_id, cutoff=datetime.now(timezone.utc)).event_id.hex == correction_id.replace("-", "")
+    selected = events.outcome_as_of(signal_id, cutoff=datetime.now(timezone.utc))
+    assert selected is not None
+    assert selected.event_id == UUID(correction_id)
 
 
 def test_outcome_correction_routes_reject_legacy_operator_without_individual_credential():
