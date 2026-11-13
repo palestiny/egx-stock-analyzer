@@ -168,10 +168,17 @@ class InMemorySignalHistoryStore:
         strategy_version: str,
         generated_at: datetime,
     ) -> SignalRecord | None:
-        signal_id = self._by_identity.get(
-            (symbol.strip().upper(), strategy_id, strategy_version, generated_at)
-        )
-        return self.get(signal_id) if signal_id else None
+        normalized_symbol = symbol.strip().upper()
+        signal_id = self._by_symbol.get(normalized_symbol)
+        latest = self.get(signal_id) if signal_id else None
+        if latest is None:
+            return None
+        if (
+            latest.signal.strategy_id != strategy_id
+            or latest.signal.strategy_version != strategy_version
+        ):
+            return None
+        return latest
 
     def all_records(self) -> tuple[SignalRecord, ...]:
         records = [
