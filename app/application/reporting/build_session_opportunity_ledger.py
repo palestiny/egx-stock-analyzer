@@ -51,10 +51,7 @@ class BuildSessionOpportunityLedger:
                 raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
             if outcome_record.data_timestamp.tzinfo is None or outcome_record.data_timestamp.utcoffset() is None:
                 raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
-            if (
-                outcome_record.observed_at <= generated_at
-                and outcome_record.data_timestamp <= generated_at
-            ):
+            if outcome_record.observed_at <= generated_at:
                 outcomes[outcome_record.signal_id] = outcome_record
         entries: list[SessionOpportunityEntry] = []
         for signal_id, history in records_by_signal.items():
