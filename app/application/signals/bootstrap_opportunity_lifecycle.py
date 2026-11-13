@@ -11,6 +11,7 @@ from app.application.market_data.session_calendar_store import SessionCalendarSt
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapBatchRecord,
     LifecycleBootstrapRecord,
+    SignalLifecycleTransaction,
     SignalLifecycleUnitOfWork,
 )
 from app.application.signals.store import SignalHistoryStore, SignalRecord
@@ -211,7 +212,7 @@ class BootstrapOpportunityLifecycle:
                 pending, key=lambda item: str(item[0].signal_id)
             )
         )
-        def persist(transaction) -> None:
+        def persist(transaction: SignalLifecycleTransaction) -> None:
             for bootstrap_record in bootstrap_records:
                 current = transaction.latest_for_signal(bootstrap_record.signal_id)
                 if current is None or current.signal.status is not SignalStatus.ACTIVE:
