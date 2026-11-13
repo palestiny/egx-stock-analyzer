@@ -6,7 +6,7 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.session_calendar_store import SessionCalendarStore
-from app.application.signals.lifecycle_unit_of_work import SignalLifecycleUnitOfWork
+from app.application.signals.lifecycle_unit_of_work import (\n    LifecycleObservationRecord,\n    SignalLifecycleTransaction,\n    SignalLifecycleUnitOfWork,\n)
 from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.domain.market_data.session_calendar import CalendarDayStatus
 from app.domain.signals.model import SignalStatus
@@ -236,9 +236,12 @@ class ValidateLifecycleCalendarActivation:
                 ))
                 continue
 
-            cursor = self._unit_of_work.execute(
-                lambda tx, current_id=signal_id: tx.latest_observation(current_id)
-            )
+            def read_latest_cursor(
+                transaction: SignalLifecycleTransaction,
+            ) -> LifecycleObservationRecord | None:
+                return transaction.latest_observation(signal_id)
+
+            cursor = self._unit_of_work.execute(read_latest_cursor)
             if cursor is not None:
                 cursor_date = cursor.bar.candle_at.astimezone(CAIRO).date()
                 if cursor_date <= baseline:
