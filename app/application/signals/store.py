@@ -73,8 +73,16 @@ class InMemorySignalHistoryStore:
     def record_for_signal(
         self, signal_id: UUID, signal: Signal, event: str, recorded_at: datetime
     ) -> SignalRecord:
-        if self.get(signal_id) is None:
+        current = self.get(signal_id)
+        if current is None:
             raise ValueError("signal identity does not exist")
+        if (
+            current.signal.symbol.strip().upper() != signal.symbol.strip().upper()
+            or current.signal.strategy_id != signal.strategy_id
+            or current.signal.strategy_version != signal.strategy_version
+            or current.signal.generated_at != signal.generated_at
+        ):
+            raise ValueError("signal update must preserve its immutable identity")
         if not event.strip():
             raise ValueError("event is required")
         existing = next(
