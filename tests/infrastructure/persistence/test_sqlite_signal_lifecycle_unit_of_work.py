@@ -20,7 +20,11 @@ from app.domain.signals.lifecycle import (
     CompletedDailyBarObservation,
     SignalMarketState,
 )
-from app.application.signals.lifecycle_unit_of_work import LifecycleObservationRecord
+from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleBootstrapBatchRecord,
+    LifecycleBootstrapRecord,
+    LifecycleObservationRecord,
+)
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
@@ -880,6 +884,103 @@ def test_sqlite_correction_review_is_durable_append_only_and_gates_lifecycle(tmp
             connection.execute(
                 "DELETE FROM signal_lifecycle_correction_review_decisions WHERE decision_id = ?",
                 (str(replay_required.decision_id),),
+            )
+    finally:
+        connection.close()
+
+
+def make_bootstrap_records(signal_id, batch_id, *, calendar_version="calendar-v1", baseline=None):
+    return LifecycleBootstrapRecord(
+        batch_id=batch_id,
+        signal_id=signal_id,
+        baseline_date=baseline or date(2026, 10, 3),
+        publication_event="PUBLISHED",
+        publication_recorded_at=GENERATED,
+        operator_id="operator-17",
+        reason="controlled lifecycle bootstrap",
+        calendar_version=calendar_version,
+        recorded_at=OBSERVED,
+        idempotency_key=f"{signal_id}:{calendar_version}",
+    )
+
+
+def make_bootstrap_batch(batch_id, *, count=1, calendar_version="calendar-v1"):
+    return LifecycleBootstrapBatchRecord(
+        batch_id=batch_id,
+        calendar_version=calendar_version,
+        operator_id="operator-17",
+        reason="controlled lifecycle bootstrap",
+        recorded_at=OBSERVED,
+        opportunity_count=count,
+        batch_digest="a" * 64,
+    )
+
+
+def test_bootstrap_batch_is_idempotent_and_survives_sqlite_restart(tmp_path):
+    database = tmp_path / "analysis.db"
+    unit_of_work, history, _, _ = make_unit_of_work(database)
+    published = history.record(make_signal(), "PUBLISHED", GENERATED)
+    batch_id = uuid4()
+    batch = make_bootstrap_batch(batch_id)
+    record = make_bootstrap_records(published.signal_id, batch_id)
+
+    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
+    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
+
+    reopened, _, _, _ = make_unit_of_work(database)
+    assert reopened.execute(lambda tx: tx.bootstrap_records(published.signal_id)) == (record,)
+    assert reopened.execute(lambda tx: tx.bootstrap_batches()) == (batch,)
+
+
+def test_bootstrap_batch_rejects_conflicting_calendar_or_baseline_replay(tmp_path):
+    unit_of_work, history, _, _ = make_unit_of_work(tmp_path / "analysis.db")
+    published = history.record(make_signal(), "PUBLISHED", GENERATED)
+    batch_id = uuid4()
+    batch = make_bootstrap_batch(batch_id)
+    record = make_bootstrap_records(published.signal_id, batch_id)
+    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
+
+    conflicting = replace(record, baseline_date=date(2026, 10, 4))
+    with pytest.raises(ValueError, match="conflicting lifecycle bootstrap"):
+        unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (conflicting,)))
+
+
+def test_bootstrap_batch_rolls_back_batch_and_records_when_any_record_is_invalid(tmp_path):
+    unit_of_work, history, _, _ = make_unit_of_work(tmp_path / "analysis.db")
+    first = history.record(make_signal(), "PUBLISHED", GENERATED)
+    second_signal = replace(make_signal(), symbol="EGAL", strategy_id="mean-reversion")
+    second = history.record(second_signal, "PUBLISHED", GENERATED)
+    batch_id = uuid4()
+    batch = make_bootstrap_batch(batch_id, count=2)
+    valid = make_bootstrap_records(first.signal_id, batch_id)
+    invalid = replace(
+        make_bootstrap_records(second.signal_id, batch_id),
+        calendar_version="different-calendar",
+    )
+
+    with pytest.raises(ValueError, match="invalid lifecycle bootstrap record"):
+        unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (valid, invalid)))
+
+    assert unit_of_work.execute(lambda tx: tx.bootstrap_records(first.signal_id)) == ()
+    assert unit_of_work.execute(lambda tx: tx.bootstrap_records(second.signal_id)) == ()
+    assert unit_of_work.execute(lambda tx: tx.bootstrap_batches()) == ()
+
+
+def test_bootstrap_records_are_append_only_in_sqlite(tmp_path):
+    database = tmp_path / "analysis.db"
+    unit_of_work, history, _, _ = make_unit_of_work(database)
+    published = history.record(make_signal(), "PUBLISHED", GENERATED)
+    batch_id = uuid4()
+    batch = make_bootstrap_batch(batch_id)
+    record = make_bootstrap_records(published.signal_id, batch_id)
+    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
+
+    connection = connect_sqlite(str(database))
+    try:
+        with pytest.raises(Exception, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_lifecycle_bootstrap_records WHERE idempotency_key = ?",
+                (record.idempotency_key,),
             )
     finally:
         connection.close()
