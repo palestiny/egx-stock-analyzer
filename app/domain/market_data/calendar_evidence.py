@@ -41,9 +41,9 @@ class CalendarEvidence:
     source_reference: str
     claim: str
     recorded_by: UUID
-    recorded_by_credential_id: UUID | None = None
-    observed_at: datetime = None
+    observed_at: datetime
     recorded_at: datetime
+    recorded_by_credential_id: UUID | None = None
     source_published_at: datetime | None = None
     supersedes_evidence_id: UUID | None = None
     supersession_reason: str | None = None
