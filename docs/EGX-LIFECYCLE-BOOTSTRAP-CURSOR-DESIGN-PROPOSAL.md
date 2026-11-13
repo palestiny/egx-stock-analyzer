@@ -147,3 +147,18 @@ Exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Additional 
 Implementation added as `CalendarBackedLifecycleEvaluationSchedule`, with tests for initial activation, change/rollback source preservation, no-future-session fail-closed behavior, and missing candidate fail-closed behavior.
 
 **Boundary:** the adapter is a provider-neutral schedule source, not an activation command. It is not yet wired to an activation endpoint. It does not solve the validation-to-pointer-mutation race. Activation and rollback remain disabled until validation, active-calendar pointer mutation, and append-only audit are serialized in one transaction and covered by concurrency/failure tests.
+
+
+## Atomic calendar activation implementation increment — 2026-11-13
+
+A provider-neutral SQLite activation coordinator is now implemented on the PR branch:
+
+- `SQLiteSessionCalendarRepository.change_active_atomically` starts `BEGIN IMMEDIATE`, validates the candidate calendar integrity and rollback eligibility, invokes the lifecycle precondition callback, then updates the active pointer and appends the activation audit event before one commit.
+- `SQLiteSignalLifecycleUnitOfWork.execute_in_transaction` lets lifecycle bootstrap/cursor reads join the caller-owned SQLite transaction; it does not begin, commit, or close that transaction.
+- `ValidateLifecycleCalendarActivation.execute` accepts the caller-owned lifecycle transaction and uses it for bootstrap batch/record and latest-observation reads. Its standalone precondition mode remains available for diagnostics, but only the coordinator serializes it with pointer mutation.
+- `SQLiteLifecycleCalendarActivationCoordinator` is the controlled activation/rollback path. An ineligible result raises an internal rejection inside the transaction and returns a validation result with no activation event. Any unexpected validation, pointer, or audit failure rolls the transaction back.
+- The coordinator verifies that the calendar repository and lifecycle UoW use the same SQLite database file. The validator's other history/calendar reads occur while `BEGIN IMMEDIATE` holds the SQLite write reservation, so another writer cannot change those records before pointer mutation.
+
+Focused persistence tests cover joining the caller-owned transaction (no nested UoW), rejection with no pointer/audit change, audit-insert failure rolling back a pointer update, and refusal to coordinate repositories backed by different database files. A validator test covers use of a caller-owned lifecycle transaction.
+
+**Important boundary:** this is an application/infrastructure capability and test increment only. No activation API route, admin UI, runtime activation command, production active-calendar change, worker, or monitoring has been wired or enabled. Provider-finality remains an independent blocker. Exact-head CI is required before treating this increment as verified.
