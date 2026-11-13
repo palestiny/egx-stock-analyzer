@@ -1,3 +1,17 @@
+## Latest verified continuation — 2026-11-13 (Opportunity lifecycle projection exact-head verification)
+
+**Current PR #515 branch:** `feature/opportunity-lifecycle-completion`; PR remains **OPEN / DRAFT / NOT MERGED**. Latest documentation commit: `fd7c730738ec958305e51646ee4b952142bd2500`. The application-code head verified by CI is `18a422589dff5a73f9eb2c07a05e32a90cc88e48`; the later commits only update documentation.
+
+- [x] Exact-head workflow [43483122010](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43483122010) passed **7/7 jobs**: dependency audit, unit tests, integration tests, lifecycle projection benchmark, daily-history audit, container build, and frontend tests.
+- [x] Unit tests: **1,862 passed, 8 deselected, 1 warning**; coverage **89.66%** against an 85% threshold.
+- [x] Lightweight publication provenance is implemented: the projection returns full latest opportunity state plus only publication identity/event/timestamp metadata; SQLite no longer materializes the publication Signal JSON. InMemory/SQLite parity and one-full-deserialization-per-active-opportunity regressions passed.
+- [x] Exact-head benchmark artifact inspected. Warm P50: **305.704 ms / 2,142.885 ms / 4,913.149 ms** at 10k / 50k / 100k identities. This is **27.9% / 11.2% / 14.3% faster** than the original synthetic baseline and **23.2% / 27.5% / 19.4% faster** than the preceding SQL-side-filter run.
+- [ ] Overall performance acceptance remains open pending an owner-approved deployment class and production-relevant SLO/acceptance target. These synthetic runs are not production readiness evidence; reopened-store timing is not physical cold disk.
+- [ ] Worker runtime remains unwired: provider-specific adapter and production finality verifier, approved scheduler/deployment composition, outbox dispatch orchestration, operational observability, and worker restart/concurrency/E2E acceptance remain open.
+- [ ] Provider guarantees/rights and calendar source authenticity remain blocked. No provider contact, calendar activation, worker/monitoring enablement, canonical market-data change, or merge is authorized.
+
+---
+
 ## Current verified continuation — 2026-11-13 (Crash Radar freshness implementation pending CI)
 
 - [x] Added per-symbol Crash Radar source-data freshness evaluation against explicit completed EGX sessions in the persisted active calendar, with `FRESH`, `STALE`, `UNKNOWN`, and `FUTURE` states.
@@ -5,7 +19,7 @@
 - [x] Missing active calendar, unconfirmed SCHEDULED/OPEN sessions, future source timestamps, and calendar coverage gaps fail closed to UNKNOWN/FUTURE rather than being represented as fresh.
 - [x] Wired the existing `SessionCalendarStore` into Crash Radar API composition without publishing or activating any calendar.
 - [x] Added regression tests for one completed session becoming stale, same-session freshness, unconfirmed session, absent active calendar, future timestamp, and naive evaluation cutoff.
-- [ ] Exact-head CI verification is pending for the current PR #515 head. No test pass is claimed until all six jobs succeed on that SHA.
+- [x] The Crash Radar freshness implementation is included in code head `18a422589dff5a73f9eb2c07a05e32a90cc88e48`; exact-head workflow run [43483122010](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43483122010) passed all 7 jobs. The later documentation-only register update is recorded separately and did not change application code.
 - [ ] Calendar authenticity remains blocked by the empty trusted-origin registry and lack of independently reviewed real EGX evidence. No activation was performed or authorized.
 - [ ] The 50/40/10 heuristic is unchanged; no minimum coverage threshold, score suppression, historical score ledger, or alerts were introduced.
 
@@ -22,8 +36,9 @@ This increment closes only the completed-session freshness calculation and its A
 - [x] Fenced lease renewal is implemented; exact-expiry renewal and stale owner/token renewal are rejected.
 - [x] Lifecycle Unit of Work explicitly binds the claim store to the same resolved SQLite database and rejects missing/mismatched bindings.
 - [x] Added a disk-backed SQLite regression test covering 240 opportunity identities, terminal filtering, superseded revision exclusion, deterministic order, and database reopen.
-- [ ] Automated performance acceptance remains open: repeatable disk-backed warm/cold P50/P95 measurements, full application deserialization cost, EXPLAIN plan capture, and concurrent reader/writer pressure are not yet implemented.
-- [ ] Worker runtime remains intentionally unwired: scheduler/deployment composition, provider adapter, production finality verifier, outbox dispatch orchestration, operational metrics, and worker-level restart/concurrency/E2E tests remain.
+- [x] The disk-backed benchmark harness, EXPLAIN capture, warm P50/P95, deserialization-stage diagnostic, and synthetic concurrent-writer measurements are implemented and executed on exact code head `18a422589dff5a73f9eb2c07a05e32a90cc88e48`; see Section 26 of `docs/OPPORTUNITY-LIFECYCLE-SCHEDULED-WORKER-DESIGN-GATE.md`.
+- [ ] Overall performance acceptance remains open pending an owner-approved deployment class and production-relevant SLO/acceptance target. Reopened-store measurements are not physical cold-disk measurements.
+- [ ] Worker runtime remains intentionally unwired: scheduler/deployment composition, provider-specific adapter, production finality verifier, outbox dispatch orchestration, operational metrics, and worker-level restart/concurrency/E2E tests remain. Deterministic opportunity enumeration and durable occurrence/claim storage with fencing/reclaim are implemented.
 - [ ] Calendar production authenticity remains blocked by empty trusted-origin registry and absence of independently reviewed real EGX evidence; no activation is authorized.
 - [ ] Provider finality, source coverage, timestamp/session/correction semantics, and commercial rights remain unverified; no provider contact or selection is authorized.
 - [ ] M61 and canonical market-data remediation remain paused; no data repair or eligibility promotion is authorized.
@@ -41,7 +56,7 @@ The on-disk regression test is a correctness guard only; it does not establish a
 - [x] **Provider-evidence integration and durability:** both `EvaluateCompletedDailyBar` and `EvaluateOpportunityLifecycleSessions` now require `ProviderDailyBarEvidence`; bare bars fail closed and the finality verifier receives the complete envelope. Provider ID, contract version, instrument symbol, Cairo session date, source timestamp, and retrieval timestamp are persisted inside the existing append-only SQLite lifecycle-observation payload in the same unit-of-work transaction. Reopening the database reconstructs the typed envelope; legacy records without the envelope remain readable. Idempotent re-fetches preserve the first stored retrieval timestamp rather than rewriting immutable evidence.
 - [ ] Provider-specific adapter, production finality verifier, and independently verified provider guarantees/rights remain open. The provider-neutral port is not itself a production bridge or proof of finality. No provider contact or selection is authorized.
 - [ ] Calendar production trust remains blocked: exact-origin trust registry is empty, no real EGX evidence has passed independent review, and deployment network/TLS plus backup/restore checks remain outstanding. No calendar activation is authorized.
-- [ ] Scheduled lifecycle worker remains unwired. It still needs deterministic active-opportunity enumeration, an evidence-aware provider adapter, durable occurrence/claim storage with fencing and restart recovery, runtime composition, outbox orchestration, observability, and worker-level E2E.
+- [ ] Scheduled lifecycle worker remains unwired. It still needs an evidence-aware provider adapter, production finality verifier, approved scheduler/deployment runtime composition, outbox dispatch orchestration, operational observability, and worker-level restart/concurrency/E2E acceptance. Deterministic active-opportunity enumeration and durable fenced occurrence/claim primitives are implemented.
 - [ ] Full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history deployment E2E remains unproven.
 - [x] PR #514 exact-head CI passed 6/6 on `d9947ae5409c417703b17e8c7ea37d0b0f030296`; audit findings remain 81 review-required rows and source authenticity `NOT_INDEPENDENTLY_VERIFIED`. Keep unmerged pending independent source review.
 - [x] PR #321 exact-head CI passed 5/5 on `690141bd6b391e2bde5dceb2d4e115045200f5bc`; COMI/Mubasher outputs remain diagnostic only, with source rights/provenance/corporate-action and point-in-time evidence unaccepted. Keep Draft/unmerged; M61 paused.
