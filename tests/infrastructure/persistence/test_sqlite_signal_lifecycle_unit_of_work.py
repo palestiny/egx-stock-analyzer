@@ -957,10 +957,11 @@ def test_bootstrap_batch_rolls_back_batch_and_records_when_any_record_is_invalid
     batch_id = uuid4()
     batch = make_bootstrap_batch(batch_id, count=2)
     valid = make_bootstrap_records(first.signal_id, batch_id)
+    missing_signal_id = uuid4()
     invalid = replace(
         make_bootstrap_records(second.signal_id, batch_id),
-        signal_id=uuid4(),
-        idempotency_key=f"missing-signal:{batch_id}",
+        signal_id=missing_signal_id,
+        idempotency_key=f"{missing_signal_id}:calendar-v1",
     )
 
     with pytest.raises(sqlite3.IntegrityError):
