@@ -213,3 +213,54 @@ The existing pull-request CI workflow now includes a dedicated on-disk projectio
 The benchmark uses only temporary synthetic SQLite databases and does not read or mutate the canonical market-data archive. The job is diagnostic and does not activate or compose the lifecycle worker.
 
 **Status:** CI wiring committed; exact-head workflow validation and the first complete benchmark artifact are pending. Performance acceptance remains pending until the artifact is reviewed against an explicitly approved deployment class and its P50/P95/query-plan behavior is assessed.
+
+
+## 18. First automated on-disk benchmark — baseline measured 2026-11-13
+
+The first exact-head automated benchmark completed successfully on PR head
+`264a65c3a81ab0d47a44affb66d8d42b2ac5fd35` (GitHub Actions run
+`43475780322`). It measured the actual projection implementation, including
+signal deserialization and ACTIVE-state filtering, using temporary on-disk
+SQLite databases.
+
+| Opportunity identities | Active published revisions | Database size | Warm P50 | Warm P95 | Writer-pressure P50 | Writer-pressure P95 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 10,000 | 9,000 | 11.4 MB | 424.3 ms | 435.5 ms | 423.2 ms | 434.9 ms |
+| 50,000 | 45,000 | 56.8 MB | 2,412.1 ms | 2,698.7 ms | 2,480.5 ms | 2,800.4 ms |
+| 100,000 | 90,000 | 114.0 MB | 5,731.3 ms | 5,927.7 ms | 5,714.4 ms | 5,884.8 ms |
+
+The query plan used `idx_signal_history_timeline` and
+`idx_signal_revision_parent`, but also required a full grouped latest-row
+projection and a temporary B-tree for ordering. The result is correct at all
+three scales, but the 100,000-identity P95 is approximately 5.93 seconds.
+This is a material scaling limitation, not an accepted performance result.
+
+The artifact is retained for 30 days as
+`lifecycle-projection-benchmark-e41f20c3d0d38a3848bfc5eff1fd6ff7a65b28a7`.
+Reopened-store timings are not physical cold-disk measurements; the operating
+system page cache was not flushed. The benchmark's 250 writer operations are
+synthetic and do not represent a production write-rate model.
+
+**Decision:** baseline benchmark succeeded technically; performance acceptance
+FAILED / NOT ACCEPTED at 50k–100k scale pending optimization and a comparable
+rerun. Worker remains unwired and disabled.
+
+## 19. Materialized opportunity-history pointers — implementation in progress
+
+To remove repeated full-history aggregation from the read path, the SQLite
+history store now maintains a compact `signal_opportunity_projection` table.
+An insert trigger advances the latest-history pointer and preserves the first
+publication-event pointer. Initialization backfills the projection from
+existing append-only history, so existing databases are migrated without
+fabricating events or rewriting source history.
+
+The application query joins the two pointed history rows and retains the
+existing superseded-parent exclusion and Python ACTIVE-state check. This keeps
+the published baseline and latest-state semantics explicit while avoiding the
+per-query `GROUP BY MAX(id)` and correlated earliest-publication lookup.
+
+The benchmark's EXPLAIN query and regression assertion were updated to measure
+the same materialized-pointer query. Exact-head CI and a repeat of the 10k /
+50k / 100k disk benchmark are pending. No performance improvement is claimed
+until the new artifact is available and compared under the same environment
+and parameters. Worker activation remains out of scope.
