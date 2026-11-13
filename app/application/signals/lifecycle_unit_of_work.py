@@ -184,9 +184,9 @@ class _InMemoryTransaction:
         for record in records:
             if (record.batch_id != batch.batch_id or record.calendar_version != batch.calendar_version
                 or record.operator_id != batch.operator_id or record.reason != batch.reason
-                or not record.publication_event.strip() or not record.idempotency_key.strip()
+                or record.publication_event not in {"PUBLISHED", "PUBLISHED_VERSION"} or not record.idempotency_key.strip()
                 or record.publication_recorded_at.tzinfo is None or record.publication_recorded_at.utcoffset() is None
-                or record.recorded_at.tzinfo is None or record.recorded_at.utcoffset() is None):
+                or record.recorded_at.tzinfo is None or record.recorded_at.utcoffset() is None or record.recorded_at != batch.recorded_at):
                 raise ValueError("invalid lifecycle bootstrap record")
             existing = self._bootstrap_records.get(record.idempotency_key)
             if existing is not None and existing != record:
