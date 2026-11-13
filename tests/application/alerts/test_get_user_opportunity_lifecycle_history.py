@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
+from app.api.user_opportunity_lifecycle_history_response import UserOpportunityLifecycleHistoryResponse
 from app.application.alerts.get_user_opportunity_lifecycle_history import (
     GetUserOpportunityLifecycleHistory,
 )
@@ -104,6 +105,12 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
         "STATUS_TRIGGERED",
     ]
     assert other_items == ()
+    response = UserOpportunityLifecycleHistoryResponse.from_item(user_items[0])
+    assert response["current_status"] == "TRIGGERED"
+    assert [item["event"] for item in response["lifecycle_history"]] == [
+        "PUBLISHED",
+        "STATUS_TRIGGERED",
+    ]
 
 
 def test_user_lifecycle_history_rejects_missing_signal_history(tmp_path):
