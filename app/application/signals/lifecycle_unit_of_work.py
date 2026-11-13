@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from threading import RLock
 from typing import Callable, Protocol, TypeVar
 from uuid import UUID
@@ -16,6 +16,18 @@ from app.domain.signals.lifecycle import CompletedDailyBarObservation
 from app.domain.signals.outcome import SignalOutcomeRecord
 
 T = TypeVar("T")
+
+
+@dataclass(frozen=True)
+class LifecycleSessionGapEvent:
+    event_id: UUID
+    gap_id: UUID
+    signal_id: UUID
+    session_date: date
+    calendar_version: str
+    status: str
+    reason: str
+    recorded_at: datetime
 
 
 @dataclass(frozen=True)
@@ -55,6 +67,8 @@ class SignalLifecycleTransaction(Protocol):
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
     def record_correction(self, record: LifecycleCorrectionRecord) -> None: ...
     def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]: ...
+    def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None: ...
+    def session_gap_events(self, signal_id: UUID) -> tuple[LifecycleSessionGapEvent, ...]: ...
 
 
 class SignalLifecycleUnitOfWork(Protocol):
@@ -69,12 +83,14 @@ class _InMemoryTransaction:
         track_record: TrackRecordStore,
         observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord],
         corrections: dict[UUID, LifecycleCorrectionRecord],
+        gap_events: dict[UUID, LifecycleSessionGapEvent],
     ) -> None:
         self._history = history
         self._alerts = alerts
         self._track_record = track_record
         self._observations = observations
         self._corrections = corrections
+        self._gap_events = gap_events
 
     def latest(self, symbol: str) -> SignalRecord | None:
         return self._history.latest(symbol)
@@ -105,6 +121,32 @@ class _InMemoryTransaction:
             matches,
             key=lambda record: (record.bar.candle_at, record.bar.observed_at),
             default=None,
+        )
+
+    def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None:
+        existing = self._gap_events.get(event.event_id)
+        if existing is not None:
+            if (
+                existing.gap_id != event.gap_id
+                or existing.signal_id != event.signal_id
+                or existing.session_date != event.session_date
+                or existing.calendar_version != event.calendar_version
+                or existing.status != event.status
+                or existing.reason != event.reason
+            ):
+                raise ValueError("conflicting lifecycle session-gap event replay")
+            return
+        self._gap_events[event.event_id] = event
+
+    def session_gap_events(self, signal_id: UUID) -> tuple[LifecycleSessionGapEvent, ...]:
+        return tuple(
+            sorted(
+                (
+                    event for event in self._gap_events.values()
+                    if event.signal_id == signal_id
+                ),
+                key=lambda event: (event.session_date, event.recorded_at, str(event.event_id)),
+            )
         )
 
     def record_correction(self, record: LifecycleCorrectionRecord) -> None:
@@ -153,6 +195,7 @@ class InMemorySignalLifecycleUnitOfWork:
         self._lock = RLock()
         self._observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord] = {}
         self._corrections: dict[UUID, LifecycleCorrectionRecord] = {}
+        self._gap_events: dict[UUID, LifecycleSessionGapEvent] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         with self._lock:
@@ -160,12 +203,14 @@ class InMemorySignalLifecycleUnitOfWork:
             snapshots = [deepcopy(store.__dict__) for store in stores]
             observation_snapshot = deepcopy(self._observations)
             correction_snapshot = deepcopy(self._corrections)
+            gap_snapshot = deepcopy(self._gap_events)
             try:
                 return operation(
                     _InMemoryTransaction(
                         self._history, self._alerts, self._track_record,
                         self._observations,
                         self._corrections,
+                        self._gap_events,
                     )
                 )
             except Exception:
@@ -174,4 +219,5 @@ class InMemorySignalLifecycleUnitOfWork:
                     store.__dict__.update(snapshot)
                 self._observations = observation_snapshot
                 self._corrections = correction_snapshot
+                self._gap_events = gap_snapshot
                 raise
