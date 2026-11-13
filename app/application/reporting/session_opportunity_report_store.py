@@ -6,6 +6,10 @@ from typing import Any, Protocol
 from app.domain.reporting.session_opportunity_ledger import SessionOpportunityLedgerReport
 
 
+class AmbiguousSessionOpportunityReportError(ValueError):
+    """Raised when the latest report cutoff has multiple methodology versions."""
+
+
 class SessionOpportunityReportStore(Protocol):
     """Persistence contract for immutable session opportunity report snapshots."""
 
@@ -16,4 +20,5 @@ class SessionOpportunityReportStore(Protocol):
         session_date: date,
         *,
         as_of: datetime | None = None,
+        methodology_version: str | None = None,
     ) -> dict[str, Any] | None: ...
