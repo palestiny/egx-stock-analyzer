@@ -507,3 +507,53 @@ The coordinator and transaction-aware evaluator are not accepted until tests pro
 - Worker implementation acceptance: **NOT ACCEPTED** until the atomicity and retry blockers are closed with deterministic tests.
 
 This contract deliberately does not choose in-process timers, cron/webhook, a durable worker deployment, replica count, process supervision, production SLO, or a market-data provider. Those remain separate owner decisions. PR #515 remains OPEN + DRAFT.
+
+
+## 29. Durable bounded retry policy contract — 2026-11-13
+
+### Required policy shape
+
+Retry behavior must be explicit, immutable for one occurrence, and persisted with the claim record. The application contract should accept a required policy value rather than silently choosing production defaults:
+
+- `max_attempts`: total number of claim attempts, including the initial attempt; must be a positive integer.
+- `retry_delays_seconds`: one non-negative delay for each transition from a failed attempt to its next attempt; its length is exactly `max_attempts - 1`.
+- A policy is attached when the occurrence is first claimed. A later claimant must present an identical policy; changing the budget or schedule mid-occurrence is rejected.
+- Zero delay is valid for deterministic tests or explicitly configured deployments, but must never be an implicit production default.
+- The policy and computed `next_attempt_at` are persisted in the same SQLite record as the occurrence, so restart and replica changes do not reset the budget or retry timing.
+
+### State transitions
+
+- First claim creates attempt 1 and stores the policy.
+- A recorded failure before the final allowed attempt moves the occurrence to `FAILED` and persists `next_attempt_at = failed_at + delay_for_that_attempt`.
+- A retry before `next_attempt_at` is deferred without incrementing attempt or fencing token.
+- A retry at or after `next_attempt_at` increments both attempt and fencing token and creates a new lease.
+- Failure on the final allowed attempt moves the occurrence to terminal `EXHAUSTED`; it cannot be reclaimed by ordinary worker execution.
+- If a process crashes while `CLAIMED`, lease expiry consumes that attempt. The store derives the retry eligibility from the expired lease boundary plus that attempt's configured delay. If the attempt budget is already consumed, the occurrence becomes `EXHAUSTED` instead of being reclaimed.
+- `COMPLETED` remains terminal and idempotent.
+- Recovery from `EXHAUSTED` requires an explicit, audited operator action that creates a new recovery generation or reopens the occurrence with a recorded actor/reason. Ordinary claim acquisition must not silently reset it.
+
+### Persistence and migration
+
+- Persist the normalized policy, attempt count, retry eligibility, terminal exhaustion timestamp/reason, and fencing token.
+- Migrate the existing SQLite claim table without dropping claim history or weakening fencing.
+- Existing rows created before policy persistence have no trustworthy retry budget. Migration must not invent one: legacy non-terminal rows remain blocked from automatic retry until an explicit recovery decision attaches a policy and records the recovery actor/reason.
+- Migration and claim transitions must be transactionally safe under concurrent store initialization and concurrent claimers.
+
+### Acceptance tests
+
+- The same policy is required on initial claim and every retry; a changed policy is rejected.
+- Retry before eligibility is deferred and leaves attempt/token unchanged.
+- Retry at eligibility increments attempt/token exactly once under concurrent claimers.
+- The last failed attempt becomes `EXHAUSTED` and cannot be reclaimed.
+- An expired lease at the final attempt becomes `EXHAUSTED`, including after process/store reconstruction.
+- An expired lease below the limit observes the persisted delay before reclaim.
+- The policy, next eligibility, and exhaustion survive store restart.
+- Legacy rows are not assigned an invented budget and cannot silently resume.
+- Explicit recovery is audited and is the only path out of `EXHAUSTED`.
+
+### Gate status
+
+- Retry contract: **SPECIFIED — CONFIGURATION REQUIRED, NO PRODUCTION DEFAULT SELECTED**.
+- SQLite schema migration and state transitions: **GAP — NOT IMPLEMENTED**.
+- Retry/exhaustion acceptance suite: **GAP — NOT IMPLEMENTED**.
+- No scheduler, worker, provider, or external delivery is activated by this specification.
