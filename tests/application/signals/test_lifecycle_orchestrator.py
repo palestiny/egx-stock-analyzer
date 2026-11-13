@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -506,7 +506,8 @@ def test_unreviewed_correction_blocks_lifecycle_until_explicit_safe_decision():
     orchestrator = SignalLifecycleOrchestrator(
         history, alerts, InMemoryTrackRecordStore()
     )
-    published = history.record(make_signal(), "PUBLISHED", make_signal().generated_at)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
     original = make_completed_bar()
     orchestrator.process_completed_daily_bar(
         published.signal_id, original, calendar_version="calendar-v1"
@@ -516,7 +517,7 @@ def test_unreviewed_correction_blocks_lifecycle_until_explicit_safe_decision():
         provider=original.provider,
         timeframe=original.timeframe,
         candle_at=original.candle_at,
-        observed_at=original.observed_at + __import__("datetime").timedelta(hours=1),
+        observed_at=original.observed_at + timedelta(hours=1),
         revision="r2",
         source_reference=original.source_reference + "/revision-2",
         finality_attestation="provider-finality-v2",
