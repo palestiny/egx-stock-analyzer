@@ -47,6 +47,7 @@ class SQLiteOutcomeEventStore:
                     event_kind TEXT NOT NULL,
                     recorded_at TEXT NOT NULL,
                     actor_id TEXT NOT NULL,
+                    actor_credential_id TEXT,
                     idempotency_key TEXT NOT NULL UNIQUE,
                     outcome_json TEXT,
                     supersedes_event_id TEXT,
@@ -54,6 +55,15 @@ class SQLiteOutcomeEventStore:
                 )
                 """
             )
+            columns = {
+                row[1] for row in connection.execute(
+                    "PRAGMA table_info(signal_outcome_events)"
+                ).fetchall()
+            }
+            if "actor_credential_id" not in columns:
+                connection.execute(
+                    "ALTER TABLE signal_outcome_events ADD COLUMN actor_credential_id TEXT"
+                )
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_signal_outcome_events_signal_time
@@ -85,7 +95,8 @@ class SQLiteOutcomeEventStore:
             rows = connection.execute(
                 """
                 SELECT event_id, signal_id, event_kind, recorded_at, actor_id,
-                       idempotency_key, outcome_json, supersedes_event_id, decision
+                       idempotency_key, outcome_json, supersedes_event_id, decision,
+                       actor_credential_id
                 FROM signal_outcome_events
                 ORDER BY rowid
                 """
@@ -103,8 +114,9 @@ class SQLiteOutcomeEventStore:
                     """
                     INSERT INTO signal_outcome_events(
                         event_id, signal_id, event_kind, recorded_at, actor_id,
-                        idempotency_key, outcome_json, supersedes_event_id, decision
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        idempotency_key, outcome_json, supersedes_event_id, decision,
+                        actor_credential_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         str(event.event_id),
@@ -116,16 +128,19 @@ class SQLiteOutcomeEventStore:
                         self._serialize_outcome(event.outcome) if event.outcome else None,
                         str(event.supersedes_event_id) if event.supersedes_event_id else None,
                         event.decision.value if event.decision else None,
+                        str(event.actor_credential_id) if event.actor_credential_id else None,
                     ),
                 )
             return result
 
     def record_initial(
-        self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str
+        self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         return self._execute(
             lambda store: store.record_initial(
-                outcome, actor_id=actor_id, idempotency_key=idempotency_key
+                outcome, actor_id=actor_id, idempotency_key=idempotency_key,
+                actor_credential_id=actor_credential_id,
             )
         )
 
@@ -136,6 +151,7 @@ class SQLiteOutcomeEventStore:
         supersedes_event_id: UUID,
         actor_id: str,
         idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         return self._execute(
             lambda store: store.submit_correction(
@@ -143,6 +159,7 @@ class SQLiteOutcomeEventStore:
                 supersedes_event_id=supersedes_event_id,
                 actor_id=actor_id,
                 idempotency_key=idempotency_key,
+                actor_credential_id=actor_credential_id,
             )
         )
 
@@ -153,6 +170,7 @@ class SQLiteOutcomeEventStore:
         reviewer_id: str,
         decision: OutcomeCorrectionDecision,
         idempotency_key: str,
+        reviewer_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         return self._execute(
             lambda store: store.review_correction(
@@ -160,6 +178,7 @@ class SQLiteOutcomeEventStore:
                 reviewer_id=reviewer_id,
                 decision=decision,
                 idempotency_key=idempotency_key,
+                reviewer_credential_id=reviewer_credential_id,
             )
         )
 
@@ -223,4 +242,5 @@ class SQLiteOutcomeEventStore:
             outcome=cls._deserialize_outcome(row[6]) if row[6] else None,
             supersedes_event_id=UUID(row[7]) if row[7] else None,
             decision=OutcomeCorrectionDecision(row[8]) if row[8] else None,
+            actor_credential_id=UUID(row[9]) if row[9] else None,
         )
