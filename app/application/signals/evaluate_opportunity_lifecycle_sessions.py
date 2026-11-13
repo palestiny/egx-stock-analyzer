@@ -6,6 +6,7 @@ from typing import Mapping, Protocol
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.signals.lifecycle_orchestrator import (
     SignalLifecycleOrchestrator,
@@ -18,7 +19,7 @@ from app.domain.signals.model import SignalStatus
 
 
 class DailyBarFinalityVerifier(Protocol):
-    def verify_finality(self, bar: CompletedDailyBarObservation) -> bool: ...
+    def verify_finality(self, evidence: ProviderDailyBarEvidence) -> bool: ...
 
 
 @dataclass(frozen=True)
@@ -55,7 +56,7 @@ class EvaluateOpportunityLifecycleSessions:
         signal_id: UUID,
         *,
         through_date: date,
-        bars_by_session: Mapping[date, CompletedDailyBarObservation],
+        bars_by_session: Mapping[date, ProviderDailyBarEvidence],
         evaluated_at: datetime,
     ) -> OpportunitySessionEvaluation:
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
@@ -171,8 +172,8 @@ class EvaluateOpportunityLifecycleSessions:
             if cursor_date is not None and session_date <= cursor_date:
                 continue
 
-            bar = bars_by_session.get(session_date)
-            if bar is None:
+            evidence = bars_by_session.get(session_date)
+            if evidence is None:
                 self._lifecycle.mark_session_gap(
                     signal_id,
                     session_date=session_date,
@@ -188,8 +189,9 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
 
+            bar = evidence.bar
             bar_session_date = bar.candle_at.astimezone(timezone).date()
-            if bar_session_date != session_date:
+            if evidence.session_date != session_date or bar_session_date != session_date:
                 self._lifecycle.mark_session_gap(
                     signal_id,
                     session_date=session_date,
@@ -204,7 +206,11 @@ class EvaluateOpportunityLifecycleSessions:
                     session_date,
                     last_result,
                 )
-            if bar.observed_at > evaluated_at:
+            if (
+                bar.observed_at > evaluated_at
+                or evidence.retrieved_at > evaluated_at
+                or evidence.source_timestamp > evaluated_at
+            ):
                 self._lifecycle.mark_session_gap(
                     signal_id,
                     session_date=session_date,
@@ -219,7 +225,7 @@ class EvaluateOpportunityLifecycleSessions:
                     session_date,
                     last_result,
                 )
-            if not self._finality_verifier.verify_finality(bar):
+            if not self._finality_verifier.verify_finality(evidence):
                 self._lifecycle.mark_session_gap(
                     signal_id,
                     session_date=session_date,
@@ -261,6 +267,7 @@ class EvaluateOpportunityLifecycleSessions:
             if (
                 evaluated_at.astimezone(timezone) < eligible_at
                 or bar.observed_at.astimezone(timezone) < eligible_at
+                or evidence.retrieved_at.astimezone(timezone) < eligible_at
             ):
                 return OpportunitySessionEvaluation(
                     "POST_CLOSE_BUFFER_NOT_ELAPSED",
