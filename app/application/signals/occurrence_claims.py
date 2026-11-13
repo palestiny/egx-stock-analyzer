@@ -60,6 +60,13 @@ class LifecycleOccurrenceClaimStore(Protocol):
         lease_seconds: int,
     ) -> LifecycleOccurrenceClaim | None: ...
 
+    def renew(
+        self,
+        claim: LifecycleOccurrenceClaim,
+        *,
+        now: datetime,
+        lease_seconds: int,
+    ) -> LifecycleOccurrenceClaim | None: ...
     def mark_failed(
         self,
         claim: LifecycleOccurrenceClaim,
