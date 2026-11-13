@@ -6,10 +6,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.domain.reporting.session_opportunity_ledger import SessionOpportunityLedgerReport
 from app.application.reporting.session_opportunity_report_store import (
     AmbiguousSessionOpportunityReportError,
 )
+from app.domain.reporting.session_opportunity_ledger import SessionOpportunityLedgerReport
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 
 
