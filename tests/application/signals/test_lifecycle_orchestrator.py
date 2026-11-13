@@ -676,7 +676,7 @@ def test_unreviewed_correction_blocks_lifecycle_until_explicit_safe_decision():
         published.signal_id,
         original_identity=original.identity,
         corrected_bar=corrected,
-        operator_id="reviewer-1",
+        operator_id="operator-1",
         reason="Provider corrected the high",
         calendar_version="calendar-v1",
         recorded_at=corrected.observed_at,
