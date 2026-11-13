@@ -463,6 +463,7 @@ class SignalLifecycleOrchestrator:
         reason: str,
         calendar_version: str,
         recorded_at: datetime,
+        provider_evidence: ProviderDailyBarEvidence | None = None,
     ) -> LifecycleCorrectionRecord:
         if not operator_id.strip():
             raise ValueError("operator_id is required")
@@ -474,6 +475,10 @@ class SignalLifecycleOrchestrator:
             raise ValueError("recorded_at must be timezone-aware")
         if recorded_at < corrected_bar.observed_at:
             raise ValueError("correction cannot be recorded before corrected evidence")
+        if provider_evidence is not None and provider_evidence.bar != corrected_bar:
+            raise ValueError("provider evidence bar must match the corrected lifecycle bar")
+        if provider_evidence is not None and recorded_at < provider_evidence.retrieved_at:
+            raise ValueError("correction cannot be recorded before provider evidence retrieval")
         if original_identity[3].tzinfo is None or original_identity[3].utcoffset() is None:
             raise ValueError("original candle timestamp must be timezone-aware")
         normalized_original = (
@@ -505,6 +510,7 @@ class SignalLifecycleOrchestrator:
             reason=reason.strip(),
             calendar_version=calendar_version.strip(),
             recorded_at=recorded_at,
+            provider_evidence=provider_evidence,
         )
 
         def persist(transaction: SignalLifecycleTransaction) -> LifecycleCorrectionRecord:
@@ -657,6 +663,7 @@ class SignalLifecycleOrchestrator:
                 policy_version=original_observation.policy_version,
                 calendar_version=correction.calendar_version,
                 resulting_status=SignalStatus.ACTIVE,
+                provider_evidence=correction.provider_evidence,
             ))
             by_session: dict[datetime, LifecycleObservationRecord] = {}
             for observation_item in sorted(effective, key=lambda value: (value.bar.candle_at, value.bar.observed_at, value.bar.revision)):
@@ -689,6 +696,18 @@ class SignalLifecycleOrchestrator:
                     "policy_version": ordered_observation.policy_version,
                     "calendar_version": ordered_observation.calendar_version,
                     "resulting_status": rebuilt.status.value,
+                    "provider_evidence": (
+                        {
+                            "provider_id": ordered_observation.provider_evidence.provider_id,
+                            "provider_contract_version": ordered_observation.provider_evidence.provider_contract_version,
+                            "instrument_symbol": ordered_observation.provider_evidence.instrument_symbol,
+                            "session_date": ordered_observation.provider_evidence.session_date.isoformat(),
+                            "source_timestamp": ordered_observation.provider_evidence.source_timestamp.isoformat(),
+                            "retrieved_at": ordered_observation.provider_evidence.retrieved_at.isoformat(),
+                        }
+                        if ordered_observation.provider_evidence is not None
+                        else None
+                    ),
                 })
                 if ordered_observation.bar.identity == correction.corrected_bar.identity:
                     corrected_status = rebuilt.status
@@ -701,6 +720,7 @@ class SignalLifecycleOrchestrator:
                 policy_version=original_observation.policy_version,
                 calendar_version=correction.calendar_version,
                 resulting_status=corrected_status,
+                provider_evidence=correction.provider_evidence,
             ))
             previous_status = latest.signal.status
             superseded_event_id: UUID | None = None
