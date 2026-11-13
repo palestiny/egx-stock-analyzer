@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -562,3 +562,62 @@ def test_sqlite_correction_ledger_rejects_same_revision_as_original(tmp_path):
             calendar_version="calendar-v1",
             recorded_at=original_bar.observed_at,
         )
+
+
+def test_sqlite_session_gap_events_are_durable_and_append_only(tmp_path):
+    import sqlite3
+
+    database = tmp_path / "session-gap-ledger.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    gap_date = date(2026, 10, 5)
+    stale = orchestrator.mark_session_gap(
+        published.signal_id,
+        session_date=gap_date,
+        calendar_version="calendar-v1",
+        reason="MISSING_ELIGIBLE_BAR",
+        detected_at=GENERATED + timedelta(days=2),
+    )
+    resolved = orchestrator.resolve_session_gap(
+        published.signal_id,
+        session_date=gap_date,
+        calendar_version="calendar-v1",
+        reason="ELIGIBLE_BAR_RECONCILED",
+        resolved_at=GENERATED + timedelta(days=3),
+    )
+    assert stale.status == "STALE"
+    assert resolved is not None and resolved.status == "RESOLVED"
+
+    reopened_history = SQLiteSignalHistoryStore(database)
+    reopened_track_record = SQLiteTrackRecordStore(database)
+    reopened_outbox = SQLiteAlertOutbox(database)
+    reopened_uow = SQLiteSignalLifecycleUnitOfWork(
+        reopened_history, reopened_track_record, reopened_outbox
+    )
+    reopened = SignalLifecycleOrchestrator(
+        history=reopened_history,
+        alerts=reopened_outbox,
+        track_record=reopened_track_record,
+        unit_of_work=reopened_uow,
+    )
+    assert [event.status for event in reopened.session_gap_events(published.signal_id)] == [
+        "STALE",
+        "RESOLVED",
+    ]
+
+    connection = sqlite3.connect(str(database))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_lifecycle_session_gap_events WHERE event_id = ?",
+                (str(stale.event_id),),
+            )
+    finally:
+        connection.close()
