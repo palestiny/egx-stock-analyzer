@@ -76,7 +76,7 @@ The approved-origin registry is exact-origin only: scheme + canonical hostname +
 
 1. Set the configured owner identity explicitly in deployment only after confirming the intended owner account; until then `EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID` remains unset and trust-management routes are not composed.
 2. The owner must separately approve each exact origin with a documented trust basis. The registry is empty by default; engineering has not approved EGX, FRA, subdomains, or any vendor domain.
-3. The production-runtime composition path is now covered by an end-to-end API test using the real durable bearer-token authenticator, operator grant store, SQLite evidence repository, owner origin registry, verification store, uploader identity resolver, and reviewer route. The test injects a deterministic fake retriever to avoid network I/O. A separate deployment-environment transport validation and an end-to-end activation-preflight test using the real SQLite verifier remain outstanding.
+3. The production-runtime composition path is now covered by an end-to-end API test using the real durable bearer-token authenticator, operator grant store, SQLite evidence repository, owner origin registry, verification store, uploader identity resolver, and reviewer route. The test injects a deterministic fake retriever to avoid network I/O. A separate deployment-environment transport validation and a full activation-coordinator integration test (real validator + real SQLite verifier + atomic active-pointer/audit transaction) remain outstanding. The runtime test now directly exercises real SQLite-backed revalidate_for_activation and assert_preflight_verification, including changed-byte rejection and stale-proof rejection; it does not yet prove the coordinator's complete transaction boundary.
 4. Validate the HTTPS retriever against the deployment's outbound network policy and TLS/proxy environment without contacting EGID or any data provider as part of this work.
 5. Establish source-specific retention/reuse permission and deployment backup/restore/capacity procedures. Authenticity does not grant legal retention rights.
 6. Keep Provider Finality, calendar bootstrap/recovery, deployment recovery, and exact-head CI as independent activation blockers.
@@ -120,3 +120,16 @@ The runtime integration test now exercises the complete review path without cont
 7. Confirm a non-owner and the legacy shared token cannot read owner trust events.
 
 The retriever is replaced only inside this isolated test with deterministic fixture bytes. It does not establish trust in any real EGX origin, validate deployment outbound networking, or exercise the activation coordinator. Those remain separate gates.
+
+
+## 10. SQLite-backed activation preflight verification — 2026-11-13
+
+The runtime integration test now goes beyond initial human review:
+- It loads persisted evidence through the real SQLite evidence repository.
+- It invokes the real verifier backed by the SQLite origin registry and append-only verification store.
+- It confirms external-only bytes are re-fetched and a fresh VERIFIED proof is persisted at the exact preflight timestamp.
+- It confirms the transaction-side assert_preflight_verification accepts that exact proof.
+- It changes deterministic retriever bytes and confirms the next preflight rejects the changed digest.
+- It confirms the stale successful proof cannot satisfy the failed preflight's later timestamp.
+
+This is a verifier/persistence preflight integration test, not a full activation-coordinator integration test. It does not activate a calendar or change an active pointer.
