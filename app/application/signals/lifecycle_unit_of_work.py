@@ -9,6 +9,7 @@ from typing import Callable, Protocol, TypeVar
 from uuid import UUID
 
 from app.application.alerts.ports import AlertPublisher
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.application.signals.track_record import TrackRecordStore
 from app.domain.alerts.model import AlertEvent
@@ -62,6 +63,11 @@ class LifecycleObservationRecord:
     policy_version: str
     calendar_version: str
     resulting_status: SignalStatus
+    provider_evidence: ProviderDailyBarEvidence | None = None
+
+    def __post_init__(self) -> None:
+        if self.provider_evidence is not None and self.provider_evidence.bar != self.bar:
+            raise ValueError("provider evidence bar must match the lifecycle observation bar")
 
 
 @dataclass(frozen=True)
