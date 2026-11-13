@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.market_data.calendar_source_authenticity import (
     CalendarSourceAuthenticityError,
-    CalendarSourceAuthenticityVerifier,
 )
 from app.application.market_data.review_calendar_evidence_authenticity import (
     ReviewCalendarEvidenceAuthenticity,
@@ -113,7 +112,7 @@ def create_calendar_source_authenticity_router(
             raise HTTPException(status_code=422, detail=str(error)) from error
         return {"revoked": True, "origin": payload.origin, "registry_version": payload.registry_version}
 
-    @router.post("/api/v1/owner/session-calendars/evidence/{evidence_id}/verify", status_code=201)
+    @router.post("/api/v1/operator/session-calendars/evidence/{evidence_id}/authenticity-review", status_code=201)
     def verify_evidence(
         evidence_id: UUID,
         payload: CalendarEvidenceReviewPayload,
