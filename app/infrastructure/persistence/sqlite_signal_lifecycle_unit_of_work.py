@@ -152,6 +152,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             "reason": record.reason,
             "calendar_version": record.calendar_version,
             "recorded_at": record.recorded_at.isoformat(),
+            "status": record.status,
             "corrected_bar": {
                 "symbol": bar.symbol,
                 "provider": bar.provider,
@@ -205,6 +206,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             reason=str(payload["reason"]),
             calendar_version=str(payload["calendar_version"]),
             recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
+            status=str(payload["status"]),
         )
 
     def record_observation(self, record: LifecycleObservationRecord) -> None:
