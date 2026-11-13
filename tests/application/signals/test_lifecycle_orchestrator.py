@@ -297,7 +297,7 @@ def test_completed_daily_bar_records_level_observation_without_assumed_entry_or_
     history.record(signal, "PUBLISHED", signal.generated_at)
     orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
 
-    result = orchestrator.process_completed_daily_bar(make_completed_bar())
+    result = orchestrator.process_completed_daily_bar(make_completed_bar(), calendar_version="calendar-v1")
 
     assert result is not None
     assert result.changed is False
@@ -316,7 +316,7 @@ def test_completed_daily_bar_triggers_and_publishes_without_performance_accounti
     orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
 
     result = orchestrator.process_completed_daily_bar(
-        make_completed_bar(high="109", low="98")
+        make_completed_bar(high="109", low="98"), calendar_version="calendar-v1"
     )
 
     assert result is not None
@@ -337,9 +337,9 @@ def test_completed_daily_bar_replay_is_idempotent_even_if_retrieved_again_later(
     orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
 
     first_bar = make_completed_bar()
-    first = orchestrator.process_completed_daily_bar(first_bar)
+    first = orchestrator.process_completed_daily_bar(first_bar, calendar_version="calendar-v1")
     replay = orchestrator.process_completed_daily_bar(
-        make_completed_bar(observed_hour=17)
+        make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
     )
 
     assert first is not None and replay is not None
@@ -360,7 +360,7 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
 
     with pytest.raises(ValueError, match="conflicting replay"):
         orchestrator.process_completed_daily_bar(
-            make_completed_bar(high="106", observed_hour=17)
+            make_completed_bar(high="106", observed_hour=17), calendar_version="calendar-v1"
         )
 
     later = CompletedDailyBarObservation(
@@ -378,8 +378,8 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
         low=Decimal("98"),
         close=Decimal("102"),
     )
-    orchestrator.process_completed_daily_bar(later)
+    orchestrator.process_completed_daily_bar(later, calendar_version="calendar-v1")
     replay = orchestrator.process_completed_daily_bar(make_completed_bar())
     assert replay is not None and replay.changed is False
     with pytest.raises(ValueError, match="out-of-order"):
-        orchestrator.process_completed_daily_bar(make_completed_bar(candle_day=3))
+        orchestrator.process_completed_daily_bar(make_completed_bar(candle_day=3), calendar_version="calendar-v1")
