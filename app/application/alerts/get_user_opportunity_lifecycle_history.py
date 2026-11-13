@@ -62,8 +62,6 @@ class GetUserOpportunityLifecycleHistory:
             if event.event.event_type.value != "SIGNAL_PUBLISHED":
                 continue
             signal_id = event.event.signal_id
-            if signal_id in items:
-                continue
             records = self._history.history(signal_id)
             if not records:
                 raise OpportunityNotificationIntegrityError(
@@ -73,13 +71,20 @@ class GetUserOpportunityLifecycleHistory:
                 raise OpportunityNotificationIntegrityError(
                     "published opportunity has no publication history record"
                 )
-            items[signal_id] = UserOpportunityLifecycleHistory(
+            candidate = UserOpportunityLifecycleHistory(
                 notification=UserOpportunityNotification(
                     event=event,
                     delivery=delivery,
                 ),
                 history=records,
             )
+            existing = items.get(signal_id)
+            if (
+                existing is None
+                or candidate.notification.event.event.occurred_at
+                < existing.notification.event.event.occurred_at
+            ):
+                items[signal_id] = candidate
 
         return tuple(
             sorted(
