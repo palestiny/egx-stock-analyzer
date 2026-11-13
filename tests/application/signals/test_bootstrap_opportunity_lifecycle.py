@@ -274,6 +274,7 @@ def test_sqlite_active_published_projection_is_deterministic_across_revisions_an
     assert isinstance(expected[0].publication, SignalPublicationRecord)
     assert expected[0].publication.signal_id == child.signal_id
     assert expected[0].publication.event == "PUBLISHED_VERSION"
+    assert expected[0].publication.recorded_at == datetime(2026, 10, 5, 11, tzinfo=CAIRO)
 
     reopened = SQLiteSignalHistoryStore(database)
     assert reopened.latest_active_published_opportunities() == expected
