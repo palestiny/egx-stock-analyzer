@@ -251,7 +251,7 @@ def test_calendar_activation_validation_fails_closed_without_trusted_schedule_da
 
 
 def test_calendar_activation_validation_rejects_schedule_date_not_after_today():
-    validator, schedule, _, _, _ = setup(next_date=date(2026, 10, 5))
+    validator, schedule, _, _, _, _ = setup(next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -350,7 +350,7 @@ def test_calendar_activation_validation_allows_no_active_opportunities():
 
 
 def test_calendar_activation_validation_rejects_cursor_on_publication_baseline():
-    validator, _, publication, uow, _ = setup()
+    validator, _, publication, uow, _, _ = setup()
     record_cursor(uow, publication, date(2026, 10, 2))
     result = validator.execute(
         calendar_version="calendar-v1",
