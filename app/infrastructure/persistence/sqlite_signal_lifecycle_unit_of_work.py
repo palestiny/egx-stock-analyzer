@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import replace
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Callable, TypeVar
@@ -943,6 +943,24 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 payload,
             ),
         )
+        recorded_at = datetime.now(timezone.utc)
+        self._connection.execute(
+            """
+            INSERT INTO signal_outcome_events(
+                event_id, signal_id, event_kind, recorded_at, actor_id,
+                idempotency_key, outcome_json, supersedes_event_id, decision
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            """,
+            (
+                str(uuid4()),
+                str(outcome.signal_id),
+                "OUTCOME_RECORDED",
+                recorded_at.isoformat(),
+                "system:signal-lifecycle",
+                f"signal-outcome-initial:{outcome.signal_id}",
+                payload,
+            ),
+        )
 
     def publish_alert(self, event: AlertEvent) -> None:
         self._outbox._require_aware(event.occurred_at, "occurred_at")
@@ -997,6 +1015,41 @@ class SQLiteSignalLifecycleUnitOfWork:
         connection = connect_sqlite(self._database_path)
         try:
 
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_outcome_events (
+                    event_id TEXT PRIMARY KEY,
+                    signal_id TEXT NOT NULL,
+                    event_kind TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    actor_id TEXT NOT NULL,
+                    idempotency_key TEXT NOT NULL UNIQUE,
+                    outcome_json TEXT,
+                    supersedes_event_id TEXT,
+                    decision TEXT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_signal_outcome_events_signal_time
+                ON signal_outcome_events(signal_id, recorded_at, event_id)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_signal_outcome_events_no_update
+                BEFORE UPDATE ON signal_outcome_events
+                BEGIN SELECT RAISE(ABORT, 'signal outcome events are append-only'); END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_signal_outcome_events_no_delete
+                BEFORE DELETE ON signal_outcome_events
+                BEGIN SELECT RAISE(ABORT, 'signal outcome events are append-only'); END
+                """
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS signal_lifecycle_bootstrap_batches (
