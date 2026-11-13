@@ -134,6 +134,7 @@ class SignalLifecycleOrchestrator:
         self,
         bar: CompletedDailyBarObservation,
         *,
+        calendar_version: str,
         policy_version: str = "dec138-daily-ohlc-v1",
     ) -> SignalLifecycleResult | None:
         """Evaluate one provider-attested completed candle for a published signal.
@@ -143,6 +144,8 @@ class SignalLifecycleOrchestrator:
         """
         if not policy_version or not policy_version.strip():
             raise ValueError("policy_version is required")
+        if not calendar_version or not calendar_version.strip():
+            raise ValueError("calendar_version is required")
 
         def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
             latest = transaction.latest(bar.symbol)
@@ -176,6 +179,7 @@ class SignalLifecycleOrchestrator:
                     and previous.low == bar.low
                     and previous.close == bar.close
                     and existing.policy_version == policy_version.strip()
+                    and existing.calendar_version == calendar_version.strip()
                 )
                 if not same_source_payload or existing.signal_id != latest.signal_id:
                     raise ValueError(
@@ -207,6 +211,7 @@ class SignalLifecycleOrchestrator:
                     signal_id=latest.signal_id,
                     bar=bar,
                     policy_version=policy_version.strip(),
+                    calendar_version=calendar_version.strip(),
                     resulting_status=transitioned.status,
                 )
             )
@@ -226,7 +231,7 @@ class SignalLifecycleOrchestrator:
             )
             event_id = uuid5(
                 NAMESPACE_URL,
-                f"signal-daily-bar:{latest.signal_id}:{bar.identity!r}:{policy_version.strip()}",
+                f"signal-daily-bar:{latest.signal_id}:{bar.identity!r}:{policy_version.strip()}:{calendar_version.strip()}",
             )
             transaction.record_signal(
                 transitioned,
