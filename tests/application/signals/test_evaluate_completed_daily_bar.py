@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 from uuid import uuid4
 
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.evaluate_completed_daily_bar import EvaluateCompletedDailyBar
 from app.domain.market_data.session_calendar import (
@@ -32,7 +33,7 @@ class FakeFinalityVerifier:
         self.accepted = accepted
         self.calls = 0
 
-    def verify_finality(self, bar):
+    def verify_finality(self, evidence):
         self.calls += 1
         return self.accepted
 
@@ -95,6 +96,18 @@ def make_bar():
     )
 
 
+def make_evidence(bar):
+    return ProviderDailyBarEvidence(
+        provider_id=bar.provider,
+        provider_contract_version="test-contract-v1",
+        instrument_symbol=bar.symbol,
+        session_date=bar.candle_at.astimezone(CAIRO).date(),
+        source_timestamp=bar.observed_at,
+        retrieved_at=bar.observed_at,
+        bar=bar,
+    )
+
+
 def evaluator(*, active, verified=True):
     verifier = FakeFinalityVerifier(verified)
     lifecycle = FakeLifecycle()
@@ -110,7 +123,7 @@ def test_daily_bar_is_suppressed_without_an_active_calendar():
     service, verifier, lifecycle = evaluator(active=None)
     result = service.execute(
         uuid4(),
-        make_bar(),
+        make_evidence(make_bar()),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
     assert result.accepted is False
@@ -163,7 +176,7 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     bar = make_bar()
     result = service.execute(
         signal_id,
-        bar,
+        make_evidence(bar),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
     assert result.accepted is True
@@ -191,7 +204,7 @@ def test_daily_bar_must_be_retrieved_after_the_post_close_buffer():
     bar = replace(
         make_bar(),
         observed_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
-    )
+    ))
     result = service.execute(
         uuid4(),
         bar,
