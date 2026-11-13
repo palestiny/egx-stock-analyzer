@@ -9,6 +9,52 @@ from uuid import UUID
 
 
 @dataclass(frozen=True)
+class LifecycleRetryPolicy:
+    """Immutable retry budget attached to one lifecycle occurrence."""
+
+    max_attempts: int
+    retry_delays_seconds: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        if isinstance(self.max_attempts, bool) or not isinstance(self.max_attempts, int):
+            raise ValueError("max_attempts must be a positive integer")
+        if self.max_attempts < 1:
+            raise ValueError("max_attempts must be a positive integer")
+        delays = tuple(self.retry_delays_seconds)
+        if len(delays) != self.max_attempts - 1:
+            raise ValueError("retry_delays_seconds must contain max_attempts - 1 entries")
+        if any(
+            isinstance(delay, bool) or not isinstance(delay, int) or delay < 0
+            for delay in delays
+        ):
+            raise ValueError("retry delays must be non-negative integers")
+        object.__setattr__(self, "retry_delays_seconds", delays)
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "max_attempts": self.max_attempts,
+                "retry_delays_seconds": list(self.retry_delays_seconds),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+    @classmethod
+    def from_json(cls, value: str) -> LifecycleRetryPolicy:
+        payload = json.loads(value)
+        return cls(
+            max_attempts=payload["max_attempts"],
+            retry_delays_seconds=tuple(payload["retry_delays_seconds"]),
+        )
+
+    def delay_after(self, attempt: int) -> int:
+        if attempt < 1 or attempt >= self.max_attempts:
+            raise ValueError("attempt has no configured retry delay")
+        return self.retry_delays_seconds[attempt - 1]
+
+
+@dataclass(frozen=True)
 class LifecycleOccurrenceClaim:
     occurrence_id: str
     owner_id: str
@@ -58,6 +104,7 @@ class LifecycleOccurrenceClaimStore(Protocol):
         *,
         now: datetime,
         lease_seconds: int,
+        retry_policy: LifecycleRetryPolicy,
     ) -> LifecycleOccurrenceClaim | None: ...
 
     def renew(
