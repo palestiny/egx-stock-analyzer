@@ -268,3 +268,26 @@ def test_calendar_activation_validation_allows_no_active_opportunities():
     assert result.eligible is True
     assert result.checked_opportunity_count == 0
     assert result.blockers == ()
+
+
+
+def test_calendar_activation_validation_rejects_cursor_on_publication_baseline():
+    validator, _, publication, uow, _ = setup()
+    record_cursor(uow, publication, date(2026, 10, 2))
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(item.code == "RECONCILED_CURSOR_NOT_AFTER_BASELINE" for item in result.blockers)
+
+
+def test_calendar_activation_validation_requires_next_evaluation_after_cursor():
+    validator, _, publication, uow, _ = setup()
+    record_cursor(uow, publication, date(2026, 10, 6))
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(item.code == "NEXT_EVALUATION_NOT_AFTER_CURSOR" for item in result.blockers)
