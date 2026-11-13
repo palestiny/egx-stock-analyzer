@@ -388,6 +388,10 @@ class CalendarSourceAuthenticityVerifier:
 
     @staticmethod
     def _assert_trust_matches(trust, evidence, record, at: datetime) -> None:
+        if normalize_calendar_source_origin(evidence.source_reference) != record.source_origin:
+            raise CalendarSourceAuthenticityError(
+                "Verification record origin does not match the immutable evidence source URL"
+            )
         if (
             trust is None
             or not trust.is_active_at(at)
