@@ -81,6 +81,38 @@ class EvaluateOpportunityLifecycleSessions:
         calendar = active_calendar.calendar
         timezone = ZoneInfo(calendar.timezone)
         publication_date = publication.recorded_at.astimezone(timezone).date()
+
+        has_newer_revision = any(
+            (link := self._history.revision_link(record.signal_id)) is not None
+            and link.parent_signal_id == signal_id
+            for record in self._history.all_records()
+        )
+        if has_newer_revision:
+            return OpportunitySessionEvaluation(
+                "NOT_LATEST_OPPORTUNITY_REVISION", active_calendar.version
+            )
+
+        bootstrap = next(
+            (
+                record
+                for record in self._lifecycle.bootstrap_records(signal_id)
+                if record.calendar_version == active_calendar.version
+            ),
+            None,
+        )
+        if bootstrap is None:
+            return OpportunitySessionEvaluation(
+                "LIFECYCLE_BOOTSTRAP_REQUIRED", active_calendar.version
+            )
+        if (
+            bootstrap.baseline_date != publication_date
+            or bootstrap.publication_event != publication.event
+            or bootstrap.publication_recorded_at != publication.recorded_at
+        ):
+            return OpportunitySessionEvaluation(
+                "LIFECYCLE_BOOTSTRAP_PUBLICATION_MISMATCH", active_calendar.version
+            )
+
         try:
             sessions = calendar.completed_sessions_between(
                 publication_date,
