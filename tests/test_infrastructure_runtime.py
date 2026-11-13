@@ -638,6 +638,7 @@ def test_runtime_composes_and_executes_durable_calendar_authenticity_workflow(tm
     assert runtime.calendar_source_origin_registry is not None
     assert runtime.calendar_evidence_verification_store is not None
     assert runtime.calendar_source_authenticity_verifier is not None
+    assert runtime.calendar_evidence_repository is not None
     assert runtime.calendar_evidence_uploader_identity_resolver is not None
     assert runtime.user_store is not None
     assert runtime.credential_service is not None
