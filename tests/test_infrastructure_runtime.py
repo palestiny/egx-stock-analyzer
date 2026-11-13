@@ -593,16 +593,25 @@ def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path)
 
 
 def test_runtime_composes_empty_calendar_source_trust_registry_only_when_owner_is_configured(tmp_path) -> None:
-    owner_id = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    owner_id = uuid4()
+    reviewer_id = uuid4()
+    database = tmp_path / "analysis.db"
     runtime = create_infrastructure_runtime(
         stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
         yfinance_module=FakeYFinanceModule(),
         config=InfrastructureConfig(
             operator_token="test-token",
-            analysis_database_path=str(tmp_path / "analysis.db"),
+            analysis_database_path=str(database),
             calendar_source_trust_owner_user_id=owner_id,
         ),
-        result_store=SQLiteAnalysisResultStore(tmp_path / "analysis.db"),
+        result_store=SQLiteAnalysisResultStore(database),
         retry_policy=RetryPolicy(1),
     )
 
@@ -610,5 +619,43 @@ def test_runtime_composes_empty_calendar_source_trust_registry_only_when_owner_i
     assert runtime.calendar_evidence_verification_store is not None
     assert runtime.calendar_source_authenticity_verifier is not None
     assert runtime.calendar_evidence_uploader_identity_resolver is not None
+    assert runtime.user_store is not None
+    assert runtime.credential_service is not None
+    assert runtime.operator_access_store is not None
     assert runtime.calendar_source_origin_registry.list_events() == ()
-    runtime.close()
+
+    runtime.user_store.save(User(owner_id, UserStatus.ACTIVE))
+    owner_credential = runtime.credential_service.provision(owner_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        owner_id,
+        reason="Calendar source trust owner composition test",
+    )
+    runtime.user_store.save(User(reviewer_id, UserStatus.ACTIVE))
+    reviewer_credential = runtime.credential_service.provision(reviewer_id)
+    runtime.operator_access_store.grant(
+        reviewer_id,
+        actor_user_id=owner_id,
+        actor_credential_id=owner_credential.id,
+        reason="Independent operator composition test",
+    )
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers={"Authorization": "Bearer " + owner_credential.secret},
+        )
+        non_owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers={"Authorization": "Bearer " + reviewer_credential.secret},
+        )
+        legacy_shared_token = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert owner_events.status_code == 200
+    assert owner_events.json() == {"events": []}
+    assert non_owner_events.status_code == 403
+    assert legacy_shared_token.status_code == 403
+    assert runtime.closed is True
