@@ -128,7 +128,7 @@ def create_calendar_source_authenticity_router(
             )
         except KeyError as error:
             raise HTTPException(status_code=404, detail="Calendar evidence not found") from error
-        except CalendarSourceAuthenticityError as error:
+        except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         return {
             "evidence_id": str(record.evidence_id),
