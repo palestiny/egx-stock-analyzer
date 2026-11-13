@@ -475,7 +475,7 @@ The existing durable primitives are not yet composable into the above contract:
 - However, `EvaluateOpportunityLifecycleSessions.execute()` calls `SignalLifecycleOrchestrator.process_completed_daily_bar()`, which independently invokes `self._unit_of_work.execute(persist)`. Its session-gap path also persists through the orchestrator's own unit-of-work call.
 - Therefore, calling the current evaluator from inside `execute_claimed()` would start a separate transaction rather than use the claim-fenced transaction. Claim completion could not be guaranteed atomic with observations, status history, session-gap resolution, and outbox writes. The coordinator must not be implemented on top of this unsafe composition.
 
-**Required prerequisite:** introduce a transaction-aware lifecycle evaluation path. The evaluator/orchestrator must accept a caller-owned `SignalLifecycleTransaction` for all reads and writes in one occurrence, including session-gap recording/resolution, observation persistence, status history, and outbox events. The ordinary non-worker API may continue to own its own unit of work. The worker path must pass the transaction supplied by `execute_claimed()`; it must not open a nested unit of work.
+**Implementation added; acceptance pending CI:** the evaluator/orchestrator now accept a caller-owned `SignalLifecycleTransaction` and propagate it through bootstrap, session-gap recording/resolution, completed-bar observation persistence, expiry/status transitions, and outbox writes. Ordinary non-worker callers retain their existing unit-of-work ownership. The worker path can pass the transaction supplied by `execute_claimed()` without opening a nested unit of work. A deterministic SQLite integration test now drives the real session evaluator inside `execute_claimed()`, expires the lease at the commit fence, and asserts rollback of lifecycle history, observation, session-gap, outbox, and track-record effects. This prerequisite remains **PENDING ACCEPTANCE** until the current exact-head CI run passes.
 
 ### Retry and recovery blocker
 
@@ -500,8 +500,8 @@ The coordinator and transaction-aware evaluator are not accepted until tests pro
 ### Gate status
 
 - Coordinator contract: **SPECIFIED** (application-level, one session per occurrence).
-- Transaction-aware evaluator prerequisite: **GAP — NOT IMPLEMENTED**.
-- Durable bounded retry/exhaustion: **GAP — NOT IMPLEMENTED**.
+- Transaction-aware evaluator prerequisite: **IMPLEMENTED — CI ACCEPTANCE PENDING**.
+- Durable bounded retry/exhaustion: **CONTRACT SPECIFIED IN SECTION 29; SQLITE IMPLEMENTATION NOT STARTED**.
 - Provider adapter and independent finality verifier: **NOT AVAILABLE / NOT APPROVED**.
 - Runtime composition, recurring trigger, calendar activation, monitoring, and outbound delivery: **DISABLED / NOT AUTHORIZED**.
 - Worker implementation acceptance: **NOT ACCEPTED** until the atomicity and retry blockers are closed with deterministic tests.
