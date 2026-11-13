@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import sqlite3
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -29,6 +30,7 @@ from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
     SQLiteSignalLifecycleUnitOfWork,
 )
@@ -955,10 +957,11 @@ def test_bootstrap_batch_rolls_back_batch_and_records_when_any_record_is_invalid
     valid = make_bootstrap_records(first.signal_id, batch_id)
     invalid = replace(
         make_bootstrap_records(second.signal_id, batch_id),
-        calendar_version="different-calendar",
+        signal_id=uuid4(),
+        idempotency_key=f"missing-signal:{batch_id}",
     )
 
-    with pytest.raises(ValueError, match="invalid lifecycle bootstrap record"):
+    with pytest.raises(sqlite3.IntegrityError):
         unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (valid, invalid)))
 
     assert unit_of_work.execute(lambda tx: tx.bootstrap_records(first.signal_id)) == ()
@@ -977,7 +980,7 @@ def test_bootstrap_records_are_append_only_in_sqlite(tmp_path):
 
     connection = connect_sqlite(str(database))
     try:
-        with pytest.raises(Exception, match="append-only"):
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
             connection.execute(
                 "DELETE FROM signal_lifecycle_bootstrap_records WHERE idempotency_key = ?",
                 (record.idempotency_key,),
