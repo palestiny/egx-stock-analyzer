@@ -89,18 +89,24 @@ class SQLiteOutcomeEventStore:
                 """
             )
 
-    def _execute(self, operation):
+    def _execute(self, operation, *, signal_ids: tuple[UUID, ...] | None = None):
+        if signal_ids == ():
+            return operation(InMemoryOutcomeEventStore(clock=self._clock))
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            rows = connection.execute(
-                """
+            query = """
                 SELECT event_id, signal_id, event_kind, recorded_at, actor_id,
                        idempotency_key, outcome_json, supersedes_event_id, decision,
                        actor_credential_id
                 FROM signal_outcome_events
-                ORDER BY rowid
-                """
-            ).fetchall()
+            """
+            parameters: tuple[str, ...] = ()
+            if signal_ids is not None:
+                placeholders = ", ".join("?" for _ in signal_ids)
+                query += f" WHERE signal_id IN ({placeholders})"
+                parameters = tuple(str(signal_id) for signal_id in signal_ids)
+            query += " ORDER BY rowid"
+            rows = connection.execute(query, parameters).fetchall()
             memory = InMemoryOutcomeEventStore(clock=self._clock)
             for row in rows:
                 event = self._deserialize_event(row)
@@ -186,6 +192,17 @@ class SQLiteOutcomeEventStore:
         self, signal_id: UUID, *, cutoff: datetime
     ) -> OutcomeEvent | None:
         return self._execute(lambda store: store.outcome_as_of(signal_id, cutoff=cutoff))
+
+    def outcomes_as_of(
+        self, signal_ids, *, cutoff: datetime
+    ) -> dict[UUID, OutcomeEvent]:
+        unique_signal_ids = tuple(dict.fromkeys(signal_ids))
+        if not unique_signal_ids:
+            return {}
+        return self._execute(
+            lambda store: store.outcomes_as_of(unique_signal_ids, cutoff=cutoff),
+            signal_ids=unique_signal_ids,
+        )
 
     def events_for(self, signal_id: UUID) -> tuple[OutcomeEvent, ...]:
         return self._execute(lambda store: store.events_for(signal_id))
