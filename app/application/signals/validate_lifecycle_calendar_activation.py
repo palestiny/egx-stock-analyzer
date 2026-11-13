@@ -33,6 +33,12 @@ class CalendarActivationEvidenceStore(Protocol):
     ) -> tuple[CalendarEvidence, ...]: ...
 
 
+class CalendarEvidenceAuthenticityGate(Protocol):
+    """Revalidates an evidence item's publisher origin and exact artifact bytes."""
+
+    def revalidate_for_activation(self, evidence: CalendarEvidence, *, at: datetime) -> object: ...
+
+
 class LifecycleEvaluationSchedule(Protocol):
     """Trusted schedule port; callers cannot submit the next session date."""
 
@@ -73,12 +79,14 @@ class ValidateLifecycleCalendarActivation:
         unit_of_work: SignalLifecycleUnitOfWork,
         schedule: LifecycleEvaluationSchedule,
         evidence_store: CalendarActivationEvidenceStore,
+        authenticity_verifier: CalendarEvidenceAuthenticityGate | None = None,
     ) -> None:
         self._history = history
         self._calendar_store = calendar_store
         self._unit_of_work = unit_of_work
         self._schedule = schedule
         self._evidence_store = evidence_store
+        self._authenticity_verifier = authenticity_verifier
 
     def execute(
         self,
@@ -149,6 +157,28 @@ class ValidateLifecycleCalendarActivation:
                 item for item in linked_evidence
                 if item.evidence_id not in superseded_ids
             )
+            for item in current_evidence:
+                if item.source_class in {
+                    CalendarEvidenceSourceClass.A,
+                    CalendarEvidenceSourceClass.A_R,
+                }:
+                    if self._authenticity_verifier is None:
+                        blockers.append(CalendarActivationBlocker(
+                            "CALENDAR_SOURCE_AUTHENTICITY_VERIFIER_NOT_CONFIGURED",
+                            None,
+                            f"{day.session_date.isoformat()} has primary evidence but no source-authenticity verifier is configured",
+                        ))
+                        continue
+                    try:
+                        self._authenticity_verifier.revalidate_for_activation(
+                            item, at=as_of
+                        )
+                    except Exception as error:
+                        blockers.append(CalendarActivationBlocker(
+                            "CALENDAR_SOURCE_AUTHENTICITY_UNVERIFIED",
+                            None,
+                            f"{day.session_date.isoformat()} evidence {item.evidence_id} failed independent source verification: {error}",
+                        ))
             for kind in required_kinds:
                 kind_evidence = tuple(
                     item for item in current_evidence if item.evidence_kind is kind
