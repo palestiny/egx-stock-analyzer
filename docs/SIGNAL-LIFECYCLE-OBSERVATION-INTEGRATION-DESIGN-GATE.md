@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** The latest lifecycle code revision before documentation consolidation passed exact-head CI on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six jobs successful). Subsequent commits on this branch are documentation-only status consolidations; no separate CI run is reported for those documentation updates. Production activation remains blocked by production provider finality, an active deployment calendar, corrected-candle replay/rebuild and notification policy, scheduled-worker wiring, and end-to-end acceptance. PR #515 remains Draft and unmerged.  
+**Status:** Correction replay/rebuild and compensating-notification behavior are implemented on this branch and passed exact-head CI on `1d2b902a646174521b143cf19c1b7c7c126cd072` (run #43405799607; all six jobs successful). Production activation remains blocked by the absence of an accepted provider finality adapter, an active deployment calendar, scheduled-worker wiring, and deployment-level end-to-end acceptance. No current market-data provider has been accepted for automatic lifecycle transitions. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
