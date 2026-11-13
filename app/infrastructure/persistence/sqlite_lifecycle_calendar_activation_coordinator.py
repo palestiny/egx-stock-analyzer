@@ -53,6 +53,23 @@ class SQLiteLifecycleCalendarActivationCoordinator:
             raise ValueError(
                 "calendar repository and lifecycle unit of work must share one SQLite database"
             )
+        if isinstance(validator, ValidateLifecycleCalendarActivation):
+            if validator._unit_of_work is not lifecycle_unit_of_work:
+                raise ValueError(
+                    "activation validator must use the coordinator lifecycle unit of work"
+                )
+            dependent_stores = (
+                validator._history,
+                validator._calendar_store,
+                validator._evidence_store,
+                getattr(validator._schedule, "_calendar_store", None),
+            )
+            for store in dependent_stores:
+                store_path = getattr(store, "_database_path", None)
+                if store_path is None or Path(store_path).resolve() != calendar_path:
+                    raise ValueError(
+                        "all activation validation stores and the trusted schedule must share the coordinator SQLite database"
+                    )
         self._calendar_repository = calendar_repository
         self._lifecycle_unit_of_work = lifecycle_unit_of_work
         self._validator = validator
