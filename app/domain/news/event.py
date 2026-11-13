@@ -56,6 +56,8 @@ class NewsEvent:
         ):
             if value is not None and (value.tzinfo is None or value.utcoffset() is None):
                 raise ValueError(f"{field_name} must be timezone-aware")
+        if self.first_seen_at > self.retrieved_at:
+            raise ValueError("first_seen_at cannot be later than retrieved_at")
         if not self.source_name.strip():
             raise ValueError("source_name cannot be empty")
         if not self.title.strip():
@@ -85,4 +87,8 @@ class NewsEvent:
             raise ValueError("as_of must be timezone-aware")
         if self.published_at is None:
             return False
-        return self.published_at <= as_of and self.first_seen_at <= as_of
+        return (
+            self.published_at <= as_of
+            and self.first_seen_at <= as_of
+            and self.retrieved_at <= as_of
+        )

@@ -16,6 +16,9 @@ from app.api.telegram_delivery_reconciliation_routes import create_telegram_deli
 from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
+from app.api.calendar_source_authenticity_routes import create_calendar_source_authenticity_router
+from app.api.signal_lifecycle_correction_admin_routes import create_signal_lifecycle_correction_admin_router
+from app.api.outcome_correction_admin_routes import create_outcome_correction_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -35,11 +38,16 @@ from app.api.market_opportunity_view_response import MarketOpportunityViewRespon
 from app.api.stock_research_response import StockResearchResponse
 from app.api.session_opportunity_ledger_response import SessionOpportunityLedgerResponse
 from app.api.user_opportunity_notification_response import UserOpportunityNotificationResponse
+from app.api.user_opportunity_lifecycle_history_response import UserOpportunityLifecycleHistoryResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
-from app.application.reporting.session_opportunity_report_store import SessionOpportunityReportStore
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+    SessionOpportunityReportStore,
+)
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
+from app.application.alerts.get_user_opportunity_lifecycle_history import GetUserOpportunityLifecycleHistory
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.reporting.calculate_snapshot_performance import (
@@ -121,8 +129,15 @@ from app.application.subscriptions.store import SubscriptionStore
 from app.application.identity.user_store import UserStore
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
+from app.application.market_data.review_calendar_evidence_authenticity import ReviewCalendarEvidenceAuthenticity
 from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
+from app.application.market_data.calendar_source_authenticity import CalendarSourceAuthenticityVerifier
 from app.application.security.operator_access import OperatorAccessService
+from app.infrastructure.persistence.sqlite_calendar_source_origin_registry import SQLiteCalendarSourceOriginRegistry
+from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+from app.infrastructure.persistence.sqlite_calendar_evidence_uploader_identity_resolver import SQLiteCalendarEvidenceUploaderIdentityResolver
+from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.signals.outcome_correction_service import OutcomeCorrectionService
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +179,7 @@ def create_app(
     publish_signal_opportunity: PublishSignalOpportunity | None = None,
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None,
     get_user_opportunity_notifications: GetUserOpportunityNotifications | None = None,
+    get_user_opportunity_lifecycle_history: GetUserOpportunityLifecycleHistory | None = None,
     get_owner_dashboard_overview: GetOwnerDashboardOverview | None = None,
     session_opportunity_report_store: SessionOpportunityReportStore | None = None,
     news_event_store: NewsEventStore | None = None,
@@ -180,6 +196,12 @@ def create_app(
     session_calendar_store: SessionCalendarStore | None = None,
     calendar_publication_uow: CalendarPublicationUnitOfWork | None = None,
     calendar_artifact_service: CalendarArtifactService | None = None,
+    calendar_source_origin_registry: SQLiteCalendarSourceOriginRegistry | None = None,
+    calendar_source_authenticity_verifier: CalendarSourceAuthenticityVerifier | None = None,
+    calendar_evidence_repository: SQLiteCalendarEvidenceRepository | None = None,
+    calendar_evidence_uploader_identity_resolver: SQLiteCalendarEvidenceUploaderIdentityResolver | None = None,
+    signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None,
+    outcome_correction_service: OutcomeCorrectionService | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -199,7 +221,7 @@ def create_app(
         )
     get_analysis_result = GetAnalysisResult(result_store)
     rank_momentum_leaders = RankMomentumLeaders(result_store)
-    calculate_market_breadth = CalculateMarketBreadth(result_store)
+    calculate_market_breadth = CalculateMarketBreadth(result_store, session_calendar_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
@@ -335,6 +357,38 @@ def create_app(
             require_operator=require_individual_calendar_operator,
             publication_uow=calendar_publication_uow,
             artifact_service=calendar_artifact_service,
+        )
+    )
+
+    if (
+        calendar_source_origin_registry is not None
+        and calendar_source_authenticity_verifier is not None
+        and calendar_evidence_repository is not None
+        and calendar_evidence_uploader_identity_resolver is not None
+    ):
+        app.include_router(
+            create_calendar_source_authenticity_router(
+                origin_registry=calendar_source_origin_registry,
+                review_service=ReviewCalendarEvidenceAuthenticity(
+                    evidence_repository=calendar_evidence_repository,
+                    uploader_identity_resolver=calendar_evidence_uploader_identity_resolver,
+                    verifier=calendar_source_authenticity_verifier,
+                ),
+                require_individual_operator=require_individual_calendar_operator,
+            )
+        )
+
+    app.include_router(
+        create_signal_lifecycle_correction_admin_router(
+            orchestrator=signal_lifecycle_orchestrator,
+            require_operator=require_individual_calendar_operator,
+        )
+    )
+
+    app.include_router(
+        create_outcome_correction_admin_router(
+            service=outcome_correction_service,
+            require_individual_operator=require_individual_calendar_operator,
         )
     )
 
@@ -695,6 +749,7 @@ def create_app(
     def read_session_report(
         session_date: date,
         as_of: datetime | None = None,
+        methodology_version: str | None = None,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if session_opportunity_report_store is None:
@@ -703,7 +758,13 @@ def create_app(
         if cutoff.tzinfo is None or cutoff.utcoffset() is None:
             raise HTTPException(status_code=422, detail="as_of must include a timezone")
         try:
-            report = session_opportunity_report_store.get_latest(session_date, as_of=cutoff)
+            report = session_opportunity_report_store.get_latest(
+                session_date,
+                as_of=cutoff,
+                methodology_version=methodology_version,
+            )
+        except AmbiguousSessionOpportunityReportError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         if report is None:
@@ -802,6 +863,36 @@ def create_app(
                 for item in notifications
             ],
             "limit": limit,
+        }
+
+    @app.get("/api/v1/me/opportunities")
+    def get_my_opportunity_lifecycle_history(
+        limit: int = 50,
+        identity: AuthenticatedIdentity = Depends(require_authenticated),
+    ) -> dict[str, object]:
+        if get_user_opportunity_lifecycle_history is None:
+            raise HTTPException(
+                status_code=503,
+                detail="User opportunity lifecycle history is not configured",
+            )
+        if identity.user_id is None:
+            raise HTTPException(status_code=403, detail="Authenticated user identity is required")
+        if limit < 1 or limit > 200:
+            raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+        try:
+            items = get_user_opportunity_lifecycle_history.execute(
+                identity.user_id,
+                limit=limit,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return {
+            "items": [
+                UserOpportunityLifecycleHistoryResponse.from_item(item)
+                for item in items
+            ],
+            "limit": limit,
+            "scope": "telegram_opportunities_addressed_to_authenticated_user",
         }
 
     @app.get("/api/v1/opportunities")

@@ -102,3 +102,14 @@ Calendar publication remains separate from activation. No calendar has been acti
 ## 11. Post-merge status — 2026-11-10
 
 PR #471 is merged. The atomic publication implementation and its rollback/isolation/runtime tests passed all five exact-head CI jobs. PR #472 subsequently updated the market-history archive; its exact-head CI passed all five jobs. Main at `ec1364e09399932273b87de4ba4761a6bc7161da` passed all five jobs in run #42859055049. D1–D4 policy is owner-approved and PR #475 implements enforcement. Run #42864456090 passed all five jobs on prior head `b09ebd9`; final head `5cd363f` adds explicit FRA regulatory-scope enforcement and reconciled documentation, so its exact-head CI is pending. Source authenticity, deployment artifact verification, bootstrap/recovery, cursor-derived activation coverage, and provider finality remain open. No calendar has been activated.
+
+
+## Source-authenticity implementation follow-up — 2026-11-13
+
+The separate owner-approved Option-B design gate is implemented in code on PR #515:
+- exact-origin owner trust registry with append-only approval/revocation events;
+- independent reviewer API bound to the immutable uploader identity and active individual credentials;
+- direct HTTPS refetch with TLS verification, DNS/IP SSRF controls, no redirects, timeout and response-size bounds;
+- activation preflight outside the write transaction and a persisted proof check inside the atomic activation transaction.
+
+This does not approve any publisher origin. `EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID` is optional and unset by default, so the trust/review routes are not composed in the default runtime. No source has been approved or independently reviewed. Provider Finality, deployment recovery, legal retention permission, and calendar activation remain separate blockers. No provider outreach, calendar activation, worker, or monitoring is enabled.

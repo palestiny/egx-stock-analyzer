@@ -69,3 +69,21 @@ The stock analysis screen requests `GET /api/v1/news/events?symbol=SYMBOL&limit=
 A feed that is not configured or a news-store/API error is shown as a panel-level warning and does not replace the technical analysis result. Empty filtered results are explicitly described as “no matching events,” not proof that no relevant news exists. Events without a publication timestamp are visibly marked and must not be treated as point-in-time historical evidence.
 
 This is a query/display integration only: it does not enable a feed, schedule polling, classify an event as an official disclosure, or turn news into a trading signal.
+
+
+## Point-in-time retrieval cutoff hardening — 2026-11-13
+
+News backtest eligibility now requires all three timestamps to be no later than
+the requested decision cutoff: publication time, first-seen time, and retrieval
+time. This closes a leakage path where a record with an earlier first-seen value
+but a later retrieval timestamp could otherwise appear eligible before the
+system had actually retrieved it.
+
+The event contract also rejects `first_seen_at > retrieved_at`. Both timestamps
+must remain timezone-aware. Undated publication records remain ineligible.
+This is a metadata eligibility guard only: it does not validate the truth,
+licensing, completeness, or official status of a news source, and it does not
+make any news item a trading signal.
+
+Regression coverage includes a retrieval timestamp after the historical cutoff
+and an invalid first-seen/retrieval ordering.

@@ -161,7 +161,7 @@ class FakeSessionReportStore:
         self.saved = report
         return True
 
-    def get_latest(self, session_date, *, as_of=None):
+    def get_latest(self, session_date, *, as_of=None, methodology_version=None):
         if self.saved is None or self.saved.session_date != session_date:
             return None
         return {

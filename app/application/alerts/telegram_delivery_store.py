@@ -17,6 +17,7 @@ class SignalAlertDeliveryStatus(StrEnum):
     DELIVERY_UNKNOWN = "DELIVERY_UNKNOWN"
     NOT_DELIVERED = "NOT_DELIVERED"
     RETRY_EXHAUSTED = "RETRY_EXHAUSTED"
+    SUPERSEDED = "SUPERSEDED"
 
 
 @dataclass(frozen=True)

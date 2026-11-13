@@ -64,16 +64,12 @@ class CalendarArtifactService:
 
         return self.verify(storage_reference, expected_digest)
 
-    def verify(
-        self,
-        storage_reference: str,
-        expected_sha256: str,
-    ) -> CalendarArtifactReceipt:
+    def read_verified(self, storage_reference: str, expected_sha256: str) -> bytes:
+        """Read once and return exact stored bytes only after checking their digest."""
         if not isinstance(storage_reference, str) or not storage_reference.strip():
             raise ValueError("Calendar artifact storage reference must be non-empty")
         if not isinstance(expected_sha256, str) or not _SHA256_PATTERN.fullmatch(expected_sha256):
             raise ValueError("Expected artifact SHA-256 must be a lowercase 64-character digest")
-
         persisted_content = self._store.get(storage_reference)
         if not isinstance(persisted_content, bytes) or not persisted_content:
             raise CalendarArtifactIntegrityError(
@@ -88,9 +84,16 @@ class CalendarArtifactService:
             raise CalendarArtifactIntegrityError(
                 "Stored calendar artifact exceeds the configured size limit"
             )
+        return persisted_content
 
+    def verify(
+        self,
+        storage_reference: str,
+        expected_sha256: str,
+    ) -> CalendarArtifactReceipt:
+        persisted_content = self.read_verified(storage_reference, expected_sha256)
         return CalendarArtifactReceipt(
             storage_reference=storage_reference,
-            sha256=actual_digest,
+            sha256=hashlib.sha256(persisted_content).hexdigest(),
             size_bytes=len(persisted_content),
         )

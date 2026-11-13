@@ -43,6 +43,7 @@ class CalendarEvidence:
     recorded_by: UUID
     observed_at: datetime
     recorded_at: datetime
+    recorded_by_credential_id: UUID | None = None
     source_published_at: datetime | None = None
     supersedes_evidence_id: UUID | None = None
     supersession_reason: str | None = None
@@ -68,6 +69,10 @@ class CalendarEvidence:
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field_name} must be non-empty")
+        if self.recorded_by_credential_id is not None and not isinstance(
+            self.recorded_by_credential_id, UUID
+        ):
+            raise ValueError("recorded_by_credential_id must be a UUID")
         for field_name in ("observed_at", "recorded_at"):
             value = getattr(self, field_name)
             if value.tzinfo is None or value.utcoffset() is None:
@@ -144,6 +149,7 @@ class CalendarEvidence:
         supersession_reason: str | None = None,
         evidence_id: UUID | None = None,
         recorded_at: datetime | None = None,
+        recorded_by_credential_id: UUID | None = None,
         source_class: CalendarEvidenceSourceClass | None = None,
         source_publisher: str | None = None,
         market_scope: str | None = None,
@@ -164,6 +170,7 @@ class CalendarEvidence:
             source_reference=source_reference,
             claim=claim,
             recorded_by=recorded_by,
+            recorded_by_credential_id=recorded_by_credential_id,
             observed_at=observed_at,
             recorded_at=recorded_at or datetime.now(timezone.utc),
             source_published_at=source_published_at,

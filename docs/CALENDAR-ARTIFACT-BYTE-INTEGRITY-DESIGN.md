@@ -54,3 +54,8 @@ The command writes a JSON report to stdout. Exit code `0` means every discovered
 - Does not delete, move, rewrite, repair, or otherwise mutate database records or files. Orphan cleanup remains prohibited until a separate retention/deletion policy is approved.
 
 This report describes the state observed during one scan only. It does not prove publisher authenticity, legal retention permission, or future availability, and it does not reconcile concurrent writes as an atomic snapshot.
+
+
+## Source authenticity follow-up — 2026-11-13
+
+The approved Option-B source-authenticity slice is now implemented on the lifecycle-completion branch: exact owner-approved origin registry, independent reviewer audit, bounded HTTPS refetch with public-IP pinning and no redirects, and activation-time preflight verification. This is separate from the byte-integrity guarantee above. No source origin is approved, no source bytes have been verified against a real EGX notice, and no retention permission is inferred. See `docs/EGX-CALENDAR-SOURCE-AUTHENTICITY-DESIGN-GATE.md` for the implementation boundary and remaining operational blockers.

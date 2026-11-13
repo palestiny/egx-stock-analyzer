@@ -1,13 +1,18 @@
 from concurrent.futures import ThreadPoolExecutor
+import json
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
 import pytest
 
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+)
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
+    OutcomeKnowledgeStatus,
 )
 from app.domain.signals.model import SignalStatus
 from app.domain.signals.outcome import SignalOutcome
@@ -21,13 +26,14 @@ def report(
     *,
     unresolved_count: int = 0,
     opportunities: tuple[SessionOpportunityEntry, ...] = (),
+    methodology_version: str = "session-opportunity-ledger-v1",
 ) -> SessionOpportunityLedgerReport:
     items = tuple(opportunities)
     return SessionOpportunityLedgerReport(
         session_date=date(2026, 10, 26),
         generated_at=generated_at,
         exchange_timezone="Africa/Cairo",
-        methodology_version="session-opportunity-ledger-v1",
+        methodology_version=methodology_version,
         opportunities=items,
         unresolved_count=unresolved_count,
         resolved_proxy_count=sum(
@@ -140,3 +146,118 @@ def test_session_report_store_persists_source_and_outcome_data_timestamps(tmp_pa
     saved_opportunity = saved["opportunities"][0]
     assert saved_opportunity["source_data_timestamp"] == source_timestamp.isoformat()
     assert saved_opportunity["outcome_data_timestamp"] == outcome_timestamp.isoformat()
+
+
+
+def test_session_report_store_requires_methodology_when_latest_cutoff_is_ambiguous(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    assert store.save(report(generated, methodology_version="method-v1")) is True
+    assert store.save(report(generated, methodology_version="method-v2")) is True
+
+    with pytest.raises(AmbiguousSessionOpportunityReportError, match="specify methodology_version"):
+        store.get_latest(date(2026, 10, 26), as_of=generated)
+
+    v1 = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="method-v1",
+    )
+    v2 = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="method-v2",
+    )
+    assert v1 is not None and v1["methodology_version"] == "method-v1"
+    assert v2 is not None and v2["methodology_version"] == "method-v2"
+
+
+def test_session_report_store_uses_latest_unambiguous_cutoff(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    earlier = datetime(2026, 10, 26, 14, tzinfo=timezone.utc)
+    later = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    store.save(report(earlier, methodology_version="method-v1"))
+    store.save(report(later, methodology_version="method-v2"))
+
+    saved = store.get_latest(date(2026, 10, 26), as_of=later)
+    assert saved is not None
+    assert saved["methodology_version"] == "method-v2"
+
+
+
+def test_session_report_store_persists_legacy_unknown_outcome_provenance(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    opportunity = SessionOpportunityEntry(
+        signal_id=uuid4(),
+        symbol="EGAL",
+        publication_time=datetime(2026, 10, 26, 8, tzinfo=timezone.utc),
+        original_entry_lower=Decimal("100"),
+        original_entry_upper=Decimal("102"),
+        original_invalidation=Decimal("95"),
+        original_targets=(),
+        current_status=SignalStatus.ACTIVE,
+        current_evidence=(),
+        market_proxy_outcome=None,
+        market_proxy_return=None,
+        market_proxy_r=None,
+        outcome_observed_at=None,
+        outcome_knowledge_status=OutcomeKnowledgeStatus.LEGACY_UNKNOWN,
+    )
+
+    store.save(report(generated, opportunities=(opportunity,), unresolved_count=1))
+    saved = store.get_latest(date(2026, 10, 26), as_of=generated)
+
+    assert saved is not None
+    assert saved["opportunities"][0]["outcome_knowledge_status"] == "LEGACY_UNKNOWN"
+
+
+
+def test_read_of_pre_provenance_snapshot_marks_resolved_outcome_legacy_unknown(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    outcome_time = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
+    opportunity = SessionOpportunityEntry(
+        signal_id=uuid4(),
+        symbol="EGAL",
+        publication_time=datetime(2026, 10, 26, 8, tzinfo=timezone.utc),
+        original_entry_lower=Decimal("100"),
+        original_entry_upper=Decimal("102"),
+        original_invalidation=Decimal("95"),
+        original_targets=(("T1", Decimal("110")),),
+        current_status=SignalStatus.TRIGGERED,
+        current_evidence=("breakout",),
+        market_proxy_outcome=SignalOutcome.TARGET_HIT,
+        market_proxy_return=Decimal("0.09"),
+        market_proxy_r=Decimal("1.8"),
+        outcome_observed_at=outcome_time,
+    )
+    payload = store._report_payload(report(generated, opportunities=(opportunity,)))
+    del payload["opportunities"][0]["outcome_knowledge_status"]
+    with store._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO session_opportunity_reports(
+                session_date, methodology_version, generated_at, report_json,
+                total_count, unresolved_count, resolved_proxy_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "2026-10-26",
+                "legacy-method",
+                generated.isoformat(),
+                json.dumps(payload, sort_keys=True, separators=(",", ":")),
+                1,
+                0,
+                1,
+            ),
+        )
+
+    saved = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="legacy-method",
+    )
+
+    assert saved is not None
+    assert saved["opportunities"][0]["outcome_knowledge_status"] == "LEGACY_UNKNOWN"

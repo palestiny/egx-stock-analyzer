@@ -11,6 +11,8 @@ class AlertEventType(StrEnum):
     SIGNAL_PUBLISHED = "SIGNAL_PUBLISHED"
     SIGNAL_TRIGGERED = "SIGNAL_TRIGGERED"
     SIGNAL_INVALIDATED = "SIGNAL_INVALIDATED"
+    SIGNAL_EXPIRED = "SIGNAL_EXPIRED"
+    SIGNAL_CORRECTED = "SIGNAL_CORRECTED"
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,8 @@ class AlertEvent:
     occurred_at: datetime
     message: str
     signal_snapshot: AlertSignalSnapshot | None = None
+    recipient_user_ids: tuple[UUID, ...] | None = None
+    correction_of_event_id: UUID | None = None
 
     def __post_init__(self) -> None:
         if not self.symbol.strip():
@@ -94,3 +98,10 @@ class AlertEvent:
             raise ValueError("message is required")
         if self.occurred_at.tzinfo is None or self.occurred_at.utcoffset() is None:
             raise ValueError("occurred_at must be timezone-aware")
+        if self.recipient_user_ids is not None:
+            recipients = tuple(self.recipient_user_ids)
+            if len(set(recipients)) != len(recipients):
+                raise ValueError("recipient_user_ids must be unique")
+            object.__setattr__(self, "recipient_user_ids", recipients)
+        if self.correction_of_event_id is not None and self.recipient_user_ids is None:
+            raise ValueError("correction alerts require an explicit recipient cohort")

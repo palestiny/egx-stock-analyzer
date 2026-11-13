@@ -243,6 +243,11 @@ def create_session_calendar_admin_router(
             )
         try:
             actor_id = UUID(actor)
+            if identity.credential_id is None:
+                raise HTTPException(
+                    status_code=403,
+                    detail="An individually authenticated durable operator credential is required",
+                )
             calendar = EGXSessionCalendar.from_dict(calendar_document)
             evidence = tuple(
                 CalendarEvidence.create(
@@ -254,6 +259,7 @@ def create_session_calendar_admin_router(
                     source_reference=item.source_reference,
                     claim=item.claim,
                     recorded_by=actor_id,
+                    recorded_by_credential_id=identity.credential_id,
                     observed_at=item.observed_at,
                     source_published_at=item.source_published_at,
                     supersedes_evidence_id=item.supersedes_evidence_id,

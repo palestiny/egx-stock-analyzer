@@ -143,3 +143,31 @@ The owner has accepted the following policy baseline, superseding the unresolved
 - Preserve the existing 50/40/10 heuristic. DEC-135 does not authorize changing weights, introducing predictive claims, or treating the score as a crash probability or trading signal.
 
 **Implementation remains open:** configured universe/version persistence, completed-session freshness evaluation, stale/missing coverage behavior, history/correction handling, API/UI contract tests, and end-to-end CI must be implemented and verified. PR #458 adds separate source-bar timestamp/date evidence from the already-persisted `StockAnalysisResult.data_timestamp`; this corrects the distinction between the requested analysis date and the market-data date but does not implement completed-session freshness or score suppression. The one-session freshness boundary must be evaluated using the actual EGX calendar/session completion source; do not approximate a completed session using elapsed wall-clock time. M61 remains paused.
+
+
+## 12. Completed-session freshness implementation delta — 2026-11-13
+
+The existing breadth/stress application service now optionally consumes the
+persisted `SessionCalendarStore` and reports source-bar freshness independently
+from the analysis-run date. The API composition passes the existing calendar
+store into the service; no calendar is published, activated, or trusted by this
+change.
+
+Per-symbol outcomes are `FRESH`, `STALE`, `UNKNOWN`, or `FUTURE`. A symbol is
+STALE after at least one later session has an explicit CLOSED record and a
+`closed_at` timestamp at or before the evaluation instant. A later SCHEDULED
+or OPEN session without a completed close makes the verdict UNKNOWN unless a
+later completed session already proves staleness. Missing timestamps, absent
+active calendar, future observations, and out-of-coverage calendar requests do
+not become fresh by assumption.
+
+The API also returns the calendar version used, stale symbols, unknown/future
+symbols, and an aggregate freshness status. This increment preserves the
+existing 50/40/10 formula and score behavior: no new minimum coverage threshold,
+score suppression, persistence policy, or notifications are introduced.
+
+**Verification status:** implementation and regression tests have been added on
+PR #515 and are awaiting exact-head CI. Until the existing calendar authenticity
+gate has independently reviewed evidence and a calendar is explicitly activated
+through its approved process, production freshness remains UNKNOWN. M61 remains
+paused.

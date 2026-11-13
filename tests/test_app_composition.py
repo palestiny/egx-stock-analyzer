@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from unittest.mock import Mock
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.main import create_app
@@ -178,3 +179,22 @@ def test_create_application_surfaces_automatic_recovery_store_failure_on_startup
         raise AssertionError("Expected startup recovery failure")
 
     assert runtime.closed is True
+
+
+
+def test_create_application_passes_outcome_correction_service_to_api(monkeypatch) -> None:
+    runtime = FakeRuntime(InMemoryAnalysisResultStore())
+    service = object()
+    runtime.outcome_correction_service = service
+    captured: dict[str, object] = {}
+
+    def fake_create_app(*args, **kwargs):
+        captured.update(kwargs)
+        return FastAPI()
+
+    monkeypatch.setattr("app.main.create_app", fake_create_app)
+
+    app = create_application(runtime)
+
+    assert isinstance(app, FastAPI)
+    assert captured["outcome_correction_service"] is service

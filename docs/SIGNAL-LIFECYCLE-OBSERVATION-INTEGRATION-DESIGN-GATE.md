@@ -1,11 +1,27 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Integration gap confirmed; daily OHLC crossing semantics accepted; data eligibility and runtime wiring remain open  
+**Status:** Correction replay/rebuild and compensating-notification behavior are implemented on this branch and passed code CI on `1d2b902a646174521b143cf19c1b7c7c126cd072` (run #43405799607; all six jobs successful). Production activation remains blocked by the absence of an accepted provider finality adapter, an active deployment calendar, scheduled-worker wiring, and deployment-level end-to-end acceptance. No current market-data provider has been accepted for automatic lifecycle transitions. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
+**Scheduled-worker design:** `docs/OPPORTUNITY-LIFECYCLE-SCHEDULED-WORKER-DESIGN-GATE.md` (proposed; not wired or activated)  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
 
-## 1. Verified current composition
+## 0. Implementation status — 2026-11-13
+
+PR #515 contains the completed-daily-OHLC lifecycle implementation, including:
+
+- Append-only SQLite daily-observation evidence, transactionally persisted with lifecycle history and alert-outbox intent.
+- Idempotent replay, conflicting-payload and out-of-order rejection, and conservative same-candle dual-touch handling.
+- Calendar-gated eligibility using an explicitly closed session, close confirmation, and the accepted 60-minute post-close buffer.
+- Durable chronological recovery using the latest committed observation as the cursor; missing/unverified expected sessions create an append-only gap and stop advancement.
+- Expiry after 20 eligible EGX sessions, without creating a realized return/R record.
+- Immutable opportunity revision links and append-only correction intake, review, and rebuild records.
+
+**Correction replay/rebuild — implementation complete in this PR:** a correction must have a latest `REPLAY_REQUIRED` review; unresolved sibling corrections block replay; the system rebuilds state from the publication baseline using the effective corrected candle set in chronological order; it records the corrected observation and an append-only rebuild audit record containing operator identity, previous/resulting status, observation count, and deterministic replay digest. A repeated rebuild request is idempotent. The rebuilt opportunity can accept later completed sessions. When a previously communicated lifecycle state changes, the prior unsent alert and its unsent recipient rows are superseded, while already delivered recipients receive a scoped corrective event; ambiguous `DELIVERY_UNKNOWN` recipients are not resent or treated as confirmed recipients. In-flight sends block the replay to avoid racing a correction against a network send.
+
+**Still not production-complete:** no production provider currently supplies an accepted finality attestation; no active deployment calendar version is available in the target deployment; no scheduled worker is wired; and the complete provider → calendar → lifecycle → Telegram → per-user history path has not passed deployment-level acceptance. These are separate activation gates, not missing correction-replay code. PR #515 remains Draft and unmerged; do not activate production monitoring until those gates pass.
+
+## 1. Historical baseline before PR #515 (superseded by implementation updates below)
 
 The repository currently has these separate capabilities:
 
@@ -134,3 +150,108 @@ DEC-139 closes the product-policy decisions, not implementation or data-provider
 - The calendar is not yet connected to lifecycle scheduling or freshness evaluation. Provider-completed-bar attestation, one-session freshness gating, durable observation identity/cursor, chronological recovery, and end-to-end lifecycle delivery remain open.
 
 Therefore the calendar domain and persistence foundations are implemented, but the DEC-139 operational calendar/freshness gate is not complete. Automatic lifecycle monitoring remains disabled.
+
+
+## 11. Initial implementation snapshot — 2026-11-13 (superseded by §11.1 and §11.2)
+
+The following subsection records an earlier snapshot of PR #515. Any status statement here that conflicts with §11.1 or the consolidated status matrix in §11.2 is historical and must not be treated as current.
+
+The isolated branch `feature/opportunity-lifecycle-completion` now contains the following implementation increments:
+
+- A `CompletedDailyBarObservation` domain contract requiring DAILY timeframe, explicit source reference, finality-attestation reference, revision identity, timezone-aware timestamps, finite positive OHLC, and valid candle geometry.
+- DEC-138 BUY/SELL High/Low crossing semantics, with invalidation taking precedence when both levels are touched in one candle.
+- A completed-bar lifecycle orchestration path that does not require an assumed entry price and does not create realized return/R records.
+- A SQLite append-only daily-observation ledger, persisted atomically with lifecycle history/outbox writes, including provider/candle/revision identity, OHLC, policy version, calendar version, and resulting status.
+- Same-identity replay suppression, conflicting-payload rejection, out-of-order rejection, and explicit same-session correction deferral.
+- A calendar-gated single-observation application service requiring an active versioned calendar, an explicitly CLOSED session, close confirmation, the configured close + 60-minute buffer, and a finality-verifier approval.
+- An authenticated `GET /api/v1/me/opportunities` read model that exposes lifecycle history only for Telegram opportunity publication events addressed to the authenticated user. Its scope is deliberately not described as a universal in-app saved-opportunity list.
+
+### Still not complete / not activated
+
+- No production `DailyBarFinalityVerifier` exists. Yahoo Finance does not provide the accepted completion attestation in the current adapter, so Yahoo bars remain ineligible.
+- No authoritative/accepted calendar version is published or active in the repository deployment.
+- No durable per-symbol evaluation cursor, missed-session gap ledger, chronological restart recovery, or scheduled worker is wired.
+- The 20-eligible-session expiry transition is not implemented.
+- Materially changed setups are still not represented by a fully linked immutable revision identity; current publication history can record `PUBLISHED_VERSION` under the existing identity.
+- Correction/reconciliation workflow for a changed source revision is not implemented; the normal evaluator fails closed on same-session corrections.
+- No end-to-end provider → calendar → lifecycle → Telegram → user-history acceptance run has been completed.
+- At the time of this initial snapshot, CI for the latest draft head had not yet completed. This statement is superseded by §11.2, which records the later exact-head CI result.
+
+**Current gate result remains GAP.** These changes are implementation foundations only. Do not enable automatic lifecycle monitoring or claim production completion until every remaining gate above is implemented and verified.
+
+
+### 11.1. Further implementation update — 2026-11-13
+
+The same draft branch now also contains:
+
+- Opportunity-specific observation identity: one market candle can be evaluated against multiple published opportunities for the same symbol without one signal overwriting or suppressing another.
+- Immutable linked signal revisions: materially changed active setups receive a new signal identity, parent link, monotonic revision number, and snapshot digests. Terminal opportunities cannot be revised; the revision chain is linear and latest-parent-only.
+- Revision-aware lifecycle writes: status transitions remain attached to the exact child revision rather than falling back to the original identity.
+- Twenty-session expiry: a separate `EXPIRED` terminal event is emitted only after 20 chronologically completed, calendar-eligible sessions have each passed the provider-finality gate and have an accepted bar.
+- Chronological recovery: the latest append-only observation per opportunity is the durable cursor. The evaluator resumes after that cursor, stops at the first missing/unverified session, and does not process later sessions.
+- Durable stale-gap events: missing/invalid session evidence is recorded as append-only `STALE` events; a later successfully committed observation appends a `RESOLVED` event.
+- Explicit source correction records: a corrected source revision is recorded append-only with operator identity, reason, calendar version, and `RECORDED_NOT_REEVALUATED` disposition. Immutable review decisions (`REJECTED`, `ACCEPTED_NO_STATE_CHANGE`, `REPLAY_REQUIRED`) are also persisted append-only; progression fails closed until the latest decision explicitly rejects the correction or confirms no lifecycle-state change. `REPLAY_REQUIRED` remains blocking because corrected-candle replay/rebuild and downstream compensating-notification semantics are not implemented.
+- Protected operator APIs expose correction history and accept attributed review decisions. They require an active, individually attributable operator credential; the legacy shared operator identity is not sufficient.
+- Authenticated per-user lifecycle history now includes linked revision metadata; it is scoped to Telegram publication events addressed to that user.
+
+### Remaining activation and acceptance blockers
+
+- The evaluator and recovery use cases are implemented but are not wired to a production scheduled worker.
+- No production provider finality verifier is implemented. The current Yahoo Finance adapter cannot satisfy the accepted final/complete-bar contract.
+- No accepted active EGX session-calendar version has been verified in the target deployment.
+- Corrected-candle replay/rebuild is still not implemented. `REPLAY_REQUIRED` intentionally blocks progression; there is no automated reconstruction of downstream lifecycle events or defined compensating-notification policy.
+- No full end-to-end acceptance run has yet verified provider retrieval, calendar gating, chronological recovery, expiry, Telegram delivery, and authenticated user history together.
+- The draft PR has not been merged. Exact-head CI status is recorded in §11.2.
+
+**Gate remains GAP / NOT ACTIVATED.** The domain and persistence foundations are implemented on the isolated branch, but do not enable production monitoring or describe Opportunity Lifecycle as complete until the production provider, active calendar, worker wiring, correction disposition, and exact-head CI/e2e gates pass.
+
+
+### 11.2. Consolidated authoritative status — 2026-11-13 (reconciled)
+
+This matrix is the current source of truth for PR #515. It supersedes earlier snapshots and stale status statements above while preserving them as historical design context.
+
+| Capability / gate | Current status | Evidence / remaining condition |
+|---|---|---|
+| Completed daily OHLC contract and BUY/SELL crossing semantics | IMPLEMENTED | Domain contract and evaluator tests; invalidation wins on same-candle dual touch |
+| Durable append-only observation evidence and atomic lifecycle/history/outbox writes | IMPLEMENTED | SQLite Unit of Work and observation ledger; replay identity and evidence are persisted |
+| Idempotent replay, conflicting-payload rejection, and out-of-order rejection | IMPLEMENTED | Covered by lifecycle application and persistence tests |
+| Calendar-gated evaluation and close + 60-minute eligibility rule | IMPLEMENTED IN APPLICATION | Requires an active deployment calendar version; no accepted active version is currently verified |
+| Opportunity-specific observation identity | IMPLEMENTED | A single market candle can be evaluated independently against multiple published opportunities |
+| Immutable linked revisions | IMPLEMENTED | New material active setup gets a child identity, parent link, monotonic revision, and snapshot digests |
+| Twenty-eligible-session expiry | IMPLEMENTED | Distinct EXPIRED event after 20 chronologically completed, calendar-eligible sessions that pass provider finality |
+| Durable chronological recovery and stale-gap blocking | IMPLEMENTED IN APPLICATION | Per-opportunity committed observation history is used for chronological progression; missing/unverified session blocks later progression; STALE/RESOLVED evidence is append-only. A production scheduled worker is not wired |
+| Correction intake and attributed review decisions | IMPLEMENTED | Append-only correction/review records and protected operator APIs exist |
+| Corrected-candle replay/rebuild | IMPLEMENTED | Deterministic chronological rebuild from publication baseline, latest REPLAY_REQUIRED review gate, unresolved-sibling blocking, replay digest/audit, and idempotent repeated rebuild |
+| Compensating notification behavior for corrected outcomes | IMPLEMENTED | Unsent alerts/recipient rows are superseded; confirmed delivered recipients receive a scoped corrective event; DELIVERY_UNKNOWN is not resent; in-flight sends block replay |
+| Production DailyBarFinalityVerifier/provider | NOT IMPLEMENTED | The application boundary accepts an injected verifier and fails closed when finality is not verified, but runtime has no production verifier and no provider is approved. Yahoo remains ineligible |
+| Active accepted EGX calendar version in target deployment | NOT VERIFIED / NOT ACTIVE | Calendar domain, immutable persistence, evidence-gated publication, individual operator identity, and audit primitives exist; no evidenced calendar version is published/activated in target deployment |
+| Publication-baseline bootstrap and durable cursor foundation | IMPLEMENTED IN APPLICATION / CI PASS | Append-only batch + per-opportunity bootstrap records, Cairo-derived publication baseline, latest-active-revision selection, explicit candidate-calendar coverage, atomic persistence, and evaluator eligibility guard. Exact-head code CI passed on `f270658` (run `43412122508`, all six jobs) |\n| Candidate calendar activation validation | IMPLEMENTED / EXACT-HEAD CI PASS | Fail-closed validator checks every latest active revision, candidate-version bootstrap provenance and complete batch counts, explicit date coverage, trusted next-evaluation schedule, reconciled cursor compatibility, and linked hash-verified per-day evidence. Every day requires the evidence kinds appropriate to its status; required claims need unsuperseded Class A EGX-wide evidence. Missing, conflicting, non-primary, or mismatched exceptional-hours evidence blocks activation. This verifies immutable record integrity and operator-declared source metadata only: it does not independently authenticate the publisher or URL contents, and `EXTERNAL_ONLY` artifacts are not byte-verifiable from retained bytes. Exact-head run `43418529418` on `afd3606` passed all six CI jobs; no HTTP/admin activation endpoint is wired |
+| Trusted next-evaluation schedule adapter | IMPLEMENTED / EXACT-HEAD CI PASS | Owner-approved policy: candidate calendar on initial activation; current active calendar on change/rollback; no future SCHEDULED date fails closed without fallback. Adapter is consumed by the activation validator through the coordinator; no production activation command or endpoint is wired. Verified with exact-head run `43418529418` on `afd3606` |
+| Scheduled production worker | DESIGN PROPOSED / NOT WIRED | See the scheduled-worker design gate; existing in-process scheduler is not durable and the generic durable analysis runner is not lifecycle-compatible as-is. Keep disabled until provider and calendar gates pass |
+| Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, correction replay, and per-user authorization together |
+| Provider outreach / selection | NOT AUTHORIZED | EGID is research-only; no provider contact, quote request, credential request, or selection is authorized |
+| CI for code implementation | PASS | Run #43405799607 on code commit `1d2b902a646174521b143cf19c1b7c7c126cd072`; all six jobs successful |
+| CI for documentation-only updates | TRACK LIVE CHECKS | Documentation-only commits trigger the repository CI workflow; use the current PR checks for the latest head and never infer success from an earlier commit |
+| PR state | OPEN / DRAFT / NOT MERGED | PR #515 remains draft and unmerged; do not merge or activate production monitoring while activation blockers remain |
+
+**Owner decision recorded (2026-11-13):** cursor-derived coverage plus Option 3 bootstrap — no activation until a controlled, durable, audited cursor exists. The publication-baseline bootstrap foundation is now implemented and has passed exact-head code CI; it does not by itself authorize activation or monitoring. The application-level candidate-calendar validator now checks coverage, batch integrity, latest active revisions, trusted next-evaluation schedule, and reconciled cursor compatibility. Future evaluation dates must be explicitly SCHEDULED; existing cursors must be CLOSED in the candidate calendar. Rollback-time validation is tested against the current persisted cursor. The validator is not atomic with active-pointer mutation, and its trusted schedule port now has a calendar-backed adapter implementing the owner-approved initial/change/rollback source policy, but the adapter is not yet wired into an activation command; activation and rollback remain unavailable until schedule integration and validation are combined with active-pointer mutation in a controlled serialized activation transaction.
+
+**Gate decision: GAP / NOT ACTIVATED.** Correction replay/rebuild and notification compensation are implemented; the publication-baseline bootstrap foundation is implemented and CI-verified. The owner-approved schedule adapter and serialized SQLite activation/rollback coordinator are implemented on PR #515: validation, bootstrap/cursor reads, active-pointer mutation, and append-only activation audit share one `BEGIN IMMEDIATE` transaction; rejected validation or audit failure rolls back the mutation. Candidate-calendar validation now also requires hash-verified evidence linked to every published calendar day, with status-specific evidence kinds and unsuperseded Class A EGX-wide primary support for each required claim. Exact-head run `43418529418` on `afd3606` passed all six CI jobs (1,755 passed, 8 deselected, 89.91% total coverage). Remaining blockers are independent source-authenticity verification and deployment-level artifact/retrieval controls, production provider finality, an evidence-backed calendar version published and rehearsed in the target deployment, production activation command/endpoint and operational controls, scheduled worker wiring, and full deployment-level E2E acceptance. CI success does not substitute for those operational gates. Automatic monitoring must remain disabled.
+
+**Next implementation order (provider-neutral and owner-controlled):**
+1. Define and implement independent source-authenticity verification for Class A references, plus deployment-level archived-byte verification or a documented stable retrieval check for `EXTERNAL_ONLY` evidence; metadata labels and SHA-256 alone are not proof of publisher authenticity.
+2. Review the evidence acceptance rules and exact-head passing test coverage; confirm that the Class A EGX-wide requirement matches the intended authoritative calendar policy.
+3. Design an authenticated, attributable operator activation/rollback command or API and deployment authorization model; do not expose an unguarded route.
+4. Implement a production finality adapter only after the owner authorizes provider selection and written technical/commercial evidence is obtained.
+5. Publish and verify an evidence-backed EGX calendar version in the target deployment, then run a controlled activation rehearsal.
+6. Wire the scheduled worker behind provider and calendar gates, disabled by default.
+7. Pass full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance.
+
+M61/backtesting remains paused and outside this gate.
+
+
+## Atomic calendar activation / rollback transaction — implementation added 2026-11-13
+
+The PR branch now contains a controlled SQLite coordinator. It acquires `BEGIN IMMEDIATE` before lifecycle validation, runs bootstrap and cursor reads through the same caller-owned lifecycle transaction, and commits the active-calendar pointer update together with the append-only activation event. A validation rejection or any exception (including audit insert failure) rolls the entire transaction back. The coordinator refuses calendar/lifecycle stores that do not share the same database file.
+
+Focused tests cover transaction joining without a nested UoW, validation rejection preserving pointer and audit history, and an injected audit failure preserving the previous active calendar. This is not yet production activation: no API/admin route or runtime activation command is wired; the scheduled worker and monitoring remain disabled. Provider finality remains unaccepted. Exact-head CI is pending.

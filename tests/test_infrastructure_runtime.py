@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.runtime import StockAnalysisRuntime
@@ -587,5 +588,210 @@ def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path)
             date(2026, 11, 1),
         )
         assert len(stored) == 1
+
+    assert runtime.closed is True
+
+
+def test_runtime_composes_and_executes_durable_calendar_authenticity_workflow(tmp_path) -> None:
+    from hashlib import sha256
+    from uuid import uuid4
+
+    from fastapi.testclient import TestClient
+
+    from app.application.market_data.calendar_source_authenticity import (
+        RetrievedCalendarSourceArtifact,
+    )
+    from app.domain.identity.user import User, UserStatus
+    from app.main import create_application
+
+    content = b"owner-approved EGX calendar notice test bytes"
+    source_url = "https://calendar.example.test/notices/2026-11-13"
+    claim = "The official notice confirms the EGX non-trading date"
+
+    class FakeRetriever:
+        def retrieve(self, url: str) -> RetrievedCalendarSourceArtifact:
+            assert url == source_url
+            return RetrievedCalendarSourceArtifact(
+                requested_url=url,
+                final_url=url,
+                redirect_urls=(),
+                tls_verified=True,
+                status_code=200,
+                content=content,
+                content_type="application/pdf",
+            )
+
+    owner_id, uploader_id, reviewer_id = uuid4(), uuid4(), uuid4()
+    database = tmp_path / "analysis.db"
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(database),
+            calendar_source_trust_owner_user_id=owner_id,
+        ),
+        result_store=SQLiteAnalysisResultStore(database),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.calendar_source_origin_registry is not None
+    assert runtime.calendar_evidence_verification_store is not None
+    assert runtime.calendar_source_authenticity_verifier is not None
+    assert runtime.calendar_evidence_repository is not None
+    assert runtime.calendar_evidence_uploader_identity_resolver is not None
+    assert runtime.user_store is not None
+    assert runtime.credential_service is not None
+    assert runtime.operator_access_store is not None
+    assert runtime.calendar_source_origin_registry.list_events() == ()
+
+    for user_id in (owner_id, uploader_id, reviewer_id):
+        runtime.user_store.save(User(user_id, UserStatus.ACTIVE))
+    owner_credential = runtime.credential_service.provision(owner_id)
+    uploader_credential = runtime.credential_service.provision(uploader_id)
+    reviewer_credential = runtime.credential_service.provision(reviewer_id)
+    runtime.operator_access_store.bootstrap_first_operator(
+        owner_id,
+        reason="Calendar source trust owner integration test",
+    )
+    for user_id in (uploader_id, reviewer_id):
+        runtime.operator_access_store.grant(
+            user_id,
+            actor_user_id=owner_id,
+            actor_credential_id=owner_credential.id,
+            reason="Individual operator integration test",
+        )
+
+    # Exercise the real runtime verifier, SQLite stores, durable authenticator,
+    # owner/reviewer routes, and uploader provenance resolver without network I/O.
+    runtime.calendar_source_authenticity_verifier._retriever = FakeRetriever()
+    app = create_application(runtime, operator_token="test-token")
+
+    with TestClient(app) as client:
+        owner_headers = {"Authorization": "Bearer " + owner_credential.secret}
+        uploader_headers = {"Authorization": "Bearer " + uploader_credential.secret}
+        reviewer_headers = {"Authorization": "Bearer " + reviewer_credential.secret}
+
+        approval = client.post(
+            "/api/v1/owner/session-calendar-source-origins",
+            headers=owner_headers,
+            json={
+                "origin": "https://calendar.example.test",
+                "publisher": "EGX",
+                "source_class": "A",
+                "market_scope": "EGX_MARKET_WIDE",
+                "trust_basis": "Isolated integration fixture; not a production trust anchor",
+                "registry_version": "integration-trust-v1",
+            },
+        )
+        assert approval.status_code == 201
+
+        publication = client.post(
+            "/api/v1/owner/session-calendars/versions",
+            headers=uploader_headers,
+            json={
+                "version": "runtime-authenticity-v1",
+                "timezone": "Africa/Cairo",
+                "coverage_start": "2026-11-13",
+                "coverage_end": "2026-11-13",
+                "days": [{"date": "2026-11-13", "status": "NON_TRADING"}],
+                "evidence": [{
+                    "session_date": "2026-11-13",
+                    "evidence_kind": "CLOSURE",
+                    "source_type": "OFFICIAL_EXCHANGE_NOTICE",
+                    "source_class": "A",
+                    "source_publisher": "EGX",
+                    "market_scope": "EGX_MARKET_WIDE",
+                    "effective_from": "2026-11-13",
+                    "effective_through": "2026-11-13",
+                    "retrieved_at": "2026-11-13T09:00:00+02:00",
+                    "artifact_sha256": sha256(content).hexdigest(),
+                    "artifact_retention": "EXTERNAL_ONLY",
+                    "artifact_not_retained_reason": "Integration fixture does not retain source bytes",
+                    "source_reference": source_url,
+                    "claim": claim,
+                    "observed_at": "2026-11-13T09:00:00+02:00",
+                }],
+                "source_reference": "isolated authenticity integration fixture",
+                "reason": "Exercise durable authenticity workflow composition",
+            },
+        )
+        assert publication.status_code == 201
+        evidence_id = publication.json()["evidence"][0]["evidence_id"]
+
+        review = client.post(
+            f"/api/v1/operator/session-calendars/evidence/{evidence_id}/authenticity-review",
+            headers=reviewer_headers,
+            json={"reviewed_claim": claim, "claim_supported": True},
+        )
+        assert review.status_code == 201
+        assert review.json()["decision"] == "VERIFIED"
+        assert review.json()["uploader_user_id"] == str(uploader_id)
+        assert review.json()["verifier_user_id"] == str(reviewer_id)
+
+        owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers=owner_headers,
+        )
+        non_owner_events = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers=reviewer_headers,
+        )
+        legacy_shared_token = client.get(
+            "/api/v1/owner/session-calendar-source-origins/events",
+            headers={"Authorization": "Bearer test-token"},
+        )
+
+    assert owner_events.status_code == 200
+    assert len(owner_events.json()["events"]) == 1
+    assert non_owner_events.status_code == 403
+    assert legacy_shared_token.status_code == 403
+    persisted = runtime.calendar_evidence_verification_store.latest(UUID(evidence_id))
+    assert persisted is not None
+    assert persisted.decision.value == "VERIFIED"
+
+    # Exercise real SQLite-backed activation preflight: the external-only
+    # source is fetched again and a fresh proof is required at the decision time.
+    from datetime import datetime, timedelta, timezone
+
+    from app.application.market_data.calendar_source_authenticity import (
+        CalendarSourceAuthenticityError,
+    )
+
+    linked_evidence = runtime.calendar_evidence_repository.list_for_calendar_day(
+        "runtime-authenticity-v1", date(2026, 11, 13)
+    )
+    assert len(linked_evidence) == 1
+    evidence = linked_evidence[0]
+    preflight_at = datetime.now(timezone.utc) + timedelta(seconds=1)
+    refreshed = runtime.calendar_source_authenticity_verifier.revalidate_for_activation(
+        evidence, at=preflight_at
+    )
+    assert refreshed.decision.value == "VERIFIED"
+    assert refreshed.verified_at == preflight_at
+    assert runtime.calendar_source_authenticity_verifier.assert_preflight_verification(
+        evidence, at=preflight_at
+    ) == refreshed
+
+    # A changed source must not reuse the previous successful proof.
+    content = b"changed source bytes after independent review"
+    failed_preflight_at = preflight_at + timedelta(seconds=1)
+    try:
+        runtime.calendar_source_authenticity_verifier.revalidate_for_activation(
+            evidence, at=failed_preflight_at
+        )
+    except CalendarSourceAuthenticityError:
+        pass
+    else:
+        raise AssertionError("changed external-only source bytes must block activation preflight")
+
+    try:
+        runtime.calendar_source_authenticity_verifier.assert_preflight_verification(
+            evidence, at=failed_preflight_at
+        )
+    except CalendarSourceAuthenticityError:
+        pass
+    else:
+        raise AssertionError("a stale successful proof must not satisfy a failed fresh preflight")
 
     assert runtime.closed is True

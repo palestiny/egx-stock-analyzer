@@ -3,16 +3,22 @@ from dataclasses import dataclass, field
 from app.application.analysis.input_assembler import AnalysisInputAssembler
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
+from app.application.alerts.get_user_opportunity_lifecycle_history import GetUserOpportunityLifecycleHistory
 from app.application.alerts.publish_signal_opportunity import PublishSignalOpportunity
 from app.application.news.ingestion import NewsIngestionService
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
+from app.application.market_data.calendar_source_authenticity import CalendarSourceAuthenticityVerifier
 from app.domain.news.event import NewsSourceType
 from app.infrastructure.news.rss_news_source_adapter import RssNewsSourceAdapter
 from app.infrastructure.persistence.sqlite_news_event_store import SQLiteNewsEventStore
 from app.infrastructure.persistence.sqlite_session_calendar_repository import SQLiteSessionCalendarRepository
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
 from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
+from app.infrastructure.persistence.sqlite_calendar_source_origin_registry import SQLiteCalendarSourceOriginRegistry
+from app.infrastructure.persistence.sqlite_calendar_evidence_verification_store import SQLiteCalendarEvidenceVerificationStore
+from app.infrastructure.persistence.sqlite_calendar_evidence_uploader_identity_resolver import SQLiteCalendarEvidenceUploaderIdentityResolver
+from app.infrastructure.market_data.https_calendar_source_artifact_retriever import HTTPSCalendarSourceArtifactRetriever
 from app.infrastructure.persistence.filesystem_calendar_artifact_store import FileSystemCalendarArtifactStore
 from app.infrastructure.persistence.sqlite_owner_dashboard_read_store import SQLiteOwnerDashboardReadStore
 from app.infrastructure.persistence.sqlite_session_opportunity_report_store import SQLiteSessionOpportunityReportStore
@@ -29,6 +35,8 @@ from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_st
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+from app.infrastructure.persistence.sqlite_outcome_event_store import SQLiteOutcomeEventStore
+from app.application.signals.outcome_correction_service import OutcomeCorrectionService
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.application.identity.user_management import UserManagementService
@@ -99,6 +107,7 @@ class InfrastructureRuntime:
     telegram_account_link_store: SQLiteTelegramAccountLinkStore | None = None
     dispatch_signal_alert_outbox: DispatchSignalAlertOutbox | None = None
     get_user_opportunity_notifications: GetUserOpportunityNotifications | None = None
+    get_user_opportunity_lifecycle_history: GetUserOpportunityLifecycleHistory | None = None
     publish_signal_opportunity: PublishSignalOpportunity | None = None
     signal_alert_delivery_store: SQLiteSignalAlertDeliveryStore | None = None
     telegram_delivery_reconciliation_store: SQLiteTelegramDeliveryReconciliationStore | None = None
@@ -123,9 +132,15 @@ class InfrastructureRuntime:
     calendar_evidence_repository: SQLiteCalendarEvidenceRepository | None = None
     calendar_publication_uow: SQLiteCalendarPublicationUnitOfWork | None = None
     calendar_artifact_service: CalendarArtifactService | None = None
+    calendar_source_origin_registry: SQLiteCalendarSourceOriginRegistry | None = None
+    calendar_evidence_verification_store: SQLiteCalendarEvidenceVerificationStore | None = None
+    calendar_source_authenticity_verifier: CalendarSourceAuthenticityVerifier | None = None
+    calendar_evidence_uploader_identity_resolver: SQLiteCalendarEvidenceUploaderIdentityResolver | None = None
     user_management: UserManagementService | None = None
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
+    signal_outcome_event_store: SQLiteOutcomeEventStore | None = None
+    outcome_correction_service: OutcomeCorrectionService | None = None
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
@@ -196,6 +211,27 @@ def create_infrastructure_runtime(
         calendar_evidence_repository,
         artifact_service=calendar_artifact_service,
     )
+    calendar_source_origin_registry = None
+    calendar_evidence_verification_store = None
+    calendar_source_authenticity_verifier = None
+    calendar_evidence_uploader_identity_resolver = None
+    if config.calendar_source_trust_owner_user_id is not None:
+        calendar_source_origin_registry = SQLiteCalendarSourceOriginRegistry(
+            config.analysis_database_path,
+            owner_user_id=config.calendar_source_trust_owner_user_id,
+        )
+        calendar_evidence_verification_store = SQLiteCalendarEvidenceVerificationStore(
+            config.analysis_database_path
+        )
+        calendar_source_authenticity_verifier = CalendarSourceAuthenticityVerifier(
+            origins=calendar_source_origin_registry,
+            records=calendar_evidence_verification_store,
+            retriever=HTTPSCalendarSourceArtifactRetriever(),
+            artifact_service=calendar_artifact_service,
+        )
+        calendar_evidence_uploader_identity_resolver = (
+            SQLiteCalendarEvidenceUploaderIdentityResolver(config.analysis_database_path)
+        )
     management_audit_store = SQLiteManagementAuditStore(config.analysis_database_path)
     lifecycle_store = SQLiteAnalysisLifecycleStore(config.analysis_database_path)
     user_management = UserManagementService(
@@ -242,6 +278,8 @@ def create_infrastructure_runtime(
         explicit_grants=entitlement_service,
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
+    signal_outcome_event_store = SQLiteOutcomeEventStore(config.analysis_database_path)
+    outcome_correction_service = OutcomeCorrectionService(signal_outcome_event_store)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
     signal_lifecycle_unit_of_work = SQLiteSignalLifecycleUnitOfWork(
         history=signal_history_store,
@@ -257,6 +295,7 @@ def create_infrastructure_runtime(
     build_session_opportunity_ledger = BuildSessionOpportunityLedger(
         history=signal_history_store,
         track_record=signal_track_record_store,
+        outcome_events=signal_outcome_event_store,
     )
     publish_signal_opportunity = PublishSignalOpportunity(
         history=signal_history_store,
@@ -293,6 +332,11 @@ def create_infrastructure_runtime(
     get_user_opportunity_notifications = GetUserOpportunityNotifications(
         deliveries=signal_alert_delivery_store,
         outbox=signal_alert_outbox,
+    )
+    get_user_opportunity_lifecycle_history = GetUserOpportunityLifecycleHistory(
+        deliveries=signal_alert_delivery_store,
+        outbox=signal_alert_outbox,
+        history=signal_history_store,
     )
     telegram_delivery_reconciliation_store = SQLiteTelegramDeliveryReconciliationStore(config.analysis_database_path)
     telegram_notification_provider = (
@@ -384,6 +428,7 @@ def create_infrastructure_runtime(
         telegram_account_link_store=telegram_account_link_store,
         dispatch_signal_alert_outbox=dispatch_signal_alert_outbox,
         get_user_opportunity_notifications=get_user_opportunity_notifications,
+        get_user_opportunity_lifecycle_history=get_user_opportunity_lifecycle_history,
         publish_signal_opportunity=publish_signal_opportunity,
         signal_alert_delivery_store=signal_alert_delivery_store,
         telegram_delivery_reconciliation_store=telegram_delivery_reconciliation_store,
@@ -408,9 +453,15 @@ def create_infrastructure_runtime(
         calendar_evidence_repository=calendar_evidence_repository,
         calendar_publication_uow=calendar_publication_uow,
         calendar_artifact_service=calendar_artifact_service,
+        calendar_source_origin_registry=calendar_source_origin_registry,
+        calendar_evidence_verification_store=calendar_evidence_verification_store,
+        calendar_source_authenticity_verifier=calendar_source_authenticity_verifier,
+        calendar_evidence_uploader_identity_resolver=calendar_evidence_uploader_identity_resolver,
         user_management=user_management,
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
+        signal_outcome_event_store=signal_outcome_event_store,
+        outcome_correction_service=outcome_correction_service,
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
         build_session_opportunity_ledger=build_session_opportunity_ledger,

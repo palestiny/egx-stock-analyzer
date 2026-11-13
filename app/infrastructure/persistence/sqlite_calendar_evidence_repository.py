@@ -71,6 +71,7 @@ class SQLiteCalendarEvidenceRepository:
                     artifact_retention TEXT NULL,
                     artifact_storage_reference TEXT NULL,
                     artifact_not_retained_reason TEXT NULL,
+                    recorded_by_credential_id TEXT NULL,
                     source_reference TEXT NOT NULL,
                     claim TEXT NOT NULL,
                     recorded_by TEXT NOT NULL REFERENCES users(id),
@@ -115,6 +116,7 @@ class SQLiteCalendarEvidenceRepository:
                 "artifact_retention": "TEXT NULL",
                 "artifact_storage_reference": "TEXT NULL",
                 "artifact_not_retained_reason": "TEXT NULL",
+                "recorded_by_credential_id": "TEXT NULL",
             }
             for column, definition in migrations.items():
                 if column not in existing_columns:
@@ -156,6 +158,7 @@ class SQLiteCalendarEvidenceRepository:
                             artifact_retention TEXT NULL,
                             artifact_storage_reference TEXT NULL,
                             artifact_not_retained_reason TEXT NULL,
+                            recorded_by_credential_id TEXT NULL,
                             source_reference TEXT NOT NULL,
                             claim TEXT NOT NULL,
                             recorded_by TEXT NOT NULL REFERENCES users(id),
@@ -172,7 +175,7 @@ class SQLiteCalendarEvidenceRepository:
                         "evidence_id, calendar_version, session_date, evidence_kind, source_type, "
                         "source_class, source_publisher, market_scope, effective_from, effective_through, "
                         "retrieved_at, artifact_sha256, artifact_retention, artifact_storage_reference, "
-                        "artifact_not_retained_reason, source_reference, claim, recorded_by, observed_at, "
+                        "artifact_not_retained_reason, recorded_by_credential_id, source_reference, claim, recorded_by, observed_at, "
                         "recorded_at, source_published_at, supersedes_evidence_id, supersession_reason, content_sha256"
                     )
                     connection.execute(
@@ -223,6 +226,18 @@ class SQLiteCalendarEvidenceRepository:
             raise ValueError("New evidence requires explicit source acceptance and artifact retention metadata")
         if evidence.recorded_at > datetime.now(timezone.utc):
             raise ValueError("recorded_at cannot be in the future")
+        if evidence.recorded_by_credential_id is not None:
+            credential = connection.execute(
+                """
+                SELECT 1 FROM user_credentials
+                WHERE id = ? AND user_id = ? AND status = 'active'
+                """,
+                (str(evidence.recorded_by_credential_id), str(evidence.recorded_by)),
+            ).fetchone()
+            if credential is None:
+                raise ValueError(
+                    "Evidence uploader credential must be active and belong to the recorded user"
+                )
         if evidence.supersedes_evidence_id == evidence.evidence_id:
             raise ValueError("Evidence cannot supersede itself")
         payload = self._payload(evidence)
@@ -268,8 +283,8 @@ class SQLiteCalendarEvidenceRepository:
                 supersession_reason, content_sha256, source_class, source_publisher,
                 market_scope, effective_from, effective_through, retrieved_at,
                 artifact_sha256, artifact_retention, artifact_storage_reference,
-                artifact_not_retained_reason
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                artifact_not_retained_reason, recorded_by_credential_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(evidence.evidence_id),
@@ -298,6 +313,7 @@ class SQLiteCalendarEvidenceRepository:
                 evidence.artifact_retention.value if evidence.artifact_retention else None,
                 evidence.artifact_storage_reference,
                 evidence.artifact_not_retained_reason,
+                str(evidence.recorded_by_credential_id) if evidence.recorded_by_credential_id else None,
             ),
         )
         row = connection.execute(
@@ -315,6 +331,32 @@ class SQLiteCalendarEvidenceRepository:
                 (str(evidence_id),),
             ).fetchone()
         return self._from_row(row) if row else None
+
+    def list_for_calendar_day(
+        self, calendar_version: str, session_date: date
+    ) -> tuple[CalendarEvidence, ...]:
+        """Return hash-verified evidence linked to this exact published calendar day."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT e.evidence_id, e.calendar_version, e.session_date, e.evidence_kind,
+                       e.source_type, e.source_reference, e.claim, e.recorded_by, e.observed_at,
+                       e.recorded_at, e.source_published_at, e.supersedes_evidence_id,
+                       e.supersession_reason, e.content_sha256, e.source_class, e.source_publisher,
+                       e.market_scope, e.effective_from, e.effective_through, e.retrieved_at,
+                       e.artifact_sha256, e.artifact_retention, e.artifact_storage_reference,
+                       e.artifact_not_retained_reason, e.recorded_by_credential_id
+                FROM egx_calendar_evidence AS e
+                INNER JOIN egx_calendar_day_evidence_links AS l
+                    ON l.evidence_id = e.evidence_id
+                   AND l.calendar_version = e.calendar_version
+                   AND l.session_date = e.session_date
+                WHERE l.calendar_version = ? AND l.session_date = ?
+                ORDER BY e.recorded_at ASC, e.evidence_id ASC
+                """,
+                (calendar_version, session_date.isoformat()),
+            ).fetchall()
+        return tuple(self._from_row(row) for row in rows)
 
     def list_for_day(
         self, calendar_version: str, session_date: date
@@ -365,13 +407,13 @@ class SQLiteCalendarEvidenceRepository:
                    supersession_reason, content_sha256, source_class, source_publisher,
                    market_scope, effective_from, effective_through, retrieved_at,
                    artifact_sha256, artifact_retention, artifact_storage_reference,
-                   artifact_not_retained_reason
+                   artifact_not_retained_reason, recorded_by_credential_id
             FROM egx_calendar_evidence
         """
 
     @staticmethod
     def _payload(evidence: CalendarEvidence) -> dict:
-        return {
+        payload = {
             "evidence_id": str(evidence.evidence_id),
             "calendar_version": evidence.calendar_version,
             "session_date": evidence.session_date.isoformat(),
@@ -398,6 +440,9 @@ class SQLiteCalendarEvidenceRepository:
             "artifact_storage_reference": evidence.artifact_storage_reference,
             "artifact_not_retained_reason": evidence.artifact_not_retained_reason,
         }
+        if evidence.recorded_by_credential_id is not None:
+            payload["recorded_by_credential_id"] = str(evidence.recorded_by_credential_id)
+        return payload
 
     @classmethod
     def _from_row(cls, row: tuple) -> CalendarEvidence:
@@ -407,7 +452,7 @@ class SQLiteCalendarEvidenceRepository:
             supersession_reason, digest, raw_source_class, source_publisher,
             market_scope, raw_effective_from, raw_effective_through, raw_retrieved_at,
             artifact_sha256, raw_artifact_retention, artifact_storage_reference,
-            artifact_not_retained_reason,
+            artifact_not_retained_reason, recorded_by_credential,
         ) = row
         evidence = CalendarEvidence(
             evidence_id=UUID(raw_id),
@@ -418,6 +463,7 @@ class SQLiteCalendarEvidenceRepository:
             source_reference=source_reference,
             claim=claim,
             recorded_by=UUID(actor),
+            recorded_by_credential_id=UUID(recorded_by_credential) if recorded_by_credential else None,
             observed_at=datetime.fromisoformat(observed),
             recorded_at=datetime.fromisoformat(recorded),
             source_published_at=datetime.fromisoformat(source_published)

@@ -1,13 +1,20 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import hashlib
+import json
+from uuid import uuid4
 
 import pytest
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
-from app.domain.signals.lifecycle import SignalMarketState
+from app.domain.signals.lifecycle import (
+    CompletedDailyBarObservation,
+    SignalMarketState,
+)
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -266,3 +273,446 @@ def test_orchestrator_rejects_pre_generation_observation_before_writing_history(
             entry_price=Decimal("100"),
         )
     assert history.all_records() == ()
+
+
+def make_completed_bar(*, high="105", low="98", observed_hour=16, revision="r1", candle_day=4):
+    return CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime(2026, 10, candle_day, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, candle_day, observed_hour, tzinfo=timezone.utc),
+        revision=revision,
+        source_reference=f"https://provider.example/COMI/2026-10-{candle_day:02d}",
+        finality_attestation="provider-finality-assertion",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal(high),
+        low=Decimal(low),
+        close=Decimal("102"),
+    )
+
+
+def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    original = make_completed_bar(high="109")
+    original_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v1",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 15, 55, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 10, tzinfo=timezone.utc),
+        bar=original,
+    )
+    triggered = orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1",
+        provider_evidence=original_evidence,
+    )
+    assert triggered is not None and triggered.signal.status is SignalStatus.TRIGGERED
+
+    corrected = CompletedDailyBarObservation(
+        symbol=original.symbol,
+        provider=original.provider,
+        timeframe=original.timeframe,
+        candle_at=original.candle_at,
+        observed_at=original.observed_at + timedelta(hours=1),
+        revision="r2",
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        is_final=True,
+        open=original.open,
+        high=Decimal("105"),
+        low=original.low,
+        close=original.close,
+    )
+    corrected_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v2",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 17, 1, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 17, 5, tzinfo=timezone.utc),
+        bar=corrected,
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original.identity,
+        corrected_bar=corrected,
+        operator_id="operator-1",
+        reason="Provider corrected the daily high",
+        calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at + timedelta(minutes=10),
+        provider_evidence=corrected_evidence,
+    )
+    with pytest.raises(ValueError, match="correction author cannot review"):
+        orchestrator.record_daily_bar_correction_review(
+            published.signal_id,
+            correction.correction_id,
+            decision="REPLAY_REQUIRED",
+            reviewer_id="operator-1",
+            reason="Self-review must be rejected",
+            recorded_at=corrected.observed_at + timedelta(minutes=11),
+        )
+
+    review = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1",
+        reason="Corrected high changes the lifecycle result",
+        recorded_at=corrected.observed_at + timedelta(minutes=11),
+    )
+    assert review.decision == "REPLAY_REQUIRED"
+
+    rebuilt = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id,
+        correction.correction_id,
+        operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=12),
+    )
+    assert rebuilt.previous_status is SignalStatus.TRIGGERED
+    assert rebuilt.resulting_status is SignalStatus.ACTIVE
+    assert rebuilt.observation_count == 1
+    assert len(rebuilt.replay_digest) == 64
+    expected_trace = [{
+        "provider": "attested-provider",
+        "symbol": "COMI",
+        "timeframe": "DAILY",
+        "candle_at": "2026-10-04T00:00:00+00:00",
+        "revision": "r2",
+        "source_reference": corrected.source_reference,
+        "finality_attestation": "provider-finality-v2",
+        "open": "100",
+        "high": "105",
+        "low": "98",
+        "close": "102",
+        "policy_version": "dec138-daily-ohlc-v1",
+        "calendar_version": "calendar-v1",
+        "resulting_status": "ACTIVE",
+        "provider_evidence": {
+            "provider_id": "attested-provider",
+            "provider_contract_version": "contract-v2",
+            "instrument_symbol": "COMI",
+            "session_date": "2026-10-04",
+            "source_timestamp": "2026-10-04T17:01:00+00:00",
+            "retrieved_at": "2026-10-04T17:05:00+00:00",
+        },
+    }]
+    expected_payload = json.dumps({
+        "signal_id": str(published.signal_id),
+        "correction_id": str(correction.correction_id),
+        "policy_versions": ["dec138-daily-ohlc-v1"],
+        "calendar_versions": ["calendar-v1"],
+        "trace": expected_trace,
+    }, sort_keys=True, separators=(",", ":"))
+    assert rebuilt.replay_digest == hashlib.sha256(expected_payload.encode("utf-8")).hexdigest()
+    latest_observation = orchestrator.latest_completed_observation(published.signal_id)
+    assert latest_observation.provider_evidence == corrected_evidence
+    assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+    assert history.history(published.signal_id)[-1].event == "CORRECTION_REPLAY_REBUILT:" + str(correction.correction_id)
+    assert orchestrator.latest_completed_observation(published.signal_id).bar.revision == "r2"
+
+    repeated = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id,
+        correction.correction_id,
+        operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=3),
+    )
+    assert repeated == rebuilt
+
+    later = make_completed_bar(high="109", candle_day=5)
+    next_result = orchestrator.process_completed_daily_bar(
+        published.signal_id, later, calendar_version="calendar-v1"
+    )
+    assert next_result is not None
+    assert next_result.signal.status is SignalStatus.TRIGGERED
+    assert len(orchestrator.lifecycle_corrections(published.signal_id)) == 1
+
+
+def test_completed_daily_bar_records_level_observation_without_assumed_entry_or_outcome():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    result = orchestrator.process_completed_daily_bar(published.signal_id, make_completed_bar(), calendar_version="calendar-v1")
+
+    assert result is not None
+    assert result.changed is False
+    assert result.outcome_recorded is False
+    assert result.alert_published is False
+    assert outcomes.all() == ()
+    assert alerts.events == []
+
+
+def test_completed_daily_bar_triggers_and_publishes_without_performance_accounting():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    result = orchestrator.process_completed_daily_bar(
+        published.signal_id, make_completed_bar(high="109", low="98"), calendar_version="calendar-v1"
+    )
+
+    assert result is not None
+    assert result.changed is True
+    assert result.signal.status is SignalStatus.TRIGGERED
+    assert result.outcome_recorded is False
+    assert result.alert_published is True
+    assert outcomes.all() == ()
+    assert len(alerts.events) == 1
+    replay = orchestrator.process_completed_daily_bar(
+        published.signal_id,
+        make_completed_bar(high="109", low="98"),
+        calendar_version="calendar-v1",
+    )
+    assert replay is not None and replay.changed is False
+    assert len(alerts.events) == 1
+
+
+def test_completed_daily_bar_replay_is_idempotent_even_if_retrieved_again_later():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    first_bar = make_completed_bar()
+    first = orchestrator.process_completed_daily_bar(published.signal_id, first_bar, calendar_version="calendar-v1")
+    replay = orchestrator.process_completed_daily_bar(
+        published.signal_id, make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
+    )
+
+    assert first is not None and replay is not None
+    assert first.signal_id == replay.signal_id
+    assert replay.changed is False
+    assert len(history.history(first.signal_id)) == 1
+    assert outcomes.all() == ()
+
+
+def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity():
+    history = InMemorySignalHistoryStore()
+    orchestrator = SignalLifecycleOrchestrator(
+        history, InMemoryAlertPublisher(), InMemoryTrackRecordStore()
+    )
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator.process_completed_daily_bar(published.signal_id, make_completed_bar(), calendar_version="calendar-v1")
+
+    with pytest.raises(ValueError, match="conflicting replay"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id, make_completed_bar(high="106", observed_hour=17), calendar_version="calendar-v1"
+        )
+
+    later = CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, 5, 16, tzinfo=timezone.utc),
+        revision="r1",
+        source_reference="https://provider.example/COMI/2026-10-05",
+        finality_attestation="provider-finality-assertion",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal("105"),
+        low=Decimal("98"),
+        close=Decimal("102"),
+    )
+    orchestrator.process_completed_daily_bar(published.signal_id, later, calendar_version="calendar-v1")
+    replay = orchestrator.process_completed_daily_bar(published.signal_id, make_completed_bar(), calendar_version="calendar-v1")
+    assert replay is not None and replay.changed is False
+    with pytest.raises(ValueError, match="out-of-order"):
+        orchestrator.process_completed_daily_bar(published.signal_id, make_completed_bar(candle_day=3), calendar_version="calendar-v1")
+
+
+def test_same_completed_bar_can_be_evaluated_for_multiple_opportunities_on_one_symbol():
+    from dataclasses import replace
+
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    first_signal = make_signal()
+    second_signal = replace(
+        make_signal(),
+        strategy_id="range-breakout",
+        targets=(Target(Decimal("120"), "T1"),),
+    )
+    first = history.record(first_signal, "PUBLISHED", first_signal.generated_at)
+    second = history.record(second_signal, "PUBLISHED", second_signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    bar = make_completed_bar(high="109", low="98")
+
+    first_result = orchestrator.process_completed_daily_bar(
+        first.signal_id, bar, calendar_version="calendar-v1"
+    )
+    second_result = orchestrator.process_completed_daily_bar(
+        second.signal_id, bar, calendar_version="calendar-v1"
+    )
+
+    assert first_result is not None
+    assert first_result.signal.status is SignalStatus.TRIGGERED
+    assert second_result is not None
+    assert second_result.signal.status is SignalStatus.ACTIVE
+    assert len(alerts.events) == 1
+    assert outcomes.all() == ()
+
+
+def test_opportunity_expires_after_twenty_eligible_sessions_without_performance_outcome():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    sessions = tuple(date(2026, 10, day) for day in range(1, 21))
+
+    expired = orchestrator.expire_opportunity(
+        published.signal_id,
+        eligible_sessions=sessions,
+        calendar_version="calendar-v1",
+        evaluated_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
+    )
+
+    assert expired is not None
+    assert expired.signal.status is SignalStatus.EXPIRED
+    assert expired.outcome_recorded is False
+    assert expired.alert_published is True
+    assert len(alerts.events) == 1
+    assert alerts.events[0].event_type.value == "SIGNAL_EXPIRED"
+    assert outcomes.all() == ()
+    assert history.history(published.signal_id)[-1].event == "STATUS_EXPIRED"
+
+
+def test_opportunity_cannot_expire_before_twenty_eligible_sessions():
+    orchestrator = SignalLifecycleOrchestrator(
+        InMemorySignalHistoryStore(),
+        InMemoryAlertPublisher(),
+        InMemoryTrackRecordStore(),
+    )
+    with pytest.raises(ValueError, match="20 eligible sessions"):
+        orchestrator.expire_opportunity(
+            uuid4(),
+            eligible_sessions=tuple(date(2026, 10, day) for day in range(1, 20)),
+            calendar_version="calendar-v1",
+            evaluated_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        )
+
+
+def test_gap_resolution_rolls_back_when_alert_publication_fails():
+    class FailingAlertPublisher(InMemoryAlertPublisher):
+        def publish(self, event):
+            raise RuntimeError("simulated outbox failure")
+
+    history = InMemorySignalHistoryStore()
+    alerts = FailingAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    bar = make_completed_bar(high="109")
+
+    gap = orchestrator.mark_session_gap(
+        published.signal_id,
+        session_date=bar.candle_at.date(),
+        calendar_version="calendar-v1",
+        reason="MISSING_ELIGIBLE_BAR",
+        detected_at=bar.observed_at,
+    )
+
+    with pytest.raises(RuntimeError, match="simulated outbox failure"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id,
+            bar,
+            calendar_version="calendar-v1",
+            resolved_gap_session_date=bar.candle_at.date(),
+        )
+
+    assert orchestrator.session_gap_events(published.signal_id) == (gap,)
+    assert orchestrator.latest_completed_observation(published.signal_id) is None
+    assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+
+
+def test_unreviewed_correction_blocks_lifecycle_until_explicit_safe_decision():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    orchestrator = SignalLifecycleOrchestrator(
+        history, alerts, InMemoryTrackRecordStore()
+    )
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    original = make_completed_bar()
+    orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1"
+    )
+    corrected = CompletedDailyBarObservation(
+        symbol=original.symbol,
+        provider=original.provider,
+        timeframe=original.timeframe,
+        candle_at=original.candle_at,
+        observed_at=original.observed_at + timedelta(hours=1),
+        revision="r2",
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        is_final=True,
+        open=original.open,
+        high=Decimal("109"),
+        low=original.low,
+        close=original.close,
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original.identity,
+        corrected_bar=corrected,
+        operator_id="operator-1",
+        reason="Provider corrected the high",
+        calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at,
+    )
+    later = make_completed_bar(candle_day=5)
+    with pytest.raises(ValueError, match="unresolved daily-bar correction"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id, later, calendar_version="calendar-v1"
+        )
+
+    replay_required = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1",
+        reason="Corrected candle may change the lifecycle outcome",
+        recorded_at=corrected.observed_at + __import__("datetime").timedelta(minutes=1),
+    )
+    assert replay_required.decision == "REPLAY_REQUIRED"
+    with pytest.raises(ValueError, match="unresolved daily-bar correction"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id, later, calendar_version="calendar-v1"
+        )
+
+    accepted = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="ACCEPTED_NO_STATE_CHANGE",
+        reviewer_id="reviewer-2",
+        reason="Independent review confirms the correction does not change the lifecycle result",
+        recorded_at=corrected.observed_at + __import__("datetime").timedelta(minutes=2),
+    )
+    assert accepted.decision == "ACCEPTED_NO_STATE_CHANGE"
+    assert len(orchestrator.lifecycle_correction_review_decisions(published.signal_id)) == 2
+    processed = orchestrator.process_completed_daily_bar(
+        published.signal_id, later, calendar_version="calendar-v1"
+    )
+    assert processed is not None
+    assert orchestrator.latest_completed_observation(published.signal_id).bar.candle_at == later.candle_at

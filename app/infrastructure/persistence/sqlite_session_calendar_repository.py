@@ -6,6 +6,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 from uuid import uuid4
 
 from app.application.market_data.session_calendar_store import (
@@ -262,6 +263,35 @@ class SQLiteSessionCalendarRepository:
         occurred_at: datetime | None,
         require_previously_active: bool = False,
     ) -> CalendarActivationEvent:
+        return self.change_active_atomically(
+            action=action,
+            target_version=target_version,
+            performed_by=performed_by,
+            reason=reason,
+            occurred_at=occurred_at,
+            require_previously_active=require_previously_active,
+        )
+
+    def change_active_atomically(
+        self,
+        *,
+        action: str,
+        target_version: str | None,
+        performed_by: str,
+        reason: str,
+        occurred_at: datetime | None = None,
+        require_previously_active: bool = False,
+        validate: Callable[[sqlite3.Connection], None] | None = None,
+    ) -> CalendarActivationEvent:
+        """Validate, change the active pointer, and append its audit in one transaction.
+
+        The callback executes only after BEGIN IMMEDIATE and calendar identity checks.
+        Any validation exception rolls back the entire pointer-and-audit mutation.
+        """
+        if action not in {"ACTIVATE", "ROLLBACK", "DEACTIVATE"}:
+            raise ValueError("unsupported calendar activation action")
+        if (action == "DEACTIVATE") != (target_version is None):
+            raise ValueError("target_version does not match calendar action")
         actor = self._required_text(performed_by, "performed_by")
         audit_reason = self._required_text(reason, "reason")
         timestamp = self._aware_utc(occurred_at or datetime.now(timezone.utc))
@@ -278,8 +308,6 @@ class SQLiteSessionCalendarRepository:
                 ).fetchone()
                 if target_row is None:
                     raise KeyError(f"Unknown calendar version: {target_version}")
-                # Never activate or roll back to a version whose persisted payload
-                # no longer passes the same integrity checks used by read operations.
                 self._version_from_row(target_row)
             current_row = connection.execute(
                 "SELECT version FROM egx_calendar_active_version WHERE singleton_id = 1"
@@ -300,6 +328,8 @@ class SQLiteSessionCalendarRepository:
                 ).fetchone()
                 if was_active is None:
                     raise ValueError("Rollback target must have been previously active")
+            if validate is not None:
+                validate(connection)
             connection.execute(
                 "UPDATE egx_calendar_active_version SET version = ? WHERE singleton_id = 1",
                 (target_version,),

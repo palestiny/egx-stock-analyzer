@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
-from app.application.clock import EGX_TIMEZONE, egx_today
+from app.application.market_data.session_calendar_store import SessionCalendarStore
+from app.application.clock import EGX_TIMEZONE
 from app.domain.technical_analysis.momentum import MomentumStatus
 from app.domain.technical_analysis.trend import TrendStatus
 from app.domain.technical_analysis.volume import VolumeStatus
@@ -38,6 +39,11 @@ class MarketBreadthSnapshot:
     latest_source_data_timestamp: datetime | None = None
     latest_source_data_date: date | None = None
     source_data_age_calendar_days_by_symbol: dict[str, int | None] | None = None
+    source_data_freshness_by_symbol: dict[str, str] | None = None
+    stale_source_data_symbols: tuple[str, ...] = ()
+    unknown_source_data_freshness_symbols: tuple[str, ...] = ()
+    source_data_freshness_status: str = "UNKNOWN"
+    freshness_calendar_version: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -122,6 +128,11 @@ class MarketBreadthSnapshot:
             "source_data_age_calendar_days_by_symbol": (
                 self.source_data_age_calendar_days_by_symbol or {}
             ),
+            "source_data_freshness_by_symbol": self.source_data_freshness_by_symbol or {},
+            "stale_source_data_symbols": list(self.stale_source_data_symbols),
+            "unknown_source_data_freshness_symbols": list(self.unknown_source_data_freshness_symbols),
+            "source_data_freshness_status": self.source_data_freshness_status,
+            "freshness_calendar_version": self.freshness_calendar_version,
             "methodology_version": "stress-heuristic-v1",
             "is_trading_signal": False,
             "methodology": "Stress is a heuristic: 50% downtrend share + 40% negative-momentum share + 10% negative-momentum-with-above-average-volume share. Percentages use analyzed symbols only.",
@@ -149,11 +160,21 @@ def _percent(numerator: int, denominator: int) -> str | None:
 @dataclass(frozen=True)
 class CalculateMarketBreadth:
     result_store: AnalysisResultStore
+    session_calendar_store: SessionCalendarStore | None = None
 
     def execute(
-        self, symbols: list[str], *, as_of_date: date | None = None
+        self,
+        symbols: list[str],
+        *,
+        as_of_date: date | None = None,
+        as_of: datetime | None = None,
     ) -> MarketBreadthSnapshot:
-        reference_date = as_of_date or egx_today()
+        evaluation_time = as_of or datetime.now(EGX_TIMEZONE)
+        if evaluation_time.tzinfo is None or evaluation_time.utcoffset() is None:
+            raise ValueError("as_of must be timezone-aware")
+        reference_date = as_of_date or evaluation_time.astimezone(EGX_TIMEZONE).date()
+        if as_of is None and as_of_date is not None:
+            evaluation_time = datetime.combine(reference_date, time.max, tzinfo=EGX_TIMEZONE)
         normalized = [symbol.strip().upper() for symbol in symbols if symbol.strip()]
         if not normalized:
             raise ValueError("At least one stock symbol is required")
@@ -277,6 +298,65 @@ class CalculateMarketBreadth:
             value for value in source_data_timestamps.values() if value is not None
         ]
 
+        freshness_by_symbol: dict[str, str] = {}
+        stale_source_symbols: list[str] = []
+        unknown_freshness_symbols: list[str] = []
+        freshness_calendar_version: str | None = None
+        active_calendar = (
+            self.session_calendar_store.get_active()
+            if self.session_calendar_store is not None
+            else None
+        )
+        calendar = active_calendar.calendar if active_calendar is not None else None
+        if active_calendar is not None:
+            freshness_calendar_version = active_calendar.version
+
+        for symbol in normalized:
+            source_date = source_data_dates.get(symbol)
+            source_timestamp = source_data_timestamps.get(symbol)
+            if source_date is None:
+                status = "UNKNOWN"
+            elif source_date > reference_date or (
+                source_timestamp is not None and source_timestamp > evaluation_time
+            ):
+                status = "FUTURE"
+            elif calendar is None:
+                status = "UNKNOWN"
+            else:
+                try:
+                    completed = calendar.completed_sessions_between(
+                        source_date, reference_date, as_of=evaluation_time
+                    )
+                    unconfirmed = calendar.unconfirmed_trading_sessions_between(
+                        source_date, reference_date
+                    )
+                    if completed:
+                        status = "STALE"
+                    elif unconfirmed:
+                        status = "UNKNOWN"
+                    else:
+                        status = "FRESH"
+                except (ValueError, RuntimeError):
+                    status = "UNKNOWN"
+            freshness_by_symbol[symbol] = status
+            if status == "STALE":
+                stale_source_symbols.append(symbol)
+            elif status in {"UNKNOWN", "FUTURE"}:
+                unknown_freshness_symbols.append(symbol)
+
+        known_freshness = [
+            value for value in freshness_by_symbol.values()
+            if value in {"FRESH", "STALE"}
+        ]
+        if not known_freshness:
+            source_data_freshness_status = "UNKNOWN"
+        elif missing or unknown_freshness_symbols:
+            source_data_freshness_status = "PARTIAL"
+        elif stale_source_symbols:
+            source_data_freshness_status = "STALE"
+        else:
+            source_data_freshness_status = "FRESH"
+
         return MarketBreadthSnapshot(
             requested_symbols=len(normalized),
             analyzed_symbols=analyzed,
@@ -308,4 +388,9 @@ class CalculateMarketBreadth:
                 max(known_source_dates) if known_source_dates else None
             ),
             source_data_age_calendar_days_by_symbol=source_data_age_calendar_days,
+            source_data_freshness_by_symbol=freshness_by_symbol,
+            stale_source_data_symbols=tuple(stale_source_symbols),
+            unknown_source_data_freshness_symbols=tuple(unknown_freshness_symbols),
+            source_data_freshness_status=source_data_freshness_status,
+            freshness_calendar_version=freshness_calendar_version,
         )

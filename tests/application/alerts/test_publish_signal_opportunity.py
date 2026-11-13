@@ -81,10 +81,15 @@ def test_changed_signal_evidence_creates_a_new_publication_event(tmp_path) -> No
 
     assert first is not None
     assert revised is not None
-    assert revised.signal_id == first.signal_id
+    assert revised.signal_id != first.signal_id
     assert revised.event_id != first.event_id
     assert revised.queued_new_event is True
-    assert history.history(first.signal_id)[-1].event == "PUBLISHED_VERSION"
+    assert history.history(first.signal_id)[-1].event == "PUBLISHED"
+    assert history.history(revised.signal_id)[-1].event == "PUBLISHED_VERSION"
+    revision_link = history.revision_link(revised.signal_id)
+    assert revision_link is not None
+    assert revision_link.parent_signal_id == first.signal_id
+    assert revision_link.revision_number == 2
     assert len(outbox.pending()) == 2
 
 
@@ -118,3 +123,34 @@ def test_only_active_signals_can_be_published(tmp_path) -> None:
             make_signal(status=SignalStatus.INVALIDATED),
             recorded_at=NOW,
         )
+
+
+def test_successive_material_changes_form_a_linear_revision_chain(tmp_path) -> None:
+    history = InMemorySignalHistoryStore()
+    publish = PublishSignalOpportunity(
+        history=history,
+        outbox=SQLiteAlertOutbox(tmp_path / "revision-chain.db"),
+    )
+    original = publish.execute(make_signal(), recorded_at=NOW)
+    first_revision = publish.execute(
+        make_signal(evidence="First evidence revision"),
+        recorded_at=NOW + timedelta(minutes=1),
+    )
+    second_revision = publish.execute(
+        replace(
+            make_signal(evidence="Second evidence revision"),
+            targets=(Target(Decimal("87"), "T1"),),
+        ),
+        recorded_at=NOW + timedelta(minutes=2),
+    )
+
+    assert original is not None
+    assert first_revision is not None
+    assert second_revision is not None
+    first_link = history.revision_link(first_revision.signal_id)
+    second_link = history.revision_link(second_revision.signal_id)
+    assert first_link is not None and second_link is not None
+    assert first_link.parent_signal_id == original.signal_id
+    assert first_link.revision_number == 2
+    assert second_link.parent_signal_id == first_revision.signal_id
+    assert second_link.revision_number == 3

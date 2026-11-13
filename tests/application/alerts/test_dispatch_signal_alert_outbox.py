@@ -177,6 +177,68 @@ def setup_dispatch(
     return dispatcher, outbox, deliveries, transport, event, history
 
 
+def test_correction_dispatch_targets_only_confirmed_original_recipients_and_bypasses_entitlement(tmp_path):
+    delivered_user = uuid4()
+    unknown_user = uuid4()
+    never_received_user = uuid4()
+    accounts = [
+        LinkedTelegramAccount(delivered_user, "chat-delivered"),
+        LinkedTelegramAccount(unknown_user, "chat-unknown"),
+        LinkedTelegramAccount(never_received_user, "chat-never"),
+    ]
+    dispatcher, outbox, deliveries, transport, original_event, history = setup_dispatch(
+        tmp_path, accounts, entitled_users=()
+    )
+
+    deliveries.create_pending(original_event.event_id, delivered_user, "telegram", now=NOW)
+    deliveries.mark_delivered(original_event.event_id, delivered_user, "telegram", now=NOW)
+    deliveries.create_pending(original_event.event_id, unknown_user, "telegram", now=NOW)
+    claim = uuid4()
+    assert deliveries.claim(
+        original_event.event_id,
+        unknown_user,
+        "telegram",
+        claim_token=claim,
+        now=NOW,
+        lease_until=NOW + timedelta(minutes=1),
+    )
+    assert deliveries.mark_sending(
+        original_event.event_id, unknown_user, "telegram", claim_token=claim, now=NOW
+    )
+    assert deliveries.mark_delivery_unknown(
+        original_event.event_id,
+        unknown_user,
+        "telegram",
+        "ambiguous original delivery",
+        claim_token=claim,
+        now=NOW,
+    )
+    outbox.mark_delivered(original_event.event_id, NOW)
+
+    correction = AlertEvent(
+        event_id=uuid4(),
+        signal_id=original_event.signal_id,
+        symbol=original_event.symbol,
+        event_type=AlertEventType.SIGNAL_CORRECTED,
+        occurred_at=NOW + timedelta(minutes=1),
+        message="The previously communicated status has been corrected.",
+        signal_snapshot=snapshot_signal(replace(make_signal(), status=SignalStatus.ACTIVE)),
+        recipient_user_ids=(delivered_user,),
+        correction_of_event_id=original_event.event_id,
+    )
+    outbox.publish(correction)
+
+    result = dispatcher.execute(now=NOW + timedelta(minutes=1))
+
+    assert result.recipients_delivered == 1
+    assert [chat_id for chat_id, _ in transport.sent] == ["chat-delivered"]
+    persisted = outbox.get(correction.event_id)
+    assert persisted is not None
+    assert persisted.event.recipient_user_ids == (delivered_user,)
+    assert deliveries.get(original_event.event_id, unknown_user, "telegram").status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
+    assert deliveries.get(original_event.event_id, never_received_user, "telegram") is None
+
+
 def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:
     entitled_user = uuid4()
     free_user = uuid4()

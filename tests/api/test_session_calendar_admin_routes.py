@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -8,9 +9,11 @@ from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.security.authentication import AuthenticationError
 from app.application.security.identity import AuthenticatedIdentity, Permission
+from app.application.security.credentials import StoredCredential, credential_lookup_key
 from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
 from app.infrastructure.persistence.filesystem_calendar_artifact_store import FileSystemCalendarArtifactStore
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
 from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import SQLiteCalendarPublicationUnitOfWork
 from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 from app.domain.identity.user import User, UserStatus
@@ -47,6 +50,15 @@ def make_client(tmp_path):
     store = SQLiteSessionCalendarRepository(database)
     evidence_repository = SQLiteCalendarEvidenceRepository(database)
     SQLiteUserStore(database).save(User(OPERATOR_USER_ID, UserStatus.ACTIVE))
+    SQLiteCredentialStore(database).create(
+        StoredCredential(
+            id=OPERATOR_CREDENTIAL_ID,
+            user_id=OPERATOR_USER_ID,
+            status="active",
+            created_at=datetime(2026, 11, 1, tzinfo=timezone.utc),
+        ),
+        credential_lookup_key(OPERATOR_TOKEN),
+    )
     artifact_service = CalendarArtifactService(
         FileSystemCalendarArtifactStore(tmp_path / "calendar-artifacts")
     )
