@@ -28,6 +28,9 @@ from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
 from app.infrastructure.persistence.sqlite_calendar_evidence_verification_store import (
     SQLiteCalendarEvidenceVerificationStore,
 )
+from app.infrastructure.persistence.sqlite_calendar_evidence_uploader_identity_resolver import (
+    SQLiteCalendarEvidenceUploaderIdentityResolver,
+)
 from app.infrastructure.persistence.sqlite_calendar_source_origin_registry import (
     SQLiteCalendarSourceOriginRegistry,
 )
@@ -93,6 +96,40 @@ def _database(tmp_path):
     stored_evidence = SQLiteCalendarEvidenceRepository(path).append(evidence)
     return path, actor_ids, creds, stored_evidence
 
+
+
+def test_uploader_identity_resolver_requires_the_original_active_operator_credential(tmp_path):
+    path, actor_ids, creds, evidence = _database(tmp_path)
+    resolver = SQLiteCalendarEvidenceUploaderIdentityResolver(path)
+
+    identity = resolver.resolve(evidence)
+
+    assert identity is not None
+    assert identity.user_id == actor_ids[0]
+    assert identity.credential_id == creds[0].id
+    assert Permission.OPERATOR in identity.permissions
+
+    legacy_evidence = CalendarEvidence.create(
+        calendar_version="auth-v1",
+        session_date=date(2026, 11, 13),
+        evidence_kind=CalendarEvidenceKind.CLOSURE,
+        source_type="OFFICIAL_NOTICE",
+        source_reference="https://official.example.test/legacy",
+        claim="Legacy evidence without credential provenance",
+        recorded_by=actor_ids[0],
+        observed_at=NOW,
+        recorded_at=NOW,
+        source_class=CalendarEvidenceSourceClass.A,
+        source_publisher="EGX",
+        market_scope="EGX_MARKET_WIDE",
+        effective_from=date(2026, 11, 13),
+        effective_through=date(2026, 11, 13),
+        retrieved_at=NOW,
+        artifact_sha256="c" * 64,
+        artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+        artifact_not_retained_reason="Legacy test",
+    )
+    assert resolver.resolve(legacy_evidence) is None
 
 def test_origin_registry_requires_configured_owner_and_active_durable_credential(tmp_path):
     path, actor_ids, creds, _ = _database(tmp_path)
