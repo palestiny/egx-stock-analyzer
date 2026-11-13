@@ -731,8 +731,8 @@ class SignalLifecycleOrchestrator:
             digest_payload = json.dumps({
                 "signal_id": str(signal_id),
                 "correction_id": str(correction_id),
-                "policy": "dec138-daily-ohlc-v1",
-                "calendar_version": correction.calendar_version,
+                "policy_versions": sorted({item.policy_version for item in ordered}),
+                "calendar_versions": sorted({item.calendar_version for item in ordered}),
                 "trace": trace,
             }, sort_keys=True, separators=(",", ":"))
             result = LifecycleCorrectionRebuildRecord(

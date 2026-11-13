@@ -7,16 +7,18 @@
 
 ## 0. Implementation status — 2026-11-13
 
-PR #515 now contains the core completed-daily-OHLC lifecycle path and tests for:
+PR #515 contains the completed-daily-OHLC lifecycle implementation, including:
 
-- Append-only SQLite daily-observation evidence with transactionally persisted lifecycle history and alert-outbox intent.
+- Append-only SQLite daily-observation evidence, transactionally persisted with lifecycle history and alert-outbox intent.
 - Idempotent replay, conflicting-payload and out-of-order rejection, and conservative same-candle dual-touch handling.
 - Calendar-gated eligibility using an explicitly closed session, close confirmation, and the accepted 60-minute post-close buffer.
 - Durable chronological recovery using the latest committed observation as the cursor; missing/unverified expected sessions create an append-only gap and stop advancement.
 - Expiry after 20 eligible EGX sessions, without creating a realized return/R record.
-- Immutable opportunity revision links and append-only correction intake records.
+- Immutable opportunity revision links and append-only correction intake, review, and rebuild records.
 
-**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. Exact-head CI is now verified on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six required jobs successful). PR #515 remains Draft and must not be merged or activated until the remaining operational gates pass.
+**Correction replay/rebuild — implementation complete in this PR:** a correction must have a latest `REPLAY_REQUIRED` review; unresolved sibling corrections block replay; the system rebuilds state from the publication baseline using the effective corrected candle set in chronological order; it records the corrected observation and an append-only rebuild audit record containing operator identity, previous/resulting status, observation count, and deterministic replay digest. A repeated rebuild request is idempotent. The rebuilt opportunity can accept later completed sessions. When a previously communicated lifecycle state changes, the prior unsent alert and its unsent recipient rows are superseded, while already delivered recipients receive a scoped corrective event; ambiguous `DELIVERY_UNKNOWN` recipients are not resent or treated as confirmed recipients. In-flight sends block the replay to avoid racing a correction against a network send.
+
+**Still not production-complete:** no production provider currently supplies an accepted finality attestation; no active deployment calendar version is available in the target deployment; no scheduled worker is wired; and the complete provider → calendar → lifecycle → Telegram → per-user history path has not passed deployment-level acceptance. These are separate activation gates, not missing correction-replay code. PR #515 remains Draft and unmerged; do not activate production monitoring until those gates pass.
 
 ## 1. Historical baseline before PR #515 (superseded by implementation updates below)
 
