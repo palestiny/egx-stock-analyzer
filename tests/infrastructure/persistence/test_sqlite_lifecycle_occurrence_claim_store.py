@@ -183,3 +183,32 @@ def test_claim_store_rejects_naive_time_and_invalid_lease(tmp_path):
         store.claim("occurrence-7", "worker-a", now=datetime(2026, 11, 13), lease_seconds=30)
     with pytest.raises(ValueError, match="positive integer"):
         store.claim("occurrence-7", "worker-a", now=NOW, lease_seconds=0)
+
+
+def test_claim_survives_store_restart_and_can_be_reclaimed_after_expiry(tmp_path):
+    database = tmp_path / "analysis.db"
+    first_store = SQLiteLifecycleOccurrenceClaimStore(database)
+    first_claim = first_store.claim(
+        "occurrence-restart", "worker-before-restart", now=NOW, lease_seconds=10
+    )
+    assert first_claim is not None
+
+    restarted_store = SQLiteLifecycleOccurrenceClaimStore(database)
+    persisted = restarted_store.get("occurrence-restart")
+    assert persisted is not None
+    assert persisted["owner_id"] == "worker-before-restart"
+    assert persisted["fencing_token"] == 1
+    assert persisted["attempt"] == 1
+    assert persisted["status"] == "CLAIMED"
+
+    assert restarted_store.claim(
+        "occurrence-restart",
+        "worker-after-restart",
+        now=NOW + timedelta(seconds=11),
+        lease_seconds=30,
+    ) is not None
+    recovered = restarted_store.get("occurrence-restart")
+    assert recovered is not None
+    assert recovered["owner_id"] == "worker-after-restart"
+    assert recovered["fencing_token"] == 2
+    assert recovered["attempt"] == 2
