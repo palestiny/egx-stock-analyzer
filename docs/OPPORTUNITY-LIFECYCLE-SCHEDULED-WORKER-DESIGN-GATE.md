@@ -384,5 +384,29 @@ The projection contract now separates the full latest opportunity state from the
 - Added an InMemory-store regression assertion that the latest active child revision carries its own `PUBLISHED_VERSION` publication identity, event, and exact Cairo-aware `recorded_at` value in the lightweight `SignalPublicationRecord`.
 - Added a SQLite projection assertion for the same publication timestamp, alongside the existing exact-one-full-Signal-deserialization assertion after reopening the on-disk database.
 - These checks cover the metadata contract required by bootstrap without materializing the publication Signal JSON. They do not establish runtime performance.
-- Latest code commits: `d02d0dae8db77294ca8a5459ac56f76cddf1781b` and `9e9be0434eb7ee8e640452a998b4a9f45bd489f9`. Exact-head CI and the refreshed 10k/50k/100k benchmark remain unverified; do not infer success from earlier workflow runs.
-- Performance acceptance remains **NOT ACCEPTED**. Scheduled worker, monitoring, calendar activation, provider outreach, and merge remain prohibited under the existing owner constraints.
+- Latest code commits: `d02d0dae8db77294ca8a5459ac56f76cddf1781b` and `9e9be0434eb7ee8e640452a998b4a9f45bd489f9`. Exact-head verification was pending at the time; Section 26 records the completed exact-head CI and benchmark evidence.
+- Performance acceptance remains **NOT ACCEPTED** pending the deployment-class/SLO gate described in Sections 19–20. Scheduled worker, monitoring, calendar activation, provider outreach, and merge remain prohibited under the existing owner constraints.
+
+## 26. Lightweight publication provenance — exact-head CI and benchmark result — 2026-11-13
+
+**Verified code head:** `18a422589dff5a73f9eb2c07a05e32a90cc88e48` on `feature/opportunity-lifecycle-completion`.
+
+**Exact-head CI:** workflow run [43483122010](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43483122010) completed successfully with **7/7 jobs**:
+- dependency audit, integration tests (Python 3.12), unit tests (Python 3.12), on-disk lifecycle projection benchmark, daily history audit report, container build, and frontend tests.
+- Unit test step: **1,862 passed, 8 deselected, 1 warning** in 195.94 seconds; total coverage **89.66%**, above the configured 85% threshold.
+- Benchmark artifact: [lifecycle-projection-benchmark](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43483122010/artifacts/14065862434), SHA-256 `c2e1da1cad3c78bca3daaa37a12dd842f8d0f392c458a500c55aeffa607df282`.
+- Environment: Linux x86_64, Python 3.12.16, SQLite 3.45.1; temporary on-disk SQLite; 7 warm samples, 2 warmups, 250 synthetic writer operations per scale. Reopened-store timing is not a physical cold-disk measurement.
+
+| Opportunity identities | Active published revisions | Warm P50 | Warm P95 | Concurrent-writer P50 | Concurrent-writer P95 |
+|---:|---:|---:|---:|---:|---:|
+| 10,000 | 9,000 | 305.704 ms | 310.949 ms | 316.573 ms | 359.958 ms |
+| 50,000 | 45,000 | 2,142.885 ms | 2,505.076 ms | 2,435.295 ms | 2,492.389 ms |
+| 100,000 | 90,000 | 4,913.149 ms | 5,018.057 ms | 4,898.057 ms | 4,967.759 ms |
+
+**Comparison:** against the original Section 18 warm-P50 baseline (424.255 / 2,412.082 / 5,731.262 ms), the new run is faster by **27.9% / 11.2% / 14.3%** at 10k / 50k / 100k. Against the immediately preceding SQL-side-filter run (Section 23: 398.1 / 2,954.4 / 6,097.1 ms), it is faster by **23.2% / 27.5% / 19.4%**. Concurrent-writer P50 is also faster than the original baseline by **25.2% / 1.8% / 14.3%** respectively. These are comparisons of synthetic benchmark runs, not production workload guarantees.
+
+The EXPLAIN plan continues to scan the projection index, perform the indexed revision-parent existence check, and use primary-key lookups for latest and publication rows. The benchmark's stage diagnostic still shows meaningful time in both SQLite fetch and latest-record deserialization; stage timings use separate measurement connections/cache states and are not additive attribution of end-to-end latency.
+
+**Decision:** correctness/CI verification for this exact head is **PASS**. The lightweight publication-provenance change has a measured improvement against both the original synthetic baseline and the immediately preceding SQL-side-filter run. However, overall **performance acceptance remains NOT ACCEPTED**: Sections 19–20 require an explicitly approved deployment class and a production-relevant SLO/acceptance target, neither of which has been established. Do not describe these synthetic results as production readiness or use them to authorize worker wiring/activation.
+
+PR #515 remains **OPEN + DRAFT**. The scheduled worker, monitoring, calendar activation, provider outreach, canonical market-data changes, and merge remain disabled/not authorized.
