@@ -16,6 +16,7 @@ from app.api.telegram_delivery_reconciliation_routes import create_telegram_deli
 from app.application.alerts.telegram_delivery_reconciliation import TelegramDeliveryReconciliationStore
 from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
+from app.api.calendar_source_authenticity_routes import create_calendar_source_authenticity_router
 from app.api.signal_lifecycle_correction_admin_routes import create_signal_lifecycle_correction_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
@@ -124,8 +125,13 @@ from app.application.subscriptions.store import SubscriptionStore
 from app.application.identity.user_store import UserStore
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.market_data.calendar_publication import CalendarPublicationUnitOfWork
+from app.application.market_data.review_calendar_evidence_authenticity import ReviewCalendarEvidenceAuthenticity
 from app.application.market_data.calendar_artifact_storage import CalendarArtifactService
+from app.application.market_data.calendar_source_authenticity import CalendarSourceAuthenticityVerifier
 from app.application.security.operator_access import OperatorAccessService
+from app.infrastructure.persistence.sqlite_calendar_source_origin_registry import SQLiteCalendarSourceOriginRegistry
+from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
+from app.infrastructure.persistence.sqlite_calendar_evidence_uploader_identity_resolver import SQLiteCalendarEvidenceUploaderIdentityResolver
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -185,6 +191,10 @@ def create_app(
     session_calendar_store: SessionCalendarStore | None = None,
     calendar_publication_uow: CalendarPublicationUnitOfWork | None = None,
     calendar_artifact_service: CalendarArtifactService | None = None,
+    calendar_source_origin_registry: SQLiteCalendarSourceOriginRegistry | None = None,
+    calendar_source_authenticity_verifier: CalendarSourceAuthenticityVerifier | None = None,
+    calendar_evidence_repository: SQLiteCalendarEvidenceRepository | None = None,
+    calendar_evidence_uploader_identity_resolver: SQLiteCalendarEvidenceUploaderIdentityResolver | None = None,
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
@@ -343,6 +353,24 @@ def create_app(
             artifact_service=calendar_artifact_service,
         )
     )
+
+    if (
+        calendar_source_origin_registry is not None
+        and calendar_source_authenticity_verifier is not None
+        and calendar_evidence_repository is not None
+        and calendar_evidence_uploader_identity_resolver is not None
+    ):
+        app.include_router(
+            create_calendar_source_authenticity_router(
+                origin_registry=calendar_source_origin_registry,
+                review_service=ReviewCalendarEvidenceAuthenticity(
+                    evidence_repository=calendar_evidence_repository,
+                    uploader_identity_resolver=calendar_evidence_uploader_identity_resolver,
+                    verifier=calendar_source_authenticity_verifier,
+                ),
+                require_individual_operator=require_individual_calendar_operator,
+            )
+        )
 
     app.include_router(
         create_signal_lifecycle_correction_admin_router(
