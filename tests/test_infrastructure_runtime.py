@@ -748,4 +748,49 @@ def test_runtime_composes_and_executes_durable_calendar_authenticity_workflow(tm
     persisted = runtime.calendar_evidence_verification_store.latest(UUID(evidence_id))
     assert persisted is not None
     assert persisted.decision.value == "VERIFIED"
+
+    # Exercise real SQLite-backed activation preflight: the external-only
+    # source is fetched again and a fresh proof is required at the decision time.
+    from datetime import datetime, timedelta, timezone
+
+    from app.application.market_data.calendar_source_authenticity import (
+        CalendarSourceAuthenticityError,
+    )
+
+    linked_evidence = runtime.calendar_evidence_repository.list_for_calendar_day(
+        "runtime-authenticity-v1", date(2026, 11, 13)
+    )
+    assert len(linked_evidence) == 1
+    evidence = linked_evidence[0]
+    preflight_at = datetime.now(timezone.utc) + timedelta(seconds=1)
+    refreshed = runtime.calendar_source_authenticity_verifier.revalidate_for_activation(
+        evidence, at=preflight_at
+    )
+    assert refreshed.decision.value == "VERIFIED"
+    assert refreshed.verified_at == preflight_at
+    assert runtime.calendar_source_authenticity_verifier.assert_preflight_verification(
+        evidence, at=preflight_at
+    ) == refreshed
+
+    # A changed source must not reuse the previous successful proof.
+    content = b"changed source bytes after independent review"
+    failed_preflight_at = preflight_at + timedelta(seconds=1)
+    try:
+        runtime.calendar_source_authenticity_verifier.revalidate_for_activation(
+            evidence, at=failed_preflight_at
+        )
+    except CalendarSourceAuthenticityError:
+        pass
+    else:
+        raise AssertionError("changed external-only source bytes must block activation preflight")
+
+    try:
+        runtime.calendar_source_authenticity_verifier.assert_preflight_verification(
+            evidence, at=failed_preflight_at
+        )
+    except CalendarSourceAuthenticityError:
+        pass
+    else:
+        raise AssertionError("a stale successful proof must not satisfy a failed fresh preflight")
+
     assert runtime.closed is True
