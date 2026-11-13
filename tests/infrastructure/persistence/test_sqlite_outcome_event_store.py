@@ -1,11 +1,34 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
+from app.domain.signals.model import SignalDirection
+from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.domain.signals.outcome_event import OutcomeCorrectionDecision, OutcomeEventKind
 from app.infrastructure.persistence.sqlite_outcome_event_store import SQLiteOutcomeEventStore
-from tests.application.signals.test_outcome_event_store import make_outcome
+
+
+def make_outcome(signal_id=None, *, exit_price="95"):
+    now = datetime(2026, 10, 10, 10, tzinfo=timezone.utc)
+    return SignalOutcomeRecord(
+        signal_id=signal_id or uuid4(),
+        symbol="EGAL",
+        outcome=SignalOutcome.INVALIDATED,
+        direction=SignalDirection.BUY,
+        observed_at=now,
+        entry_price=Decimal("100"),
+        exit_price=Decimal(exit_price),
+        realized_return=Decimal("-0.05"),
+        realized_r=Decimal("-1"),
+        invalidation=Decimal("95"),
+        target_label=None,
+        strategy_id="trend",
+        strategy_version="1",
+        data_timestamp=now,
+    )
 
 
 def test_sqlite_outcome_event_store_survives_restart_and_reconstructs_knowledge_time(tmp_path):
