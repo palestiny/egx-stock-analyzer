@@ -274,7 +274,7 @@ def test_lifecycle_session_recovery_does_not_advance_on_unverified_bar():
     service, history, lifecycle, publication, alerts, track_record = build_service(
         rejected_dates=(sessions[1],)
     )
-    bars = {session: make_bar(session) for session in sessions}
+    bars = {session: make_evidence(make_bar(session)) for session in sessions}
 
     result = service.execute(
         publication.signal_id,
@@ -297,12 +297,12 @@ def test_lifecycle_session_recovery_stops_after_target_transition():
     service, history, lifecycle, publication, alerts, track_record = build_service()
     sessions = expected_sessions()[:5]
     bars = {session: make_bar(session) for session in sessions}
-    bars[sessions[0]] = replace(
-        bars[sessions[0]],
+    bars[sessions[0]] = make_evidence(replace(
+        bars[sessions[0]].bar,
         high=Decimal("121"),
         close=Decimal("110"),
         source_reference="https://provider.example/COMI/target-hit",
-    )
+    ))
 
     result = service.execute(
         publication.signal_id,
