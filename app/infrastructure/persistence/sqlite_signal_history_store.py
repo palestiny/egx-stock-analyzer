@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from datetime import datetime
@@ -7,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.application.signals.store import SignalRecord, SignalHistoryStore
+from app.application.signals.store import SignalRecord, SignalHistoryStore, SignalRevisionLink
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -58,6 +59,41 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                     UNIQUE(signal_id, event, recorded_at),
                     FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id)
                 )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_revision_links (
+                    signal_id TEXT PRIMARY KEY,
+                    parent_signal_id TEXT NOT NULL,
+                    revision_number INTEGER NOT NULL,
+                    reason TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    parent_snapshot_sha256 TEXT NOT NULL,
+                    revised_snapshot_sha256 TEXT NOT NULL,
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    FOREIGN KEY(parent_signal_id) REFERENCES signal_identities(signal_id),
+                    CHECK(signal_id != parent_signal_id),
+                    CHECK(revision_number >= 2)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_signal_revision_links_no_update
+                BEFORE UPDATE ON signal_revision_links
+                BEGIN
+                    SELECT RAISE(ABORT, 'signal revision links are append-only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_signal_revision_links_no_delete
+                BEFORE DELETE ON signal_revision_links
+                BEGIN
+                    SELECT RAISE(ABORT, 'signal revision links are append-only');
+                END
                 """
             )
             connection.execute(
@@ -127,6 +163,133 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 (str(signal_id), event.strip(), recorded_at.isoformat(), payload),
             )
         return SignalRecord(signal_id, signal, recorded_at, event.strip())
+
+    def record_for_signal(
+        self,
+        signal_id: UUID,
+        signal: Signal,
+        event: str,
+        recorded_at: datetime,
+    ) -> SignalRecord:
+        if not event.strip():
+            raise ValueError("event is required")
+        self._require_aware(recorded_at, "recorded_at")
+        payload = self._serialize_signal(signal)
+        with self._connect() as connection:
+            identity = connection.execute(
+                "SELECT 1 FROM signal_identities WHERE signal_id = ?",
+                (str(signal_id),),
+            ).fetchone()
+            if identity is None:
+                raise ValueError("signal identity does not exist")
+            existing = connection.execute(
+                """
+                SELECT signal_json FROM signal_history
+                WHERE signal_id = ? AND event = ? AND recorded_at = ?
+                """,
+                (str(signal_id), event.strip(), recorded_at.isoformat()),
+            ).fetchone()
+            if existing is not None:
+                if str(existing[0]) != payload:
+                    raise ValueError("different signal event already recorded")
+                return SignalRecord(signal_id, signal, recorded_at, event.strip())
+            connection.execute(
+                """
+                INSERT INTO signal_history(signal_id, event, recorded_at, signal_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (str(signal_id), event.strip(), recorded_at.isoformat(), payload),
+            )
+        return SignalRecord(signal_id, signal, recorded_at, event.strip())
+
+    def record_revision(
+        self,
+        signal: Signal,
+        event: str,
+        recorded_at: datetime,
+        *,
+        parent_signal_id: UUID,
+        reason: str,
+    ) -> SignalRecord:
+        if not event.strip():
+            raise ValueError("event is required")
+        if not reason.strip():
+            raise ValueError("revision reason is required")
+        self._require_aware(recorded_at, "recorded_at")
+        parent = self.get(parent_signal_id)
+        if parent is None:
+            raise ValueError("parent signal identity does not exist")
+        if parent.signal.status is not SignalStatus.ACTIVE:
+            raise ValueError("terminal opportunities cannot be revised")
+
+        with self._connect() as connection:
+            parent_link = connection.execute(
+                "SELECT revision_number FROM signal_revision_links WHERE signal_id = ?",
+                (str(parent_signal_id),),
+            ).fetchone()
+            revision_number = (int(parent_link[0]) if parent_link else 1) + 1
+            signal_id = uuid4()
+            synthetic_identity_version = f"{signal.strategy_version}#revision-{signal_id}"
+            connection.execute(
+                """
+                INSERT INTO signal_identities(
+                    signal_id, symbol, strategy_id, strategy_version, generated_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(signal_id),
+                    signal.symbol.strip().upper(),
+                    signal.strategy_id,
+                    synthetic_identity_version,
+                    signal.generated_at.isoformat(),
+                ),
+            )
+            payload = self._serialize_signal(signal)
+            parent_payload = self._serialize_signal(parent.signal)
+            connection.execute(
+                """
+                INSERT INTO signal_history(signal_id, event, recorded_at, signal_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (str(signal_id), event.strip(), recorded_at.isoformat(), payload),
+            )
+            connection.execute(
+                """
+                INSERT INTO signal_revision_links(
+                    signal_id, parent_signal_id, revision_number, reason, recorded_at,
+                    parent_snapshot_sha256, revised_snapshot_sha256
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    str(signal_id),
+                    str(parent_signal_id),
+                    revision_number,
+                    reason.strip(),
+                    recorded_at.isoformat(),
+                    hashlib.sha256(parent_payload.encode("utf-8")).hexdigest(),
+                    hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+                ),
+            )
+        return SignalRecord(signal_id, signal, recorded_at, event.strip())
+
+    def revision_link(self, signal_id: UUID) -> SignalRevisionLink | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT signal_id, parent_signal_id, revision_number, reason, recorded_at
+                FROM signal_revision_links WHERE signal_id = ?
+                """,
+                (str(signal_id),),
+            ).fetchone()
+        if row is None:
+            return None
+        return SignalRevisionLink(
+            signal_id=UUID(str(row[0])),
+            parent_signal_id=UUID(str(row[1])),
+            revision_number=int(row[2]),
+            reason=str(row[3]),
+            recorded_at=datetime.fromisoformat(str(row[4])),
+        )
 
     def get(self, signal_id: UUID) -> SignalRecord | None:
         with self._connect() as connection:
