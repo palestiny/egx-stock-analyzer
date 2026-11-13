@@ -27,6 +27,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
     ) -> None:
         super().__init__(hostname, port=443, timeout=timeout, context=context)
         self._pinned_address = address
+        self._calendar_ssl_context = context
 
     def connect(self) -> None:
         raw = socket.create_connection(
@@ -34,7 +35,7 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
             timeout=self.timeout,
         )
         try:
-            self.sock = self._context.wrap_socket(
+            self.sock = self._calendar_ssl_context.wrap_socket(
                 raw,
                 server_hostname=self.host,
             )
@@ -109,10 +110,11 @@ class HTTPSCalendarSourceArtifactRetriever:
             )
             response = connection.getresponse()
             location = response.getheader("Location")
-            if response.status in {301, 302, 303, 307, 308} and location:
-                redirect_urls = (location,)
-            else:
-                redirect_urls = ()
+            redirect_urls: tuple[str, ...] = (
+                (location,)
+                if response.status in {301, 302, 303, 307, 308} and location
+                else ()
+            )
             content = response.read(self._max_response_bytes + 1)
             if len(content) > self._max_response_bytes:
                 raise CalendarSourceAuthenticityError(
