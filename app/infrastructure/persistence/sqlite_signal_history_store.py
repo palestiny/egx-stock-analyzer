@@ -108,6 +108,12 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 ON signal_identities(symbol)
                 """
             )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_signal_revision_parent
+                ON signal_revision_links(parent_signal_id)
+                """
+            )
 
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord:
         if not event.strip():
@@ -399,6 +405,43 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 """
             ).fetchall()
         return tuple(self._to_record(row) for row in rows)
+
+    def latest_active_published_opportunities(self) -> tuple[PublishedOpportunityRevision, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    latest.signal_id, latest.event, latest.recorded_at, latest.signal_json,
+                    publication.signal_id, publication.event,
+                    publication.recorded_at, publication.signal_json
+                FROM signal_history AS latest
+                JOIN (
+                    SELECT signal_id, MAX(id) AS latest_id
+                    FROM signal_history
+                    GROUP BY signal_id
+                ) AS current ON current.latest_id = latest.id
+                JOIN signal_history AS publication
+                  ON publication.id = (
+                    SELECT MIN(p.id)
+                    FROM signal_history AS p
+                    WHERE p.signal_id = latest.signal_id
+                      AND p.event IN ('PUBLISHED', 'PUBLISHED_VERSION')
+                  )
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM signal_revision_links AS revision
+                    WHERE revision.parent_signal_id = latest.signal_id
+                )
+                ORDER BY latest.signal_id ASC
+                """
+            ).fetchall()
+        candidates: list[PublishedOpportunityRevision] = []
+        for row in rows:
+            latest = self._to_record(row[:4])
+            if latest.signal.status.value != "ACTIVE":
+                continue
+            publication = self._to_record(row[4:8])
+            candidates.append(PublishedOpportunityRevision(latest=latest, publication=publication))
+        return tuple(candidates)
 
     @staticmethod
     def _require_aware(value: datetime, field_name: str) -> None:
