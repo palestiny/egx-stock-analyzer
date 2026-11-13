@@ -3,7 +3,12 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.signals.lifecycle import SignalMarketState, transition_signal
+from app.domain.signals.lifecycle import (
+    CompletedDailyBarObservation,
+    SignalMarketState,
+    transition_signal,
+    transition_signal_from_completed_daily_bar,
+)
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -104,10 +109,6 @@ def test_market_state_rejects_data_timestamp_after_observation() -> None:
         SignalMarketState(observed_at, Decimal("100"), future_data)
 
 
-from app.domain.signals.lifecycle import (
-    CompletedDailyBarObservation,
-    transition_signal_from_completed_daily_bar,
-)
 
 
 def completed_bar(*, high="110", low="98", direction_symbol="COMI", final=True):
@@ -118,6 +119,8 @@ def completed_bar(*, high="110", low="98", direction_symbol="COMI", final=True):
         candle_at=datetime(2026, 10, 4, tzinfo=timezone.utc),
         observed_at=datetime(2026, 10, 4, 16, tzinfo=timezone.utc),
         revision="r1",
+        source_reference="https://provider.example/daily/COMI/2026-10-04",
+        finality_attestation="provider-final-bar-v1",
         is_final=final,
         open=Decimal("100"),
         high=Decimal(high),
@@ -150,9 +153,9 @@ def test_completed_daily_bar_invalidation_wins_when_both_levels_touched():
 def test_completed_daily_bar_sell_direction_uses_low_for_target_and_high_for_stop():
     signal = make_signal(SignalDirection.SELL)
     result = transition_signal_from_completed_daily_bar(
-        signal, completed_bar(high="105", low="90")
+        signal, completed_bar(high="104", low="90")
     )
-    assert result.status is SignalStatus.INVALIDATED
+    assert result.status is SignalStatus.TRIGGERED
 
 
 def test_completed_daily_bar_requires_provider_finality_and_valid_ohlc():
@@ -183,6 +186,8 @@ def test_completed_daily_bar_identity_is_stable_and_normalized():
         candle_at=first.candle_at,
         observed_at=first.observed_at,
         revision="r1",
+        source_reference="https://provider.example/daily/COMI/2026-10-04",
+        finality_attestation="provider-final-bar-v1",
         is_final=True,
         open=first.open,
         high=first.high,
