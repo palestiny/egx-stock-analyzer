@@ -3,8 +3,6 @@ from decimal import Decimal
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-import pytest
-
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.evaluate_completed_daily_bar import EvaluateCompletedDailyBar
 from app.domain.market_data.session_calendar import (
