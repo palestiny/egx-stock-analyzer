@@ -100,6 +100,37 @@ The existing signal-alert outbox's ambiguous Telegram outcomes must remain conse
 - Dispatch identity is per report revision and recipient. Reconciliation of an ambiguous delivery must not trigger blind resend.
 - Entitlement and recipient eligibility are evaluated at a documented point in the dispatch flow and rechecked where required by the existing delivery contract.
 
+## 6.1 Verified correction-lineage gap (design proposal only)
+
+Repository inspection on 2026-11-13 confirms the current persistence contracts are intentionally immutable but do not yet model corrections:
+
+- `TrackRecordStore` exposes one `SignalOutcomeRecord` per `signal_id`. The SQLite implementation uses `signal_id` as the primary key; an identical replay is a no-op and a different payload for that signal is rejected.
+- `SignalOutcomeRecord` has no correction/revision identity, predecessor link, correction reason, or correcting-actor metadata.
+- `SQLiteSessionOpportunityReportStore` identifies a snapshot by `(session_date, methodology_version, generated_at)`. It accepts an identical replay and rejects different content for the same identity. It has no explicit report-revision or supersedes relationship.
+- Consequently, the current behavior is safe against silent overwrite, but an operator cannot append a corrected outcome for the same signal and publish a traceable corrected report under a distinct revision identity.
+
+### Proposed model — not approved for implementation
+
+1. Preserve each original outcome and report snapshot as immutable records.
+2. Introduce an append-only outcome-revision identity, separate from `signal_id`, with at minimum: revision ID, signal ID, monotonically assigned revision number, optional superseded revision ID, correction reason, recorded-at timestamp, and the complete validated outcome payload including source-data provenance.
+3. Require correction authority/actor provenance to be explicit. Do not infer an actor from an API token or use a generic system identity until the operator authorization and audit contract is specified.
+4. Resolve the effective outcome revision as-of a report cutoff using the revision's recorded-at time; retain both source observation time and correction-recorded time. This prevents a later correction from rewriting what an earlier report knew.
+5. Give each report snapshot an explicit revision ID and predecessor/supersedes link. Keep the existing session/methodology/cutoff identity as occurrence context, not as the sole identity for corrected content.
+6. A corrected report must reference the exact outcome revision set it used, explain what changed, and never update the original snapshot in place. Delivery of corrections remains separately gated by the unresolved audience, entitlement, and duplicate-delivery policy.
+
+### Decisions still required before implementation
+
+- Who may authorize an outcome correction, and what durable actor identity is recorded?
+- Is a correction a new revision of the original outcome, a retraction followed by a replacement, or both depending on error type?
+- How are competing corrections serialized and how is the effective revision selected when corrections arrive out of order?
+- Does a correction to an old signal trigger a new report for the original session, a current-session correction notice, or both?
+- Which subscribers receive corrections, and what happens when entitlement has changed since the original report?
+- How are ambiguous Telegram delivery outcomes reconciled without duplicate sends?
+
+**Gate:** The proposal is a design finding only. Do not change the current one-outcome-per-signal or immutable-snapshot contracts until these decisions are approved. Do not add correction delivery or activate scheduling as part of this gap closure.
+
+---
+
 ## 7. Required verification before acceptance
 
 ### Domain and policy
