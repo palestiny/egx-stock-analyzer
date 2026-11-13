@@ -205,3 +205,11 @@ The JSON report includes database size, first-query and reopened-store timings, 
 **Measurement caveat:** reopened-store timing is a process/store-initialization approximation. It does not flush the operating-system page cache and must not be described as a physical cold-disk measurement. Percentiles are diagnostic samples, not production SLOs.
 
 **Status:** BENCHMARK HARNESS IMPLEMENTED / MEASURED ACCEPTANCE RUN PENDING. Do not mark projection performance accepted until the harness is executed on the intended deployment class, its JSON artifact is reviewed, and query-plan/index behavior plus P50/P95 under writer pressure are assessed. This does not authorize worker wiring or activation.
+
+## 17. Automated pull-request benchmark execution — 2026-11-13
+
+The existing pull-request CI workflow now includes a dedicated on-disk projection benchmark job. It runs the harness at 10,000, 50,000, and 100,000 synthetic opportunity identities, with seven measured samples, two warmups, and 250 synthetic concurrent-writer operations per scale. The generated JSON is uploaded as a 30-day GitHub Actions artifact.
+
+The benchmark uses only temporary synthetic SQLite databases and does not read or mutate the canonical market-data archive. The job is diagnostic and does not activate or compose the lifecycle worker.
+
+**Status:** CI wiring committed; exact-head workflow validation and the first complete benchmark artifact are pending. Performance acceptance remains pending until the artifact is reviewed against an explicitly approved deployment class and its P50/P95/query-plan behavior is assessed.
