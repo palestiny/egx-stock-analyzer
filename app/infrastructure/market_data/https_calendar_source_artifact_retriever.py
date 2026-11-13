@@ -65,7 +65,7 @@ class HTTPSCalendarSourceArtifactRetriever:
         self._ssl_context = ssl.create_default_context()
 
     def retrieve(self, url: str) -> RetrievedCalendarSourceArtifact:
-        origin = normalize_calendar_source_origin(url)
+        normalize_calendar_source_origin(url)
         parsed = urlsplit(url)
         hostname = parsed.hostname
         if hostname is None:
