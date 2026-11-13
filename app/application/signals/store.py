@@ -106,6 +106,13 @@ class InMemorySignalHistoryStore:
             raise ValueError("parent signal identity does not exist")
         if parent.signal.status.value != "ACTIVE":
             raise ValueError("terminal opportunities cannot be revised")
+        if (
+            parent.signal.symbol.strip().upper() != signal.symbol.strip().upper()
+            or parent.signal.strategy_id != signal.strategy_id
+            or parent.signal.strategy_version != signal.strategy_version
+            or parent.signal.generated_at != signal.generated_at
+        ):
+            raise ValueError("revision must preserve the parent opportunity identity")
         if not reason.strip():
             raise ValueError("revision reason is required")
         parent_link = self._revision_links.get(parent_signal_id)
