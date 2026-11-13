@@ -53,7 +53,10 @@ def make_uow(database):
     history = SQLiteSignalHistoryStore(database)
     track_record = SQLiteTrackRecordStore(database)
     outbox = SQLiteAlertOutbox(database)
-    return SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox), history
+    claim_store = SQLiteLifecycleOccurrenceClaimStore(database)
+    return SQLiteSignalLifecycleUnitOfWork(
+        history, track_record, outbox, occurrence_claim_store=claim_store
+    ), history
 
 
 def test_occurrence_identity_is_stable_and_scoped_to_calendar_session_and_opportunity():
@@ -322,3 +325,36 @@ def test_renew_rejects_naive_time_and_invalid_lease(tmp_path):
         store.renew(claim, now=datetime(2026, 11, 13), lease_seconds=10)
     with pytest.raises(ValueError, match="positive integer"):
         store.renew(claim, now=NOW + timedelta(seconds=1), lease_seconds=0)
+
+
+def test_unit_of_work_rejects_claim_store_on_a_different_database(tmp_path):
+    database = tmp_path / "lifecycle.db"
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    wrong_claim_store = SQLiteLifecycleOccurrenceClaimStore(tmp_path / "claims.db")
+
+    with pytest.raises(ValueError, match="share the lifecycle SQLite database"):
+        SQLiteSignalLifecycleUnitOfWork(
+            history, track_record, outbox, occurrence_claim_store=wrong_claim_store
+        )
+
+
+def test_execute_claimed_requires_explicit_database_bound_claim_store(tmp_path):
+    database = tmp_path / "lifecycle.db"
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+
+    claim = SQLiteLifecycleOccurrenceClaimStore(database).claim(
+        "occurrence-no-bound-store", "worker-a", now=NOW, lease_seconds=30
+    )
+    assert claim is not None
+
+    with pytest.raises(RuntimeError, match="requires an occurrence claim store"):
+        unit_of_work.execute_claimed(
+            claim,
+            lambda transaction: transaction.record_signal(make_signal(), "CREATED", NOW),
+            clock=lambda: NOW + timedelta(seconds=1),
+        )
