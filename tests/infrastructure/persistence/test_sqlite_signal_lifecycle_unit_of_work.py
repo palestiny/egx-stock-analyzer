@@ -525,6 +525,7 @@ def test_sqlite_correction_is_append_only_and_does_not_rewrite_lifecycle_outcome
     )
 
     assert replay == correction
+    assert correction.status == "RECORDED_NOT_REEVALUATED"
     assert orchestrator.lifecycle_corrections(published.signal_id) == (correction,)
     original = orchestrator.latest_completed_observation(published.signal_id)
     assert original.bar.revision == "r1"
