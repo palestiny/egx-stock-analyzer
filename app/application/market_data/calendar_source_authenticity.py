@@ -247,6 +247,11 @@ class CalendarSourceAuthenticityVerifier:
             raise CalendarSourceAuthenticityError(
                 "A reason is required when an independent reviewer rejects the evidence claim"
             )
+        normalized_review_reason = (
+            review_reason.strip()
+            if review_reason is not None
+            else "Independent reviewer confirmed the exact claim against bytes retrieved from the owner-approved origin"
+        )
         if evidence.artifact_sha256 is None or evidence.source_publisher is None:
             raise CalendarSourceAuthenticityError("Evidence lacks required source and artifact metadata")
 
@@ -303,12 +308,7 @@ class CalendarSourceAuthenticityVerifier:
             reviewed_claim_sha256=_claim_digest(evidence),
             method_version=self.METHOD_VERSION,
             verified_at=timestamp,
-            reason=(
-                (review_reason.strip() if review_reason else
-                 "Independent reviewer confirmed the exact claim against bytes retrieved from the owner-approved origin")
-                if claim_supported
-                else review_reason.strip()
-            ),
+            reason=normalized_review_reason,
         )
         self._records.append(record)
         return record
