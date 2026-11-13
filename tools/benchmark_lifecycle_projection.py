@@ -229,6 +229,38 @@ def _concurrent_writer(
         connection.close()
 
 
+def _measure_projection_stages(database: Path, samples: int) -> dict[str, object]:
+    """Separate SQLite fetch cost from JSON/domain-object materialization cost."""
+    query_samples: list[float] = []
+    materialization_samples: list[float] = []
+    row_count = 0
+    active_count = 0
+    connection = sqlite3.connect(database)
+    try:
+        for _ in range(samples):
+            started = perf_counter()
+            rows = connection.execute(PROJECTION_SQL).fetchall()
+            query_samples.append((perf_counter() - started) * 1000)
+            row_count = len(rows)
+
+            started = perf_counter()
+            active_count = 0
+            for row in rows:
+                latest = SQLiteSignalHistoryStore._to_record(row[:4])
+                if latest.signal.status is SignalStatus.ACTIVE:
+                    SQLiteSignalHistoryStore._to_record(row[4:8])
+                    active_count += 1
+            materialization_samples.append((perf_counter() - started) * 1000)
+    finally:
+        connection.close()
+    return {
+        "candidate_rows": row_count,
+        "active_rows": active_count,
+        "sqlite_fetch": _percentiles(query_samples),
+        "deserialize_and_filter": _percentiles(materialization_samples),
+    }
+
+
 def benchmark_size(
     opportunity_count: int,
     *,
@@ -281,7 +313,12 @@ def benchmark_size(
     if reopened_count != expected_active:
         raise AssertionError("projection result changed after database reopen")
 
+    stage_breakdown = _measure_projection_stages(database, samples)
+    if stage_breakdown["active_rows"] != expected_active:
+        raise AssertionError("stage breakdown active count differs from expected result")
+
     return {
+        "stage_breakdown": stage_breakdown,
         "opportunity_identities": opportunity_count,
         "expected_active_published_revisions": expected_active,
         "database_bytes": database.stat().st_size,
