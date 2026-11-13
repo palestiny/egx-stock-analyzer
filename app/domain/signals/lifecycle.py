@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.domain.signals.model import Signal, SignalStatus
@@ -59,6 +59,8 @@ class CompletedDailyBarObservation:
         ):
             if value.tzinfo is None or value.utcoffset() is None:
                 raise ValueError(f"{name} must be timezone-aware")
+        object.__setattr__(self, "candle_at", self.candle_at.astimezone(timezone.utc))
+        object.__setattr__(self, "observed_at", self.observed_at.astimezone(timezone.utc))
         if self.candle_at > self.observed_at:
             raise ValueError("candle timestamp cannot be later than observation")
         for name, value in (
