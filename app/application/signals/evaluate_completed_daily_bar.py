@@ -53,11 +53,6 @@ class EvaluateCompletedDailyBar:
     ) -> CompletedDailyBarEvaluation:
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
-        if bar.observed_at > evaluated_at:
-            return CompletedDailyBarEvaluation(
-                False, "OBSERVATION_FROM_FUTURE", None
-            )
-
         active = self._calendar_store.get_active()
         if active is None:
             return CompletedDailyBarEvaluation(
@@ -100,6 +95,11 @@ class EvaluateCompletedDailyBar:
         ):
             return CompletedDailyBarEvaluation(
                 False, "POST_CLOSE_BUFFER_NOT_ELAPSED", active.version
+            )
+
+        if bar.observed_at > evaluated_at:
+            return CompletedDailyBarEvaluation(
+                False, "OBSERVATION_FROM_FUTURE", active.version
             )
 
         if not self._finality_verifier.verify_finality(bar):
