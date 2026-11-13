@@ -26,9 +26,18 @@ class SignalRecord:
 
 
 @dataclass(frozen=True)
+class SignalPublicationRecord:
+    """Minimal immutable provenance for the first publication of an opportunity."""
+
+    signal_id: UUID
+    recorded_at: datetime
+    event: str
+
+
+@dataclass(frozen=True)
 class PublishedOpportunityRevision:
     latest: SignalRecord
-    publication: SignalRecord
+    publication: SignalPublicationRecord
 
 
 class SignalHistoryStore(Protocol):
@@ -215,5 +224,14 @@ class InMemorySignalHistoryStore:
                 None,
             )
             if publication is not None:
-                candidates.append(PublishedOpportunityRevision(latest=latest, publication=publication))
+                candidates.append(
+                    PublishedOpportunityRevision(
+                        latest=latest,
+                        publication=SignalPublicationRecord(
+                            signal_id=publication.signal_id,
+                            recorded_at=publication.recorded_at,
+                            event=publication.event,
+                        ),
+                    )
+                )
         return tuple(candidates)
