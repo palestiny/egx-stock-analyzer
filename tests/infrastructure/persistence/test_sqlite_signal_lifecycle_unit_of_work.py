@@ -349,7 +349,7 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         unit_of_work=unit_of_work,
     )
     first_bar = make_completed_bar()
-    first = orchestrator.process_completed_daily_bar(first_bar)
+    first = orchestrator.process_completed_daily_bar(first_bar, calendar_version="calendar-v1")
     assert first is not None and first.changed is False
 
     reopened_history = SQLiteSignalHistoryStore(database)
@@ -365,7 +365,7 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         unit_of_work=reopened_uow,
     )
     replay = reopened.process_completed_daily_bar(
-        make_completed_bar(observed_hour=17)
+        make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
     )
 
     assert replay is not None
@@ -394,6 +394,7 @@ def test_sqlite_daily_observation_ledger_rolls_back_with_lifecycle_transaction(t
                 signal_id=created.signal_id,
                 bar=bar,
                 policy_version="dec138-daily-ohlc-v1",
+                calendar_version="calendar-v1",
                 resulting_status=SignalStatus.ACTIVE,
             )
         )
