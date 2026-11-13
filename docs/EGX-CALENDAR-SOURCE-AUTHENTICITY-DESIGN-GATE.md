@@ -1,6 +1,6 @@
 # EGX Calendar Source Authenticity — Approved Design Gate
 
-**Status:** OWNER DECISIONS APPROVED — first implementation slice committed; activation gate not yet wired  
+**Status:** OWNER DECISIONS APPROVED — verifier, refetch transport, activation preflight, owner trust API, and separate reviewer API implemented; production trust anchors remain empty  
 **Approved:** 2026-11-13  
 **Related proposal:** `docs/EGX-CALENDAR-SOURCE-AUTHENTICITY-OWNER-DECISION-PROPOSAL.md`
 
@@ -59,9 +59,14 @@ The approved-origin registry is exact-origin only: scheme + canonical hostname +
 
 ## 5. Implemented in this slice
 
-- `app/application/market_data/calendar_source_authenticity.py`: typed trust/verification records, strict URL-origin normalization, independent-operator checks, initial verification, archived-byte comparison, and EXTERNAL_ONLY activation-time re-fetch contract.
+- `app/application/market_data/calendar_source_authenticity.py`: typed trust/verification records, strict URL-origin normalization, independent-operator checks, initial verification, archived-byte comparison, EXTERNAL_ONLY activation-time re-fetch, and explicit VERIFIED/REJECTED reviewer outcomes.
 - `app/infrastructure/persistence/sqlite_calendar_source_origin_registry.py`: owner-bound exact-origin approval/revocation history with append-only triggers.
-- `app/infrastructure/persistence/sqlite_calendar_evidence_verification_store.py`: append-only persisted verification outcomes.
+- `app/infrastructure/persistence/sqlite_calendar_evidence_verification_store.py`: append-only persisted verification outcomes; uploader and reviewer must both retain active individual operator credentials.
+- `app/infrastructure/market_data/https_calendar_source_artifact_retriever.py`: direct HTTPS retrieval with certificate validation, pinned public-IP connection, mixed/private DNS answer rejection, no implicit redirects, bounded response size, and connection timeout.
+- `app/infrastructure/persistence/sqlite_calendar_evidence_uploader_identity_resolver.py` and `app/application/market_data/review_calendar_evidence_authenticity.py`: resolve the original uploader from immutable evidence provenance and require a different active operator to review.
+- `app/api/calendar_source_authenticity_routes.py`: owner-only exact-origin approve/revoke/audit endpoints and a separate individual-operator evidence-review endpoint. There is no calendar activation endpoint in this router.
+- Runtime composition creates these services only when `EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID` is explicitly configured. The variable is unset by default; no origin is seeded or pre-approved.
+- Activation validator performs external re-fetch before the coordinator's SQLite write transaction, then checks the persisted preflight proof and current trust-registry version inside the atomic transaction. Failed preflight cannot change the active pointer or activation audit.
 - `CalendarEvidence.recorded_by_credential_id`: captures the uploader's durable credential for new evidence.
 - `SQLiteCalendarEvidenceRepository`: additive nullable migration and canonical digest inclusion for new credential-bound records while preserving legacy record hashes.
 - `CalendarArtifactService.read_verified`: reads the artifact once and returns bytes only after digest verification.
@@ -69,12 +74,12 @@ The approved-origin registry is exact-origin only: scheme + canonical hostname +
 
 ## 6. Remaining blockers before this gate can pass
 
-1. Implement and test the production HTTPS retriever. It must validate TLS, reject redirects, enforce response-size/time limits, and defend against DNS/IP-based SSRF; no unsafe generic URL fetcher may be used.
-2. Wire the verifier and persisted verification store into the calendar activation validator so every unsuperseded Class A claim required by the evidence matrix must pass `revalidate_for_activation`. Missing verifier configuration must block activation.
-3. Ensure evidence publication captures uploader credential provenance for every new operational evidence record; legacy records without it remain blocked until replaced through a new attributable evidence record.
-4. Add an authenticated, owner-only review workflow for approving/revoking exact origins and a separate reviewer workflow for claim review. Do not expose a route until owner identity and reviewer credential checks are proven in runtime composition.
-5. Add exact-head tests for the complete production composition and prove a missing/unapproved origin or missing verification record leaves active calendar pointer and activation audit unchanged.
-6. Define and verify deployment configuration for the retriever, durable origin registry, verification store, and artifact storage.
+1. Set the configured owner identity explicitly in deployment only after confirming the intended owner account; until then `EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID` remains unset and trust-management routes are not composed.
+2. The owner must separately approve each exact origin with a documented trust basis. The registry is empty by default; engineering has not approved EGX, FRA, subdomains, or any vendor domain.
+3. Complete a production-composition test using the real durable bearer-token authenticator, operator grant store, evidence repository, origin registry, verification store, and HTTPS retriever. Current route tests use isolated API composition and a deterministic fake retriever.
+4. Validate the HTTPS retriever against the deployment's outbound network policy and TLS/proxy environment without contacting EGID or any data provider as part of this work.
+5. Establish source-specific retention/reuse permission and deployment backup/restore/capacity procedures. Authenticity does not grant legal retention rights.
+6. Keep Provider Finality, calendar bootstrap/recovery, deployment recovery, and exact-head CI as independent activation blockers.
 
 No origin is approved by this design. Therefore the verifier has no usable production trust anchor today.
 
@@ -89,3 +94,15 @@ No origin is approved by this design. Therefore the verifier has no usable produ
 - PR #515 remains Draft and must not be merged or marked ready without explicit owner approval.
 
 **Gate result:** PARTIAL IMPLEMENTATION — NOT READY FOR ACTIVATION.
+
+
+## 8. Follow-up implementation status — 2026-11-13
+
+- The approved Option-B design is now represented end-to-end in application services and persistence: owner-governed exact-origin trust, independent reviewer identity resolution, immutable VERIFIED/REJECTED decisions, direct bounded HTTPS refetch, and activation-time proof checking.
+- Owner trust routes are composed only when an explicit owner UUID is configured. The default runtime leaves them absent and the trust registry empty. No production owner UUID or source origin has been configured by this change.
+- The independent reviewer route is available to a different individually authenticated operator; the application resolves the original uploader from immutable evidence provenance rather than accepting uploader identity from the request.
+- Origin approval/revocation events are append-only, owner-attributed, serialized with BEGIN IMMEDIATE, and reject duplicate active approvals or out-of-order event timestamps.
+- The activation preflight performs network retrieval outside the activation write transaction; the transaction then verifies the matching preflight record, evidence digest/claim digest, exact source origin, and current trust version. This implementation does not expose an activation API.
+- Tests cover the reviewer and owner API boundaries, uploader/reviewer separation, rejection records, exact-origin matching, trust event ordering, bounded HTTPS transport, and empty-by-default runtime composition.
+
+**Current result:** IMPLEMENTATION SLICE COMPLETE IN CODE; production authenticity is NOT ESTABLISHED because no origin has been approved and no actual EGX evidence has been independently reviewed. No provider outreach, calendar activation, worker, or monitoring is authorized or enabled. Exact-head CI remains the final verification for the current code head.
