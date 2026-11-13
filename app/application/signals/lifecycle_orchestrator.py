@@ -132,6 +132,7 @@ class SignalLifecycleOrchestrator:
 
     def process_completed_daily_bar(
         self,
+        signal_id: UUID,
         bar: CompletedDailyBarObservation,
         *,
         calendar_version: str,
@@ -148,9 +149,11 @@ class SignalLifecycleOrchestrator:
             raise ValueError("calendar_version is required")
 
         def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
-            latest = transaction.latest(bar.symbol)
+            latest = transaction.latest_for_signal(signal_id)
             if latest is None:
                 return None
+            if latest.signal.symbol.strip().upper() != bar.symbol.strip().upper():
+                raise ValueError("daily candle symbol does not match opportunity")
             if latest.event not in {"PUBLISHED", "PUBLISHED_VERSION"}:
                 return None
             if latest.signal.status is not SignalStatus.ACTIVE:
@@ -162,7 +165,7 @@ class SignalLifecycleOrchestrator:
                     alert_published=False,
                 )
 
-            existing = transaction.get_observation(bar.identity)
+            existing = transaction.get_observation(signal_id, bar.identity)
             if existing is not None:
                 previous = existing.bar
                 same_source_payload = (
@@ -181,7 +184,7 @@ class SignalLifecycleOrchestrator:
                     and existing.policy_version == policy_version.strip()
                     and existing.calendar_version == calendar_version.strip()
                 )
-                if not same_source_payload or existing.signal_id != latest.signal_id:
+                if not same_source_payload or existing.signal_id != signal_id:
                     raise ValueError(
                         "conflicting replay for completed daily candle identity; "
                         "a correction requires a new revision and explicit reconciliation"
