@@ -18,6 +18,7 @@ from app.api.subscription_admin_routes import create_subscription_admin_router
 from app.api.session_calendar_admin_routes import create_session_calendar_admin_router
 from app.api.calendar_source_authenticity_routes import create_calendar_source_authenticity_router
 from app.api.signal_lifecycle_correction_admin_routes import create_signal_lifecycle_correction_admin_router
+from app.api.outcome_correction_admin_routes import create_outcome_correction_admin_router
 from app.api.scheduled_workflow_routes import create_scheduled_workflow_router
 from app.application.clock import egx_today
 
@@ -136,6 +137,7 @@ from app.infrastructure.persistence.sqlite_calendar_source_origin_registry impor
 from app.infrastructure.persistence.sqlite_calendar_evidence_repository import SQLiteCalendarEvidenceRepository
 from app.infrastructure.persistence.sqlite_calendar_evidence_uploader_identity_resolver import SQLiteCalendarEvidenceUploaderIdentityResolver
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.signals.outcome_correction_service import OutcomeCorrectionService
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +201,7 @@ def create_app(
     calendar_evidence_repository: SQLiteCalendarEvidenceRepository | None = None,
     calendar_evidence_uploader_identity_resolver: SQLiteCalendarEvidenceUploaderIdentityResolver | None = None,
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None,
+    outcome_correction_service: OutcomeCorrectionService | None = None,
 ) -> FastAPI:
     app = FastAPI(title="EGX Stock Analyzer API")
     allowed_origins = [
@@ -379,6 +382,13 @@ def create_app(
         create_signal_lifecycle_correction_admin_router(
             orchestrator=signal_lifecycle_orchestrator,
             require_operator=require_individual_calendar_operator,
+        )
+    )
+
+    app.include_router(
+        create_outcome_correction_admin_router(
+            service=outcome_correction_service,
+            require_individual_operator=require_individual_calendar_operator,
         )
     )
 
