@@ -126,9 +126,6 @@ class FakeAuthenticityVerifier:
     def assert_preflight_verification(self, evidence, *, at):
         return True
 
-    def assert_preflight_verification(self, evidence, *, at):
-        return True
-
 
 class FakeSchedule:
     def __init__(self, next_date):
