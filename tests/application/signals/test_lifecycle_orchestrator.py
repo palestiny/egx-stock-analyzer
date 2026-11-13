@@ -498,3 +498,75 @@ def test_gap_resolution_rolls_back_when_alert_publication_fails():
     assert orchestrator.session_gap_events(published.signal_id) == (gap,)
     assert orchestrator.latest_completed_observation(published.signal_id) is None
     assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+
+
+def test_unreviewed_correction_blocks_lifecycle_until_explicit_safe_decision():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    orchestrator = SignalLifecycleOrchestrator(
+        history, alerts, InMemoryTrackRecordStore()
+    )
+    published = history.record(make_signal(), "PUBLISHED", make_signal().generated_at)
+    original = make_completed_bar()
+    orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1"
+    )
+    corrected = CompletedDailyBarObservation(
+        symbol=original.symbol,
+        provider=original.provider,
+        timeframe=original.timeframe,
+        candle_at=original.candle_at,
+        observed_at=original.observed_at + __import__("datetime").timedelta(hours=1),
+        revision="r2",
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        is_final=True,
+        open=original.open,
+        high=Decimal("109"),
+        low=original.low,
+        close=original.close,
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original.identity,
+        corrected_bar=corrected,
+        operator_id="reviewer-1",
+        reason="Provider corrected the high",
+        calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at,
+    )
+    later = make_completed_bar(candle_day=5)
+    with pytest.raises(ValueError, match="unresolved daily-bar correction"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id, later, calendar_version="calendar-v1"
+        )
+
+    replay_required = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1",
+        reason="Corrected candle may change the lifecycle outcome",
+        recorded_at=corrected.observed_at + __import__("datetime").timedelta(minutes=1),
+    )
+    assert replay_required.decision == "REPLAY_REQUIRED"
+    with pytest.raises(ValueError, match="unresolved daily-bar correction"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id, later, calendar_version="calendar-v1"
+        )
+
+    accepted = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="ACCEPTED_NO_STATE_CHANGE",
+        reviewer_id="reviewer-2",
+        reason="Independent review confirms the correction does not change the lifecycle result",
+        recorded_at=corrected.observed_at + __import__("datetime").timedelta(minutes=2),
+    )
+    assert accepted.decision == "ACCEPTED_NO_STATE_CHANGE"
+    assert len(orchestrator.lifecycle_correction_review_decisions(published.signal_id)) == 2
+    processed = orchestrator.process_completed_daily_bar(
+        published.signal_id, later, calendar_version="calendar-v1"
+    )
+    assert processed is not None
+    assert orchestrator.latest_completed_observation(published.signal_id).bar.candle_at == later.candle_at
