@@ -54,9 +54,16 @@ class EvaluateCompletedDailyBar:
     ) -> CompletedDailyBarEvaluation:
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
+        if not isinstance(evidence, ProviderDailyBarEvidence):
+            return CompletedDailyBarEvaluation(False, "PROVIDER_EVIDENCE_REQUIRED", None)
         bar = evidence.bar
-        if evidence.retrieved_at > evaluated_at or evidence.source_timestamp > evaluated_at:
-            return CompletedDailyBarEvaluation(False, "PROVIDER_EVIDENCE_FROM_FUTURE", None)
+        if (
+            evidence.retrieved_at > evaluated_at
+            or evidence.source_timestamp > evaluated_at
+        ):
+            return CompletedDailyBarEvaluation(
+                False, "PROVIDER_EVIDENCE_FROM_FUTURE", None
+            )
 
         active = self._calendar_store.get_active()
         if active is None:
@@ -68,7 +75,9 @@ class EvaluateCompletedDailyBar:
         timezone = ZoneInfo(calendar.timezone)
         session_date = bar.candle_at.astimezone(timezone).date()
         if evidence.session_date != session_date:
-            return CompletedDailyBarEvaluation(False, "PROVIDER_EVIDENCE_SESSION_MISMATCH", active.version)
+            return CompletedDailyBarEvaluation(
+                False, "PROVIDER_EVIDENCE_SESSION_MISMATCH", active.version
+            )
         try:
             day = calendar.day_for(session_date)
         except CalendarCoverageError:
