@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -422,3 +422,44 @@ def test_same_completed_bar_can_be_evaluated_for_multiple_opportunities_on_one_s
     assert second_result.signal.status is SignalStatus.ACTIVE
     assert len(alerts.events) == 1
     assert outcomes.all() == ()
+
+
+def test_opportunity_expires_after_twenty_eligible_sessions_without_performance_outcome():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    sessions = tuple(date(2026, 10, day) for day in range(1, 21))
+
+    expired = orchestrator.expire_opportunity(
+        published.signal_id,
+        eligible_sessions=sessions,
+        calendar_version="calendar-v1",
+        evaluated_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
+    )
+
+    assert expired is not None
+    assert expired.signal.status is SignalStatus.EXPIRED
+    assert expired.outcome_recorded is False
+    assert expired.alert_published is True
+    assert len(alerts.events) == 1
+    assert alerts.events[0].event_type.value == "SIGNAL_EXPIRED"
+    assert outcomes.all() == ()
+    assert history.history(published.signal_id)[-1].event == "STATUS_EXPIRED"
+
+
+def test_opportunity_cannot_expire_before_twenty_eligible_sessions():
+    orchestrator = SignalLifecycleOrchestrator(
+        InMemorySignalHistoryStore(),
+        InMemoryAlertPublisher(),
+        InMemoryTrackRecordStore(),
+    )
+    with pytest.raises(ValueError, match="20 eligible sessions"):
+        orchestrator.expire_opportunity(
+            uuid4(),
+            eligible_sessions=tuple(date(2026, 10, day) for day in range(1, 20)),
+            calendar_version="calendar-v1",
+            evaluated_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        )
