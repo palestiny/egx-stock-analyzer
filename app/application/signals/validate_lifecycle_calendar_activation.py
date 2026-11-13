@@ -6,17 +6,17 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.session_calendar_store import SessionCalendarStore
-from app.domain.market_data.calendar_evidence import (
-    CalendarEvidence,
-    CalendarEvidenceKind,
-    CalendarEvidenceSourceClass,
-)
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
     SignalLifecycleUnitOfWork,
 )
 from app.application.signals.store import SignalHistoryStore, SignalRecord
+from app.domain.market_data.calendar_evidence import (
+    CalendarEvidence,
+    CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
+)
 from app.domain.market_data.session_calendar import CalendarDayStatus
 from app.domain.signals.model import SignalStatus
 
