@@ -62,16 +62,21 @@ class InMemoryOutcomeEventStore:
         outcome: SignalOutcomeRecord | None = None,
         supersedes_event_id: UUID | None = None,
         decision: OutcomeCorrectionDecision | None = None,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         key = idempotency_key.strip()
         if not key:
             raise ValueError("idempotency_key is required")
         existing = self._idempotency.get(key)
-        candidate = (signal_id, kind, actor_id.strip(), outcome, supersedes_event_id, decision)
+        candidate = (
+            signal_id, kind, actor_id.strip(), outcome, supersedes_event_id,
+            decision, actor_credential_id,
+        )
         if existing is not None:
             actual = (
                 existing.signal_id, existing.kind, existing.actor_id,
                 existing.outcome, existing.supersedes_event_id, existing.decision,
+                existing.actor_credential_id,
             )
             if actual != candidate:
                 raise ValueError("idempotency key reused with different outcome event")
@@ -88,6 +93,7 @@ class InMemoryOutcomeEventStore:
             outcome=outcome,
             supersedes_event_id=supersedes_event_id,
             decision=decision,
+            actor_credential_id=actor_credential_id,
         )
         self._events.append(event)
         self._idempotency[key] = event
@@ -103,6 +109,7 @@ class InMemoryOutcomeEventStore:
                 actor_id=actor_id,
                 idempotency_key=idempotency_key,
                 outcome=outcome,
+                actor_credential_id=actor_credential_id,
             )
         if any(
             event.signal_id == outcome.signal_id
@@ -116,6 +123,7 @@ class InMemoryOutcomeEventStore:
             actor_id=actor_id,
             idempotency_key=idempotency_key,
             outcome=outcome,
+            actor_credential_id=actor_credential_id,
         )
 
     def submit_correction(
@@ -125,6 +133,7 @@ class InMemoryOutcomeEventStore:
         supersedes_event_id: UUID,
         actor_id: str,
         idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         if idempotency_key.strip() in self._idempotency:
             return self._append(
@@ -134,6 +143,7 @@ class InMemoryOutcomeEventStore:
                 idempotency_key=idempotency_key,
                 outcome=outcome,
                 supersedes_event_id=supersedes_event_id,
+                actor_credential_id=actor_credential_id,
             )
         current = self.outcome_as_of(outcome.signal_id, cutoff=self._clock())
         if current is None or current.event_id != supersedes_event_id:
@@ -152,6 +162,7 @@ class InMemoryOutcomeEventStore:
             idempotency_key=idempotency_key,
             outcome=outcome,
             supersedes_event_id=supersedes_event_id,
+            actor_credential_id=actor_credential_id,
         )
 
     def review_correction(
@@ -161,6 +172,7 @@ class InMemoryOutcomeEventStore:
         reviewer_id: str,
         decision: OutcomeCorrectionDecision,
         idempotency_key: str,
+        reviewer_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         if idempotency_key.strip() in self._idempotency:
             correction = next(
@@ -176,6 +188,7 @@ class InMemoryOutcomeEventStore:
                 idempotency_key=idempotency_key,
                 supersedes_event_id=correction_event_id,
                 decision=decision,
+                actor_credential_id=reviewer_credential_id,
             )
         correction = next(
             (
@@ -189,6 +202,13 @@ class InMemoryOutcomeEventStore:
             raise ValueError("outcome correction does not exist")
         if correction.actor_id == reviewer_id.strip():
             raise ValueError("correction author cannot review their own correction")
+        if (
+            correction.actor_credential_id is not None
+            and correction.actor_credential_id == reviewer_credential_id
+        ):
+            raise ValueError("correction author credential cannot review its own correction")
+        if correction.actor_credential_id is not None and reviewer_credential_id is None:
+            raise ValueError("independent reviewer credential is required")
         if self._has_review(correction_event_id):
             raise ValueError("outcome correction has already been reviewed")
         return self._append(
@@ -198,6 +218,7 @@ class InMemoryOutcomeEventStore:
             idempotency_key=idempotency_key,
             supersedes_event_id=correction_event_id,
             decision=decision,
+            actor_credential_id=reviewer_credential_id,
         )
 
     def _has_review(self, correction_event_id: UUID) -> bool:
