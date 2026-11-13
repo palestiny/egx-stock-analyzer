@@ -109,7 +109,12 @@ class InMemorySignalHistoryStore:
             raise ValueError("parent signal identity does not exist")
         if parent.signal.status.value != "ACTIVE":
             raise ValueError("terminal opportunities cannot be revised")
-        latest = self.latest(parent.signal.symbol)
+        latest = self.latest_for_identity(
+            parent.signal.symbol,
+            parent.signal.strategy_id,
+            parent.signal.strategy_version,
+            parent.signal.generated_at,
+        )
         if latest is None or latest.signal_id != parent_signal_id:
             raise ValueError("revision parent must be the latest opportunity revision")
         if (
