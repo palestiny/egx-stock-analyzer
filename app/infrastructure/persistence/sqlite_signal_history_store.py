@@ -177,11 +177,17 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
         payload = self._serialize_signal(signal)
         with self._connect() as connection:
             identity = connection.execute(
-                "SELECT 1 FROM signal_identities WHERE signal_id = ?",
+                "SELECT symbol, strategy_id, generated_at FROM signal_identities WHERE signal_id = ?",
                 (str(signal_id),),
             ).fetchone()
             if identity is None:
                 raise ValueError("signal identity does not exist")
+            if (
+                str(identity[0]).strip().upper() != signal.symbol.strip().upper()
+                or str(identity[1]) != signal.strategy_id
+                or datetime.fromisoformat(str(identity[2])) != signal.generated_at
+            ):
+                raise ValueError("signal update must preserve its immutable identity")
             existing = connection.execute(
                 """
                 SELECT signal_json FROM signal_history
