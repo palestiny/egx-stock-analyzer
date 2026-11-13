@@ -150,6 +150,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             ],
             "operator_id": record.operator_id,
             "reason": record.reason,
+            "calendar_version": record.calendar_version,
             "recorded_at": record.recorded_at.isoformat(),
             "corrected_bar": {
                 "symbol": bar.symbol,
@@ -202,6 +203,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             corrected_bar=bar,
             operator_id=str(payload["operator_id"]),
             reason=str(payload["reason"]),
+            calendar_version=str(payload["calendar_version"]),
             recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
         )
 
