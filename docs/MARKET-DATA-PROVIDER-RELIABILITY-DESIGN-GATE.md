@@ -1,6 +1,6 @@
 # Market Data Provider Reliability — Design Gate
 
-**Status:** GAP — provider finality and freshness contract is not implemented or approved at code level  
+**Status:** GAP — lifecycle-domain bar contract exists, but the provider-source adapter, production finality verifier, and freshness proof are not implemented or approved  
 **Reviewed:** 2026-11-13  
 **Related:** DEC-135, DEC-138, DEC-139, `docs/PROJECT-COMPLETION-GAP-REGISTER.md`  
 **Scope:** Eligibility of daily OHLC observations for lifecycle monitoring and downstream EGX opportunity state.
@@ -14,7 +14,7 @@ The accepted DEC-139 policy requires an adapter to attest all of the following b
 - source timestamp;
 - final/complete status.
 
-The current application port `MarketDataProvider.get_daily_observations(...)` returns only `RawPriceBarObservation`. That value carries stock ID, timeframe, timestamp, OHLC and volume, but no provider identity, finality/completion attestation, provider revision/correction identity, or retrieval timestamp. The current Yahoo adapter requests `interval="1d"` and maps rows into this structure; this code behavior does not prove a bar is final or commercially redistributable.
+The generic application port `MarketDataProvider.get_daily_observations(...)` still returns only `RawPriceBarObservation` (stock ID, timeframe, timestamp, OHLC and volume), with no provider identity, finality/completion attestation, provider revision/correction identity, or retrieval timestamp. Separately, PR #515 now defines `CompletedDailyBarObservation` at the lifecycle domain boundary with symbol, provider, daily timeframe, candle timestamp, observed-at timestamp, revision, source reference, finality-attestation text, explicit final flag, and OHLC validation. `EvaluateCompletedDailyBar` / `EvaluateOpportunityLifecycleSessions` require a `DailyBarFinalityVerifier` protocol. However, there is no adapter translating a provider response into that lifecycle contract, no production verifier composed in runtime, and no provider evidence proving the contract fields. The current Yahoo adapter still maps rows into the raw type; requesting `interval="1d"` does not prove finality or commercial rights.
 
 The current `DataQualityAssessor` rejects missing, non-finite/non-positive OHLC, invalid/future timestamps and OHLC inconsistency, and marks duplicate identities as suspect. It does not classify an otherwise valid observation as stale relative to an expected completed EGX session. Therefore the current quality assessment is not the DEC-139 completed-session eligibility gate.
 
@@ -27,7 +27,7 @@ The current `DataQualityAssessor` rejects missing, non-finite/non-positive OHLC,
 | Daily interval | Yahoo history client requests `interval="1d"`. | A returned row is final, complete, or immune to later correction. |
 | Source identity | Yahoo adapter exposes class-level `source_name`. | Identity is carried with each persisted observation/evaluation. |
 | Source timestamp | Raw observation has a timestamp; naive Yahoo timestamps are currently assigned UTC. | Provider timezone semantics for EGX daily bars or a reliable session-date mapping. |
-| Finality | No final/completed flag or attestation appears in `MarketDataProvider` or `RawPriceBarObservation`. | Provider guarantees a bar is complete after EGX close + 60 minutes. |
+| Lifecycle contract | `CompletedDailyBarObservation` carries provider/source/revision/finality fields and validates DAILY + `is_final=True`; the evaluator requires a verifier protocol. | No adapter bridges `MarketDataProvider` raw rows to this contract; no production verifier or source evidence exists. |
 | Freshness | Data-quality assessor rejects future timestamps. | Expected-session coverage, STALE classification, or chronological cursor reconciliation. |
 | Corrections | Acquisition records exist separately. | Stable provider candle identity/revision and append-only correction reconciliation at lifecycle boundary. |
 | Commercial rights | Existing gap register records the Yahoo reuse restriction. | Permission for paid/subscriber redistribution or commercial API use. |
@@ -36,14 +36,14 @@ The current `DataQualityAssessor` rejects missing, non-finite/non-positive OHLC,
 
 Any provider capable of driving lifecycle transitions must return a typed observation envelope or equivalent contract containing:
 
-1. **Provider identity:** stable provider ID and adapter/contract version.
+1. **Provider identity:** stable provider ID and adapter/contract version. The current lifecycle value carries provider name but not a separately versioned provider contract.
 2. **Instrument identity:** EGX instrument/symbol mapping used for the request.
 3. **Timeframe:** explicit daily timeframe; intraday observations must not satisfy daily eligibility.
 4. **Session identity:** explicit EGX session date in `Africa/Cairo`, derived according to verified provider semantics—not by guessing from a UTC timestamp.
 5. **Source timestamp:** original provider timestamp and its documented timezone/meaning.
-6. **Retrieved-at timestamp:** timezone-aware timestamp recorded by our system, distinct from the source timestamp.
-7. **Finality attestation:** explicit provider capability/result indicating whether the bar is final/complete, including the basis and relevant contract/version. Unknown must fail closed.
-8. **Revision identity:** stable provider candle key plus revision/correction identifier where the source supports it. If unavailable, document the limitation and do not claim correction-safe replay.
+6. **Retrieved-at timestamp:** timezone-aware timestamp recorded by our system, distinct from the source timestamp. The current `observed_at` field is not yet explicitly named or contractually separated as a retrieval timestamp.
+7. **Finality attestation:** explicit provider capability/result indicating whether the bar is final/complete, including the basis and relevant contract/version. Unknown must fail closed. The current domain value requires `is_final=True`, but that assertion is only trustworthy once an approved adapter/verifier validates it against provider evidence.
+8. **Revision identity:** stable provider candle key plus revision/correction identifier where the source supports it. The current domain value has a revision string and source reference, but their provider-specific stability/meaning is not established.
 9. **OHLCV payload:** finite and positive OHLC, coherent high/low, non-negative volume, with the existing validation retained.
 10. **Provenance:** durable linkage from evaluation to provider, source timestamp, session date, calendar version, and observation identity.
 
@@ -116,4 +116,4 @@ This document records requirements and current gaps; it does not select a commer
 
 ## 8. Current gate result
 
-**GAP — do not enable lifecycle monitoring, Crash Radar freshness enforcement, or automated signal-state transitions using the current provider port.** Continue provider-neutral contract/design work and test fixtures only. M61 remains paused as explicitly requested.
+**GAP — do not enable lifecycle monitoring, Crash Radar freshness enforcement, or automated signal-state transitions using the current provider port.** The lifecycle-side typed bar boundary and verifier protocol exist, but the provider adapter bridge, explicit provider contract version/session-date/retrieval-time semantics, production finality verifier, and provider evidence remain open. Continue provider-neutral contract tests only; do not fabricate `is_final=True`. M61 remains paused as explicitly requested.
