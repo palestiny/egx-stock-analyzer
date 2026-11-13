@@ -253,6 +253,17 @@ def test_sqlite_active_published_projection_is_deterministic_across_revisions_an
         "CREATED",
         datetime(2026, 10, 3, 10, tzinfo=CAIRO),
     )
+    terminal = history.record(
+        make_signal("HDBK"),
+        "PUBLISHED",
+        datetime(2026, 10, 3, 11, tzinfo=CAIRO),
+    )
+    history.record_for_signal(
+        terminal.signal_id,
+        replace(terminal.signal, status=SignalStatus.INVALIDATED),
+        "INVALIDATED",
+        datetime(2026, 10, 4, 11, tzinfo=CAIRO),
+    )
 
     expected = history.latest_active_published_opportunities()
     assert len(expected) == 1
