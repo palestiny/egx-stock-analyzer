@@ -7,7 +7,10 @@ from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
-from app.domain.signals.lifecycle import SignalMarketState
+from app.domain.signals.lifecycle import (
+    CompletedDailyBarObservation,
+    SignalMarketState,
+)
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -266,3 +269,115 @@ def test_orchestrator_rejects_pre_generation_observation_before_writing_history(
             entry_price=Decimal("100"),
         )
     assert history.all_records() == ()
+
+
+def make_completed_bar(*, high="105", low="98", observed_hour=16, revision="r1"):
+    return CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime(2026, 10, 4, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, 4, observed_hour, tzinfo=timezone.utc),
+        revision=revision,
+        source_reference="https://provider.example/COMI/2026-10-04",
+        finality_attestation="provider-finality-assertion",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal(high),
+        low=Decimal(low),
+        close=Decimal("102"),
+    )
+
+
+def test_completed_daily_bar_records_level_observation_without_assumed_entry_or_outcome():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    result = orchestrator.process_completed_daily_bar(make_completed_bar())
+
+    assert result is not None
+    assert result.changed is False
+    assert result.outcome_recorded is False
+    assert result.alert_published is False
+    assert outcomes.all() == ()
+    assert alerts.events == []
+
+
+def test_completed_daily_bar_triggers_and_publishes_without_performance_accounting():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    result = orchestrator.process_completed_daily_bar(
+        make_completed_bar(high="109", low="98")
+    )
+
+    assert result is not None
+    assert result.changed is True
+    assert result.signal.status is SignalStatus.TRIGGERED
+    assert result.outcome_recorded is False
+    assert result.alert_published is True
+    assert outcomes.all() == ()
+    assert len(alerts.events) == 1
+
+
+def test_completed_daily_bar_replay_is_idempotent_even_if_retrieved_again_later():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+
+    first_bar = make_completed_bar()
+    first = orchestrator.process_completed_daily_bar(first_bar)
+    replay = orchestrator.process_completed_daily_bar(
+        make_completed_bar(observed_hour=17)
+    )
+
+    assert first is not None and replay is not None
+    assert first.signal_id == replay.signal_id
+    assert replay.changed is False
+    assert len(history.history(first.signal_id)) == 1
+    assert outcomes.all() == ()
+
+
+def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity():
+    history = InMemorySignalHistoryStore()
+    orchestrator = SignalLifecycleOrchestrator(
+        history, InMemoryAlertPublisher(), InMemoryTrackRecordStore()
+    )
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator.process_completed_daily_bar(make_completed_bar())
+
+    with pytest.raises(ValueError, match="conflicting replay"):
+        orchestrator.process_completed_daily_bar(
+            make_completed_bar(high="106", observed_hour=17)
+        )
+
+    later = CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, 5, 16, tzinfo=timezone.utc),
+        revision="r1",
+        source_reference="https://provider.example/COMI/2026-10-05",
+        finality_attestation="provider-finality-assertion",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal("105"),
+        low=Decimal("98"),
+        close=Decimal("102"),
+    )
+    orchestrator.process_completed_daily_bar(later)
+    with pytest.raises(ValueError, match="out-of-order"):
+        orchestrator.process_completed_daily_bar(make_completed_bar())
