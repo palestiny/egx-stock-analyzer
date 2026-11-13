@@ -98,13 +98,16 @@ Rollback repeats validation against current active opportunities and cursors. Pr
 
 ## 7. Implementation checkpoint — 2026-11-13
 
-The first persistence increment is present on the PR branch:
-- Lifecycle Unit of Work now defines bootstrap batch and per-opportunity record contracts.
-- In-memory transaction adapter supports append-only bootstrap batch writes and rollback snapshots.
+The first implementation increment is present on the PR branch:
+- Lifecycle Unit of Work defines bootstrap batch and per-opportunity record contracts.
+- In-memory transaction adapter supports append-only bootstrap writes and rollback snapshots.
 - SQLite has separate batch and per-opportunity tables, per-opportunity/calendar uniqueness, publication-identity foreign keys, and no-update/no-delete triggers.
-- Persistence tests cover identical retry, conflicting baseline replay, restart durability, rollback after a missing opportunity identity, and append-only enforcement.
+- Persistence enforces SHA-256 digest shape, Cairo-derived baseline consistency, publication-before-bootstrap ordering, deterministic per-opportunity idempotency keys, and timestamp-independent identical retries.
+- `BootstrapOpportunityLifecycle` derives publication baselines from immutable `PUBLISHED` / `PUBLISHED_VERSION` history in `Africa/Cairo`, selects active latest revisions only, validates explicit calendar coverage through the caller-supplied next evaluation session, and writes the batch atomically.
+- Lifecycle evaluation now rejects an unbootstrapped opportunity, a publication-provenance mismatch, or a superseded parent revision.
+- Tests cover Cairo date conversion, revision independence, retries, calendar coverage failure, unpublished opportunities, and evaluator eligibility guards.
 
-This is **not yet an accepted implementation milestone**: the new tests have not been executed successfully on the exact current PR head. The application bootstrap workflow, Cairo publication-baseline derivation, candidate-calendar coverage checks, revision-aware active-opportunity selection, and evaluator eligibility guard remain outstanding.
+**Verification remains pending:** the latest exact-head GitHub Actions run must pass all jobs before this increment can be accepted. Calendar activation, provider finality, scheduled worker, and production E2E remain separate blockers.
 
 ## 8. Risks and rejected alternatives
 
