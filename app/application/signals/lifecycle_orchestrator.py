@@ -67,6 +67,11 @@ class SignalLifecycleOrchestrator:
             )
         self._unit_of_work = unit_of_work
 
+    def bootstrap_records(self, signal_id: UUID):
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.bootstrap_records(signal_id)
+        )
+
     def process(
         self,
         signal: Signal,
