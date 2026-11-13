@@ -143,6 +143,53 @@ class SQLiteLifecycleOccurrenceClaimStore:
         finally:
             connection.close()
 
+    def renew(
+        self,
+        claim: LifecycleOccurrenceClaim,
+        *,
+        now: datetime,
+        lease_seconds: int,
+    ) -> LifecycleOccurrenceClaim | None:
+        """Extend a live claim only for its current owner and fencing token."""
+        if isinstance(lease_seconds, bool) or not isinstance(lease_seconds, int) or lease_seconds < 1:
+            raise ValueError("lease_seconds must be a positive integer")
+        now_utc = self._aware_utc(now, "now")
+        now_text = now_utc.isoformat()
+        lease_until = now_utc + timedelta(seconds=lease_seconds)
+        connection = connect_sqlite(self._database_path)
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
+                """
+                UPDATE lifecycle_occurrence_claims
+                SET lease_until = ?
+                WHERE occurrence_id = ? AND owner_id = ? AND fencing_token = ?
+                  AND status = 'CLAIMED' AND lease_until > ?
+                """,
+                (
+                    lease_until.isoformat(),
+                    claim.occurrence_id,
+                    claim.owner_id,
+                    claim.fencing_token,
+                    now_text,
+                ),
+            )
+            if cursor.rowcount != 1:
+                connection.rollback()
+                return None
+            connection.commit()
+            return LifecycleOccurrenceClaim(
+                occurrence_id=claim.occurrence_id,
+                owner_id=claim.owner_id,
+                fencing_token=claim.fencing_token,
+                attempt=claim.attempt,
+                lease_until=lease_until,
+            )
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
     def mark_failed(
         self,
         claim: LifecycleOccurrenceClaim,
