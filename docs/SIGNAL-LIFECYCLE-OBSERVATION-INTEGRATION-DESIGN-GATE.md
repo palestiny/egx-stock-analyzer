@@ -160,3 +160,28 @@ The isolated branch `feature/opportunity-lifecycle-completion` now contains the 
 - No CI pass is claimed for the current draft PR head. The branch remains isolated and unmerged.
 
 **Current gate result remains GAP.** These changes are implementation foundations only. Do not enable automatic lifecycle monitoring or claim production completion until every remaining gate above is implemented and verified.
+
+
+### 11.1. Further implementation update — 2026-11-13
+
+The same draft branch now also contains:
+
+- Opportunity-specific observation identity: one market candle can be evaluated against multiple published opportunities for the same symbol without one signal overwriting or suppressing another.
+- Immutable linked signal revisions: materially changed active setups receive a new signal identity, parent link, monotonic revision number, and snapshot digests. Terminal opportunities cannot be revised; the revision chain is linear and latest-parent-only.
+- Revision-aware lifecycle writes: status transitions remain attached to the exact child revision rather than falling back to the original identity.
+- Twenty-session expiry: a separate `EXPIRED` terminal event is emitted only after 20 chronologically completed, calendar-eligible sessions have each passed the provider-finality gate and have an accepted bar.
+- Chronological recovery: the latest append-only observation per opportunity is the durable cursor. The evaluator resumes after that cursor, stops at the first missing/unverified session, and does not process later sessions.
+- Durable stale-gap events: missing/invalid session evidence is recorded as append-only `STALE` events; a later successfully committed observation appends a `RESOLVED` event.
+- Explicit source correction records: a corrected source revision is recorded append-only with operator identity, reason, calendar version, and `RECORDED_NOT_REEVALUATED` disposition. The original observation and lifecycle result are not overwritten or silently re-evaluated.
+- Authenticated per-user lifecycle history now includes linked revision metadata; it is scoped to Telegram publication events addressed to that user.
+
+### Remaining activation and acceptance blockers
+
+- The evaluator and recovery use cases are not wired to a production scheduled worker.
+- No production provider finality verifier is implemented. The current Yahoo Finance adapter cannot satisfy the accepted final/complete-bar contract.
+- No accepted active EGX session-calendar version has been verified in the target deployment.
+- A correction record is intentionally not a correction approval: an operator-approved disposition/re-evaluation workflow is still required before a corrected candle may alter a lifecycle state.
+- No full end-to-end run has yet verified provider retrieval, calendar gating, chronological recovery, expiry, Telegram delivery, and authenticated user history together.
+- The draft PR has not been merged, and CI has not been run/verified on the final head.
+
+**Gate remains GAP / NOT ACTIVATED.** The domain and persistence foundations are implemented on the isolated branch, but do not enable production monitoring or describe Opportunity Lifecycle as complete until the production provider, active calendar, worker wiring, correction disposition, and exact-head CI/e2e gates pass.
