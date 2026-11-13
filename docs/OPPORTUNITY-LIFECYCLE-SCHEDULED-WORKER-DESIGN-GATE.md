@@ -294,3 +294,20 @@ The next diagnostic separates SQLite fetch time from JSON/domain-object
 deserialization and ACTIVE filtering before selecting another optimization.
 The benchmark does not define a production SLO and its synthetic writer is not
 a production workload. Worker remains unwired and disabled.
+
+
+## 21. Query-versus-materialization diagnostic
+
+The benchmark harness now emits a `stage_breakdown` for each dataset size.
+It reports (a) SQLite statement execution plus full row fetch, and (b) the
+application-side materialization pass that deserializes the latest record,
+checks ACTIVE status, and deserializes the publication record only for active
+candidates. It also records candidate and active row counts so the two stages
+cannot silently benchmark different result populations.
+
+These are diagnostic stage timings, not additive replacements for the end-to-end
+store measurement: the diagnostic uses a separately opened SQLite connection
+and repeated samples, so cache state and connection overhead differ. The
+end-to-end `warm` and `under_concurrent_writer` measurements remain the
+authoritative comparable series. No performance conclusion is drawn until the
+new workflow artifact is available and reviewed.
