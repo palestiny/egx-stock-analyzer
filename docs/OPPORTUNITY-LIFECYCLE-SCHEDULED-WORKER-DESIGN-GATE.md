@@ -93,7 +93,7 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 - [ ] Production `DailyBarFinalityVerifier` implemented and contract-tested; unknown finality fails closed.
 - [ ] Evidence-backed EGX calendar published and an owner-approved bootstrap/cursor-derived coverage policy implemented.
 - [ ] Calendar activation performed by an individually attributable operator and audited; deployment bootstrap/recovery verified.
-- [ ] Durable worker occurrence/claim store, lease fencing, restart recovery, and duplicate-run acceptance tests pass exact-head CI; the store and transaction guard are implemented, but the latest CI result is still pending.
+- [ ] Durable worker occurrence/claim store, lease fencing, restart recovery, and duplicate-run acceptance tests pass exact-head CI; the claim/transaction primitive is implemented, but runtime composition remains disabled.
 - [ ] Full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history E2E acceptance passes.
 - [ ] Exact-head CI passes; worker remains disabled until the owner authorizes activation.
 
@@ -156,5 +156,19 @@ The lifecycle-specific claim boundary is implemented on this branch without wiri
 Boundaries and remaining work:
 - This is a persistence/application primitive, not a running worker. No provider adapter, calendar activation, scheduler, runtime composition, monitoring, or outbound delivery was enabled.
 - The claim store must be initialized against the same SQLite database used by the lifecycle Unit of Work. Runtime composition must make this dependency explicit and must never silently point claims at a separate database.
-- The current implementation uses caller-supplied aware timestamps. A production worker must supply a trusted clock and define lease duration, renewal, retry/backoff, and operational recovery policy before activation.
-- Exact-head CI for the latest claim-store and restart/outbox tests is required before treating this implementation as verified.
+- The claim store supports fenced lease renewal: only the current owner/token may extend a still-live claim; exact-expiry renewal is rejected. Renewal preserves occurrence identity, attempt, fencing token, and original claimed_at.
+- The implementation uses caller-supplied aware timestamps. A production worker must supply a trusted clock and define lease duration, heartbeat/renewal cadence, maximum renewal policy, cancellation behavior, retry/backoff, and operational recovery policy before activation.
+- Exact-head CI passed on d236e6b7f28f4a481878d501af6e4df0309d3001 in [run #43446251002](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43446251002): all six jobs succeeded; Python 3.12 unit tests reported 1,810 passed, 8 deselected, 89.66% coverage (85% minimum). This verification predates the lease-renewal addition and does not verify the new renewal code.
+
+
+## 13. Fenced lease renewal — implementation added 2026-11-13
+
+SQLiteLifecycleOccurrenceClaimStore.renew() atomically extends a claim with a compare-and-set update inside BEGIN IMMEDIATE.
+
+- Renewal succeeds only when occurrence ID, owner ID, fencing token, and CLAIMED status match the persisted row and the stored lease expiry is strictly later than the supplied aware UTC instant.
+- Renewal at the exact expiry instant is rejected (lease_until > now, not >=). An expired or reclaimed claim cannot be revived by its previous owner.
+- A successful renewal changes only lease_until; it preserves claimed_at, owner, attempt, occurrence identity, and fencing token, and returns an updated immutable claim.
+- Regression tests cover successful renewal, exact-expiry and post-expiry rejection, stale owner/token rejection after reclaim, invalid inputs, and persistence across store reconstruction.
+- The application claim-store protocol now exposes the renewal operation.
+
+This remains a persistence primitive only. No heartbeat loop, worker, scheduler, runtime composition, provider retrieval, calendar activation, monitoring, or outbound delivery has been added. Before activation, an owner-approved operational policy must define trusted clock source, lease duration, heartbeat interval, maximum renewals/runtime, cancellation and shutdown semantics, and retry/backoff. The claim store and lifecycle Unit of Work must continue to share the same SQLite database.
