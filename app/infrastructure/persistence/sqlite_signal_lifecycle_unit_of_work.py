@@ -224,8 +224,17 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         ).fetchall()
         return tuple(self._deserialize_observation(str(row[0])) for row in rows)
 
-    def signal_history(self, signal_id: UUID):
-        return self._history.history(signal_id)
+    def signal_history(self, signal_id: UUID) -> tuple[SignalRecord, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT signal_id, event, recorded_at, signal_json
+            FROM signal_history
+            WHERE signal_id = ?
+            ORDER BY id ASC
+            """,
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(self._history._to_record(row) for row in rows)
 
     def record_correction_rebuild(self, record: LifecycleCorrectionRebuildRecord) -> None:
         payload = (
