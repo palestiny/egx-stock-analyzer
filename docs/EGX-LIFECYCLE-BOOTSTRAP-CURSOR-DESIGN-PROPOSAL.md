@@ -129,4 +129,8 @@ The validator requires an injected trusted evaluation-schedule port; callers can
 
 The service returns structured blockers and is not wired to an activation endpoint. There is no production trusted schedule adapter yet, so production calendar activation remains unavailable. This is intentional fail-closed behavior, not an operational activation approval.
 
-Tests added for a valid candidate, missing bootstrap, insufficient coverage, non-trading next date, and unavailable trusted schedule. Exact-head CI is required before accepting this increment.
+The future evaluation date must be explicitly `SCHEDULED` (not merely historical `CLOSED` or currently `OPEN`). A persisted reconciled cursor must be strictly after the publication baseline, before the next evaluation date, and explicitly `CLOSED` in the candidate calendar. A candidate with no active latest opportunities is eligible with zero cursor checks; there is no active lifecycle workload to reconcile.
+
+Regression tests now cover a non-closed cursor rejection, a closed cursor acceptance, rollback-time revalidation against the currently persisted cursor, and the no-active-opportunities case. The validator remains a pure precondition check: it does not serialize validation with calendar pointer mutation. A controlled activation/rollback transaction is still required before operational use.
+
+Exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Additional cursor/rollback/empty-workload tests and stricter future-session checks were added in `6578e4a` and `81a5e8d`; exact-head CI for `81a5e8d` is pending.
