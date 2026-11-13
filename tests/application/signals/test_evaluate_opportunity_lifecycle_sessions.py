@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -242,3 +243,28 @@ def test_lifecycle_session_recovery_does_not_advance_on_unverified_bar():
     gap_events = lifecycle.session_gap_events(publication.signal_id)
     assert gap_events[-1].status == "STALE"
     assert gap_events[-1].reason == "PROVIDER_FINALITY_NOT_VERIFIED"
+
+
+def test_lifecycle_session_recovery_stops_after_target_transition():
+    service, history, lifecycle, publication, alerts, track_record = build_service()
+    sessions = expected_sessions()[:5]
+    bars = {session: make_bar(session) for session in sessions}
+    bars[sessions[0]] = replace(
+        bars[sessions[0]],
+        high=Decimal("121"),
+        close=Decimal("110"),
+        source_reference="https://provider.example/COMI/target-hit",
+    )
+
+    result = service.execute(
+        publication.signal_id,
+        through_date=sessions[-1],
+        bars_by_session=bars,
+        evaluated_at=datetime(2026, 11, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.status == "TERMINAL_TRANSITION"
+    assert result.processed_sessions == (sessions[0],)
+    assert history.get(publication.signal_id).signal.status is SignalStatus.TRIGGERED
+    assert alerts.events[-1].event_type.value == "SIGNAL_TRIGGERED"
+    assert track_record.all() == ()
