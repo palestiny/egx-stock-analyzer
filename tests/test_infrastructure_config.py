@@ -208,3 +208,28 @@ def test_from_environment_rejects_invalid_calendar_artifact_size(monkeypatch) ->
 
     with pytest.raises(ValueError, match="EGX_CALENDAR_ARTIFACT_MAX_BYTES"):
         InfrastructureConfig.from_environment()
+
+
+def test_calendar_source_trust_owner_is_unconfigured_by_default() -> None:
+    config = InfrastructureConfig()
+    assert config.calendar_source_trust_owner_user_id is None
+
+
+def test_from_environment_reads_calendar_source_trust_owner(monkeypatch) -> None:
+    from uuid import UUID
+
+    owner_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    monkeypatch.setenv("EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID", owner_id)
+
+    config = InfrastructureConfig.from_environment()
+
+    assert config.calendar_source_trust_owner_user_id == UUID(owner_id)
+
+
+def test_from_environment_rejects_invalid_calendar_source_trust_owner(monkeypatch) -> None:
+    import pytest
+
+    monkeypatch.setenv("EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID", "not-a-uuid")
+
+    with pytest.raises(ValueError, match="EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID"):
+        InfrastructureConfig.from_environment()
