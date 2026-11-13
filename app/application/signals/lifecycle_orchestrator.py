@@ -10,6 +10,7 @@ from uuid import NAMESPACE_URL, UUID, uuid5
 from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapRecord,
     LifecycleCorrectionRecord,
@@ -148,6 +149,21 @@ class SignalLifecycleOrchestrator:
 
         return self._unit_of_work.execute(persist)
 
+    @staticmethod
+    def _same_provider_evidence_identity(
+        existing: ProviderDailyBarEvidence | None,
+        incoming: ProviderDailyBarEvidence | None,
+    ) -> bool:
+        if existing is None or incoming is None:
+            return existing is incoming
+        return (
+            existing.provider_id == incoming.provider_id
+            and existing.provider_contract_version == incoming.provider_contract_version
+            and existing.instrument_symbol == incoming.instrument_symbol
+            and existing.session_date == incoming.session_date
+            and existing.source_timestamp == incoming.source_timestamp
+        )
+
     def process_completed_daily_bar(
         self,
         signal_id: UUID,
@@ -157,12 +173,15 @@ class SignalLifecycleOrchestrator:
         policy_version: str = "dec138-daily-ohlc-v1",
         resolved_gap_session_date: date | None = None,
         resolved_gap_at: datetime | None = None,
+        provider_evidence: ProviderDailyBarEvidence | None = None,
     ) -> SignalLifecycleResult | None:
         """Evaluate one provider-attested completed candle for a published signal.
 
         This path records market-level evidence only. It never invents an entry
         fill or creates realized return/R accounting.
         """
+        if provider_evidence is not None and provider_evidence.bar != bar:
+            raise ValueError("provider evidence bar must match the lifecycle bar")
         if not policy_version or not policy_version.strip():
             raise ValueError("policy_version is required")
         if not calendar_version or not calendar_version.strip():
@@ -215,6 +234,9 @@ class SignalLifecycleOrchestrator:
                     and previous.close == bar.close
                     and existing.policy_version == policy_version.strip()
                     and existing.calendar_version == calendar_version.strip()
+                    and self._same_provider_evidence_identity(
+                        existing.provider_evidence, provider_evidence
+                    )
                 )
                 if not same_source_payload or existing.signal_id != signal_id:
                     raise ValueError(
@@ -272,6 +294,7 @@ class SignalLifecycleOrchestrator:
                     policy_version=policy_version.strip(),
                     calendar_version=calendar_version.strip(),
                     resulting_status=transitioned.status,
+                    provider_evidence=provider_evidence,
                 )
             )
             if resolved_gap_session_date is not None:
