@@ -217,9 +217,9 @@ class SQLiteLifecycleOccurrenceClaimStore:
                     current_lease = (
                         datetime.fromisoformat(str(row[4])) if row[4] is not None else None
                     )
-                    if current_lease is not None and self._aware_utc(
-                        current_lease, "stored lease_until"
-                    ) > now_utc:
+                    if current_lease is None:
+                        raise RuntimeError("claimed occurrence is missing lease_until")
+                    if self._aware_utc(current_lease, "stored lease_until") > now_utc:
                         connection.rollback()
                         return None
                     if attempt >= retry_policy.max_attempts:
