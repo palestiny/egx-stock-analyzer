@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Correction replay/rebuild and compensating-notification behavior are implemented on this branch and passed code CI on `1d2b902a646174521b143cf19c1b7c7c126cd072` (run #43405799607; all six jobs successful). The latest documentation head `d66c738d598726351536bea03a06a684ba99c3c4` has CI run #43407005608 still in progress at the latest check (five jobs passed; unit-tests (3.12) pending). Production activation remains blocked by the absence of an accepted provider finality adapter, an active deployment calendar, scheduled-worker wiring, and deployment-level end-to-end acceptance. No current market-data provider has been accepted for automatic lifecycle transitions. PR #515 remains Draft and unmerged.  
+**Status:** Correction replay/rebuild and compensating-notification behavior are implemented on this branch and passed code CI on `1d2b902a646174521b143cf19c1b7c7c126cd072` (run #43405799607; all six jobs successful). Production activation remains blocked by the absence of an accepted provider finality adapter, an active deployment calendar, scheduled-worker wiring, and deployment-level end-to-end acceptance. No current market-data provider has been accepted for automatic lifecycle transitions. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -229,7 +229,7 @@ This matrix is the current source of truth for PR #515. It supersedes earlier sn
 | Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, correction replay, and per-user authorization together |
 | Provider outreach / selection | NOT AUTHORIZED | EGID is research-only; no provider contact, quote request, credential request, or selection is authorized |
 | CI for code implementation | PASS | Run #43405799607 on code commit `1d2b902a646174521b143cf19c1b7c7c126cd072`; all six jobs successful |
-| CI for latest branch head | PENDING AT LAST CHECK | Run #43407005608 on `d66c738d598726351536bea03a06a684ba99c3c4`: five jobs succeeded; unit-tests (3.12) was still in progress |
+| CI for documentation-only updates | TRACK LIVE CHECKS | Documentation-only commits trigger the repository CI workflow; use the current PR checks for the latest head and never infer success from an earlier commit |
 | PR state | OPEN / DRAFT / NOT MERGED | PR #515 remains draft and unmerged; do not merge or activate production monitoring while activation blockers remain |
 
 **Gate decision: GAP / NOT ACTIVATED.** Correction replay/rebuild and notification compensation are implemented; the remaining blockers are provider finality, an evidence-backed active calendar and approved activation/bootstrap policy, scheduled worker wiring, and full deployment-level E2E acceptance. CI success does not substitute for those operational gates. Automatic monitoring must remain disabled.
