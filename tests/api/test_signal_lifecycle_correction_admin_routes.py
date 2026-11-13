@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -95,7 +96,6 @@ def test_lifecycle_correction_review_is_operator_attributed_and_append_only():
         json={
             "decision": "ACCEPTED_NO_STATE_CHANGE",
             "reason": "Independent review completed",
-            "recorded_at": "2026-11-13T09:30:00+00:00",
         },
     )
 
@@ -104,9 +104,12 @@ def test_lifecycle_correction_review_is_operator_attributed_and_append_only():
     assert response.json()["decision"] == "ACCEPTED_NO_STATE_CHANGE"
     assert orchestrator.review is not None
     assert orchestrator.review.reason == "Independent review completed"
+    recorded_at = datetime.fromisoformat(response.json()["recorded_at"])
+    assert recorded_at.tzinfo is not None
+    assert recorded_at <= datetime.now(timezone.utc)
 
 
-def test_lifecycle_correction_review_rejects_naive_timestamp():
+def test_lifecycle_correction_review_rejects_client_supplied_recorded_at():
     client = make_client(FakeLifecycleOrchestrator())
 
     response = client.post(
@@ -115,7 +118,7 @@ def test_lifecycle_correction_review_rejects_naive_timestamp():
         json={
             "decision": "REPLAY_REQUIRED",
             "reason": "Potential state impact",
-            "recorded_at": "2026-11-13T09:30:00",
+            "recorded_at": "2000-01-01T00:00:00+00:00",
         },
     )
 
