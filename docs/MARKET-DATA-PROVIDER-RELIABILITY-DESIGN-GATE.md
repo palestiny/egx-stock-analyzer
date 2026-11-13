@@ -68,6 +68,20 @@ For a requested evaluation:
 
 The 60-minute buffer in DEC-139 is an operational scheduling default. It does not replace the provider's completion guarantee.
 
+## 4A. Provider discovery snapshot — 2026-11-13
+
+A provider discovery review is recorded in `docs/EGX-MARKET-DATA-PROVIDER-DISCOVERY-2026-11-13.md`.
+
+Preliminary result:
+- **EGID is the priority candidate to contact**: its official website states it is wholly owned by EGX and the sole authorized EGX market-data provider; its product page lists historical prices, EOD reports, real-time Level 1/2, and a 15-minute delayed feed. Its public API UI lists symbol-history and market-status endpoints.
+- This is not provider approval. Public materials do not establish machine-verifiable daily-bar finality, revision/correction semantics, or the exact commercial rights required by this application.
+- **ICE Data Services** is the enterprise fallback to request a technical specification and quote for EGX EOD/history and API delivery.
+- **DataCedar** is research-only under its published default terms: its API docs say the bars are not a consolidated exchange feed, and its terms restrict redistribution/third-party access absent a separate written agreement.
+- **EGXAPI** is not eligible for reliance while its public Terms page labels itself a design draft with placeholder legal text.
+- **EGX.news** remains unverified for authority, provenance, finality and redistribution rights.
+
+No credentials were available during this review. The next action is a written technical/commercial request to EGID. No provider adapter or lifecycle activation is authorized until the evidence checklist in the discovery report is satisfied.
+
 ## 5. Provider selection and commercial boundary
 
 A provider may be technically eligible for private/local analysis yet commercially ineligible for a paid or subscriber-facing product. Keep these as separate gates:
