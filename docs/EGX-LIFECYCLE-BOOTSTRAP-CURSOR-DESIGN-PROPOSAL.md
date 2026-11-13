@@ -119,3 +119,14 @@ The first implementation increment is present on the PR branch:
 | Couple publication/outbox refactor into this change | Deferred: expands scope; pre-evaluation gate provides safe eligibility boundary |
 
 Until implementation and independent provider/calendar/worker/E2E gates pass, calendar activation, scheduled lifecycle execution, and production monitoring remain disabled.
+
+
+## Calendar activation validation increment (2026-11-13)
+
+Added `ValidateLifecycleCalendarActivation` as a fail-closed application validation service. It does not activate or mutate the active calendar pointer.
+
+The validator requires an injected trusted evaluation-schedule port; callers cannot submit the next evaluation date. It checks candidate publication metadata and timezone, every latest active opportunity/revision, exact matching publication baseline for the candidate calendar version, complete append-only bootstrap batch counts, explicit day-by-day calendar coverage through the trusted next evaluation date, a trading-session next date, and compatibility of any latest reconciled-session cursor with the candidate calendar.
+
+The service returns structured blockers and is not wired to an activation endpoint. There is no production trusted schedule adapter yet, so production calendar activation remains unavailable. This is intentional fail-closed behavior, not an operational activation approval.
+
+Tests added for a valid candidate, missing bootstrap, insufficient coverage, non-trading next date, and unavailable trusted schedule. Exact-head CI is required before accepting this increment.
