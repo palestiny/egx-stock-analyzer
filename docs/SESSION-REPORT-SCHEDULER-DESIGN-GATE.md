@@ -122,9 +122,9 @@ Repository inspection on 2026-11-13 confirms the current persistence contracts a
 
 The current snapshot primary key permits more than one methodology version for the same session and UTC generation timestamp. However, `get_latest(session_date, as_of=...)` orders by `generated_at DESC, methodology_version ASC` and returns one row, while the authenticated GET API does not accept a methodology-version selector. If two methodology versions share the same generation timestamp, the endpoint silently chooses the lexicographically first version. That ordering is deterministic but is not a documented business rule and must not be mistaken for "the latest" methodology.
 
-**Proposed resolution — design only:** expose an optional exact `methodology_version` selector. If omitted and the latest timestamp has multiple methodology versions, return an explicit ambiguity result (or require an owner-selected default policy); never use lexical ordering as a proxy for semantic recency. Define whether a new methodology version supersedes an older one for the same session before implementing an automatic default. Add tests for same-cutoff multi-methodology snapshots, explicit selection, and ambiguous unqualified reads.
+**Resolution implemented on PR #515:** the read contract now accepts an optional exact `methodology_version`. When supplied, the store selects the latest snapshot for that exact methodology at or before the requested cutoff. When omitted, the store first identifies the latest available cutoff; if more than one methodology exists at that exact cutoff, it raises `AmbiguousSessionOpportunityReportError`, and the authenticated API returns HTTP 409 with an instruction to supply `methodology_version`. When the latest cutoff has exactly one methodology, existing unqualified reads continue to work. This removes lexical ordering as an implicit business rule without choosing which methodology supersedes another.
 
-**Gate:** no API or persistence contract changed in this increment.
+Regression coverage was added for same-cutoff ambiguity, exact methodology selection, latest unambiguous cutoff, API 409 behavior, and explicit API selection. Exact-head CI remains required before this increment is considered verified.
 
 ---
 
