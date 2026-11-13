@@ -8,7 +8,12 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from app.application.signals.store import SignalRecord, SignalHistoryStore, SignalRevisionLink
+from app.application.signals.store import (
+    PublishedOpportunityRevision,
+    SignalHistoryStore,
+    SignalRecord,
+    SignalRevisionLink,
+)
 from app.domain.signals.model import (
     PriceZone,
     Signal,
