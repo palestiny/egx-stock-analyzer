@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** The latest lifecycle code revision before documentation consolidation passed exact-head CI on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six jobs successful). The current documentation-only follow-up commit is `c84d2cb976d051724d994a1022d0d4cf8aca3c9b`; no CI run is reported for that documentation commit. Production activation remains blocked by production provider finality, an active deployment calendar, corrected-candle replay/rebuild and notification policy, scheduled-worker wiring, and end-to-end acceptance. PR #515 remains Draft and unmerged.  
+**Status:** The latest lifecycle code revision before documentation consolidation passed exact-head CI on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six jobs successful). Subsequent commits on this branch are documentation-only status consolidations; no separate CI run is reported for those documentation updates. Production activation remains blocked by production provider finality, an active deployment calendar, corrected-candle replay/rebuild and notification policy, scheduled-worker wiring, and end-to-end acceptance. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -223,7 +223,7 @@ This matrix is the current source of truth for the Opportunity Lifecycle Design 
 | Active accepted EGX calendar version in target deployment | NOT VERIFIED / NOT ACTIVE | Calendar model and persistence exist; an evidenced calendar version must be published and activated operationally |
 | Scheduled production worker | NOT WIRED | Evaluator and recovery use cases are not connected to an enabled production schedule; keep disabled until provider/calendar gates pass |
 | Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, and per-user authorization together |
-| CI for latest lifecycle code revision | PASS | Run #43401923684 on code commit `4d0929a457449187bb493b9b25f829da88dd8449`; all six jobs successful. Documentation-only consolidation commit `c84d2cb976d051724d994a1022d0d4cf8aca3c9b` has no reported CI run |
+| CI for latest lifecycle code revision | PASS | Run #43401923684 on code commit `4d0929a457449187bb493b9b25f829da88dd8449`; all six jobs successful. Subsequent documentation-only status-consolidation commits have no reported CI run |
 | PR state | OPEN / DRAFT / NOT MERGED | Do not merge or activate production monitoring while any activation blocker remains |
 
 **Gate decision: GAP / NOT ACTIVATED.** The lifecycle implementation is substantially present and exact-head CI is green, but CI success does not substitute for provider finality, an active calendar, corrected-candle replay semantics, worker wiring, or end-to-end operational acceptance. Automatic monitoring must remain disabled.
