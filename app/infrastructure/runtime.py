@@ -35,6 +35,7 @@ from app.infrastructure.notifications.sqlite_telegram_delivery_reconciliation_st
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
 from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
+from app.infrastructure.persistence.sqlite_outcome_event_store import SQLiteOutcomeEventStore
 from app.infrastructure.persistence.sqlite_subscription_store import SQLiteSubscriptionStore
 from app.infrastructure.persistence.sqlite_entitlement_store import SQLiteEntitlementStore
 from app.application.identity.user_management import UserManagementService
@@ -137,6 +138,7 @@ class InfrastructureRuntime:
     user_management: UserManagementService | None = None
     signal_history_store: SQLiteSignalHistoryStore | None = None
     signal_track_record_store: SQLiteTrackRecordStore | None = None
+    signal_outcome_event_store: SQLiteOutcomeEventStore | None = None
     signal_alert_outbox: SQLiteAlertOutbox | None = None
     signal_lifecycle_orchestrator: SignalLifecycleOrchestrator | None = None
     build_session_opportunity_ledger: BuildSessionOpportunityLedger | None = None
@@ -274,6 +276,7 @@ def create_infrastructure_runtime(
         explicit_grants=entitlement_service,
     )
     signal_track_record_store = SQLiteTrackRecordStore(config.analysis_database_path)
+    signal_outcome_event_store = SQLiteOutcomeEventStore(config.analysis_database_path)
     signal_alert_outbox = SQLiteAlertOutbox(config.analysis_database_path)
     signal_lifecycle_unit_of_work = SQLiteSignalLifecycleUnitOfWork(
         history=signal_history_store,
@@ -289,6 +292,7 @@ def create_infrastructure_runtime(
     build_session_opportunity_ledger = BuildSessionOpportunityLedger(
         history=signal_history_store,
         track_record=signal_track_record_store,
+        outcome_events=signal_outcome_event_store,
     )
     publish_signal_opportunity = PublishSignalOpportunity(
         history=signal_history_store,
@@ -453,6 +457,7 @@ def create_infrastructure_runtime(
         user_management=user_management,
         signal_history_store=signal_history_store,
         signal_track_record_store=signal_track_record_store,
+        signal_outcome_event_store=signal_outcome_event_store,
         signal_alert_outbox=signal_alert_outbox,
         signal_lifecycle_orchestrator=signal_lifecycle_orchestrator,
         build_session_opportunity_ledger=build_session_opportunity_ledger,
