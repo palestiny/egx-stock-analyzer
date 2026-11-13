@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import UUID
 from datetime import datetime, timedelta
 from typing import Protocol
 from zoneinfo import ZoneInfo
@@ -45,6 +46,7 @@ class EvaluateCompletedDailyBar:
 
     def execute(
         self,
+        signal_id: UUID,
         bar: CompletedDailyBarObservation,
         *,
         evaluated_at: datetime,
@@ -106,6 +108,7 @@ class EvaluateCompletedDailyBar:
             )
 
         result = self._lifecycle.process_completed_daily_bar(
+            signal_id,
             bar,
             policy_version=self.POLICY_VERSION,
             calendar_version=active.version,
