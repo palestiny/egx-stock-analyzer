@@ -64,3 +64,23 @@ def test_news_event_rejects_duplicate_symbols_after_normalization() -> None:
 def test_news_event_rejects_malformed_or_credential_bearing_source_urls(source_url: str) -> None:
     with pytest.raises(ValueError, match="absolute HTTP\\(S\\) URL"):
         event(source_url=source_url)
+
+
+
+def test_news_retrieved_after_cutoff_is_not_backtest_eligible() -> None:
+    item = event(
+        first_seen_at=datetime(2026, 10, 20, 10, 5, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 20, 11, 0, tzinfo=timezone.utc),
+    )
+
+    assert not item.eligible_as_of(
+        datetime(2026, 10, 20, 10, 30, tzinfo=timezone.utc)
+    )
+
+
+def test_news_event_rejects_first_seen_after_retrieval() -> None:
+    with pytest.raises(ValueError, match="first_seen_at cannot be later than retrieved_at"):
+        event(
+            first_seen_at=datetime(2026, 10, 20, 11, 0, tzinfo=timezone.utc),
+            retrieved_at=datetime(2026, 10, 20, 10, 5, tzinfo=timezone.utc),
+        )
