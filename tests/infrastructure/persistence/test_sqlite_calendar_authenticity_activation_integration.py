@@ -4,6 +4,8 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.execution.retry import RetryPolicy
 from app.application.signals.calendar_backed_lifecycle_evaluation_schedule import (
     CalendarBackedLifecycleEvaluationSchedule,
 )
@@ -11,6 +13,7 @@ from app.application.signals.validate_lifecycle_calendar_activation import (
     ValidateLifecycleCalendarActivation,
 )
 from app.domain.identity.user import User, UserStatus
+from app.domain.stocks.stock import Stock
 from app.infrastructure.config import InfrastructureConfig
 from app.infrastructure.persistence.sqlite_lifecycle_calendar_activation_coordinator import (
     SQLiteLifecycleCalendarActivationCoordinator,
@@ -19,8 +22,9 @@ from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import 
     SQLiteSignalLifecycleUnitOfWork,
 )
 from app.infrastructure.runtime import create_infrastructure_runtime
+from app.application.stocks.catalog import InMemoryStockCatalog
 
-from tests.test_infrastructure_runtime import FakeYFinanceModule
+from tests.fakes import FakeYFinanceModule
 from tests.test_infrastructure_runtime import InMemoryAnalysisResultStore
 from tests.test_infrastructure_runtime import RetryPolicy
 from tests.test_infrastructure_runtime import Stock
