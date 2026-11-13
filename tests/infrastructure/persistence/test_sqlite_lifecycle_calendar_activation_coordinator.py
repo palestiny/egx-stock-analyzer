@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
