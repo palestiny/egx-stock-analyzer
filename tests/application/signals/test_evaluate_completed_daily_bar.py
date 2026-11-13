@@ -134,6 +134,19 @@ def test_daily_bar_is_suppressed_without_an_active_calendar():
     assert lifecycle.calls == []
 
 
+def test_daily_bar_rejects_legacy_bare_bar_without_provider_evidence():
+    service, verifier, lifecycle = evaluator(active=make_calendar())
+    result = service.execute(
+        uuid4(),
+        make_bar(),
+        evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
+    )
+    assert result.accepted is False
+    assert result.reason == "PROVIDER_EVIDENCE_REQUIRED"
+    assert verifier.calls == 0
+    assert lifecycle.calls == []
+
+
 def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
     service, verifier, lifecycle = evaluator(
         active=make_calendar(CalendarDayStatus.SCHEDULED)
