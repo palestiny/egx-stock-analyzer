@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-
-import sqlite3
 
 from app.application.market_data.session_calendar_store import CalendarActivationEvent
 from app.application.signals.validate_lifecycle_calendar_activation import (
