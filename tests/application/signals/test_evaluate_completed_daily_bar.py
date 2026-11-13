@@ -43,9 +43,13 @@ class FakeFinalityVerifier:
 class FakeLifecycle:
     def __init__(self):
         self.calls = []
+        self.provider_evidence = None
 
-    def process_completed_daily_bar(self, signal_id, bar, *, policy_version, calendar_version):
+    def process_completed_daily_bar(
+        self, signal_id, bar, *, policy_version, calendar_version, provider_evidence=None
+    ):
         self.calls.append((signal_id, bar, policy_version, calendar_version))
+        self.provider_evidence = provider_evidence
         return SimpleNamespace(changed=False)
 
 
@@ -163,9 +167,15 @@ def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
 
 def test_daily_bar_requires_post_close_plus_sixty_minutes():
     service, verifier, lifecycle = evaluator(active=make_calendar())
+    bar = make_bar()
+    evidence = replace(
+        make_evidence(bar),
+        source_timestamp=datetime(2026, 10, 4, 15, 0, tzinfo=CAIRO),
+        retrieved_at=datetime(2026, 10, 4, 15, 10, tzinfo=CAIRO),
+    )
     result = service.execute(
         uuid4(),
-        make_evidence(make_bar()),
+        evidence,
         evaluated_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
     )
     assert result.reason == "POST_CLOSE_BUFFER_NOT_ELAPSED"
@@ -202,6 +212,7 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     assert verifier.last_evidence is evidence
     assert verifier.last_evidence.provider_contract_version == "test-contract-v1"
     assert lifecycle.calls == [(signal_id, bar, "dec139-completed-daily-bar-v1", "calendar-v1")]
+    assert lifecycle.provider_evidence is evidence
 
 
 def test_daily_bar_rejects_future_observation_timestamp():
