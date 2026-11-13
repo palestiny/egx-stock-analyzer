@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, TypeVar
 from uuid import UUID, uuid4
 
-from app.application.signals.lifecycle_unit_of_work import SignalLifecycleTransaction
+from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleObservationRecord,
+    SignalLifecycleTransaction,
+)
 from app.application.signals.store import SignalRecord
 from app.domain.alerts.model import AlertEvent
-from app.domain.signals.model import Signal
+from app.domain.signals.lifecycle import CompletedDailyBarObservation
+from app.domain.signals.model import Signal, SignalStatus
 from app.domain.signals.outcome import SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
@@ -31,6 +36,111 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         self._history = history
         self._track_record = track_record
         self._outbox = outbox
+
+    def get_observation(self, identity):
+        key = json.dumps(
+            [identity[0], identity[1], identity[2], identity[3].isoformat(), identity[4]],
+            separators=(",", ":"),
+        )
+        row = self._connection.execute(
+            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ?",
+            (key,),
+        ).fetchone()
+        return self._deserialize_observation(str(row[0])) if row else None
+
+    def latest_observation(self, symbol: str):
+        row = self._connection.execute(
+            """
+            SELECT payload_json FROM signal_lifecycle_daily_observations
+            WHERE symbol = ?
+            ORDER BY candle_at DESC, observed_at DESC
+            LIMIT 1
+            """,
+            (symbol.strip().upper(),),
+        ).fetchone()
+        return self._deserialize_observation(str(row[0])) if row else None
+
+    def record_observation(self, record: LifecycleObservationRecord) -> None:
+        bar = record.bar
+        identity_key = json.dumps(
+            [*bar.identity[:3], bar.identity[3].isoformat(), bar.identity[4]],
+            separators=(",", ":"),
+        )
+        payload = self._serialize_observation(record)
+        existing = self._connection.execute(
+            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ?",
+            (identity_key,),
+        ).fetchone()
+        if existing is not None:
+            if str(existing[0]) != payload:
+                raise ValueError("conflicting replay for completed daily candle identity")
+            return
+        self._connection.execute(
+            """
+            INSERT INTO signal_lifecycle_daily_observations(
+                identity_key, signal_id, symbol, candle_at, observed_at, payload_json
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                identity_key,
+                str(record.signal_id),
+                bar.symbol.strip().upper(),
+                bar.candle_at.isoformat(),
+                bar.observed_at.isoformat(),
+                payload,
+            ),
+        )
+
+    @staticmethod
+    def _serialize_observation(record: LifecycleObservationRecord) -> str:
+        bar = record.bar
+        payload = {
+            "signal_id": str(record.signal_id),
+            "policy_version": record.policy_version,
+            "resulting_status": record.resulting_status.value,
+            "bar": {
+                "symbol": bar.symbol.strip().upper(),
+                "provider": bar.provider.strip(),
+                "timeframe": bar.timeframe.strip().upper(),
+                "candle_at": bar.candle_at.isoformat(),
+                "observed_at": bar.observed_at.isoformat(),
+                "revision": bar.revision.strip(),
+                "source_reference": bar.source_reference,
+                "finality_attestation": bar.finality_attestation,
+                "is_final": bar.is_final,
+                "open": str(bar.open),
+                "high": str(bar.high),
+                "low": str(bar.low),
+                "close": str(bar.close),
+            },
+        }
+        return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+    @staticmethod
+    def _deserialize_observation(payload_text: str) -> LifecycleObservationRecord:
+        payload = json.loads(payload_text)
+        item = payload["bar"]
+        bar = CompletedDailyBarObservation(
+            symbol=str(item["symbol"]),
+            provider=str(item["provider"]),
+            timeframe=str(item["timeframe"]),
+            candle_at=datetime.fromisoformat(str(item["candle_at"])),
+            observed_at=datetime.fromisoformat(str(item["observed_at"])),
+            revision=str(item["revision"]),
+            source_reference=str(item["source_reference"]),
+            finality_attestation=str(item["finality_attestation"]),
+            is_final=bool(item["is_final"]),
+            open=Decimal(str(item["open"])),
+            high=Decimal(str(item["high"])),
+            low=Decimal(str(item["low"])),
+            close=Decimal(str(item["close"])),
+        )
+        return LifecycleObservationRecord(
+            signal_id=UUID(str(payload["signal_id"])),
+            bar=bar,
+            policy_version=str(payload["policy_version"]),
+            resulting_status=SignalStatus(str(payload["resulting_status"])),
+        )
 
     def latest(self, symbol: str) -> SignalRecord | None:
         normalized = symbol.strip().upper()
@@ -182,6 +292,50 @@ class SQLiteSignalLifecycleUnitOfWork:
         self._history = history
         self._track_record = track_record
         self._outbox = outbox
+        self._initialize_observation_ledger()
+
+    def _initialize_observation_ledger(self) -> None:
+        connection = connect_sqlite(self._database_path)
+        try:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_daily_observations (
+                    identity_key TEXT PRIMARY KEY,
+                    signal_id TEXT NOT NULL,
+                    symbol TEXT NOT NULL,
+                    candle_at TEXT NOT NULL,
+                    observed_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_lifecycle_daily_observations_symbol_date
+                ON signal_lifecycle_daily_observations(symbol, candle_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_daily_observations_no_update
+                BEFORE UPDATE ON signal_lifecycle_daily_observations
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle observations are append-only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_daily_observations_no_delete
+                BEFORE DELETE ON signal_lifecycle_daily_observations
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle observations are append-only');
+                END
+                """
+            )
+            connection.commit()
+        finally:
+            connection.close()
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         connection = connect_sqlite(self._database_path)
