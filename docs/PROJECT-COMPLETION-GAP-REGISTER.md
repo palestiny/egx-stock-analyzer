@@ -1,6 +1,6 @@
 ## Latest verified continuation — 2026-11-13 (Opportunity lifecycle projection exact-head verification)
 
-**Current PR #515 branch:** `feature/opportunity-lifecycle-completion`; PR remains **OPEN / DRAFT / NOT MERGED**. Latest documentation commit: `fd7c730738ec958305e51646ee4b952142bd2500`. The application-code head verified by CI is `18a422589dff5a73f9eb2c07a05e32a90cc88e48`; the later commits only update documentation.
+**Current PR #515 branch:** `feature/opportunity-lifecycle-completion`; PR remains **OPEN / DRAFT / NOT MERGED**. The application-code head verified by CI is `18a422589dff5a73f9eb2c07a05e32a90cc88e48`; subsequent branch commits in this continuation update documentation only and do not alter application code.
 
 - [x] Exact-head workflow [43483122010](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43483122010) passed **7/7 jobs**: dependency audit, unit tests, integration tests, lifecycle projection benchmark, daily-history audit, container build, and frontend tests.
 - [x] Unit tests: **1,862 passed, 8 deselected, 1 warning**; coverage **89.66%** against an 85% threshold.
