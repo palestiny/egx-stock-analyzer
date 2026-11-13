@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.market_data.session_calendar_store import SessionCalendarStore
 from app.application.signals.lifecycle_orchestrator import (
     SignalLifecycleOrchestrator,
@@ -16,7 +17,7 @@ from app.domain.signals.lifecycle import CompletedDailyBarObservation
 
 
 class DailyBarFinalityVerifier(Protocol):
-    def verify_finality(self, bar: CompletedDailyBarObservation) -> bool: ...
+    def verify_finality(self, evidence: ProviderDailyBarEvidence) -> bool: ...
 
 
 @dataclass(frozen=True)
@@ -47,12 +48,16 @@ class EvaluateCompletedDailyBar:
     def execute(
         self,
         signal_id: UUID,
-        bar: CompletedDailyBarObservation,
+        evidence: ProviderDailyBarEvidence,
         *,
         evaluated_at: datetime,
     ) -> CompletedDailyBarEvaluation:
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
+        bar = evidence.bar
+        if evidence.retrieved_at > evaluated_at or evidence.source_timestamp > evaluated_at:
+            return CompletedDailyBarEvaluation(False, "PROVIDER_EVIDENCE_FROM_FUTURE", None)
+
         active = self._calendar_store.get_active()
         if active is None:
             return CompletedDailyBarEvaluation(
@@ -62,6 +67,8 @@ class EvaluateCompletedDailyBar:
         calendar = active.calendar
         timezone = ZoneInfo(calendar.timezone)
         session_date = bar.candle_at.astimezone(timezone).date()
+        if evidence.session_date != session_date:
+            return CompletedDailyBarEvaluation(False, "PROVIDER_EVIDENCE_SESSION_MISMATCH", active.version)
         try:
             day = calendar.day_for(session_date)
         except CalendarCoverageError:
@@ -92,6 +99,7 @@ class EvaluateCompletedDailyBar:
         if (
             evaluated_at.astimezone(timezone) < eligible_at
             or bar.observed_at.astimezone(timezone) < eligible_at
+            or evidence.retrieved_at.astimezone(timezone) < eligible_at
         ):
             return CompletedDailyBarEvaluation(
                 False, "POST_CLOSE_BUFFER_NOT_ELAPSED", active.version
@@ -102,7 +110,7 @@ class EvaluateCompletedDailyBar:
                 False, "OBSERVATION_FROM_FUTURE", active.version
             )
 
-        if not self._finality_verifier.verify_finality(bar):
+        if not self._finality_verifier.verify_finality(evidence):
             return CompletedDailyBarEvaluation(
                 False, "PROVIDER_FINALITY_NOT_VERIFIED", active.version
             )
