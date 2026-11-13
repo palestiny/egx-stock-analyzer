@@ -77,6 +77,7 @@ class SQLiteCalendarSourceOriginRegistry:
         occurred_at: datetime | None = None,
     ) -> TrustedCalendarSourceOrigin:
         self._require_owner(owner)
+        assert owner.user_id is not None and owner.credential_id is not None
         canonical_origin = normalize_calendar_source_origin(origin)
         for name, value in (
             ("publisher", publisher),
