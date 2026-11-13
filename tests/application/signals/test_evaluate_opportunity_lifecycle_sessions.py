@@ -54,7 +54,7 @@ class FakeFinalityVerifier:
         return bar.candle_at.astimezone(CAIRO).date() not in self.rejected_dates
 
 
-def make_calendar():
+def make_calendar(version="calendar-v1"):
     days = []
     current = START
     while current <= END:
@@ -83,14 +83,14 @@ def make_calendar():
         current += timedelta(days=1)
 
     calendar = EGXSessionCalendar(
-        version="calendar-v1",
+        version=version,
         timezone="Africa/Cairo",
         coverage_start=START,
         coverage_end=END,
         days=tuple(days),
     )
     return StoredCalendarVersion(
-        version="calendar-v1",
+        version=version,
         calendar=calendar,
         sha256="b" * 64,
         published_at=datetime(2026, 9, 30, 12, tzinfo=CAIRO),
@@ -138,8 +138,8 @@ def make_bar(session_date):
     )
 
 
-def build_service(*, rejected_dates=(), bootstrap=True):
-    calendar_store = FakeCalendarStore(make_calendar())
+def build_service(*, rejected_dates=(), bootstrap=True, active_calendar_version="calendar-v1"):
+    calendar_store = FakeCalendarStore(make_calendar(active_calendar_version))
     verifier = FakeFinalityVerifier(rejected_dates)
     history = InMemorySignalHistoryStore()
     alerts = InMemoryAlertPublisher()
@@ -344,14 +344,8 @@ def test_lifecycle_evaluation_rejects_parent_revision_after_newer_revision_exist
 
 
 def test_lifecycle_evaluation_requires_bootstrap_for_the_active_calendar_version():
-    service, _, lifecycle, publication, _, _ = build_service()
-    calendar_store = service._calendar_store
-    current = calendar_store.active
-    replacement_calendar = replace(current.calendar, version="calendar-v2")
-    calendar_store.active = replace(
-        current,
-        version="calendar-v2",
-        calendar=replacement_calendar,
+    service, _, lifecycle, publication, _, _ = build_service(
+        active_calendar_version="calendar-v2"
     )
 
     result = service.execute(
