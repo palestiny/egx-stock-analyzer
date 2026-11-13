@@ -80,7 +80,7 @@ def make_signal():
     )
 
 
-def setup(*, bootstrap=True, next_date=date(2026, 10, 6), end=END, next_status=CalendarDayStatus.SCHEDULED):
+def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=None, end=END, next_status=CalendarDayStatus.SCHEDULED):
     history = InMemorySignalHistoryStore()
     alerts = InMemoryAlertPublisher()
     track = InMemoryTrackRecordStore()
@@ -97,7 +97,7 @@ def setup(*, bootstrap=True, next_date=date(2026, 10, 6), end=END, next_status=C
             calendar_version=stored.version,
             operator_id="operator-1",
             reason="bootstrap before activation",
-            next_evaluation_date=next_date,
+            next_evaluation_date=bootstrap_next_date or next_date,
             recorded_at=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
         )
     schedule = FakeSchedule(next_date)
@@ -131,7 +131,7 @@ def test_calendar_activation_validation_rejects_missing_bootstrap():
 
 
 def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
-    validator, _, _, _ = setup(end=date(2026, 10, 5))
+    validator, _, _, _ = setup(end=date(2026, 10, 5), bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -141,7 +141,7 @@ def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
 
 
 def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date():
-    validator, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING)
+    validator, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING, bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
