@@ -291,3 +291,22 @@ def test_calendar_activation_validation_requires_next_evaluation_after_cursor():
     )
     assert result.eligible is False
     assert any(item.code == "NEXT_EVALUATION_NOT_AFTER_CURSOR" for item in result.blockers)
+
+
+
+def test_calendar_activation_validator_uses_caller_owned_lifecycle_transaction(monkeypatch):
+    validator, _, _, uow, _ = setup()
+    transaction = uow.execute(lambda tx: tx)
+
+    def nested_transaction_is_forbidden(*args, **kwargs):
+        raise AssertionError("validator opened a nested lifecycle transaction")
+
+    monkeypatch.setattr(uow, "execute", nested_transaction_is_forbidden)
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+        transaction=transaction,
+    )
+
+    assert result.eligible is True
+    assert result.blockers == ()
