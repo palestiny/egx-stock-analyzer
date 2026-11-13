@@ -28,6 +28,7 @@ class LifecycleCorrectionRecord:
     reason: str
     calendar_version: str
     recorded_at: datetime
+    status: str = "RECORDED_NOT_REEVALUATED"
 
 
 @dataclass(frozen=True)
