@@ -76,6 +76,12 @@ class SQLiteCalendarEvidenceVerificationStore(CalendarEvidenceVerificationStore)
         if record.verifier_credential_id == record.uploader_credential_id:
             raise ValueError("Independent reviewer credential must differ from uploader credential")
         with self._connect() as connection:
+            self._require_active_operator_credential(
+                connection, record.verifier_user_id, record.verifier_credential_id
+            )
+            self._require_active_operator_credential(
+                connection, record.uploader_user_id, record.uploader_credential_id
+            )
             connection.execute(
                 """
                 INSERT INTO egx_calendar_evidence_verifications (
@@ -100,6 +106,30 @@ class SQLiteCalendarEvidenceVerificationStore(CalendarEvidenceVerificationStore)
                     record.verified_at.isoformat(),
                     record.reason,
                 ),
+            )
+
+    @staticmethod
+    def _require_active_operator_credential(
+        connection: sqlite3.Connection,
+        user_id: UUID,
+        credential_id: UUID,
+    ) -> None:
+        row = connection.execute(
+            """
+            SELECT 1
+            FROM operator_access_current AS grants
+            JOIN users AS users ON users.id = grants.user_id
+            JOIN user_credentials AS credentials ON credentials.user_id = users.id
+            WHERE users.id = ?
+              AND users.status = 'active'
+              AND credentials.id = ?
+              AND credentials.status = 'active'
+            """,
+            (str(user_id), str(credential_id)),
+        ).fetchone()
+        if row is None:
+            raise ValueError(
+                "Uploader and reviewer must both have active individual operator credentials"
             )
 
     def latest(self, evidence_id: UUID) -> CalendarEvidenceVerificationRecord | None:
