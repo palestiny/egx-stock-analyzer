@@ -128,6 +128,7 @@ class EvaluateCompletedDailyBar:
             bar,
             policy_version=self.POLICY_VERSION,
             calendar_version=active.version,
+            provider_evidence=evidence,
         )
         if result is None:
             return CompletedDailyBarEvaluation(
