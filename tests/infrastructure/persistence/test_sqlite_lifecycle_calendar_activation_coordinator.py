@@ -1,5 +1,7 @@
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time
+from threading import Event
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -303,4 +305,77 @@ def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path
     assert attempt.validation.blockers == ()
     assert attempt.event is not None
     assert calendar_repository.get_active().version == "verified-v1"
+    assert len(calendar_repository.list_activation_events()) == 1
+
+
+
+def test_concurrent_calendar_writer_waits_until_lifecycle_validation_and_audit_commit(tmp_path):
+    database = tmp_path / "concurrent-activation.db"
+    calendar_repository = SQLiteSessionCalendarRepository(database)
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+    publish_calendar(calendar_repository, "v1", 3)
+
+    validation_started = Event()
+    release_validation = Event()
+    second_writer_started = Event()
+    second_writer_finished = Event()
+
+    class BlockingValidator:
+        def execute(self, *, calendar_version, as_of, transaction):
+            assert transaction.bootstrap_batches() == ()
+            validation_started.set()
+            if not release_validation.wait(timeout=3):
+                raise TimeoutError("test did not release activation validation")
+            return LifecycleCalendarActivationValidation(
+                eligible=True,
+                calendar_version=calendar_version,
+                next_evaluation_date=date(2026, 11, 3),
+                checked_opportunity_count=0,
+                blockers=(),
+            )
+
+    coordinator = SQLiteLifecycleCalendarActivationCoordinator(
+        calendar_repository=calendar_repository,
+        lifecycle_unit_of_work=unit_of_work,
+        validator=BlockingValidator(),
+    )
+    second_repository = SQLiteSessionCalendarRepository(database)
+
+    def second_writer():
+        second_writer_started.set()
+        try:
+            return second_repository.activate(
+                "v1",
+                performed_by="other-admin",
+                reason="concurrent activation attempt",
+            )
+        except ValueError as error:
+            return error
+        finally:
+            second_writer_finished.set()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        activation_future = executor.submit(
+            coordinator.activate,
+            "v1",
+            performed_by="admin",
+            reason="serialized activation",
+            as_of=datetime(2026, 11, 2, 16, tzinfo=CAIRO),
+        )
+        assert validation_started.wait(timeout=3)
+        second_future = executor.submit(second_writer)
+        assert second_writer_started.wait(timeout=3)
+        assert second_writer_finished.wait(timeout=0.15) is False
+        release_validation.set()
+
+        activation = activation_future.result(timeout=3)
+        second_result = second_future.result(timeout=3)
+
+    assert activation.event is not None
+    assert isinstance(second_result, ValueError)
+    assert "already active" in str(second_result)
+    assert calendar_repository.get_active().version == "v1"
     assert len(calendar_repository.list_activation_events()) == 1
