@@ -9,6 +9,7 @@ from app.api.session_opportunity_ledger_response import SessionOpportunityLedger
 from app.application.reporting.build_session_opportunity_ledger import BuildSessionOpportunityLedger
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
+from app.application.signals.outcome_event_store import InMemoryOutcomeEventStore
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -202,3 +203,50 @@ def test_signal_outcome_rejects_source_timestamp_after_observation() -> None:
             strategy_version="1",
             data_timestamp=dt(11),
         )
+
+
+
+def test_report_uses_outcome_recorded_at_and_preserves_event_provenance() -> None:
+    history = InMemorySignalHistoryStore()
+    track = InMemoryTrackRecordStore()
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", dt(9))
+    clock = [dt(11)]
+    events = InMemoryOutcomeEventStore(clock=lambda: clock[0])
+    outcome = SignalOutcomeRecord(
+        signal_id=signal.id,
+        symbol="EGAL",
+        outcome=SignalOutcome.INVALIDATED,
+        direction=SignalDirection.BUY,
+        observed_at=dt(9),
+        entry_price=Decimal("101"),
+        exit_price=Decimal("95"),
+        realized_return=Decimal("-0.0594"),
+        realized_r=Decimal("-1"),
+        invalidation=Decimal("95"),
+        target_label=None,
+        strategy_id="trend-breakout",
+        strategy_version="1",
+        data_timestamp=dt(9),
+    )
+    event = events.record_initial(
+        outcome, actor_id="operator-1", idempotency_key="late-outcome-1"
+    )
+    builder = BuildSessionOpportunityLedger(history, track, outcome_events=events)
+
+    before_knowledge = builder.execute(
+        date(2026, 10, 26), generated_at=dt(10)
+    )
+    after_knowledge = builder.execute(
+        date(2026, 10, 26), generated_at=dt(12)
+    )
+
+    assert before_knowledge.opportunities[0].market_proxy_outcome is None
+    assert before_knowledge.opportunities[0].outcome_event_id is None
+    resolved = after_knowledge.opportunities[0]
+    assert resolved.market_proxy_outcome is SignalOutcome.INVALIDATED
+    assert resolved.outcome_event_id == event.event_id
+    assert resolved.outcome_recorded_at == dt(11)
+    response = SessionOpportunityLedgerResponse.from_report(after_knowledge)
+    assert response["opportunities"][0]["outcome_event_id"] == str(event.event_id)
+    assert response["opportunities"][0]["outcome_recorded_at"] == dt(11).isoformat()
