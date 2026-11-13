@@ -314,12 +314,14 @@ class CalculateMarketBreadth:
         for symbol in normalized:
             source_date = source_data_dates.get(symbol)
             source_timestamp = source_data_timestamps.get(symbol)
-            if source_date is None or calendar is None:
+            if source_date is None:
                 status = "UNKNOWN"
             elif source_date > reference_date or (
                 source_timestamp is not None and source_timestamp > evaluation_time
             ):
                 status = "FUTURE"
+            elif calendar is None:
+                status = "UNKNOWN"
             else:
                 try:
                     completed = calendar.completed_sessions_between(
