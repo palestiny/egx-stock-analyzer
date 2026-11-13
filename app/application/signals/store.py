@@ -43,6 +43,9 @@ class SignalHistoryStore(Protocol):
     def get(self, signal_id: UUID) -> SignalRecord | None: ...
     def history(self, signal_id: UUID) -> tuple[SignalRecord, ...]: ...
     def latest(self, symbol: str) -> SignalRecord | None: ...
+    def latest_for_identity(
+        self, symbol: str, strategy_id: str, strategy_version: str, generated_at: datetime
+    ) -> SignalRecord | None: ...
     def all_records(self) -> tuple[SignalRecord, ...]: ...
 
 
@@ -127,6 +130,7 @@ class InMemorySignalHistoryStore:
         record = SignalRecord(signal_id, signal, recorded_at, event.strip())
         self._records[signal_id] = [record]
         self._by_symbol[signal.symbol.strip().upper()] = signal_id
+        self._by_identity[(signal.symbol.strip().upper(), signal.strategy_id, signal.strategy_version, signal.generated_at)] = signal_id
         return record
 
     def revision_link(self, signal_id: UUID) -> SignalRevisionLink | None:
@@ -141,6 +145,18 @@ class InMemorySignalHistoryStore:
 
     def latest(self, symbol: str) -> SignalRecord | None:
         signal_id = self._by_symbol.get(symbol.strip().upper())
+        return self.get(signal_id) if signal_id else None
+
+    def latest_for_identity(
+        self,
+        symbol: str,
+        strategy_id: str,
+        strategy_version: str,
+        generated_at: datetime,
+    ) -> SignalRecord | None:
+        signal_id = self._by_identity.get(
+            (symbol.strip().upper(), strategy_id, strategy_version, generated_at)
+        )
         return self.get(signal_id) if signal_id else None
 
     def all_records(self) -> tuple[SignalRecord, ...]:
