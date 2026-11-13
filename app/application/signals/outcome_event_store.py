@@ -278,7 +278,7 @@ class InMemoryOutcomeEventStore:
         return current
 
     def outcomes_as_of(
-        self, signal_ids, *, cutoff: datetime
+        self, signal_ids: Iterable[UUID], *, cutoff: datetime
     ) -> dict[UUID, OutcomeEvent]:
         if cutoff.tzinfo is None or cutoff.utcoffset() is None:
             raise ValueError("cutoff must be timezone-aware")
