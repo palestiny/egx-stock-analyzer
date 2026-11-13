@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
@@ -268,6 +268,78 @@ class SignalLifecycleOrchestrator:
             return SignalLifecycleResult(
                 signal_id=latest.signal_id,
                 signal=transitioned,
+                changed=True,
+                outcome_recorded=False,
+                alert_published=True,
+            )
+
+        return self._unit_of_work.execute(persist)
+
+    def latest_completed_observation(
+        self, signal_id: UUID
+    ) -> LifecycleObservationRecord | None:
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.latest_observation(signal_id)
+        )
+
+    def expire_opportunity(
+        self,
+        signal_id: UUID,
+        *,
+        eligible_sessions: tuple[date, ...],
+        calendar_version: str,
+        evaluated_at: datetime,
+    ) -> SignalLifecycleResult | None:
+        if len(eligible_sessions) < 20:
+            raise ValueError("opportunity expiry requires 20 eligible sessions")
+        if any(
+            later <= earlier
+            for earlier, later in zip(eligible_sessions, eligible_sessions[1:])
+        ):
+            raise ValueError("eligible sessions must be strictly chronological")
+        if not calendar_version or not calendar_version.strip():
+            raise ValueError("calendar_version is required")
+        if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
+            raise ValueError("evaluated_at must be timezone-aware")
+
+        def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
+            latest = transaction.latest_for_signal(signal_id)
+            if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
+                return None
+            if latest.event not in {"PUBLISHED", "PUBLISHED_VERSION"}:
+                return None
+
+            expired = replace(latest.signal, status=SignalStatus.EXPIRED)
+            final_session = eligible_sessions[-1]
+            event_id = uuid5(
+                NAMESPACE_URL,
+                f"signal-expired:{signal_id}:{final_session.isoformat()}:{calendar_version.strip()}",
+            )
+            transaction.record_signal(
+                expired,
+                "STATUS_EXPIRED",
+                evaluated_at,
+                signal_id=signal_id,
+            )
+            transaction.publish_alert(
+                AlertEvent(
+                    event_id=event_id,
+                    signal_id=signal_id,
+                    symbol=expired.symbol,
+                    event_type=AlertEventType.SIGNAL_EXPIRED,
+                    occurred_at=evaluated_at,
+                    message=(
+                        f"{expired.symbol} opportunity expired after "
+                        f"{len(eligible_sessions)} eligible EGX sessions "
+                        f"through {final_session.isoformat()} "
+                        f"(calendar {calendar_version.strip()})"
+                    ),
+                    signal_snapshot=snapshot_signal(expired),
+                )
+            )
+            return SignalLifecycleResult(
+                signal_id=signal_id,
+                signal=expired,
                 changed=True,
                 outcome_recorded=False,
                 alert_published=True,
