@@ -189,6 +189,22 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
 
+            if not isinstance(evidence, ProviderDailyBarEvidence):
+                self._lifecycle.mark_session_gap(
+                    signal_id,
+                    session_date=session_date,
+                    calendar_version=active_calendar.version,
+                    reason="PROVIDER_EVIDENCE_REQUIRED",
+                    detected_at=evaluated_at,
+                )
+                return OpportunitySessionEvaluation(
+                    "PROVIDER_EVIDENCE_REQUIRED",
+                    active_calendar.version,
+                    tuple(processed),
+                    session_date,
+                    last_result,
+                )
+
             bar = evidence.bar
             bar_session_date = bar.candle_at.astimezone(timezone).date()
             if evidence.session_date != session_date or bar_session_date != session_date:
