@@ -370,3 +370,49 @@ def test_lifecycle_evaluation_requires_bootstrap_for_the_active_calendar_version
 
     assert result.status == "LIFECYCLE_BOOTSTRAP_REQUIRED"
     assert lifecycle.latest_completed_observation(publication.signal_id) is None
+
+
+
+def test_session_evaluator_uses_caller_owned_transaction_for_gap_and_recovery():
+    service, history, lifecycle, publication, alerts, track_record = build_service()
+    unit_of_work = lifecycle._unit_of_work
+    transaction = unit_of_work.execute(lambda current: current)
+
+    def reject_nested_unit_of_work(_operation):
+        raise AssertionError("worker evaluation must not open a nested unit of work")
+
+    unit_of_work.execute = reject_nested_unit_of_work
+    session = expected_sessions()[0]
+    cutoff = datetime(2026, 10, 2, 16, tzinfo=CAIRO)
+
+    gap = service.execute(
+        publication.signal_id,
+        through_date=session,
+        bars_by_session={},
+        evaluated_at=cutoff,
+        transaction=transaction,
+    )
+    assert gap.status == "STALE_SESSION_DATA_GAP"
+    assert [
+        (event.session_date, event.status)
+        for event in transaction.session_gap_events(publication.signal_id)
+    ] == [(session, "STALE")]
+
+    recovered = service.execute(
+        publication.signal_id,
+        through_date=session,
+        bars_by_session={session: make_evidence(make_bar(session))},
+        evaluated_at=cutoff,
+        transaction=transaction,
+    )
+
+    assert recovered.status == "EVALUATED"
+    assert recovered.processed_sessions == (session,)
+    assert transaction.latest_observation(publication.signal_id).bar == make_bar(session)
+    assert [
+        (event.session_date, event.status)
+        for event in transaction.session_gap_events(publication.signal_id)
+    ] == [(session, "STALE"), (session, "RESOLVED")]
+    assert history.get(publication.signal_id).signal.status is SignalStatus.ACTIVE
+    assert len(alerts.events) == 0
+    assert track_record.all() == ()
