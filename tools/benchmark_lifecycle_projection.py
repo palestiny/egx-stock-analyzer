@@ -32,7 +32,7 @@ PROJECTION_SQL = """
 SELECT
     latest.signal_id, latest.event, latest.recorded_at, latest.signal_json,
     publication.signal_id, publication.event,
-    publication.recorded_at, publication.signal_json
+    publication.recorded_at
 FROM signal_opportunity_projection AS projection
 JOIN signal_history AS latest
   ON latest.id = projection.latest_history_id
@@ -238,7 +238,7 @@ def _concurrent_writer(
 
 
 def _measure_projection_stages(database: Path, samples: int) -> dict[str, object]:
-    """Separate SQLite fetch cost from JSON/domain-object materialization cost."""
+    """Separate SQLite fetch cost from latest-signal materialization cost."""
     query_samples: list[float] = []
     materialization_samples: list[float] = []
     row_count = 0
@@ -256,7 +256,6 @@ def _measure_projection_stages(database: Path, samples: int) -> dict[str, object
             for row in rows:
                 latest = SQLiteSignalHistoryStore._to_record(row[:4])
                 if latest.signal.status is SignalStatus.ACTIVE:
-                    SQLiteSignalHistoryStore._to_record(row[4:8])
                     active_count += 1
             materialization_samples.append((perf_counter() - started) * 1000)
     finally:
@@ -265,7 +264,7 @@ def _measure_projection_stages(database: Path, samples: int) -> dict[str, object
         "candidate_rows": row_count,
         "active_rows": active_count,
         "sqlite_fetch": _percentiles(query_samples),
-        "deserialize_and_filter": _percentiles(materialization_samples),
+        "deserialize_latest_and_filter": _percentiles(materialization_samples),
     }
 
 
