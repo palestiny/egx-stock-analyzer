@@ -13,7 +13,7 @@ from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapRecord,
     SignalLifecycleUnitOfWork,
 )
-from app.application.signals.store import SignalHistoryStore
+from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.domain.signals.model import SignalStatus
 
 
@@ -88,7 +88,7 @@ class BootstrapOpportunityLifecycle:
             if (link := self._history.revision_link(signal_id)) is not None
         }
 
-        candidates: list[tuple[object, object, date]] = []
+        candidates: list[tuple[SignalRecord, SignalRecord, date]] = []
         for signal_id in sorted(signal_ids - child_signal_ids, key=str):
             latest = self._history.get(signal_id)
             if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
@@ -125,7 +125,7 @@ class BootstrapOpportunityLifecycle:
             }
         )
 
-        pending: list[tuple[object, object, date]] = []
+        pending: list[tuple[SignalRecord, SignalRecord, date]] = []
         for latest, publication, baseline_date in candidates:
             existing = next(
                 (
