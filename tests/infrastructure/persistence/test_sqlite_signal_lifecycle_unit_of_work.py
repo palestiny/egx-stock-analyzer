@@ -944,7 +944,7 @@ def test_bootstrap_batch_rejects_conflicting_calendar_or_baseline_replay(tmp_pat
     record = make_bootstrap_records(published.signal_id, batch_id)
     unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
 
-    conflicting = replace(record, baseline_date=date(2026, 10, 4))
+    conflicting = replace(record, publication_recorded_at=GENERATED + timedelta(hours=1))
     with pytest.raises(ValueError, match="conflicting lifecycle bootstrap"):
         unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (conflicting,)))
 
