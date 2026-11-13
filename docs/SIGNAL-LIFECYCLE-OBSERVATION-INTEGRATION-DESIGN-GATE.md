@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Integration gap confirmed; daily OHLC crossing semantics accepted; data eligibility and runtime wiring remain open  
+**Status:** DEC-138/139 core implementation in progress on PR #515; provider verification, durable session recovery, expiry/revision semantics, and production runtime activation remain open  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -134,3 +134,29 @@ DEC-139 closes the product-policy decisions, not implementation or data-provider
 - The calendar is not yet connected to lifecycle scheduling or freshness evaluation. Provider-completed-bar attestation, one-session freshness gating, durable observation identity/cursor, chronological recovery, and end-to-end lifecycle delivery remain open.
 
 Therefore the calendar domain and persistence foundations are implemented, but the DEC-139 operational calendar/freshness gate is not complete. Automatic lifecycle monitoring remains disabled.
+
+
+## 11. Implementation update — 2026-11-13 (PR #515, draft; not merged)
+
+The isolated branch `feature/opportunity-lifecycle-completion` now contains the following implementation increments:
+
+- A `CompletedDailyBarObservation` domain contract requiring DAILY timeframe, explicit source reference, finality-attestation reference, revision identity, timezone-aware timestamps, finite positive OHLC, and valid candle geometry.
+- DEC-138 BUY/SELL High/Low crossing semantics, with invalidation taking precedence when both levels are touched in one candle.
+- A completed-bar lifecycle orchestration path that does not require an assumed entry price and does not create realized return/R records.
+- A SQLite append-only daily-observation ledger, persisted atomically with lifecycle history/outbox writes, including provider/candle/revision identity, OHLC, policy version, calendar version, and resulting status.
+- Same-identity replay suppression, conflicting-payload rejection, out-of-order rejection, and explicit same-session correction deferral.
+- A calendar-gated single-observation application service requiring an active versioned calendar, an explicitly CLOSED session, close confirmation, the configured close + 60-minute buffer, and a finality-verifier approval.
+- An authenticated `GET /api/v1/me/opportunities` read model that exposes lifecycle history only for Telegram opportunity publication events addressed to the authenticated user. Its scope is deliberately not described as a universal in-app saved-opportunity list.
+
+### Still not complete / not activated
+
+- No production `DailyBarFinalityVerifier` exists. Yahoo Finance does not provide the accepted completion attestation in the current adapter, so Yahoo bars remain ineligible.
+- No authoritative/accepted calendar version is published or active in the repository deployment.
+- No durable per-symbol evaluation cursor, missed-session gap ledger, chronological restart recovery, or scheduled worker is wired.
+- The 20-eligible-session expiry transition is not implemented.
+- Materially changed setups are still not represented by a fully linked immutable revision identity; current publication history can record `PUBLISHED_VERSION` under the existing identity.
+- Correction/reconciliation workflow for a changed source revision is not implemented; the normal evaluator fails closed on same-session corrections.
+- No end-to-end provider → calendar → lifecycle → Telegram → user-history acceptance run has been completed.
+- No CI pass is claimed for the current draft PR head. The branch remains isolated and unmerged.
+
+**Current gate result remains GAP.** These changes are implementation foundations only. Do not enable automatic lifecycle monitoring or claim production completion until every remaining gate above is implemented and verified.
