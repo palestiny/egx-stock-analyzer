@@ -311,3 +311,41 @@ and repeated samples, so cache state and connection overhead differ. The
 end-to-end `warm` and `under_concurrent_writer` measurements remain the
 authoritative comparable series. No performance conclusion is drawn until the
 new workflow artifact is available and reviewed.
+
+
+## 22. Exact-head stage diagnostic and CI result — 2026-11-13
+
+The stage diagnostic completed on commit
+`d360e3a3494afd88bed3c875738de06784451123` in GitHub Actions run
+`43477931961` (Python 3.12.16, SQLite 3.45.1). All seven workflow jobs
+completed successfully: unit tests with coverage, deterministic integration
+tests, frontend tests, dependency audit, daily-history audit, container build,
+and the on-disk lifecycle benchmark. The benchmark artifact was uploaded and
+retained by GitHub Actions.
+
+| Identities | Candidates | Active | SQLite fetch P50 | Deserialize/filter P50 | End-to-end warm P50 | Warm P95 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 10,000 | 10,000 | 9,000 | 32.0 ms | 221.9 ms | 489.1 ms | 597.3 ms |
+| 50,000 | 50,000 | 45,000 | 212.2 ms | 1,124.9 ms | 3,192.8 ms | 3,368.8 ms |
+| 100,000 | 100,000 | 90,000 | 434.7 ms | 2,136.6 ms | 6,407.9 ms | 6,773.1 ms |
+
+The stage diagnostic indicates that deserialization and filtering dominate the
+measured two-stage pass: approximately 87.4%, 84.1%, and 83.1% of the combined
+SQLite-fetch plus materialization time at 10k, 50k, and 100k respectively.
+This is diagnostic evidence, not a precise attribution of total end-to-end
+latency: it uses a separate connection and does not include every store-call
+overhead. The end-to-end measurements remain authoritative.
+
+Against the previous materialized-pointer run (Section 20), this run's warm
+P50 is approximately 14.9% slower at 10k, 15.6% slower at 50k, and 1.1%
+faster at 100k. Against the original baseline (Section 18), all three warm P50
+measurements remain slower. These runs are synthetic and do not establish a
+production SLO.
+
+**Decision:** CI correctness/build checks PASSED for this exact head. Performance
+acceptance remains NOT ACCEPTED; the materialized-pointer change is not
+demonstrated to be an improvement. The next optimization investigation should
+focus on avoiding repeated full domain-object construction for projection
+filtering, while preserving the exact latest-state, revision-exclusion,
+publication-provenance, and ordering semantics. No implementation change is
+authorized by this diagnostic alone. Worker remains unwired and disabled.
