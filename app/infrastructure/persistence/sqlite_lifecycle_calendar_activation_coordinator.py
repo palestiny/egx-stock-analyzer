@@ -110,7 +110,7 @@ class SQLiteLifecycleCalendarActivationCoordinator:
 
         def validate(connection: sqlite3.Connection) -> None:
             nonlocal validation
-            validation = self._lifecycle_unit_of_work.execute_in_transaction(
+            result = self._lifecycle_unit_of_work.execute_in_transaction(
                 connection,
                 lambda transaction: self._validator.execute(
                     calendar_version=calendar_version,
@@ -118,8 +118,9 @@ class SQLiteLifecycleCalendarActivationCoordinator:
                     transaction=transaction,
                 ),
             )
-            if not validation.eligible:
-                raise _ActivationValidationRejected(validation)
+            validation = result
+            if not result.eligible:
+                raise _ActivationValidationRejected(result)
 
         try:
             event = self._calendar_repository.change_active_atomically(
