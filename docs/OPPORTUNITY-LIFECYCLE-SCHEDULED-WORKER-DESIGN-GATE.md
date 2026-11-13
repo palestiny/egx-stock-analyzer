@@ -65,7 +65,7 @@ A single provider fetch may be shared for multiple opportunities with the same s
 | Missing expected session bar | Let the evaluator append a STALE gap and stop that opportunity at the first missing session |
 | Provisional, stale, future, malformed, or unverified bar | Reject it as lifecycle evidence; do not transition the opportunity |
 | Provider correction/revision | Use the existing correction intake/review/rebuild path; never overwrite prior evidence |
-| Lifecycle persistence failure | Retry the same occurrence idempotently; the existing lifecycle Unit of Work remains the atomic boundary for state/history/outbox intent |
+| Lifecycle persistence failure | Retry the same occurrence idempotently; execute_claimed validates the current owner/token and completes the claim in the same BEGIN IMMEDIATE transaction as lifecycle history, observations, outcomes, and outbox intent. It samples the clock before and after the operation; expiry before commit rolls the whole transaction back |
 | Telegram delivery uncertainty | Delegate to the existing outbox state machine; preserve manual-only handling for DELIVERY_UNKNOWN |
 
 Operational observability must include occurrence ID, calendar version, opportunity ID, expected session date, provider identity, source revision, evaluated/rejected/gap counts, oldest unresolved gap, retry count, and terminal execution state. Do not log credentials or raw licensed data payloads.
@@ -82,7 +82,7 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 
 1. Verify the new deterministic latest-active-published projection against realistic SQLite history volumes, including query-plan/index use, revisions, unpublished records, and terminal states.
 2. Define and test the completed-bar source port contract without implementing a provider adapter.
-3. Implement a durable occurrence/claim boundary and restart/retry tests using test doubles only.
+3. Implement a durable SQLite occurrence/claim boundary with atomic acquisition, lease expiry, monotonically increasing fencing tokens, restart/retry tests, and same-transaction fencing of lifecycle plus outbox writes. Keep runtime composition disabled.
 4. Compose the worker with the existing evaluator and lifecycle Unit of Work; test multiple opportunities for one symbol, multiple symbols, partial failure, and concurrent duplicate occurrence.
 5. Add operational metrics/logging and prove alert outbox dispatch remains outside the lifecycle transaction.
 6. Keep the schedule disabled by default; enable only after all Section 8 gates are independently evidenced.
@@ -93,7 +93,7 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 - [ ] Production `DailyBarFinalityVerifier` implemented and contract-tested; unknown finality fails closed.
 - [ ] Evidence-backed EGX calendar published and an owner-approved bootstrap/cursor-derived coverage policy implemented.
 - [ ] Calendar activation performed by an individually attributable operator and audited; deployment bootstrap/recovery verified.
-- [ ] Durable worker occurrence/claim store, lease fencing, restart recovery, and duplicate-run acceptance tests pass.
+- [ ] Durable worker occurrence/claim store, lease fencing, restart recovery, and duplicate-run acceptance tests pass exact-head CI; the store and transaction guard are implemented, but the latest CI result is still pending.
 - [ ] Full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history E2E acceptance passes.
 - [ ] Exact-head CI passes; worker remains disabled until the owner authorizes activation.
 
@@ -141,3 +141,20 @@ pressure, and application deserialization included.
 **DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is a provider-specific source adapter, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, automated on-disk query-plan/latency acceptance benchmark for the active-opportunity projection, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
 
 **External-contact boundary:** no provider outreach, quote request, account request, or credential request is authorized. EGID remains a research candidate only. M61/backtesting remains paused.
+
+
+## 12. Durable occurrence claims — implementation added 2026-11-13
+
+The lifecycle-specific claim boundary is implemented on this branch without wiring or activating a worker.
+
+- lifecycle_occurrence_id() derives a stable SHA-256 identity from calendar version, Cairo session date supplied by the caller, and opportunity UUID. A calendar-version, session, or opportunity change creates a distinct occurrence; retries reuse the same identity.
+- SQLiteLifecycleOccurrenceClaimStore persists owner, status, attempt, claimed_at, lease expiry, last error, completion time, and a monotonically increasing fencing token. Acquisition uses BEGIN IMMEDIATE; only one concurrent worker can acquire a live occurrence. Expired claims can be reclaimed, increasing both attempt and fencing token. Completed occurrences cannot be claimed again.
+- mark_failed accepts only the current owner/token while its lease is still valid. Old or expired workers cannot mutate the current claim.
+- SQLiteSignalLifecycleUnitOfWork.execute_claimed() validates the claim, applies lifecycle persistence (including alert outbox intent), and marks the claim completed inside the same SQLite write transaction. It checks lease validity both before and after the lifecycle operation. If the lease expires during processing, the transaction rolls back lifecycle and outbox writes. SQLite BEGIN IMMEDIATE prevents a competing claimant from taking over while that transaction is active.
+- Tests added for concurrent acquisition, expired-lease recovery and fencing, retry after failure, completed-occurrence rejection, stale-owner write rejection, lease-expiry rollback across history and outbox, and store reconstruction/restart recovery.
+
+Boundaries and remaining work:
+- This is a persistence/application primitive, not a running worker. No provider adapter, calendar activation, scheduler, runtime composition, monitoring, or outbound delivery was enabled.
+- The claim store must be initialized against the same SQLite database used by the lifecycle Unit of Work. Runtime composition must make this dependency explicit and must never silently point claims at a separate database.
+- The current implementation uses caller-supplied aware timestamps. A production worker must supply a trusted clock and define lease duration, renewal, retry/backoff, and operational recovery policy before activation.
+- Exact-head CI for the latest claim-store and restart/outbox tests is required before treating this implementation as verified.
