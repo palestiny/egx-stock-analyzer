@@ -435,6 +435,20 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 or datetime.fromisoformat(str(identity[2])) != signal.generated_at
             ):
                 raise ValueError("signal update must preserve its immutable identity")
+            latest_payload = self._connection.execute(
+                """
+                SELECT signal_json FROM signal_history
+                WHERE signal_id = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (str(signal_id),),
+            ).fetchone()
+            if latest_payload is None:
+                raise ValueError("signal identity has no history")
+            current_signal = self._history._deserialize_signal(str(latest_payload[0]))
+            if current_signal.strategy_version != signal.strategy_version:
+                raise ValueError("signal update must preserve its immutable identity")
             existing = self._connection.execute(
                 """
                 SELECT signal_json FROM signal_history
