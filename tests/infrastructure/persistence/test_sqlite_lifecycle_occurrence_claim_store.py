@@ -5,7 +5,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.application.signals.occurrence_claims import LifecycleRetryPolicy, lifecycle_occurrence_id
+from app.application.signals.occurrence_claims import (
+    LifecycleRetryPolicy,
+    lifecycle_occurrence_id,
+)
 from app.domain.alerts.model import AlertEvent, AlertEventType
 from app.domain.signals.model import (
     PriceZone,
