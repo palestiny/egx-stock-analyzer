@@ -437,3 +437,42 @@ def test_sqlite_daily_observation_ledger_is_append_only(tmp_path):
             )
     finally:
         connection.close()
+
+
+def test_sqlite_lifecycle_transition_stays_on_revised_opportunity_identity(tmp_path):
+    database = tmp_path / "revision-lifecycle.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    original = make_signal()
+    parent = history.record(original, "PUBLISHED", GENERATED)
+    revised = replace(
+        original,
+        targets=(Target(Decimal("108"), "T1"),),
+        evidence=(SignalEvidence("trend", "revised evidence"),),
+    )
+    child = history.record_revision(
+        revised,
+        "PUBLISHED_VERSION",
+        GENERATED + timedelta(minutes=1),
+        parent_signal_id=parent.signal_id,
+        reason="Material target and evidence change",
+    )
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+
+    result = orchestrator.process_completed_daily_bar(
+        child.signal_id,
+        make_completed_bar(high="109"),
+        calendar_version="calendar-v1",
+    )
+
+    assert result is not None
+    assert result.signal_id == child.signal_id
+    assert result.signal.status is SignalStatus.TRIGGERED
+    assert history.get(parent.signal_id).signal.status is SignalStatus.ACTIVE
+    assert history.get(child.signal_id).signal.status is SignalStatus.TRIGGERED
+    assert history.revision_link(child.signal_id).parent_signal_id == parent.signal_id
+    assert track_record.all() == ()
