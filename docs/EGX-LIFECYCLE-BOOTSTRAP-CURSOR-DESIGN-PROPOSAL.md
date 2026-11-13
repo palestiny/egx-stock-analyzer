@@ -134,3 +134,16 @@ The future evaluation date must be explicitly `SCHEDULED` (not merely historical
 Regression tests now cover a non-closed cursor rejection, a closed cursor acceptance, rollback-time revalidation against the currently persisted cursor, and the no-active-opportunities case. The validator remains a pure precondition check: it does not serialize validation with calendar pointer mutation. A controlled activation/rollback transaction is still required before operational use.
 
 Exact-head CI for `8c40230` passed all six jobs (run `43414055075`). Additional cursor/rollback/empty-workload tests and stricter future-session checks were added in `6578e4a` and `81a5e8d`; exact-head CI for `81a5e8d` is pending.
+
+
+## Owner-approved trusted schedule policy and adapter — 2026-11-13
+
+**Owner decision:** approved the following source-selection rule for the next evaluation date:
+
+1. Initial activation (no currently active calendar): derive the first future `SCHEDULED` date from the published candidate calendar.
+2. Calendar change or rollback (an active calendar exists): derive the first future `SCHEDULED` date from the currently active calendar, then require the candidate calendar to cover that exact date and the full opportunity baseline/cursor range.
+3. If the selected source calendar is absent or has no future `SCHEDULED` date, return no date and fail closed. Do not fall back from an active calendar to the candidate calendar.
+
+Implementation added as `CalendarBackedLifecycleEvaluationSchedule`, with tests for initial activation, change/rollback source preservation, no-future-session fail-closed behavior, and missing candidate fail-closed behavior.
+
+**Boundary:** the adapter is a provider-neutral schedule source, not an activation command. It is not yet wired to an activation endpoint. It does not solve the validation-to-pointer-mutation race. Activation and rollback remain disabled until validation, active-calendar pointer mutation, and append-only audit are serialized in one transaction and covered by concurrency/failure tests.
