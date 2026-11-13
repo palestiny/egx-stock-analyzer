@@ -111,8 +111,6 @@ def create_signal_lifecycle_correction_admin_router(
         }
 
     @router.post(
-        "/api/v1/owner/signals/{signal_id}/lifecycle-corrections/{correction_id}/review",
-    @router.post(
         "/api/v1/owner/signals/{signal_id}/lifecycle-corrections/{correction_id}/rebuild",
         status_code=201,
     )
@@ -147,6 +145,8 @@ def create_signal_lifecycle_correction_admin_router(
             "recorded_at": result.recorded_at.isoformat(),
         }
 
+    @router.post(
+        "/api/v1/owner/signals/{signal_id}/lifecycle-corrections/{correction_id}/review",
         status_code=201,
     )
     def review_lifecycle_correction(
