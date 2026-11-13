@@ -14,7 +14,8 @@ from app.domain.signals.outcome_event import (
 
 class OutcomeEventStore(Protocol):
     def record_initial(
-        self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str
+        self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent: ...
 
     def submit_correction(
@@ -24,6 +25,7 @@ class OutcomeEventStore(Protocol):
         supersedes_event_id: UUID,
         actor_id: str,
         idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent: ...
 
     def review_correction(
@@ -33,6 +35,7 @@ class OutcomeEventStore(Protocol):
         reviewer_id: str,
         decision: OutcomeCorrectionDecision,
         idempotency_key: str,
+        reviewer_credential_id: UUID | None = None,
     ) -> OutcomeEvent: ...
 
     def outcome_as_of(
@@ -100,7 +103,12 @@ class InMemoryOutcomeEventStore:
         return event
 
     def record_initial(
-        self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str
+        self,
+        outcome: SignalOutcomeRecord,
+        *,
+        actor_id: str,
+        idempotency_key: str,
+        actor_credential_id: UUID | None = None,
     ) -> OutcomeEvent:
         if idempotency_key.strip() in self._idempotency:
             return self._append(
