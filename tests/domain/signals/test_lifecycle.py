@@ -28,7 +28,11 @@ def make_signal(direction: SignalDirection = SignalDirection.BUY) -> Signal:
         timeframe="DAILY",
         entry_zone=PriceZone(Decimal("99"), Decimal("101")),
         invalidation=Decimal("95") if direction is SignalDirection.BUY else Decimal("105"),
-        targets=(Target(Decimal("109"), "T1"), Target(Decimal("113"), "T2")),
+        targets=(
+            (Target(Decimal("91"), "T1"), Target(Decimal("87"), "T2"))
+            if direction is SignalDirection.SELL
+            else (Target(Decimal("109"), "T1"), Target(Decimal("113"), "T2"))
+        ),
         confidence=Decimal("80"),
         risk_score=Decimal("20"),
         evidence=(SignalEvidence("trend", "test"),),
