@@ -92,6 +92,7 @@ class SQLiteCalendarSourceOriginRegistry:
         timestamp = occurred_at or datetime.now(timezone.utc)
         if timestamp.tzinfo is None or timestamp.utcoffset() is None:
             raise ValueError("Origin approval timestamp must be timezone-aware")
+        timestamp = timestamp.astimezone(timezone.utc)
         if source_class == "A" and publisher != "EGX":
             raise ValueError("Class A origin approval requires EGX publisher identity")
         if source_class == "A-R" and (publisher != "FRA" or market_scope != "FRA_REGULATORY"):
@@ -140,6 +141,7 @@ class SQLiteCalendarSourceOriginRegistry:
         timestamp = occurred_at or datetime.now(timezone.utc)
         if timestamp.tzinfo is None or timestamp.utcoffset() is None:
             raise ValueError("Origin revocation timestamp must be timezone-aware")
+        timestamp = timestamp.astimezone(timezone.utc)
         with self._connect() as connection:
             self._require_active_owner_credential(connection, owner)
             current = connection.execute(
