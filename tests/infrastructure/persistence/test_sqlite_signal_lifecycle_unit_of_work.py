@@ -341,7 +341,7 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
     database = tmp_path / "daily-observations.db"
     unit_of_work, history, track_record, outbox = make_unit_of_work(database)
     signal = make_signal()
-    history.record(signal, "PUBLISHED", GENERATED)
+    published = history.record(signal, "PUBLISHED", GENERATED)
     orchestrator = SignalLifecycleOrchestrator(
         history=history,
         alerts=outbox,
@@ -349,7 +349,7 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         unit_of_work=unit_of_work,
     )
     first_bar = make_completed_bar()
-    first = orchestrator.process_completed_daily_bar(first_bar, calendar_version="calendar-v1")
+    first = orchestrator.process_completed_daily_bar(published.signal_id, first_bar, calendar_version="calendar-v1")
     assert first is not None and first.changed is False
 
     reopened_history = SQLiteSignalHistoryStore(database)
@@ -365,13 +365,13 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         unit_of_work=reopened_uow,
     )
     replay = reopened.process_completed_daily_bar(
-        make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
+        published.signal_id, make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
     )
 
     assert replay is not None
     assert replay.changed is False
     stored = reopened_uow.execute(
-        lambda transaction: transaction.get_observation(first_bar.identity)
+        lambda transaction: transaction.get_observation(published.signal_id, first_bar.identity)
     )
     assert stored is not None
     assert stored.bar.high == Decimal("105")
@@ -404,7 +404,7 @@ def test_sqlite_daily_observation_ledger_rolls_back_with_lifecycle_transaction(t
         unit_of_work.execute(fail_after_observation)
 
     assert unit_of_work.execute(
-        lambda transaction: transaction.get_observation(bar.identity)
+        lambda transaction: transaction.get_observation(created.signal_id, bar.identity)
     ) is None
 
 
