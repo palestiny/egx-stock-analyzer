@@ -14,7 +14,11 @@ from app.application.signals.lifecycle_unit_of_work import (
     SignalLifecycleTransaction,
     SignalLifecycleUnitOfWork,
 )
-from app.application.signals.store import SignalHistoryStore, SignalRecord
+from app.application.signals.store import (
+    SignalHistoryStore,
+    SignalPublicationRecord,
+    SignalRecord,
+)
 from app.domain.market_data.session_calendar import CalendarDayStatus
 from app.domain.signals.model import SignalStatus
 
@@ -86,7 +90,7 @@ class BootstrapOpportunityLifecycle:
             raise ValueError("candidate calendar publication evidence is incomplete")
 
         published_opportunities = self._history.latest_active_published_opportunities()
-        candidates: list[tuple[SignalRecord, SignalRecord, date]] = []
+        candidates: list[tuple[SignalRecord, SignalPublicationRecord, date]] = []
         for opportunity in published_opportunities:
             latest = opportunity.latest
             publication = opportunity.publication
@@ -120,7 +124,7 @@ class BootstrapOpportunityLifecycle:
             }
         )
 
-        pending: list[tuple[SignalRecord, SignalRecord, date]] = []
+        pending: list[tuple[SignalRecord, SignalPublicationRecord, date]] = []
         for latest, publication, baseline_date in candidates:
             existing = next(
                 (
