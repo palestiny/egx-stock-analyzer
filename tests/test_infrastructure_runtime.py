@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.analysis.runtime import StockAnalysisRuntime
@@ -589,3 +590,25 @@ def test_production_runtime_publishes_calendar_and_evidence_atomically(tmp_path)
         assert len(stored) == 1
 
     assert runtime.closed is True
+
+
+def test_runtime_composes_empty_calendar_source_trust_registry_only_when_owner_is_configured(tmp_path) -> None:
+    owner_id = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    runtime = create_infrastructure_runtime(
+        stock_catalog=InMemoryStockCatalog([Stock.create("EGAL", "Egypt Aluminum")]),
+        yfinance_module=FakeYFinanceModule(),
+        config=InfrastructureConfig(
+            operator_token="test-token",
+            analysis_database_path=str(tmp_path / "analysis.db"),
+            calendar_source_trust_owner_user_id=owner_id,
+        ),
+        result_store=InMemoryAnalysisResultStore(),
+        retry_policy=RetryPolicy(1),
+    )
+
+    assert runtime.calendar_source_origin_registry is not None
+    assert runtime.calendar_evidence_verification_store is not None
+    assert runtime.calendar_source_authenticity_verifier is not None
+    assert runtime.calendar_evidence_uploader_identity_resolver is not None
+    assert runtime.calendar_source_origin_registry.list_events() == ()
+    runtime.close()
