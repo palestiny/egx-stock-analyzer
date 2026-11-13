@@ -255,7 +255,9 @@ class CalendarSourceAuthenticityVerifier:
             receipt = self._artifact_service.verify(
                 evidence.artifact_storage_reference, evidence.artifact_sha256
             )
-            stored_bytes = self._artifact_service._store.get(evidence.artifact_storage_reference)
+            stored_bytes = self._artifact_service.read_verified(
+                evidence.artifact_storage_reference, evidence.artifact_sha256
+            )
             if sha256(stored_bytes).hexdigest() != fetched_digest:
                 raise CalendarSourceAuthenticityError(
                     "Archived bytes differ from the bytes retrieved from the approved source origin"
