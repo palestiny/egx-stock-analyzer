@@ -2,6 +2,8 @@ from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import uuid4
+
+import pytest
 from zoneinfo import ZoneInfo
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
