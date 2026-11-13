@@ -410,3 +410,42 @@ The EXPLAIN plan continues to scan the projection index, perform the indexed rev
 **Decision:** correctness/CI verification for this exact head is **PASS**. The lightweight publication-provenance change has a measured improvement against both the original synthetic baseline and the immediately preceding SQL-side-filter run. However, overall **performance acceptance remains NOT ACCEPTED**: Sections 19–20 require an explicitly approved deployment class and a production-relevant SLO/acceptance target, neither of which has been established. Do not describe these synthetic results as production readiness or use them to authorize worker wiring/activation.
 
 PR #515 remains **OPEN + DRAFT**. The scheduled worker, monitoring, calendar activation, provider outreach, canonical market-data changes, and merge remain disabled/not authorized.
+
+
+## 27. Latest exact-branch benchmark and orchestration boundary audit — 2026-11-13
+
+### Exact-branch verification
+
+The branch-head workflow [#5771](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43484234296) completed successfully with all **7/7 jobs** on branch head `9c41100b0eaed21e973082df201cca4d7c3f74a6`. That commit updates documentation only; the application-code head remains `18a422589dff5a73f9eb2c07a05e32a90cc88e48`, whose exact-head workflow #5767 also passed 7/7.
+
+The downloaded benchmark artifact is #14066742806. Environment: Linux x86_64, Python 3.12.16, SQLite 3.45.1; temporary on-disk SQLite; seven warm samples, two warmups, 250 synthetic writer operations per scale. Artifact JSON SHA-256: `9639d682f708e14452fb0f7263076db22624382edd23c1beb03387735fc13829`. Reopened-store timing is not a physical cold-disk measurement.
+
+| Opportunity identities | Active published revisions | Warm P50 | Warm P95 | Concurrent-writer P50 | Concurrent-writer P95 |
+|---:|---:|---:|---:|---:|---:|
+| 10,000 | 9,000 | 259.772 ms | 264.399 ms | 271.785 ms | 304.011 ms |
+| 50,000 | 45,000 | 1,877.447 ms | 2,157.520 ms | 2,087.110 ms | 2,207.578 ms |
+| 100,000 | 90,000 | 4,095.977 ms | 4,744.076 ms | 3,791.989 ms | 4,341.948 ms |
+
+Compared with Section 26, warm P50 improved by approximately 15.0%, 12.4%, and 16.6% at 10k, 50k, and 100k respectively. Concurrent-writer P50 improved by approximately 14.1%, 14.3%, and 22.6%. These are repeat synthetic measurements on the same hosted runner family, not a production workload or a production SLO.
+
+The EXPLAIN plan remains stable: projection index scan, indexed revision-parent existence lookup, and primary-key lookups for latest and publication rows. The stage diagnostic reports both SQLite fetch and latest-record deserialization; it is not an additive decomposition of end-to-end latency.
+
+**Decision:** exact-branch CI and this benchmark artifact PASS. The measured synthetic latency is improving, but overall performance acceptance remains **NOT ACCEPTED** until the owner approves the deployment class and a production-relevant SLO/acceptance target. No production-readiness claim is made.
+
+### Runtime and orchestration audit
+
+A focused read of the current branch confirms these components already exist and must not be described as wholly missing:
+
+- `EvaluateOpportunityLifecycleSessions` implements per-opportunity chronological session reconciliation, validates the provider-evidence envelope/finality port, stops at the first missing or ineligible session, and persists gap evidence. It currently receives `through_date`, `bars_by_session`, and `evaluated_at` from its caller; it does not acquire provider bars itself or enumerate/claim all due opportunities.
+- `CalendarBackedLifecycleEvaluationSchedule` supplies a calendar-derived next evaluation date. It is a schedule policy/port implementation, not a process scheduler or recurring trigger.
+- `SQLiteLifecycleOccurrenceClaimStore`, fenced lease renewal, and `SQLiteSignalLifecycleUnitOfWork.execute_claimed()` provide durable claim/reclaim/fencing and atomic lifecycle/outbox persistence. They are primitives, not a worker loop.
+- `DispatchSignalAlertOutbox` already implements recipient-level claim/send/result handling, including conservative `DELIVERY_UNKNOWN` handling. `app/infrastructure/runtime.py` composes it only when a Telegram transport is configured. This does not establish a lifecycle worker that invokes it on a schedule, nor does it authorize outbound delivery.
+- The current runtime composition creates the lifecycle stores/orchestrator but does not compose a lifecycle scheduler, provider-specific completed-bar source, production finality verifier, or lifecycle worker coordinator.
+
+Therefore the remaining application orchestration gap is narrower and explicit: a coordinator must enumerate the deterministic active-published projection, derive each opportunity's due session from the trusted schedule/calendar, acquire the stable occurrence claim, obtain provider-neutral evidence through a future approved adapter, invoke the per-opportunity evaluator with a stable cutoff, and complete/fail the claim with bounded retry/recovery semantics. It must keep unresolved session gaps blocked and must not advance later sessions past a gap. The coordinator must not dispatch external notifications until a separately approved delivery policy and deployment trigger exist.
+
+### Decisions deliberately left open
+
+No scheduler technology or deployment topology is selected here. In-process timers, external cron/webhook, and a durable worker process have different restart, duplicate-trigger, availability, and operations trade-offs. The current repository does not establish the intended deployment class, number of replicas, process supervisor, trusted clock source, or operational SLO. Those are owner/deployment decisions, not safe assumptions for implementation.
+
+**Next design increment:** specify a disabled-by-default worker coordinator contract and deterministic tests using fake schedule/source/clock ports, without wiring it into production runtime, adding a recurring trigger, enabling Telegram dispatch, or claiming provider finality. Keep provider-specific adapter, source authenticity, commercial rights, calendar activation, and production SLO as independent blockers.
