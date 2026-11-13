@@ -96,6 +96,14 @@ class InMemoryOutcomeEventStore:
     def record_initial(
         self, outcome: SignalOutcomeRecord, *, actor_id: str, idempotency_key: str
     ) -> OutcomeEvent:
+        if idempotency_key.strip() in self._idempotency:
+            return self._append(
+                signal_id=outcome.signal_id,
+                kind=OutcomeEventKind.OUTCOME_RECORDED,
+                actor_id=actor_id,
+                idempotency_key=idempotency_key,
+                outcome=outcome,
+            )
         if any(
             event.signal_id == outcome.signal_id
             and event.kind is OutcomeEventKind.OUTCOME_RECORDED
@@ -118,6 +126,15 @@ class InMemoryOutcomeEventStore:
         actor_id: str,
         idempotency_key: str,
     ) -> OutcomeEvent:
+        if idempotency_key.strip() in self._idempotency:
+            return self._append(
+                signal_id=outcome.signal_id,
+                kind=OutcomeEventKind.CORRECTION_SUBMITTED,
+                actor_id=actor_id,
+                idempotency_key=idempotency_key,
+                outcome=outcome,
+                supersedes_event_id=supersedes_event_id,
+            )
         current = self.outcome_as_of(outcome.signal_id, cutoff=self._clock())
         if current is None or current.event_id != supersedes_event_id:
             raise ValueError("correction must supersede the current accepted outcome")
@@ -145,6 +162,21 @@ class InMemoryOutcomeEventStore:
         decision: OutcomeCorrectionDecision,
         idempotency_key: str,
     ) -> OutcomeEvent:
+        if idempotency_key.strip() in self._idempotency:
+            correction = next(
+                (event for event in self._events if event.event_id == correction_event_id),
+                None,
+            )
+            if correction is None:
+                raise ValueError("outcome correction does not exist")
+            return self._append(
+                signal_id=correction.signal_id,
+                kind=OutcomeEventKind.CORRECTION_REVIEWED,
+                actor_id=reviewer_id,
+                idempotency_key=idempotency_key,
+                supersedes_event_id=correction_event_id,
+                decision=decision,
+            )
         correction = next(
             (
                 event for event in self._events
