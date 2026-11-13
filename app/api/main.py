@@ -215,7 +215,7 @@ def create_app(
         )
     get_analysis_result = GetAnalysisResult(result_store)
     rank_momentum_leaders = RankMomentumLeaders(result_store)
-    calculate_market_breadth = CalculateMarketBreadth(result_store)
+    calculate_market_breadth = CalculateMarketBreadth(result_store, session_calendar_store)
     run_technical_scanner = RunTechnicalScanner(result_store)
     rank_sectors = RankSectors(result_store)
     scan_fibonacci = ScanFibonacciOpportunities(result_store)
