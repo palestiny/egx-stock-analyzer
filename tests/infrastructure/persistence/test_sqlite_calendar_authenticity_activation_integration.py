@@ -192,7 +192,7 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
         )
         assert publication.status_code == 201
         evidence_ids = [item["evidence_id"] for item in publication.json()["evidence"]]
-        assert len(evidence_ids) == 2
+        assert len(evidence_ids) == len(evidence_specs)
 
         for evidence_id, item in zip(evidence_ids, evidence_specs, strict=True):
             review = client.post(
