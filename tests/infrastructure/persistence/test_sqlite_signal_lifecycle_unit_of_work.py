@@ -775,6 +775,11 @@ def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(
 
     connection = sqlite3.connect(str(database))
     try:
+        with pytest.raises(sqlite3.IntegrityError, match="lifecycle corrections are append-only"):
+            connection.execute(
+                "UPDATE signal_lifecycle_daily_bar_corrections SET payload_json = '{}' WHERE correction_id = ?",
+                (str(correction.correction_id),),
+            )
         with pytest.raises(sqlite3.IntegrityError, match="append-only"):
             connection.execute(
                 "DELETE FROM signal_lifecycle_correction_rebuilds WHERE correction_id = ?",
