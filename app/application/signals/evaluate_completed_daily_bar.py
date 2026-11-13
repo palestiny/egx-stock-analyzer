@@ -108,6 +108,7 @@ class EvaluateCompletedDailyBar:
         result = self._lifecycle.process_completed_daily_bar(
             bar,
             policy_version=self.POLICY_VERSION,
+            calendar_version=active.version,
         )
         if result is None:
             return CompletedDailyBarEvaluation(
