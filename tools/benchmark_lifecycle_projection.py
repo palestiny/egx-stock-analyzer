@@ -38,7 +38,8 @@ JOIN signal_history AS latest
   ON latest.id = projection.latest_history_id
 JOIN signal_history AS publication
   ON publication.id = projection.publication_history_id
-WHERE NOT EXISTS (
+WHERE json_extract(latest.signal_json, '$.status') = 'ACTIVE'
+  AND NOT EXISTS (
     SELECT 1 FROM signal_revision_links AS revision
     WHERE revision.parent_signal_id = projection.signal_id
 )
