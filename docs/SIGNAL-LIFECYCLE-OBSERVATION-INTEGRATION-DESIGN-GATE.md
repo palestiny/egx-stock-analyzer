@@ -1,6 +1,6 @@
 # Signal Lifecycle Observation Integration — Design Gate
 
-**Status:** Core DEC-138/139 lifecycle implementation is present on PR #515; production activation remains blocked by provider finality, active deployment calendar, correction/reconciliation, scheduled-worker, and end-to-end acceptance gates.  
+**Status:** PR #515 contains the implemented lifecycle foundations and has passed exact-head CI on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six jobs successful). Production activation remains blocked by production provider finality, an active deployment calendar, corrected-candle replay/rebuild and notification policy, scheduled-worker wiring, and end-to-end acceptance. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
@@ -16,9 +16,9 @@ PR #515 now contains the core completed-daily-OHLC lifecycle path and tests for:
 - Expiry after 20 eligible EGX sessions, without creating a realized return/R record.
 - Immutable opportunity revision links and append-only correction intake records.
 
-**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. Exact-head CI passed on `d348dc92e263990ff6a32428cb392fc4dbc91d44` (run #43396429794; all six required jobs successful). PR #515 remains Draft and must not be merged or activated until the remaining operational gates pass.
+**Still not production-complete:** no provider currently supplies an accepted finality attestation; no active deployment calendar version is available; correction intake does not yet perform controlled re-evaluation; no scheduled worker is wired; and the complete provider-to-Telegram end-to-end path has not passed acceptance. Exact-head CI is now verified on `4d0929a457449187bb493b9b25f829da88dd8449` (run #43401923684; all six required jobs successful). PR #515 remains Draft and must not be merged or activated until the remaining operational gates pass.
 
-## 1. Verified current composition
+## 1. Historical baseline before PR #515 (superseded by implementation updates below)
 
 The repository currently has these separate capabilities:
 
@@ -149,7 +149,9 @@ DEC-139 closes the product-policy decisions, not implementation or data-provider
 Therefore the calendar domain and persistence foundations are implemented, but the DEC-139 operational calendar/freshness gate is not complete. Automatic lifecycle monitoring remains disabled.
 
 
-## 11. Implementation update — 2026-11-13 (PR #515, draft; not merged)
+## 11. Initial implementation snapshot — 2026-11-13 (superseded by §11.1 and §11.2)
+
+The following subsection records an earlier snapshot of PR #515. Any status statement here that conflicts with §11.1 or the consolidated status matrix in §11.2 is historical and must not be treated as current.
 
 The isolated branch `feature/opportunity-lifecycle-completion` now contains the following implementation increments:
 
@@ -170,7 +172,7 @@ The isolated branch `feature/opportunity-lifecycle-completion` now contains the 
 - Materially changed setups are still not represented by a fully linked immutable revision identity; current publication history can record `PUBLISHED_VERSION` under the existing identity.
 - Correction/reconciliation workflow for a changed source revision is not implemented; the normal evaluator fails closed on same-session corrections.
 - No end-to-end provider → calendar → lifecycle → Telegram → user-history acceptance run has been completed.
-- No CI pass is claimed for the current draft PR head. The branch remains isolated and unmerged.
+- At the time of this initial snapshot, CI for the latest draft head had not yet completed. This statement is superseded by §11.2, which records the later exact-head CI result.
 
 **Current gate result remains GAP.** These changes are implementation foundations only. Do not enable automatic lifecycle monitoring or claim production completion until every remaining gate above is implemented and verified.
 
@@ -191,11 +193,39 @@ The same draft branch now also contains:
 
 ### Remaining activation and acceptance blockers
 
-- The evaluator and recovery use cases are not wired to a production scheduled worker.
+- The evaluator and recovery use cases are implemented but are not wired to a production scheduled worker.
 - No production provider finality verifier is implemented. The current Yahoo Finance adapter cannot satisfy the accepted final/complete-bar contract.
 - No accepted active EGX session-calendar version has been verified in the target deployment.
 - Corrected-candle replay/rebuild is still not implemented. `REPLAY_REQUIRED` intentionally blocks progression; there is no automated reconstruction of downstream lifecycle events or defined compensating-notification policy.
-- No full end-to-end run has yet verified provider retrieval, calendar gating, chronological recovery, expiry, Telegram delivery, and authenticated user history together.
-- The draft PR has not been merged. CI for the latest exact head is running; success is not claimed until all jobs complete on that SHA.
+- No full end-to-end acceptance run has yet verified provider retrieval, calendar gating, chronological recovery, expiry, Telegram delivery, and authenticated user history together.
+- The draft PR has not been merged. Exact-head CI status is recorded in §11.2.
 
 **Gate remains GAP / NOT ACTIVATED.** The domain and persistence foundations are implemented on the isolated branch, but do not enable production monitoring or describe Opportunity Lifecycle as complete until the production provider, active calendar, worker wiring, correction disposition, and exact-head CI/e2e gates pass.
+
+
+### 11.2. Consolidated authoritative status — 2026-11-13
+
+This matrix is the current source of truth for the Opportunity Lifecycle Design Gate on PR #515. It supersedes stale implementation-status statements in earlier sections while preserving those sections as historical design context.
+
+| Capability / gate | Current status | Evidence / remaining condition |
+|---|---|---|
+| Completed daily OHLC contract and BUY/SELL crossing semantics | IMPLEMENTED | Domain contract and evaluator tests; invalidation wins on same-candle dual touch |
+| Durable append-only observation evidence and atomic lifecycle/history/outbox writes | IMPLEMENTED | SQLite Unit of Work and observation ledger; replay identity and evidence are persisted |
+| Idempotent replay, conflicting-payload rejection, and out-of-order rejection | IMPLEMENTED | Covered by lifecycle application and persistence tests |
+| Calendar-gated evaluation and close + 60-minute eligibility rule | IMPLEMENTED IN APPLICATION | Requires an active deployment calendar version; no accepted active version is currently verified |
+| Opportunity-specific observation identity | IMPLEMENTED | A single market candle can be evaluated independently against multiple published opportunities |
+| Immutable linked revisions | IMPLEMENTED | New material active setup gets a child identity, parent link, monotonic revision, and snapshot digests |
+| Twenty-eligible-session expiry | IMPLEMENTED | Distinct EXPIRED event after 20 chronologically completed, calendar-eligible sessions that pass provider finality |
+| Durable chronological recovery and stale-gap blocking | IMPLEMENTED | Latest committed observation is cursor; missing/unverified session blocks later progression; STALE/RESOLVED evidence is append-only |
+| Correction intake and attributed review decisions | IMPLEMENTED — REPLAY NOT IMPLEMENTED | Append-only records and protected operator review APIs exist; REPLAY_REQUIRED remains blocking |
+| Corrected-candle replay/rebuild and downstream notification compensation | NOT IMPLEMENTED | Must define and implement deterministic rebuild plus approved behavior for already-sent notifications |
+| Production DailyBarFinalityVerifier/provider | NOT IMPLEMENTED | Current Yahoo adapter cannot provide the accepted final/complete-bar attestation; no provider is approved for automatic transitions |
+| Active accepted EGX calendar version in target deployment | NOT VERIFIED / NOT ACTIVE | Calendar model and persistence exist; an evidenced calendar version must be published and activated operationally |
+| Scheduled production worker | NOT WIRED | Evaluator and recovery use cases are not connected to an enabled production schedule; keep disabled until provider/calendar gates pass |
+| Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, and per-user authorization together |
+| Exact-head CI for PR #515 | PASS | Run #43401923684, commit `4d0929a457449187bb493b9b25f829da88dd8449`; all six jobs successful |
+| PR state | OPEN / DRAFT / NOT MERGED | Do not merge or activate production monitoring while any activation blocker remains |
+
+**Gate decision: GAP / NOT ACTIVATED.** The lifecycle implementation is substantially present and exact-head CI is green, but CI success does not substitute for provider finality, an active calendar, corrected-candle replay semantics, worker wiring, or end-to-end operational acceptance. Automatic monitoring must remain disabled.
+
+**Next implementation order:** (1) settle and implement corrected-candle replay/rebuild plus compensating-notification semantics; (2) approve and implement a production finality provider; (3) publish and activate an evidence-backed EGX calendar version; (4) wire the scheduled worker behind those gates; (5) pass the full end-to-end acceptance suite.
