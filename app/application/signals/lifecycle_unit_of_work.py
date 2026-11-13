@@ -29,13 +29,14 @@ class LifecycleObservationRecord:
 
 class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
+    def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None: ...
     def record_signal(
         self, signal: Signal, event: str, recorded_at: datetime
     ) -> SignalRecord: ...
     def record_outcome(self, outcome: SignalOutcomeRecord) -> None: ...
     def publish_alert(self, event: AlertEvent) -> None: ...
     def get_observation(
-        self, identity: tuple[str, str, str, datetime, str]
+        self, signal_id: UUID, identity: tuple[str, str, str, datetime, str]
     ) -> LifecycleObservationRecord | None: ...
     def latest_observation(self, signal_id: UUID) -> LifecycleObservationRecord | None: ...
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
@@ -51,7 +52,7 @@ class _InMemoryTransaction:
         history: SignalHistoryStore,
         alerts: AlertPublisher,
         track_record: TrackRecordStore,
-        observations: dict[tuple[str, str, str, datetime, str], LifecycleObservationRecord],
+        observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord],
     ) -> None:
         self._history = history
         self._alerts = alerts
@@ -60,6 +61,9 @@ class _InMemoryTransaction:
 
     def latest(self, symbol: str) -> SignalRecord | None:
         return self._history.latest(symbol)
+
+    def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None:
+        return self._history.get(signal_id)
 
     def record_signal(self, signal: Signal, event: str, recorded_at):
         return self._history.record(signal, event, recorded_at)
@@ -70,8 +74,8 @@ class _InMemoryTransaction:
     def publish_alert(self, event: AlertEvent) -> None:
         self._alerts.publish(event)
 
-    def get_observation(self, identity):
-        return self._observations.get(identity)
+    def get_observation(self, signal_id: UUID, identity):
+        return self._observations.get((signal_id, identity))
 
     def latest_observation(self, signal_id: UUID):
         matches = [
@@ -85,7 +89,7 @@ class _InMemoryTransaction:
         )
 
     def record_observation(self, record: LifecycleObservationRecord) -> None:
-        identity = record.bar.identity
+        identity = (record.signal_id, record.bar.identity)
         existing = self._observations.get(identity)
         if existing is not None:
             if existing != record:
@@ -107,7 +111,7 @@ class InMemorySignalLifecycleUnitOfWork:
         self._alerts = alerts
         self._track_record = track_record
         self._lock = RLock()
-        self._observations: dict[tuple[str, str, str, datetime, str], LifecycleObservationRecord] = {}
+        self._observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         with self._lock:
