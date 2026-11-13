@@ -1194,18 +1194,34 @@ class SQLiteSignalLifecycleUnitOfWork:
         finally:
             connection.close()
 
+    def execute_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        operation: Callable[[SignalLifecycleTransaction], T],
+    ) -> T:
+        """Run lifecycle reads/writes on a caller-owned SQLite transaction.
+
+        The caller owns BEGIN/COMMIT/ROLLBACK. This is used by the calendar
+        activation coordinator to share one write transaction with the active
+        calendar pointer and its append-only activation audit event.
+        """
+        if not connection.in_transaction:
+            raise RuntimeError("a caller-owned SQLite transaction is required")
+        connection.execute("PRAGMA foreign_keys = ON")
+        transaction = _SQLiteSignalLifecycleTransaction(
+            connection,
+            self._history,
+            self._track_record,
+            self._outbox,
+        )
+        return operation(transaction)
+
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         try:
             connection.execute("BEGIN IMMEDIATE")
-            transaction = _SQLiteSignalLifecycleTransaction(
-                connection,
-                self._history,
-                self._track_record,
-                self._outbox,
-            )
-            result = operation(transaction)
+            result = self.execute_in_transaction(connection, operation)
             connection.commit()
             return result
         except Exception:
