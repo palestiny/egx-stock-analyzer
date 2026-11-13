@@ -55,13 +55,16 @@ class BuildSessionOpportunityLedger:
         knowledge_status: dict[UUID, OutcomeKnowledgeStatus] = {}
         legacy_outcomes = {item.signal_id: item for item in self._track_record.all()}
         if self._outcome_events is not None:
-            for signal_id in records_by_signal:
-                event = self._outcome_events.outcome_as_of(signal_id, cutoff=generated_at)
-                if event is not None and event.outcome is not None:
+            recorded_events = self._outcome_events.outcomes_as_of(
+                records_by_signal.keys(), cutoff=generated_at
+            )
+            for signal_id, event in recorded_events.items():
+                if event.outcome is not None:
                     outcome_events[signal_id] = event
                     outcomes[signal_id] = event.outcome
                     knowledge_status[signal_id] = OutcomeKnowledgeStatus.RECORDED
-                elif signal_id in legacy_outcomes:
+            for signal_id in records_by_signal:
+                if signal_id not in recorded_events and signal_id in legacy_outcomes:
                     # The legacy store has no trustworthy ingestion timestamp.
                     # Do not expose it as a historical/as-of outcome.
                     knowledge_status[signal_id] = OutcomeKnowledgeStatus.LEGACY_UNKNOWN
