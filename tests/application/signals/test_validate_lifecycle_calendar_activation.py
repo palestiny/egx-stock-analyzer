@@ -5,7 +5,10 @@ from zoneinfo import ZoneInfo
 from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.bootstrap_opportunity_lifecycle import BootstrapOpportunityLifecycle
-from app.application.signals.lifecycle_unit_of_work import InMemorySignalLifecycleUnitOfWork
+from app.application.signals.lifecycle_unit_of_work import (
+    InMemorySignalLifecycleUnitOfWork,
+    LifecycleObservationRecord,
+)
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
 from app.application.signals.validate_lifecycle_calendar_activation import (
@@ -14,6 +17,7 @@ from app.application.signals.validate_lifecycle_calendar_activation import (
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus, EGXCalendarDay, EGXSessionCalendar,
 )
+from app.domain.signals.lifecycle import CompletedDailyBarObservation
 from app.domain.signals.model import (
     PriceZone, Signal, SignalDirection, SignalEvidence, SignalStatus, Target,
 )
@@ -42,18 +46,24 @@ class FakeSchedule:
         return self.next_date
 
 
-def make_calendar(*, version="calendar-v1", end=END, next_status=CalendarDayStatus.SCHEDULED):
+def make_calendar(*, version="calendar-v1", end=END, next_status=CalendarDayStatus.SCHEDULED, closed_dates=()):
     days = []
     current = START
     while current <= end:
         trading = current.weekday() not in (4, 5)
         status = CalendarDayStatus.SCHEDULED if trading else CalendarDayStatus.NON_TRADING
-        if current == date(2026, 10, 6):
+        if current in closed_dates:
+            status = CalendarDayStatus.CLOSED
+        elif current == date(2026, 10, 6):
             status = next_status
         days.append(EGXCalendarDay(
             current, status,
-            session_open=time(10, 0) if status is CalendarDayStatus.SCHEDULED else None,
-            session_close=time(14, 30) if status is CalendarDayStatus.SCHEDULED else None,
+            session_open=time(10, 0) if status in {CalendarDayStatus.SCHEDULED, CalendarDayStatus.CLOSED} else None,
+            session_close=time(14, 30) if status in {CalendarDayStatus.SCHEDULED, CalendarDayStatus.CLOSED} else None,
+            closed_at=(
+                datetime.combine(current, time(14, 35), tzinfo=CAIRO)
+                if status is CalendarDayStatus.CLOSED else None
+            ),
         ))
         current += timedelta(days=1)
     calendar = EGXSessionCalendar(
@@ -79,12 +89,12 @@ def make_signal():
     )
 
 
-def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=None, end=END, next_status=CalendarDayStatus.SCHEDULED):
+def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=None, end=END, next_status=CalendarDayStatus.SCHEDULED, version="calendar-v1", closed_dates=()):
     history = InMemorySignalHistoryStore()
     alerts = InMemoryAlertPublisher()
     track = InMemoryTrackRecordStore()
     uow = InMemorySignalLifecycleUnitOfWork(history, alerts, track)
-    stored = make_calendar(end=end, next_status=next_status)
+    stored = make_calendar(version=version, end=end, next_status=next_status, closed_dates=closed_dates)
     calendar_store = FakeCalendarStore(stored)
     publication = history.record(
         make_signal(), "PUBLISHED", datetime(2026, 10, 2, 10, tzinfo=CAIRO)
@@ -146,7 +156,7 @@ def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
     )
     assert result.eligible is False
-    assert any(item.code == "NEXT_EVALUATION_NOT_A_TRADING_SESSION" for item in result.blockers)
+    assert any(item.code == "NEXT_EVALUATION_NOT_SCHEDULED" for item in result.blockers)
 
 
 def test_calendar_activation_validation_fails_closed_without_trusted_schedule_date():
@@ -170,3 +180,72 @@ def test_calendar_activation_validation_rejects_schedule_date_not_after_today():
     assert result.eligible is False
     assert any(item.code == "NEXT_EVALUATION_DATE_NOT_FUTURE" for item in result.blockers)
     assert schedule.received_after == date(2026, 10, 5)
+
+
+
+def make_bar(session_date):
+    return CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime.combine(session_date, time(14, 30), tzinfo=CAIRO),
+        observed_at=datetime.combine(session_date, time(15, 40), tzinfo=CAIRO),
+        revision="r1",
+        source_reference=f"https://provider.example/COMI/{session_date.isoformat()}",
+        finality_attestation="provider-finality-v1",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal("105"),
+        low=Decimal("98"),
+        close=Decimal("102"),
+    )
+
+
+def record_cursor(uow, publication, session_date):
+    uow.execute(lambda transaction: transaction.record_observation(
+        LifecycleObservationRecord(
+            signal_id=publication.signal_id,
+            bar=make_bar(session_date),
+            policy_version="lifecycle-policy-v1",
+            calendar_version="calendar-v1",
+            resulting_status=SignalStatus.ACTIVE,
+        )
+    ))
+
+
+def test_calendar_activation_validation_requires_reconciled_cursor_to_be_closed():
+    validator, _, publication, uow = setup()
+    record_cursor(uow, publication, date(2026, 10, 5))
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(item.code == "RECONCILED_CURSOR_NOT_CLOSED_IN_CANDIDATE" for item in result.blockers)
+
+
+def test_calendar_activation_validation_accepts_closed_reconciled_cursor():
+    validator, _, publication, uow = setup(closed_dates={date(2026, 10, 5)})
+    record_cursor(uow, publication, date(2026, 10, 5))
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is True
+    assert result.blockers == ()
+
+
+def test_rollback_candidate_is_revalidated_against_latest_reconciled_cursor():
+    validator, _, publication, uow = setup(
+        version="calendar-v2",
+        closed_dates={date(2026, 10, 5)},
+    )
+    record_cursor(uow, publication, date(2026, 10, 5))
+    # Revalidation happens at rollback time, using the cursor currently persisted,
+    # not a previously cached validation result.
+    result = validator.execute(
+        calendar_version="calendar-v2",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is True
+    assert result.checked_opportunity_count == 1

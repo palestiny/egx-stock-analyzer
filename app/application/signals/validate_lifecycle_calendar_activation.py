@@ -229,14 +229,10 @@ class ValidateLifecycleCalendarActivation:
                     "CALENDAR_DATE_GAP", sid, str(error)
                 ))
                 continue
-            if next_day.status not in {
-                CalendarDayStatus.SCHEDULED,
-                CalendarDayStatus.OPEN,
-                CalendarDayStatus.CLOSED,
-            }:
+            if next_day.status is not CalendarDayStatus.SCHEDULED:
                 blockers.append(CalendarActivationBlocker(
-                    "NEXT_EVALUATION_NOT_A_TRADING_SESSION", sid,
-                    "trusted next evaluation date is explicitly non-trading or cancelled in candidate calendar",
+                    "NEXT_EVALUATION_NOT_SCHEDULED", sid,
+                    "a future lifecycle evaluation date must be explicitly SCHEDULED in the candidate calendar",
                 ))
                 continue
 
