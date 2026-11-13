@@ -76,7 +76,12 @@ class SignalLifecycleOrchestrator:
             raise ValueError("market observation cannot precede signal generation")
 
         def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult:
-            latest = transaction.latest(signal.symbol)
+            latest = transaction.latest_for_identity(
+                signal.symbol,
+                signal.strategy_id,
+                signal.strategy_version,
+                signal.generated_at,
+            )
             if (
                 latest is not None
                 and latest.signal.strategy_id == signal.strategy_id
@@ -521,7 +526,12 @@ class SignalLifecycleOrchestrator:
             raise ValueError("observed_at must be timezone-aware")
 
         def persist(transaction: SignalLifecycleTransaction) -> SignalLifecycleResult | None:
-            latest = transaction.latest(candidate.symbol)
+            latest = transaction.latest_for_identity(
+                candidate.symbol,
+                candidate.strategy_id,
+                candidate.strategy_version,
+                candidate.generated_at,
+            )
             if latest is None or latest.signal.status is not SignalStatus.ACTIVE:
                 return None
 
