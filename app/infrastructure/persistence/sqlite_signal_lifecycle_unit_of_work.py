@@ -335,6 +335,12 @@ class SQLiteSignalLifecycleUnitOfWork:
             )
             connection.execute(
                 """
+                CREATE INDEX IF NOT EXISTS idx_lifecycle_daily_observations_signal_date
+                ON signal_lifecycle_daily_observations(signal_id, candle_at)
+                """
+            )
+            connection.execute(
+                """
                 CREATE TRIGGER IF NOT EXISTS trg_lifecycle_daily_observations_no_update
                 BEFORE UPDATE ON signal_lifecycle_daily_observations
                 BEGIN
