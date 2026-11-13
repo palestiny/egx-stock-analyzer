@@ -24,6 +24,8 @@ class SessionOpportunityEntry:
     outcome_observed_at: datetime | None
     source_data_timestamp: datetime | None = None
     outcome_data_timestamp: datetime | None = None
+    outcome_event_id: UUID | None = None
+    outcome_recorded_at: datetime | None = None
 
 
 @dataclass(frozen=True)
