@@ -1,3 +1,4 @@
+import sqlite3
 from datetime import date, datetime, time, timezone
 
 import pytest
@@ -165,7 +166,7 @@ def test_audit_insert_failure_rolls_back_active_pointer_change(tmp_path):
             """
         )
 
-    with pytest.raises(Exception, match="injected audit failure"):
+    with pytest.raises(sqlite3.IntegrityError, match="injected audit failure"):
         coordinator.rollback(
             "v1",
             performed_by="admin",
