@@ -221,7 +221,12 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
             raise ValueError("parent signal identity does not exist")
         if parent.signal.status is not SignalStatus.ACTIVE:
             raise ValueError("terminal opportunities cannot be revised")
-        latest = self.latest(parent.signal.symbol)
+        latest = self.latest_for_identity(
+            parent.signal.symbol,
+            parent.signal.strategy_id,
+            parent.signal.strategy_version,
+            parent.signal.generated_at,
+        )
         if latest is None or latest.signal_id != parent_signal_id:
             raise ValueError("revision parent must be the latest opportunity revision")
         if (
@@ -345,6 +350,24 @@ class SQLiteSignalHistoryStore(SignalHistoryStore):
                 (normalized,),
             ).fetchone()
         return self._to_record(row) if row else None
+
+    def latest_for_identity(
+        self,
+        symbol: str,
+        strategy_id: str,
+        strategy_version: str,
+        generated_at: datetime,
+    ) -> SignalRecord | None:
+        normalized = symbol.strip().upper()
+        for record in reversed(self.all_records()):
+            if (
+                record.signal.symbol.strip().upper() == normalized
+                and record.signal.strategy_id == strategy_id
+                and record.signal.strategy_version == strategy_version
+                and record.signal.generated_at == generated_at
+            ):
+                return record
+        return None
 
     def all_records(self) -> tuple[SignalRecord, ...]:
         with self._connect() as connection:
