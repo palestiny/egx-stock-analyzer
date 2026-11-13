@@ -57,4 +57,4 @@ This approval makes the proposal's semantics and persistence contract the accept
 6. Add failure, concurrency, restart, revision, and migration tests; run full exact-head CI.
 7. Update design gates and PR #515 with verified evidence only.
 
-**Owner approval recorded. Implementation is not yet claimed complete.**
+**Owner approval recorded. The approved bootstrap persistence/application workflow and calendar activation validation/coordinator are implemented on PR #515 and pass exact-head repository CI. This does not authorize calendar activation, provider selection/outreach, worker enablement, monitoring, or PR merge.**
