@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 
 from app.api.main import create_app
 from app.application.analysis.result_store import InMemoryAnalysisResultStore
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+)
 from app.domain.reporting.session_opportunity_ledger import SessionOpportunityLedgerReport
 
 
@@ -118,4 +121,57 @@ def test_session_opportunity_report_read_returns_404_when_snapshot_missing() -> 
     report_store.get_latest.assert_called_once_with(
         date(2026, 10, 26),
         as_of=datetime(2026, 10, 26, 16, tzinfo=timezone.utc),
+        methodology_version=None,
+    )
+
+
+
+def test_session_opportunity_report_read_returns_conflict_for_ambiguous_methodology() -> None:
+    report_store = Mock()
+    report_store.get_latest.side_effect = AmbiguousSessionOpportunityReportError(
+        "multiple methodology versions exist at the latest report cutoff; specify methodology_version"
+    )
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        session_opportunity_report_store=report_store,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/session-opportunity-reports",
+            params={"session_date": "2026-10-26", "as_of": "2026-10-26T16:00:00+00:00"},
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 409
+    assert "specify methodology_version" in response.json()["detail"]
+
+
+def test_session_opportunity_report_read_accepts_explicit_methodology_version() -> None:
+    report_store = Mock()
+    report_store.get_latest.return_value = {"methodology_version": "method-v2"}
+    app = create_app(
+        InMemoryAnalysisResultStore(),
+        operator_token="test-operator-token",
+        session_opportunity_report_store=report_store,
+    )
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/v1/session-opportunity-reports",
+            params={
+                "session_date": "2026-10-26",
+                "as_of": "2026-10-26T16:00:00+00:00",
+                "methodology_version": "method-v2",
+            },
+            headers={"Authorization": "Bearer test-operator-token"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["methodology_version"] == "method-v2"
+    report_store.get_latest.assert_called_once_with(
+        date(2026, 10, 26),
+        as_of=datetime(2026, 10, 26, 16, tzinfo=timezone.utc),
+        methodology_version="method-v2",
     )
