@@ -445,3 +445,39 @@ def test_calendar_activation_rejects_non_primary_or_non_egx_day_evidence():
 
     assert result.eligible is False
     assert any(item.code == "CALENDAR_DAY_PRIMARY_EVIDENCE_MISSING" for item in result.blockers)
+
+def test_calendar_activation_fails_closed_when_authenticity_verifier_is_missing():
+    validator, _, _, _, _, _ = setup()
+    validator._authenticity_verifier = None
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(
+        item.code == "CALENDAR_SOURCE_AUTHENTICITY_VERIFIER_NOT_CONFIGURED"
+        for item in result.blockers
+    )
+
+
+class RejectingAuthenticityVerifier:
+    def revalidate_for_activation(self, evidence, *, at):
+        raise ValueError("origin is not owner-approved")
+
+    def assert_preflight_verification(self, evidence, *, at):
+        raise ValueError("no fresh source verification record")
+
+
+def test_calendar_activation_fails_closed_when_source_authenticity_preflight_fails():
+    validator, _, _, _, _, _ = setup()
+    validator._authenticity_verifier = RejectingAuthenticityVerifier()
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(
+        item.code == "CALENDAR_SOURCE_AUTHENTICITY_UNVERIFIED"
+        for item in result.blockers
+    )
+
