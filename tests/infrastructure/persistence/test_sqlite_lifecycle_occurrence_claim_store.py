@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.application.signals.occurrence_claims import lifecycle_occurrence_id
+from app.domain.alerts.model import AlertEvent, AlertEventType
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -161,18 +162,33 @@ def test_lease_expiring_during_lifecycle_transaction_rolls_back_all_writes(tmp_p
     database = tmp_path / "analysis.db"
     store = SQLiteLifecycleOccurrenceClaimStore(database)
     unit_of_work, history = make_uow(database)
+    outbox = SQLiteAlertOutbox(database)
     claim = store.claim("occurrence-6", "worker-a", now=NOW, lease_seconds=10)
     assert claim is not None
     clock_values = iter((NOW + timedelta(seconds=5), NOW + timedelta(seconds=11)))
 
+    def persist_lifecycle_and_alert(transaction):
+        created = transaction.record_signal(make_signal(), "CREATED", NOW)
+        transaction.publish_alert(
+            AlertEvent(
+                event_id=uuid4(),
+                signal_id=created.signal_id,
+                symbol="COMI",
+                event_type=AlertEventType.SIGNAL_TRIGGERED,
+                occurred_at=NOW,
+                message="COMI lifecycle event",
+            )
+        )
+
     with pytest.raises(StaleLifecycleOccurrenceClaimError):
         unit_of_work.execute_claimed(
             claim,
-            lambda transaction: transaction.record_signal(make_signal(), "CREATED", NOW),
+            persist_lifecycle_and_alert,
             clock=lambda: next(clock_values),
         )
 
     assert history.all_records() == ()
+    assert outbox.pending() == ()
     assert store.get("occurrence-6")["status"] == "CLAIMED"
 
 
