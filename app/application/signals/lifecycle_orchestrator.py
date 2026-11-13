@@ -10,6 +10,7 @@ from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
+    LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     InMemorySignalLifecycleUnitOfWork,
     SignalLifecycleTransaction,
@@ -275,6 +276,90 @@ class SignalLifecycleOrchestrator:
             )
 
         return self._unit_of_work.execute(persist)
+
+    def mark_session_gap(
+        self,
+        signal_id: UUID,
+        *,
+        session_date: date,
+        calendar_version: str,
+        reason: str,
+        detected_at: datetime,
+    ) -> LifecycleSessionGapEvent:
+        if not calendar_version.strip() or not reason.strip():
+            raise ValueError("calendar_version and gap reason are required")
+        if detected_at.tzinfo is None or detected_at.utcoffset() is None:
+            raise ValueError("detected_at must be timezone-aware")
+        gap_id = uuid5(
+            NAMESPACE_URL,
+            f"signal-session-gap:{signal_id}:{session_date.isoformat()}:{calendar_version.strip()}",
+        )
+        event = LifecycleSessionGapEvent(
+            event_id=uuid5(NAMESPACE_URL, f"{gap_id}:STALE:{reason.strip()}"),
+            gap_id=gap_id,
+            signal_id=signal_id,
+            session_date=session_date,
+            calendar_version=calendar_version.strip(),
+            status="STALE",
+            reason=reason.strip(),
+            recorded_at=detected_at,
+        )
+
+        def persist(transaction: SignalLifecycleTransaction) -> LifecycleSessionGapEvent:
+            if transaction.latest_for_signal(signal_id) is None:
+                raise ValueError("opportunity identity does not exist")
+            transaction.record_session_gap_event(event)
+            return event
+
+        return self._unit_of_work.execute(persist)
+
+    def resolve_session_gap(
+        self,
+        signal_id: UUID,
+        *,
+        session_date: date,
+        calendar_version: str,
+        reason: str,
+        resolved_at: datetime,
+    ) -> LifecycleSessionGapEvent | None:
+        if not calendar_version.strip() or not reason.strip():
+            raise ValueError("calendar_version and resolution reason are required")
+        if resolved_at.tzinfo is None or resolved_at.utcoffset() is None:
+            raise ValueError("resolved_at must be timezone-aware")
+
+        def persist(transaction: SignalLifecycleTransaction) -> LifecycleSessionGapEvent | None:
+            matches = [
+                event for event in transaction.session_gap_events(signal_id)
+                if event.session_date == session_date
+                and event.calendar_version == calendar_version.strip()
+            ]
+            if not matches or matches[-1].status != "STALE":
+                return None
+            previous = matches[-1]
+            resolved = LifecycleSessionGapEvent(
+                event_id=uuid5(
+                    NAMESPACE_URL,
+                    f"{previous.gap_id}:RESOLVED:{reason.strip()}",
+                ),
+                gap_id=previous.gap_id,
+                signal_id=signal_id,
+                session_date=session_date,
+                calendar_version=calendar_version.strip(),
+                status="RESOLVED",
+                reason=reason.strip(),
+                recorded_at=resolved_at,
+            )
+            transaction.record_session_gap_event(resolved)
+            return resolved
+
+        return self._unit_of_work.execute(persist)
+
+    def session_gap_events(
+        self, signal_id: UUID
+    ) -> tuple[LifecycleSessionGapEvent, ...]:
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.session_gap_events(signal_id)
+        )
 
     def record_daily_bar_correction(
         self,
