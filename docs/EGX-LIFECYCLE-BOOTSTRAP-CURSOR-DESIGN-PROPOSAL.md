@@ -96,7 +96,17 @@ Rollback repeats validation against current active opportunities and cursors. Pr
 - Failed activation preserves pointer and appends no success audit.
 - Activation does not prove finality or enable monitoring.
 
-## 7. Risks and rejected alternatives
+## 7. Implementation checkpoint — 2026-11-13
+
+The first persistence increment is present on the PR branch:
+- Lifecycle Unit of Work now defines bootstrap batch and per-opportunity record contracts.
+- In-memory transaction adapter supports append-only bootstrap batch writes and rollback snapshots.
+- SQLite has separate batch and per-opportunity tables, per-opportunity/calendar uniqueness, publication-identity foreign keys, and no-update/no-delete triggers.
+- Persistence tests cover identical retry, conflicting baseline replay, restart durability, rollback after a missing opportunity identity, and append-only enforcement.
+
+This is **not yet an accepted implementation milestone**: the new tests have not been executed successfully on the exact current PR head. The application bootstrap workflow, Cairo publication-baseline derivation, candidate-calendar coverage checks, revision-aware active-opportunity selection, and evaluator eligibility guard remain outstanding.
+
+## 8. Risks and rejected alternatives
 
 | Design | Decision |
 |---|---|
