@@ -101,6 +101,11 @@ class SQLiteCalendarSourceOriginRegistry:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             self._require_active_owner_credential(connection, owner)
+            if connection.execute(
+                "SELECT 1 FROM egx_calendar_source_origin_events WHERE origin = ? AND registry_version = ? LIMIT 1",
+                (canonical_origin, registry_version.strip()),
+            ).fetchone() is not None:
+                raise ValueError("Registry version must be unique for each origin trust event")
             latest = connection.execute(
                 "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
                 (canonical_origin,),
@@ -157,6 +162,11 @@ class SQLiteCalendarSourceOriginRegistry:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             self._require_active_owner_credential(connection, owner)
+            if connection.execute(
+                "SELECT 1 FROM egx_calendar_source_origin_events WHERE origin = ? AND registry_version = ? LIMIT 1",
+                (canonical_origin, registry_version.strip()),
+            ).fetchone() is not None:
+                raise ValueError("Registry version must be unique for each origin trust event")
             latest_event = connection.execute(
                 "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
                 (canonical_origin,),
