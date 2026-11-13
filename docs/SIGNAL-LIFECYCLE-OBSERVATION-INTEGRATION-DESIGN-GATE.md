@@ -2,6 +2,7 @@
 
 **Status:** Correction replay/rebuild and compensating-notification behavior are implemented on this branch and passed code CI on `1d2b902a646174521b143cf19c1b7c7c126cd072` (run #43405799607; all six jobs successful). Production activation remains blocked by the absence of an accepted provider finality adapter, an active deployment calendar, scheduled-worker wiring, and deployment-level end-to-end acceptance. No current market-data provider has been accepted for automatic lifecycle transitions. PR #515 remains Draft and unmerged.  
 **Scope:** Non-M61 opportunity lifecycle observation, invalidation, terminal outcomes, and Telegram event publication  
+**Scheduled-worker design:** `docs/OPPORTUNITY-LIFECYCLE-SCHEDULED-WORKER-DESIGN-GATE.md` (proposed; not wired or activated)  
 **Related owner policy:** DEC-135 (accepted 2026-10-31)  
 **Related implementation:** `SignalLifecycleOrchestrator`, `SignalMarketState`, `GenerateSignal`, `PublishSignalOpportunity`
 
@@ -225,7 +226,7 @@ This matrix is the current source of truth for PR #515. It supersedes earlier sn
 | Production DailyBarFinalityVerifier/provider | NOT IMPLEMENTED | The application boundary accepts an injected verifier and fails closed when finality is not verified, but runtime has no production verifier and no provider is approved. Yahoo remains ineligible |
 | Active accepted EGX calendar version in target deployment | NOT VERIFIED / NOT ACTIVE | Calendar domain, immutable persistence, evidence-gated publication, individual operator identity, and audit primitives exist; no evidenced calendar version is published/activated in target deployment |
 | Calendar activation policy | OWNER DECISION / IMPLEMENTATION GAP | Cursor-derived coverage is proposed but not approved; no durable lifecycle evaluation cursor or bootstrap policy is implemented. Activation endpoints remain unavailable |
-| Scheduled production worker | NOT WIRED | Evaluator/recovery use cases are not connected to a production schedule; keep disabled until provider and calendar gates pass |
+| Scheduled production worker | DESIGN PROPOSED / NOT WIRED | See the scheduled-worker design gate; existing in-process scheduler is not durable and the generic durable analysis runner is not lifecycle-compatible as-is. Keep disabled until provider and calendar gates pass |
 | Full provider → calendar → lifecycle → Telegram → authenticated user-history E2E acceptance | NOT PASSED | Must exercise normal progression, restart/gap recovery, expiry, delivery, correction replay, and per-user authorization together |
 | Provider outreach / selection | NOT AUTHORIZED | EGID is research-only; no provider contact, quote request, credential request, or selection is authorized |
 | CI for code implementation | PASS | Run #43405799607 on code commit `1d2b902a646174521b143cf19c1b7c7c126cd072`; all six jobs successful |
