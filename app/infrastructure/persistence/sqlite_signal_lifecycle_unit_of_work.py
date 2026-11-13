@@ -9,6 +9,7 @@ from typing import Callable, TypeVar
 from uuid import UUID, uuid4
 
 from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleCorrectionRecord,
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
 )
@@ -60,6 +61,149 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             (str(signal_id),),
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
+
+    def record_correction(self, record: LifecycleCorrectionRecord) -> None:
+        original_key = json.dumps(
+            [
+                record.original_identity[0],
+                record.original_identity[1],
+                record.original_identity[2],
+                record.original_identity[3].isoformat(),
+                record.original_identity[4],
+            ],
+            separators=(",", ":"),
+        )
+        corrected = record.corrected_bar
+        corrected_key = json.dumps(
+            [
+                corrected.identity[0],
+                corrected.identity[1],
+                corrected.identity[2],
+                corrected.identity[3].isoformat(),
+                corrected.identity[4],
+            ],
+            separators=(",", ":"),
+        )
+        original = self._connection.execute(
+            """
+            SELECT 1 FROM signal_lifecycle_daily_observations
+            WHERE identity_key = ? AND signal_id = ?
+            """,
+            (original_key, str(record.signal_id)),
+        ).fetchone()
+        if original is None:
+            raise ValueError("correction references a missing original observation")
+        payload = self._serialize_correction(record)
+        existing = self._connection.execute(
+            "SELECT payload_json FROM signal_lifecycle_daily_bar_corrections WHERE correction_id = ?",
+            (str(record.correction_id),),
+        ).fetchone()
+        if existing is not None:
+            if str(existing[0]) != payload:
+                raise ValueError("conflicting lifecycle correction replay")
+            return
+        self._connection.execute(
+            """
+            INSERT INTO signal_lifecycle_daily_bar_corrections(
+                correction_id, signal_id, original_identity_key,
+                corrected_identity_key, operator_id, reason, recorded_at, payload_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(record.correction_id),
+                str(record.signal_id),
+                original_key,
+                corrected_key,
+                record.operator_id,
+                record.reason,
+                record.recorded_at.isoformat(),
+                payload,
+            ),
+        )
+
+    def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT payload_json FROM signal_lifecycle_daily_bar_corrections
+            WHERE signal_id = ?
+            ORDER BY recorded_at ASC, correction_id ASC
+            """,
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(
+            self._deserialize_correction(str(row[0]))
+            for row in rows
+        )
+
+    @staticmethod
+    def _serialize_correction(record: LifecycleCorrectionRecord) -> str:
+        bar = record.corrected_bar
+        payload = {
+            "correction_id": str(record.correction_id),
+            "signal_id": str(record.signal_id),
+            "original_identity": [
+                record.original_identity[0],
+                record.original_identity[1],
+                record.original_identity[2],
+                record.original_identity[3].isoformat(),
+                record.original_identity[4],
+            ],
+            "operator_id": record.operator_id,
+            "reason": record.reason,
+            "recorded_at": record.recorded_at.isoformat(),
+            "corrected_bar": {
+                "symbol": bar.symbol,
+                "provider": bar.provider,
+                "timeframe": bar.timeframe,
+                "candle_at": bar.candle_at.isoformat(),
+                "observed_at": bar.observed_at.isoformat(),
+                "revision": bar.revision,
+                "source_reference": bar.source_reference,
+                "finality_attestation": bar.finality_attestation,
+                "is_final": bar.is_final,
+                "open": str(bar.open),
+                "high": str(bar.high),
+                "low": str(bar.low),
+                "close": str(bar.close),
+            },
+        }
+        return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+    @staticmethod
+    def _deserialize_correction(payload_text: str) -> LifecycleCorrectionRecord:
+        payload = json.loads(payload_text)
+        item = payload["corrected_bar"]
+        bar = CompletedDailyBarObservation(
+            symbol=str(item["symbol"]),
+            provider=str(item["provider"]),
+            timeframe=str(item["timeframe"]),
+            candle_at=datetime.fromisoformat(str(item["candle_at"])),
+            observed_at=datetime.fromisoformat(str(item["observed_at"])),
+            revision=str(item["revision"]),
+            source_reference=str(item["source_reference"]),
+            finality_attestation=str(item["finality_attestation"]),
+            is_final=bool(item["is_final"]),
+            open=Decimal(str(item["open"])),
+            high=Decimal(str(item["high"])),
+            low=Decimal(str(item["low"])),
+            close=Decimal(str(item["close"])),
+        )
+        original = payload["original_identity"]
+        return LifecycleCorrectionRecord(
+            correction_id=UUID(str(payload["correction_id"])),
+            signal_id=UUID(str(payload["signal_id"])),
+            original_identity=(
+                str(original[0]),
+                str(original[1]),
+                str(original[2]),
+                datetime.fromisoformat(str(original[3])),
+                str(original[4]),
+            ),
+            corrected_bar=bar,
+            operator_id=str(payload["operator_id"]),
+            reason=str(payload["reason"]),
+            recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
+        )
 
     def record_observation(self, record: LifecycleObservationRecord) -> None:
         bar = record.bar
@@ -373,6 +517,45 @@ class SQLiteSignalLifecycleUnitOfWork:
                 """
                 CREATE INDEX IF NOT EXISTS idx_lifecycle_daily_observations_signal_date
                 ON signal_lifecycle_daily_observations(signal_id, candle_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_daily_bar_corrections (
+                    correction_id TEXT PRIMARY KEY,
+                    signal_id TEXT NOT NULL,
+                    original_identity_key TEXT NOT NULL,
+                    corrected_identity_key TEXT NOT NULL,
+                    operator_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_lifecycle_bar_corrections_signal_time
+                ON signal_lifecycle_daily_bar_corrections(signal_id, recorded_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bar_corrections_no_update
+                BEFORE UPDATE ON signal_lifecycle_daily_bar_corrections
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle corrections are append-only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_bar_corrections_no_delete
+                BEFORE DELETE ON signal_lifecycle_daily_bar_corrections
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle corrections are append-only');
+                END
                 """
             )
             connection.execute(
