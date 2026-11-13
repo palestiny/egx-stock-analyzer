@@ -1,3 +1,20 @@
+## Latest verified continuation — 2026-11-13 (Lifecycle gates, provider-neutral contract, and separate data track)
+
+**Source snapshot reviewed before this register update:** PR #515 head `5b954d03bacd8f7e4c269a51711b10ef826b35f0`; exact-head CI run #43435283080 was still in progress at review time. PR #515 remains OPEN / DRAFT / NOT MERGED.
+
+- [x] Lifecycle implementation, immutable bootstrap baseline, cursor-derived calendar validation, atomic SQLite activation coordinator, Option-B calendar evidence authenticity workflow, and authenticated per-user lifecycle history are implemented on the PR branch.
+- [x] Provider-neutral `CompletedDailyBarSource` port and `ProviderDailyBarEvidence` envelope are now defined and tested. The envelope carries provider contract version, symbol, explicit `Africa/Cairo` session date, source timestamp, retrieval timestamp, and the typed daily bar.
+- [ ] The provider-specific adapter, durable persistence of the full envelope, production finality verifier, and provider evidence remain open. No provider contact or selection is authorized.
+- [ ] Calendar production trust remains blocked: the exact-origin registry is empty, no real EGX evidence has passed independent review, and deployment network/TLS plus backup/restore checks remain outstanding.
+- [ ] The scheduled worker remains unwired. It still needs deterministic active-opportunity enumeration, a provider adapter, durable occurrence/claim storage with fencing and restart recovery, runtime composition, outbox orchestration, observability, and worker-level E2E.
+- [ ] The full provider → calendar → worker → lifecycle → Telegram outbox → authenticated user-history deployment E2E remains unproven.
+- [x] PR #514 exact-head CI passed 6/6 on `d9947ae5409c417703b17e8c7ea37d0b0f030296`; audit findings remain 81 review-required rows and source authenticity `NOT_INDEPENDENTLY_VERIFIED`. Keep unmerged pending independent source review.
+- [x] PR #321 exact-head CI passed 5/5 on `690141bd6b391e2bde5dceb2d4e115045200f5bc`; COMI/Mubasher outputs remain diagnostic only, with source rights/provenance/corporate-action and point-in-time evidence unaccepted. Keep Draft/unmerged; M61 paused.
+
+**Authorization boundary:** no contact with EGID or any provider; no calendar activation; no worker/monitoring enablement; no M61 or canonical market-data changes under lifecycle work. Older register statements about contacting EGID or seeking samples are superseded by the owner's 2026-11-13 instruction.
+
+---
+
 ## Latest verified continuation — 2026-11-13 (Opportunity Lifecycle / PR #515)
 
 **Baseline:** PR #515 head `2585eb9cbd9ad4cf4f4f5883395987f2f054d9ee`; workflow run [#43432642040](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43432642040) passed all six jobs on that exact SHA. PR #515 remains OPEN / DRAFT / NOT MERGED (370 commits, 72 files).
