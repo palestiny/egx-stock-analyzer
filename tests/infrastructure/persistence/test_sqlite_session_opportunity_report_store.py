@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import json
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -206,6 +207,57 @@ def test_session_report_store_persists_legacy_unknown_outcome_provenance(tmp_pat
 
     store.save(report(generated, opportunities=(opportunity,), unresolved_count=1))
     saved = store.get_latest(date(2026, 10, 26), as_of=generated)
+
+    assert saved is not None
+    assert saved["opportunities"][0]["outcome_knowledge_status"] == "LEGACY_UNKNOWN"
+
+
+
+def test_read_of_pre_provenance_snapshot_marks_resolved_outcome_legacy_unknown(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    outcome_time = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
+    opportunity = SessionOpportunityEntry(
+        signal_id=uuid4(),
+        symbol="EGAL",
+        publication_time=datetime(2026, 10, 26, 8, tzinfo=timezone.utc),
+        original_entry_lower=Decimal("100"),
+        original_entry_upper=Decimal("102"),
+        original_invalidation=Decimal("95"),
+        original_targets=(("T1", Decimal("110")),),
+        current_status=SignalStatus.TRIGGERED,
+        current_evidence=("breakout",),
+        market_proxy_outcome=SignalOutcome.TARGET_HIT,
+        market_proxy_return=Decimal("0.09"),
+        market_proxy_r=Decimal("1.8"),
+        outcome_observed_at=outcome_time,
+    )
+    payload = store._report_payload(report(generated, opportunities=(opportunity,)))
+    del payload["opportunities"][0]["outcome_knowledge_status"]
+    with store._connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO session_opportunity_reports(
+                session_date, methodology_version, generated_at, report_json,
+                total_count, unresolved_count, resolved_proxy_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "2026-10-26",
+                "legacy-method",
+                generated.isoformat(),
+                json.dumps(payload, sort_keys=True, separators=(",", ":")),
+                1,
+                0,
+                1,
+            ),
+        )
+
+    saved = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="legacy-method",
+    )
 
     assert saved is not None
     assert saved["opportunities"][0]["outcome_knowledge_status"] == "LEGACY_UNKNOWN"
