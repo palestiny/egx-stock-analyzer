@@ -23,6 +23,7 @@ class LifecycleObservationRecord:
     signal_id: UUID
     bar: CompletedDailyBarObservation
     policy_version: str
+    calendar_version: str
     resulting_status: SignalStatus
 
 
