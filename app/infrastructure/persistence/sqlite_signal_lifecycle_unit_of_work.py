@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
+    LifecycleCorrectionReviewDecision,
     LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
@@ -272,6 +273,78 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             calendar_version=str(payload["calendar_version"]),
             recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
             status=str(payload["status"]),
+        )
+
+    def record_correction_review_decision(self, decision: LifecycleCorrectionReviewDecision) -> None:
+        correction = self._connection.execute(
+            """
+            SELECT 1 FROM signal_lifecycle_daily_bar_corrections
+            WHERE correction_id = ? AND signal_id = ?
+            """,
+            (str(decision.correction_id), str(decision.signal_id)),
+        ).fetchone()
+        if correction is None:
+            raise ValueError("correction review references a missing correction")
+        existing = self._connection.execute(
+            """
+            SELECT correction_id, signal_id, decision, reviewer_id, reason, recorded_at
+            FROM signal_lifecycle_correction_review_decisions
+            WHERE decision_id = ?
+            """,
+            (str(decision.decision_id),),
+        ).fetchone()
+        expected = (
+            str(decision.correction_id),
+            str(decision.signal_id),
+            decision.decision,
+            decision.reviewer_id,
+            decision.reason,
+            decision.recorded_at.isoformat(),
+        )
+        if existing is not None:
+            if tuple(str(value) for value in existing) != expected:
+                raise ValueError("conflicting lifecycle correction review replay")
+            return
+        self._connection.execute(
+            """
+            INSERT INTO signal_lifecycle_correction_review_decisions(
+                decision_id, correction_id, signal_id, decision,
+                reviewer_id, reason, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(decision.decision_id),
+                str(decision.correction_id),
+                str(decision.signal_id),
+                decision.decision,
+                decision.reviewer_id,
+                decision.reason,
+                decision.recorded_at.isoformat(),
+            ),
+        )
+
+    def correction_review_decisions(self, signal_id: UUID) -> tuple[LifecycleCorrectionReviewDecision, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT decision_id, correction_id, signal_id, decision,
+                   reviewer_id, reason, recorded_at
+            FROM signal_lifecycle_correction_review_decisions
+            WHERE signal_id = ?
+            ORDER BY recorded_at ASC, decision_id ASC
+            """,
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(
+            LifecycleCorrectionReviewDecision(
+                decision_id=UUID(str(row[0])),
+                correction_id=UUID(str(row[1])),
+                signal_id=UUID(str(row[2])),
+                decision=str(row[3]),
+                reviewer_id=str(row[4]),
+                reason=str(row[5]),
+                recorded_at=datetime.fromisoformat(str(row[6])),
+            )
+            for row in rows
         )
 
     def record_observation(self, record: LifecycleObservationRecord) -> None:
@@ -648,6 +721,45 @@ class SQLiteSignalLifecycleUnitOfWork:
                 CREATE INDEX IF NOT EXISTS idx_lifecycle_bar_corrections_signal_time
                 ON signal_lifecycle_daily_bar_corrections(signal_id, recorded_at)
                 """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_correction_review_decisions (
+                    decision_id TEXT PRIMARY KEY,
+                    correction_id TEXT NOT NULL,
+                    signal_id TEXT NOT NULL,
+                    decision TEXT NOT NULL,
+                    reviewer_id TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    FOREIGN KEY(correction_id) REFERENCES signal_lifecycle_daily_bar_corrections(correction_id),
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    CHECK(decision IN ('REJECTED', 'ACCEPTED_NO_STATE_CHANGE', 'REPLAY_REQUIRED'))
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_lifecycle_correction_reviews_signal_time
+                ON signal_lifecycle_correction_review_decisions(signal_id, recorded_at, decision_id)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_correction_reviews_no_update
+                BEFORE UPDATE ON signal_lifecycle_correction_review_decisions
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle correction reviews are append-only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_correction_reviews_no_delete
+                BEFORE DELETE ON signal_lifecycle_correction_review_decisions
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle correction reviews are append-only');
+                END
             )
             connection.execute(
                 """
