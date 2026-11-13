@@ -580,6 +580,8 @@ class SignalLifecycleOrchestrator:
             )
             if correction is None:
                 raise ValueError("correction identity does not exist")
+            if correction.operator_id == reviewer_id.strip():
+                raise ValueError("correction author cannot review their own correction")
             if recorded_at < correction.recorded_at:
                 raise ValueError("review cannot precede correction intake")
             prior_reviews = [
