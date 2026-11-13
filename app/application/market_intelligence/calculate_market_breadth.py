@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from app.application.analysis.result_store import AnalysisResultStore
 from app.application.market_data.session_calendar_store import SessionCalendarStore
-from app.application.clock import EGX_TIMEZONE, egx_today
+from app.application.clock import EGX_TIMEZONE
 from app.domain.technical_analysis.momentum import MomentumStatus
 from app.domain.technical_analysis.trend import TrendStatus
 from app.domain.technical_analysis.volume import VolumeStatus
