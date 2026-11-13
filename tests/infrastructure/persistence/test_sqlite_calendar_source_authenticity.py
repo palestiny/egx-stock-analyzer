@@ -148,6 +148,44 @@ def test_origin_approval_is_exact_owner_attributed_and_revocable(tmp_path):
     assert [item["action"] for item in registry.list_events()] == ["APPROVE", "REVOKE"]
 
 
+
+def test_origin_registry_rejects_duplicate_approval_and_out_of_order_trust_events(tmp_path):
+    path, actor_ids, creds, _ = _database(tmp_path)
+    registry = SQLiteCalendarSourceOriginRegistry(path, owner_user_id=actor_ids[0])
+    owner = AuthenticatedIdentity.user(
+        actor_ids[0], credential_id=creds[0].id,
+        permissions=frozenset({Permission.OPERATOR}),
+    )
+    registry.approve_origin(
+        "https://official.example.test",
+        publisher="EGX",
+        source_class="A",
+        market_scope="EGX_MARKET_WIDE",
+        trust_basis="Owner-approved exact origin",
+        registry_version="v1",
+        owner=owner,
+        occurred_at=NOW,
+    )
+    with pytest.raises(ValueError, match="already approved"):
+        registry.approve_origin(
+            "https://official.example.test",
+            publisher="EGX",
+            source_class="A",
+            market_scope="EGX_MARKET_WIDE",
+            trust_basis="Duplicate approval",
+            registry_version="v2",
+            owner=owner,
+            occurred_at=NOW,
+        )
+    with pytest.raises(ValueError, match="cannot precede"):
+        registry.revoke_origin(
+            "https://official.example.test",
+            reason="Out-of-order test",
+            registry_version="v2",
+            owner=owner,
+            occurred_at=datetime(2026, 11, 12, tzinfo=timezone.utc),
+        )
+
 def test_verification_records_are_append_only_and_latest_is_durable(tmp_path):
     path, actor_ids, creds, evidence = _database(tmp_path)
     store = SQLiteCalendarEvidenceVerificationStore(path)
