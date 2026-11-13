@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
+from uuid import uuid4
 
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.evaluate_completed_daily_bar import EvaluateCompletedDailyBar
@@ -39,8 +40,8 @@ class FakeLifecycle:
     def __init__(self):
         self.calls = []
 
-    def process_completed_daily_bar(self, bar, *, policy_version, calendar_version):
-        self.calls.append((bar, policy_version, calendar_version))
+    def process_completed_daily_bar(self, signal_id, bar, *, policy_version, calendar_version):
+        self.calls.append((signal_id, bar, policy_version, calendar_version))
         return SimpleNamespace(changed=False)
 
 
@@ -107,6 +108,7 @@ def evaluator(*, active, verified=True):
 def test_daily_bar_is_suppressed_without_an_active_calendar():
     service, verifier, lifecycle = evaluator(active=None)
     result = service.execute(
+        uuid4(),
         make_bar(),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
@@ -162,7 +164,7 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     assert result.reason == "EVALUATED"
     assert result.calendar_version == "calendar-v1"
     assert verifier.calls == 1
-    assert lifecycle.calls == [(bar, "dec139-completed-daily-bar-v1", "calendar-v1")]
+    assert lifecycle.calls == [(signal_id, bar, "dec139-completed-daily-bar-v1", "calendar-v1")]
 
 
 def test_daily_bar_rejects_future_observation_timestamp():
