@@ -1,10 +1,17 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from app.domain.signals.model import SignalStatus
 from app.domain.signals.outcome import SignalOutcome
+
+
+class OutcomeKnowledgeStatus(StrEnum):
+    RECORDED = "RECORDED"
+    LEGACY_UNKNOWN = "LEGACY_UNKNOWN"
+    UNRESOLVED = "UNRESOLVED"
 
 
 @dataclass(frozen=True)
@@ -26,6 +33,7 @@ class SessionOpportunityEntry:
     outcome_data_timestamp: datetime | None = None
     outcome_event_id: UUID | None = None
     outcome_recorded_at: datetime | None = None
+    outcome_knowledge_status: OutcomeKnowledgeStatus = OutcomeKnowledgeStatus.UNRESOLVED
 
 
 @dataclass(frozen=True)
