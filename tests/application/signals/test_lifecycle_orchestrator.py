@@ -379,7 +379,7 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
         close=Decimal("102"),
     )
     orchestrator.process_completed_daily_bar(later, calendar_version="calendar-v1")
-    replay = orchestrator.process_completed_daily_bar(make_completed_bar())
+    replay = orchestrator.process_completed_daily_bar(make_completed_bar(), calendar_version="calendar-v1")
     assert replay is not None and replay.changed is False
     with pytest.raises(ValueError, match="out-of-order"):
         orchestrator.process_completed_daily_bar(make_completed_bar(candle_day=3), calendar_version="calendar-v1")
