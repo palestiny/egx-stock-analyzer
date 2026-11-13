@@ -97,6 +97,7 @@ def create_application(
         calendar_evidence_repository=getattr(runtime, "calendar_evidence_repository", None),
         calendar_evidence_uploader_identity_resolver=getattr(runtime, "calendar_evidence_uploader_identity_resolver", None),
         signal_lifecycle_orchestrator=getattr(runtime, "signal_lifecycle_orchestrator", None),
+        outcome_correction_service=getattr(runtime, "outcome_correction_service", None),
         telegram_delivery_reconciliation_store=getattr(runtime, "telegram_delivery_reconciliation_store", None),
         telegram_account_linking=getattr(runtime, "telegram_account_linking", None),
         telegram_notification_provider=getattr(runtime, "telegram_notification_provider", None),
