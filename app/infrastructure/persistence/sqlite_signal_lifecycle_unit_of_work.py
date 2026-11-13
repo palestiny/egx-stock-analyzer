@@ -7,6 +7,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Callable, TypeVar
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapBatchRecord,
@@ -48,7 +49,13 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
     def record_bootstrap_batch(self, batch: LifecycleBootstrapBatchRecord, records: tuple[LifecycleBootstrapRecord, ...]) -> None:
         if batch.opportunity_count != len(records) or not records:
             raise ValueError("bootstrap batch record count mismatch")
-        if not batch.operator_id.strip() or not batch.reason.strip() or not batch.calendar_version.strip() or not batch.batch_digest.strip():
+        if (
+            not batch.operator_id.strip()
+            or not batch.reason.strip()
+            or not batch.calendar_version.strip()
+            or len(batch.batch_digest) != 64
+            or any(character not in "0123456789abcdef" for character in batch.batch_digest.lower())
+        ):
             raise ValueError("bootstrap batch audit fields are required")
         if batch.recorded_at.tzinfo is None or batch.recorded_at.utcoffset() is None:
             raise ValueError("bootstrap batch timestamp must be timezone-aware")
@@ -93,9 +100,12 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 or not record.idempotency_key.strip()
                 or record.publication_recorded_at.tzinfo is None
                 or record.publication_recorded_at.utcoffset() is None
+                or record.publication_recorded_at > record.recorded_at
+                or record.baseline_date != record.publication_recorded_at.astimezone(ZoneInfo("Africa/Cairo")).date()
                 or record.recorded_at.tzinfo is None
                 or record.recorded_at.utcoffset() is None
                 or record.recorded_at != batch.recorded_at
+                or record.idempotency_key != f"{record.signal_id}:{record.calendar_version}"
             ):
                 raise ValueError("invalid lifecycle bootstrap record")
             payload = self._serialize_bootstrap_record(record)
