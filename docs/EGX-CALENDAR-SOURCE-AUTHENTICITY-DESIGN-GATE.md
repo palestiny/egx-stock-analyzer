@@ -76,7 +76,7 @@ The approved-origin registry is exact-origin only: scheme + canonical hostname +
 
 1. Set the configured owner identity explicitly in deployment only after confirming the intended owner account; until then `EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID` remains unset and trust-management routes are not composed.
 2. The owner must separately approve each exact origin with a documented trust basis. The registry is empty by default; engineering has not approved EGX, FRA, subdomains, or any vendor domain.
-3. Complete a production-composition test using the real durable bearer-token authenticator, operator grant store, evidence repository, origin registry, verification store, and HTTPS retriever. Current route tests use isolated API composition and a deterministic fake retriever.
+3. The production-runtime composition path is now covered by an end-to-end API test using the real durable bearer-token authenticator, operator grant store, SQLite evidence repository, owner origin registry, verification store, uploader identity resolver, and reviewer route. The test injects a deterministic fake retriever to avoid network I/O. A separate deployment-environment transport validation and an end-to-end activation-preflight test using the real SQLite verifier remain outstanding.
 4. Validate the HTTPS retriever against the deployment's outbound network policy and TLS/proxy environment without contacting EGID or any data provider as part of this work.
 5. Establish source-specific retention/reuse permission and deployment backup/restore/capacity procedures. Authenticity does not grant legal retention rights.
 6. Keep Provider Finality, calendar bootstrap/recovery, deployment recovery, and exact-head CI as independent activation blockers.
@@ -106,3 +106,17 @@ No origin is approved by this design. Therefore the verifier has no usable produ
 - Tests cover the reviewer and owner API boundaries, uploader/reviewer separation, rejection records, exact-origin matching, trust event ordering, bounded HTTPS transport, and empty-by-default runtime composition.
 
 **Current result:** IMPLEMENTATION SLICE COMPLETE IN CODE; production authenticity is NOT ESTABLISHED because no origin has been approved and no actual EGX evidence has been independently reviewed. No provider outreach, calendar activation, worker, or monitoring is authorized or enabled. Exact-head CI remains the final verification for the current code head.
+
+
+## 9. Production composition integration test — 2026-11-13
+
+The runtime integration test now exercises the complete review path without contacting a real publisher:
+1. Compose the real runtime with an explicit test owner UUID.
+2. Authenticate owner, uploader, and reviewer through durable bearer credentials and persisted individual-operator grants.
+3. Approve an isolated fixture origin through the owner-only HTTP endpoint.
+4. Publish a calendar and evidence through the normal calendar publication endpoint, binding the uploader's immutable user and credential IDs.
+5. Submit the independent review through the operator HTTP endpoint; the application resolves the uploader from persisted evidence provenance.
+6. Persist and read back the VERIFIED decision through the real SQLite verification store.
+7. Confirm a non-owner and the legacy shared token cannot read owner trust events.
+
+The retriever is replaced only inside this isolated test with deterministic fixture bytes. It does not establish trust in any real EGX origin, validate deployment outbound networking, or exercise the activation coordinator. Those remain separate gates.
