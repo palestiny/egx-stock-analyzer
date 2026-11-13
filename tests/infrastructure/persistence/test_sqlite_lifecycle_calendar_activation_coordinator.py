@@ -71,9 +71,6 @@ class AlwaysVerifiedAuthenticity:
     def assert_preflight_verification(self, evidence, *, at):
         return True
 
-    def assert_preflight_verification(self, evidence, *, at):
-        return True
-
 
 class StubValidator:
     def __init__(self, *, eligible=True):
