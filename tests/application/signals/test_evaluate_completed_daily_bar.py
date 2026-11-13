@@ -123,6 +123,7 @@ def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
         active=make_calendar(CalendarDayStatus.SCHEDULED)
     )
     result = service.execute(
+        uuid4(),
         make_bar(),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
@@ -157,6 +158,7 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     service, verifier, lifecycle = evaluator(active=make_calendar())
     bar = make_bar()
     result = service.execute(
+        signal_id,
         bar,
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
