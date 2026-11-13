@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
     LifecycleCorrectionReviewDecision,
+    LifecycleCorrectionRebuildRecord,
     LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
@@ -63,6 +64,93 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             (str(signal_id),),
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
+
+    def observations(self, signal_id: UUID):
+        rows = self._connection.execute(
+            """SELECT payload_json FROM signal_lifecycle_daily_observations
+               WHERE signal_id = ? ORDER BY candle_at ASC, observed_at ASC""",
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(self._deserialize_observation(str(row[0])) for row in rows)
+
+    def signal_history(self, signal_id: UUID):
+        return self._history.history(signal_id)
+
+    def record_correction_rebuild(self, record: LifecycleCorrectionRebuildRecord) -> None:
+        payload = (
+            str(record.rebuild_id), str(record.correction_id), str(record.signal_id),
+            record.previous_status.value, record.resulting_status.value,
+            record.observation_count, record.replay_digest,
+            str(record.superseded_event_id) if record.superseded_event_id else None,
+            str(record.correction_event_id) if record.correction_event_id else None,
+            record.recorded_at.isoformat(),
+        )
+        existing = self._connection.execute(
+            """SELECT rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+                      observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
+               FROM signal_lifecycle_correction_rebuilds WHERE correction_id = ?""",
+            (str(record.correction_id),),
+        ).fetchone()
+        if existing is not None:
+            if tuple(existing) != payload:
+                raise ValueError("conflicting lifecycle correction rebuild replay")
+            return
+        self._connection.execute(
+            """INSERT INTO signal_lifecycle_correction_rebuilds(
+                rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+                observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            payload,
+        )
+
+    def correction_rebuilds(self, signal_id: UUID):
+        rows = self._connection.execute(
+            """SELECT rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+                      observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
+               FROM signal_lifecycle_correction_rebuilds WHERE signal_id = ?
+               ORDER BY recorded_at ASC, rebuild_id ASC""",
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(LifecycleCorrectionRebuildRecord(
+            rebuild_id=UUID(str(row[0])), correction_id=UUID(str(row[1])), signal_id=UUID(str(row[2])),
+            previous_status=SignalStatus(str(row[3])), resulting_status=SignalStatus(str(row[4])),
+            observation_count=int(row[5]), replay_digest=str(row[6]),
+            superseded_event_id=UUID(str(row[7])) if row[7] else None,
+            correction_event_id=UUID(str(row[8])) if row[8] else None,
+            recorded_at=datetime.fromisoformat(str(row[9])),
+        ) for row in rows)
+
+    def delivered_recipients(self, event_id: UUID):
+        try:
+            rows = self._connection.execute(
+                """SELECT user_id FROM signal_alert_deliveries
+                   WHERE event_id = ? AND channel = 'telegram' AND status = 'DELIVERED'
+                   ORDER BY user_id""",
+                (str(event_id),),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return ()
+        return tuple(UUID(str(row[0])) for row in rows)
+
+    def supersede_alert(self, event_id: UUID, reason: str) -> bool:
+        if not reason.strip():
+            raise ValueError("supersede reason is required")
+        try:
+            unsafe = self._connection.execute(
+                """SELECT 1 FROM signal_alert_deliveries WHERE event_id = ?
+                   AND status IN ('DELIVERED', 'CLAIMED', 'SENDING', 'DELIVERY_UNKNOWN') LIMIT 1""",
+                (str(event_id),),
+            ).fetchone()
+        except sqlite3.OperationalError:
+            unsafe = None
+        if unsafe is not None:
+            return False
+        cursor = self._connection.execute(
+            """UPDATE signal_alert_outbox SET status = 'SUPERSEDED', last_error = ?, delivered_at = NULL
+               WHERE event_id = ? AND status IN ('PENDING', 'FAILED')""",
+            (reason.strip(), str(event_id)),
+        )
+        return cursor.rowcount == 1
 
     def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None:
         existing = self._connection.execute(
@@ -760,6 +848,39 @@ class SQLiteSignalLifecycleUnitOfWork:
                 BEGIN
                     SELECT RAISE(ABORT, 'lifecycle correction reviews are append-only');
                 END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_correction_rebuilds (
+                    rebuild_id TEXT PRIMARY KEY,
+                    correction_id TEXT NOT NULL UNIQUE,
+                    signal_id TEXT NOT NULL,
+                    previous_status TEXT NOT NULL,
+                    resulting_status TEXT NOT NULL,
+                    observation_count INTEGER NOT NULL,
+                    replay_digest TEXT NOT NULL,
+                    superseded_event_id TEXT NULL,
+                    correction_event_id TEXT NULL,
+                    recorded_at TEXT NOT NULL,
+                    FOREIGN KEY(correction_id) REFERENCES signal_lifecycle_daily_bar_corrections(correction_id),
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    CHECK(observation_count >= 1)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_correction_rebuilds_no_update
+                BEFORE UPDATE ON signal_lifecycle_correction_rebuilds
+                BEGIN SELECT RAISE(ABORT, 'lifecycle correction rebuilds are append-only'); END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_correction_rebuilds_no_delete
+                BEFORE DELETE ON signal_lifecycle_correction_rebuilds
+                BEGIN SELECT RAISE(ABORT, 'lifecycle correction rebuilds are append-only'); END
                 """
             )
             connection.execute(

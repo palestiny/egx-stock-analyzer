@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -11,6 +13,7 @@ from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
     LifecycleCorrectionReviewDecision,
+    LifecycleCorrectionRebuildRecord,
     LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     InMemorySignalLifecycleUnitOfWork,
@@ -225,13 +228,18 @@ class SignalLifecycleOrchestrator:
             latest_decision_by_correction: dict[UUID, LifecycleCorrectionReviewDecision] = {}
             for decision in review_decisions:
                 latest_decision_by_correction[decision.correction_id] = decision
+            completed_rebuild_ids = {item.correction_id for item in transaction.correction_rebuilds(signal_id)}
             unresolved_corrections = [
                 correction
                 for correction in corrections
                 if (
                     correction.correction_id not in latest_decision_by_correction
+                    or (
+                        latest_decision_by_correction[correction.correction_id].decision == "REPLAY_REQUIRED"
+                        and correction.correction_id not in completed_rebuild_ids
+                    )
                     or latest_decision_by_correction[correction.correction_id].decision
-                    not in {"REJECTED", "ACCEPTED_NO_STATE_CHANGE"}
+                    not in {"REJECTED", "ACCEPTED_NO_STATE_CHANGE", "REPLAY_REQUIRED"}
                 )
             ]
             if unresolved_corrections:
@@ -552,6 +560,187 @@ class SignalLifecycleOrchestrator:
         return self._unit_of_work.execute(persist)
 
     def lifecycle_correction_review_decisions(
+    def rebuild_daily_bar_correction(
+        self,
+        signal_id: UUID,
+        correction_id: UUID,
+        *,
+        operator_id: str,
+        recorded_at: datetime,
+    ) -> LifecycleCorrectionRebuildRecord:
+        if not operator_id.strip():
+            raise ValueError("operator_id is required")
+        if recorded_at.tzinfo is None or recorded_at.utcoffset() is None:
+            raise ValueError("recorded_at must be timezone-aware")
+
+        def persist(transaction: SignalLifecycleTransaction) -> LifecycleCorrectionRebuildRecord:
+            corrections = transaction.corrections(signal_id)
+            correction = next((item for item in corrections if item.correction_id == correction_id), None)
+            if correction is None:
+                raise ValueError("correction identity does not exist")
+            rebuilds = transaction.correction_rebuilds(signal_id)
+            existing = next((item for item in rebuilds if item.correction_id == correction_id), None)
+            if existing is not None:
+                return existing
+
+            reviews = [item for item in transaction.correction_review_decisions(signal_id) if item.correction_id == correction_id]
+            if not reviews or reviews[-1].decision != "REPLAY_REQUIRED":
+                raise ValueError("correction must have a latest REPLAY_REQUIRED review before replay")
+            completed_ids = {item.correction_id for item in rebuilds}
+            latest_review_by_id: dict[UUID, LifecycleCorrectionReviewDecision] = {}
+            for item in transaction.correction_review_decisions(signal_id):
+                latest_review_by_id[item.correction_id] = item
+            for item in corrections:
+                if item.correction_id == correction_id:
+                    continue
+                decision = latest_review_by_id.get(item.correction_id)
+                if decision is None or (decision.decision == "REPLAY_REQUIRED" and item.correction_id not in completed_ids):
+                    raise ValueError("another unresolved correction blocks chronological replay")
+
+            history = transaction.signal_history(signal_id)
+            publication = next((item for item in history if item.event in {"PUBLISHED", "PUBLISHED_VERSION"}), None)
+            if publication is None:
+                raise ValueError("published opportunity baseline is missing")
+            latest = transaction.latest_for_signal(signal_id)
+            if latest is None:
+                raise ValueError("opportunity identity does not exist")
+            if latest.event in {"STATUS_EXPIRED", "STATUS_CLOSED", "EVIDENCE_CHANGED_INVALIDATED"}:
+                raise ValueError("correction replay cannot rewrite an independent terminal lifecycle decision")
+            if latest.signal.status not in {SignalStatus.ACTIVE, SignalStatus.TRIGGERED, SignalStatus.INVALIDATED}:
+                raise ValueError("opportunity status is not eligible for correction replay")
+            if recorded_at < latest.recorded_at:
+                raise ValueError("rebuild timestamp cannot precede the current lifecycle history")
+
+            observations = transaction.observations(signal_id)
+            if not any(item.bar.identity == correction.original_identity for item in observations):
+                raise ValueError("original observation for correction is missing")
+            replaced_originals = {
+                item.original_identity for item in corrections
+                if item.correction_id in completed_ids or item.correction_id == correction_id
+            }
+            effective = [item for item in observations if item.bar.identity not in replaced_originals]
+            effective.append(LifecycleObservationRecord(
+                signal_id=signal_id,
+                bar=correction.corrected_bar,
+                policy_version="dec138-daily-ohlc-v1",
+                calendar_version=correction.calendar_version,
+                resulting_status=SignalStatus.ACTIVE,
+            ))
+            by_session: dict[datetime, LifecycleObservationRecord] = {}
+            for item in sorted(effective, key=lambda value: (value.bar.candle_at, value.bar.observed_at, value.bar.revision)):
+                previous = by_session.get(item.bar.candle_at)
+                if previous is not None and previous.bar.provider.strip().casefold() != item.bar.provider.strip().casefold():
+                    raise ValueError("multiple providers exist for one replayed session; explicit source reconciliation is required")
+                if previous is None or item.bar.observed_at > previous.bar.observed_at:
+                    by_session[item.bar.candle_at] = item
+            ordered = tuple(by_session[key] for key in sorted(by_session))
+            if not ordered:
+                raise ValueError("no completed daily observations are available for replay")
+
+            rebuilt = publication.signal
+            trace: list[dict[str, str]] = []
+            corrected_status: SignalStatus | None = None
+            for item in ordered:
+                rebuilt = transition_signal_from_completed_daily_bar(rebuilt, item.bar)
+                trace.append({
+                    "provider": item.bar.identity[0],
+                    "symbol": item.bar.identity[1],
+                    "timeframe": item.bar.identity[2],
+                    "candle_at": item.bar.candle_at.isoformat(),
+                    "revision": item.bar.revision,
+                    "resulting_status": rebuilt.status.value,
+                })
+                if item.bar.identity == correction.corrected_bar.identity:
+                    corrected_status = rebuilt.status
+            if corrected_status is None:
+                raise ValueError("corrected candle was not included in chronological replay")
+
+            transaction.record_observation(LifecycleObservationRecord(
+                signal_id=signal_id,
+                bar=correction.corrected_bar,
+                policy_version="dec138-daily-ohlc-v1",
+                calendar_version=correction.calendar_version,
+                resulting_status=corrected_status,
+            ))
+            previous_status = latest.signal.status
+            superseded_event_id: UUID | None = None
+            correction_event_id: UUID | None = None
+
+            if rebuilt.status is not previous_status:
+                prior_terminal = next((item for item in reversed(history) if item.event in {"STATUS_TRIGGERED", "STATUS_INVALIDATED"}), None)
+                reference_event_id: UUID | None = None
+                if prior_terminal is not None:
+                    prior_observation = next((
+                        item for item in observations
+                        if item.bar.observed_at == prior_terminal.recorded_at
+                        and item.resulting_status is prior_terminal.signal.status
+                    ), None)
+                    if prior_observation is not None:
+                        reference_event_id = uuid5(
+                            NAMESPACE_URL,
+                            f"signal-daily-bar:{signal_id}:{prior_observation.bar.identity!r}:{prior_observation.policy_version}:{prior_observation.calendar_version}",
+                        )
+                        if transaction.supersede_alert(reference_event_id, f"superseded by correction replay {correction_id}"):
+                            superseded_event_id = reference_event_id
+                else:
+                    reference_event_id = uuid5(
+                        NAMESPACE_URL,
+                        f"signal-published:{signal_id}:{snapshot_signal(publication.signal)!r}",
+                    )
+
+                if reference_event_id is not None:
+                    recipients = transaction.delivered_recipients(reference_event_id)
+                    if recipients:
+                        correction_event_id = uuid5(
+                            NAMESPACE_URL,
+                            f"signal-correction:{signal_id}:{correction_id}:{reference_event_id}:{previous_status.value}:{rebuilt.status.value}",
+                        )
+                        transaction.publish_alert(AlertEvent(
+                            event_id=correction_event_id,
+                            signal_id=signal_id,
+                            symbol=rebuilt.symbol,
+                            event_type=AlertEventType.SIGNAL_CORRECTED,
+                            occurred_at=recorded_at,
+                            message=(
+                                f"{rebuilt.symbol} lifecycle correction: previously communicated "
+                                f"{previous_status.value}; chronological rebuild now reports "
+                                f"{rebuilt.status.value}. The earlier event remains in the audit history."
+                            ),
+                            signal_snapshot=snapshot_signal(rebuilt),
+                            recipient_user_ids=recipients,
+                            correction_of_event_id=reference_event_id,
+                        ))
+                transaction.record_signal(
+                    rebuilt,
+                    f"CORRECTION_REPLAY_REBUILT:{correction_id}",
+                    recorded_at,
+                    signal_id=signal_id,
+                )
+
+            digest_payload = json.dumps({
+                "signal_id": str(signal_id),
+                "correction_id": str(correction_id),
+                "policy": "dec138-daily-ohlc-v1",
+                "calendar_version": correction.calendar_version,
+                "trace": trace,
+            }, sort_keys=True, separators=(",", ":"))
+            result = LifecycleCorrectionRebuildRecord(
+                rebuild_id=uuid5(NAMESPACE_URL, f"signal-correction-rebuild:{correction_id}"),
+                correction_id=correction_id,
+                signal_id=signal_id,
+                previous_status=previous_status,
+                resulting_status=rebuilt.status,
+                observation_count=len(ordered),
+                replay_digest=hashlib.sha256(digest_payload.encode("utf-8")).hexdigest(),
+                superseded_event_id=superseded_event_id,
+                correction_event_id=correction_event_id,
+                recorded_at=recorded_at,
+            )
+            transaction.record_correction_rebuild(result)
+            return result
+
+        return self._unit_of_work.execute(persist)
+
         self, signal_id: UUID
     ) -> tuple[LifecycleCorrectionReviewDecision, ...]:
         return self._unit_of_work.execute(

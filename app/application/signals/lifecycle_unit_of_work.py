@@ -63,6 +63,20 @@ class LifecycleObservationRecord:
     resulting_status: SignalStatus
 
 
+@dataclass(frozen=True)
+class LifecycleCorrectionRebuildRecord:
+    rebuild_id: UUID
+    correction_id: UUID
+    signal_id: UUID
+    previous_status: SignalStatus
+    resulting_status: SignalStatus
+    observation_count: int
+    replay_digest: str
+    superseded_event_id: UUID | None
+    correction_event_id: UUID | None
+    recorded_at: datetime
+
+
 class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
     def latest_for_identity(
@@ -78,7 +92,13 @@ class SignalLifecycleTransaction(Protocol):
         self, signal_id: UUID, identity: tuple[str, str, str, datetime, str]
     ) -> LifecycleObservationRecord | None: ...
     def latest_observation(self, signal_id: UUID) -> LifecycleObservationRecord | None: ...
+    def observations(self, signal_id: UUID) -> tuple[LifecycleObservationRecord, ...]: ...
+    def signal_history(self, signal_id: UUID) -> tuple[SignalRecord, ...]: ...
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
+    def record_correction_rebuild(self, record: LifecycleCorrectionRebuildRecord) -> None: ...
+    def correction_rebuilds(self, signal_id: UUID) -> tuple[LifecycleCorrectionRebuildRecord, ...]: ...
+    def delivered_recipients(self, event_id: UUID) -> tuple[UUID, ...]: ...
+    def supersede_alert(self, event_id: UUID, reason: str) -> bool: ...
     def record_correction(self, record: LifecycleCorrectionRecord) -> None: ...
     def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]: ...
     def record_correction_review_decision(self, decision: LifecycleCorrectionReviewDecision) -> None: ...
@@ -101,6 +121,7 @@ class _InMemoryTransaction:
         corrections: dict[UUID, LifecycleCorrectionRecord],
         correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision],
         gap_events: dict[UUID, LifecycleSessionGapEvent],
+        rebuilds: dict[UUID, LifecycleCorrectionRebuildRecord],
     ) -> None:
         self._history = history
         self._alerts = alerts
@@ -109,6 +130,7 @@ class _InMemoryTransaction:
         self._corrections = corrections
         self._correction_decisions = correction_decisions
         self._gap_events = gap_events
+        self._rebuilds = rebuilds
 
     def latest(self, symbol: str) -> SignalRecord | None:
         return self._history.latest(symbol)
@@ -145,6 +167,35 @@ class _InMemoryTransaction:
             key=lambda record: (record.bar.candle_at, record.bar.observed_at),
             default=None,
         )
+
+    def observations(self, signal_id: UUID):
+        return tuple(sorted(
+            (record for record in self._observations.values() if record.signal_id == signal_id),
+            key=lambda record: (record.bar.candle_at, record.bar.observed_at, record.bar.revision),
+        ))
+
+    def signal_history(self, signal_id: UUID):
+        return self._history.history(signal_id)
+
+    def record_correction_rebuild(self, record: LifecycleCorrectionRebuildRecord) -> None:
+        existing = self._rebuilds.get(record.correction_id)
+        if existing is not None:
+            if existing != record:
+                raise ValueError("conflicting lifecycle correction rebuild replay")
+            return
+        self._rebuilds[record.correction_id] = record
+
+    def correction_rebuilds(self, signal_id: UUID):
+        return tuple(sorted(
+            (record for record in self._rebuilds.values() if record.signal_id == signal_id),
+            key=lambda record: (record.recorded_at, str(record.rebuild_id)),
+        ))
+
+    def delivered_recipients(self, event_id: UUID):
+        return ()
+
+    def supersede_alert(self, event_id: UUID, reason: str) -> bool:
+        return False
 
     def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None:
         existing = self._gap_events.get(event.event_id)
@@ -250,6 +301,7 @@ class InMemorySignalLifecycleUnitOfWork:
         self._corrections: dict[UUID, LifecycleCorrectionRecord] = {}
         self._correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision] = {}
         self._gap_events: dict[UUID, LifecycleSessionGapEvent] = {}
+        self._rebuilds: dict[UUID, LifecycleCorrectionRebuildRecord] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         with self._lock:
@@ -259,6 +311,7 @@ class InMemorySignalLifecycleUnitOfWork:
             correction_snapshot = deepcopy(self._corrections)
             correction_decision_snapshot = deepcopy(self._correction_decisions)
             gap_snapshot = deepcopy(self._gap_events)
+            rebuild_snapshot = deepcopy(self._rebuilds)
             try:
                 return operation(
                     _InMemoryTransaction(
@@ -267,6 +320,7 @@ class InMemorySignalLifecycleUnitOfWork:
                         self._corrections,
                         self._correction_decisions,
                         self._gap_events,
+                        self._rebuilds,
                     )
                 )
             except Exception:
@@ -277,4 +331,5 @@ class InMemorySignalLifecycleUnitOfWork:
                 self._corrections = correction_snapshot
                 self._correction_decisions = correction_decision_snapshot
                 self._gap_events = gap_snapshot
+                self._rebuilds = rebuild_snapshot
                 raise

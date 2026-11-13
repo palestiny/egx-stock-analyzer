@@ -100,7 +100,11 @@ class DispatchSignalAlertOutbox:
         processed_events = 0
 
         for record in events:
-            if not recipients:
+            event_recipients = recipients
+            if record.event.recipient_user_ids is not None:
+                allowed_ids = set(record.event.recipient_user_ids)
+                event_recipients = tuple(item for item in recipients if item.user_id in allowed_ids)
+            if not event_recipients:
                 self._outbox.mark_suppressed_no_recipients(
                     record.event.event_id,
                     "no linked Telegram recipients at dispatch time",
@@ -119,7 +123,7 @@ class DispatchSignalAlertOutbox:
                 if signal_record is not None:
                     signal_snapshot = snapshot_signal(signal_record.signal)
 
-            for recipient in recipients:
+            for recipient in event_recipients:
                 existing = self._deliveries.get(
                     record.event.event_id,
                     recipient.user_id,
@@ -168,26 +172,30 @@ class DispatchSignalAlertOutbox:
                         event_has_unresolved_delivery = True
                     continue
 
-                decision = self._entitlements.evaluate(
-                    recipient.user_id,
-                    self.ENTITLEMENT,
-                    now=now,
-                )
-                if not decision.allowed:
-                    suppression = self._deliveries.mark_suppressed(
-                        record.event.event_id,
+                # Corrective notices are restricted to users who definitely received
+                # the referenced event, so they bypass the current paid entitlement gate.
+                if record.event.correction_of_event_id is None:
+                    decision = self._entitlements.evaluate(
                         recipient.user_id,
-                        self.CHANNEL,
-                        decision.reason,
+                        self.ENTITLEMENT,
                         now=now,
                     )
-                    if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
-                        suppressed += 1
-                    elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
-                        event_had_delivery = True
-                    else:
-                        event_has_unresolved_delivery = True
-                    continue
+                    if not decision.allowed:
+                        suppression = self._deliveries.mark_suppressed(
+                            record.event.event_id,
+                            recipient.user_id,
+                            self.CHANNEL,
+                            decision.reason,
+                            now=now,
+                        )
+                        if suppression.status is SignalAlertDeliveryStatus.SUPPRESSED:
+                            suppressed += 1
+                        elif suppression.status is SignalAlertDeliveryStatus.DELIVERED:
+                            event_had_delivery = True
+                        else:
+                            event_has_unresolved_delivery = True
+                        continue
+
 
                 if signal_snapshot is None:
                     failure = self._deliveries.mark_failed(

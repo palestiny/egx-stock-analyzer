@@ -214,6 +214,8 @@ class SQLiteAlertOutbox:
             "event_type": event.event_type.value,
             "occurred_at": event.occurred_at.isoformat(),
             "message": event.message,
+            "recipient_user_ids": [str(item) for item in event.recipient_user_ids] if event.recipient_user_ids is not None else None,
+            "correction_of_event_id": str(event.correction_of_event_id) if event.correction_of_event_id else None,
             "signal_snapshot": (
                 {
                     "direction": event.signal_snapshot.direction,
@@ -295,4 +297,6 @@ class SQLiteAlertOutbox:
             occurred_at=datetime.fromisoformat(str(payload["occurred_at"])),
             message=str(payload["message"]),
             signal_snapshot=snapshot,
+            recipient_user_ids=(tuple(UUID(str(item)) for item in payload["recipient_user_ids"]) if payload.get("recipient_user_ids") is not None else None),
+            correction_of_event_id=(UUID(str(payload["correction_of_event_id"])) if payload.get("correction_of_event_id") else None),
         )

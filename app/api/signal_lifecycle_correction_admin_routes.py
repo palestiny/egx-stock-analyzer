@@ -112,6 +112,41 @@ def create_signal_lifecycle_correction_admin_router(
 
     @router.post(
         "/api/v1/owner/signals/{signal_id}/lifecycle-corrections/{correction_id}/review",
+    @router.post(
+        "/api/v1/owner/signals/{signal_id}/lifecycle-corrections/{correction_id}/rebuild",
+        status_code=201,
+    )
+    def rebuild_lifecycle_correction(
+        signal_id: UUID,
+        correction_id: UUID,
+        identity: AuthenticatedIdentity = Depends(require_operator),
+    ) -> dict[str, object]:
+        service = configured_orchestrator()
+        operator_id = identity.subject.strip()
+        if not operator_id:
+            raise HTTPException(status_code=403, detail="Attributable operator identity required")
+        try:
+            result = service.rebuild_daily_bar_correction(
+                signal_id, correction_id, operator_id=operator_id,
+                recorded_at=datetime.now(timezone.utc),
+            )
+        except ValueError as error:
+            message = str(error)
+            status_code = 404 if "does not exist" in message or "missing" in message else 409
+            raise HTTPException(status_code=status_code, detail=message) from error
+        return {
+            "rebuild_id": str(result.rebuild_id),
+            "correction_id": str(result.correction_id),
+            "signal_id": str(result.signal_id),
+            "previous_status": result.previous_status.value,
+            "resulting_status": result.resulting_status.value,
+            "observation_count": result.observation_count,
+            "replay_digest": result.replay_digest,
+            "superseded_event_id": str(result.superseded_event_id) if result.superseded_event_id else None,
+            "correction_event_id": str(result.correction_event_id) if result.correction_event_id else None,
+            "recorded_at": result.recorded_at.isoformat(),
+        }
+
         status_code=201,
     )
     def review_lifecycle_correction(
