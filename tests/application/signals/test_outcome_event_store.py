@@ -150,7 +150,7 @@ def test_correction_review_requires_distinct_authenticated_credential():
             reviewer_credential_id=author_credential,
         )
 
-    with pytest.raises(ValueError, match="credential is required"):
+    with pytest.raises(ValueError, match="reviewer credential is required"):
         store.review_correction(
             correction.event_id,
             reviewer_id="reviewer-2",
