@@ -48,15 +48,15 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
 
-    def latest_observation(self, symbol: str):
+    def latest_observation(self, signal_id: UUID):
         row = self._connection.execute(
             """
             SELECT payload_json FROM signal_lifecycle_daily_observations
-            WHERE symbol = ?
+            WHERE signal_id = ?
             ORDER BY candle_at DESC, observed_at DESC
             LIMIT 1
             """,
-            (symbol.strip().upper(),),
+            (str(signal_id),),
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
 
