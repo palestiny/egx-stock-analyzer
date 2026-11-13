@@ -120,3 +120,50 @@ def test_event_idempotency_rejects_conflicting_reuse():
             actor_id="operator-1",
             idempotency_key="same-key",
         )
+
+
+
+def test_correction_review_requires_distinct_authenticated_credential():
+    from uuid import uuid4
+
+    now = [datetime(2026, 10, 15, 12, tzinfo=timezone.utc)]
+    store = InMemoryOutcomeEventStore(clock=lambda: now[0])
+    author_credential = uuid4()
+    reviewer_credential = uuid4()
+    original = store.record_initial(
+        make_outcome(), actor_id="author-1", idempotency_key="initial-1"
+    )
+    correction = store.submit_correction(
+        make_outcome(original.signal_id, exit_price="96"),
+        supersedes_event_id=original.event_id,
+        actor_id="author-1",
+        idempotency_key="correction-1",
+        actor_credential_id=author_credential,
+    )
+
+    with pytest.raises(ValueError, match="credential cannot review"):
+        store.review_correction(
+            correction.event_id,
+            reviewer_id="reviewer-2",
+            decision=OutcomeCorrectionDecision.ACCEPTED,
+            idempotency_key="same-credential",
+            reviewer_credential_id=author_credential,
+        )
+
+    with pytest.raises(ValueError, match="credential is required"):
+        store.review_correction(
+            correction.event_id,
+            reviewer_id="reviewer-2",
+            decision=OutcomeCorrectionDecision.ACCEPTED,
+            idempotency_key="missing-credential",
+        )
+
+    review = store.review_correction(
+        correction.event_id,
+        reviewer_id="reviewer-2",
+        decision=OutcomeCorrectionDecision.ACCEPTED,
+        idempotency_key="independent-review",
+        reviewer_credential_id=reviewer_credential,
+    )
+    assert correction.actor_credential_id == author_credential
+    assert review.actor_credential_id == reviewer_credential
