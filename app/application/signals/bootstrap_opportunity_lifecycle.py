@@ -14,6 +14,7 @@ from app.application.signals.lifecycle_unit_of_work import (
     SignalLifecycleUnitOfWork,
 )
 from app.application.signals.store import SignalHistoryStore, SignalRecord
+from app.domain.market_data.session_calendar import CalendarDayStatus
 from app.domain.signals.model import SignalStatus
 
 
@@ -54,12 +55,15 @@ class BootstrapOpportunityLifecycle:
         next_evaluation_date: date,
         recorded_at: datetime,
     ) -> LifecycleBootstrapResult:
-        if not calendar_version.strip():
-            raise ValueError("calendar_version is required")
+        if not calendar_version.strip() or calendar_version != calendar_version.strip():
+            raise ValueError("calendar_version is required and must be normalized")
         if not operator_id.strip():
             raise ValueError("authenticated operator identity is required")
+        operator_id = operator_id.strip()
         if not reason.strip():
             raise ValueError("bootstrap reason is required")
+        if not isinstance(next_evaluation_date, date) or isinstance(next_evaluation_date, datetime):
+            raise ValueError("next_evaluation_date must be a date")
         if recorded_at.tzinfo is None or recorded_at.utcoffset() is None:
             raise ValueError("recorded_at must be timezone-aware")
 
@@ -116,6 +120,13 @@ class BootstrapOpportunityLifecycle:
                 )
             for ordinal in range(baseline_date.toordinal(), next_evaluation_date.toordinal() + 1):
                 calendar.day_for(date.fromordinal(ordinal))
+            next_day = calendar.day_for(next_evaluation_date)
+            if next_day.status not in {
+                CalendarDayStatus.SCHEDULED,
+                CalendarDayStatus.OPEN,
+                CalendarDayStatus.CLOSED,
+            }:
+                raise ValueError("next evaluation date is not a scheduled EGX session")
             candidates.append((latest, publication, baseline_date))
 
         existing_by_signal = self._unit_of_work.execute(
