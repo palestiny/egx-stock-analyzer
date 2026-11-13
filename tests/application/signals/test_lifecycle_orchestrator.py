@@ -350,6 +350,16 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         recorded_at=corrected.observed_at + timedelta(minutes=10),
         provider_evidence=corrected_evidence,
     )
+    with pytest.raises(ValueError, match="correction author cannot review"):
+        orchestrator.record_daily_bar_correction_review(
+            published.signal_id,
+            correction.correction_id,
+            decision="REPLAY_REQUIRED",
+            reviewer_id="operator-1",
+            reason="Self-review must be rejected",
+            recorded_at=corrected.observed_at + timedelta(minutes=11),
+        )
+
     review = orchestrator.record_daily_bar_correction_review(
         published.signal_id,
         correction.correction_id,
