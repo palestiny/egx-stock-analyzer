@@ -51,6 +51,14 @@ class SessionOpportunityLedgerResponse:
                         item.outcome_data_timestamp.isoformat()
                         if item.outcome_data_timestamp is not None else None
                     ),
+                    "outcome_event_id": (
+                        str(item.outcome_event_id)
+                        if item.outcome_event_id is not None else None
+                    ),
+                    "outcome_recorded_at": (
+                        item.outcome_recorded_at.isoformat()
+                        if item.outcome_recorded_at is not None else None
+                    ),
                 }
                 for item in report.opportunities
             ],
