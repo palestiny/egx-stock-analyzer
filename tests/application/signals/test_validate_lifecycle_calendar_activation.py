@@ -159,3 +159,15 @@ def test_calendar_activation_validation_fails_closed_without_trusted_schedule_da
     )
     assert result.eligible is False
     assert result.blockers[0].code == "NEXT_EVALUATION_DATE_UNAVAILABLE"
+
+
+
+def test_calendar_activation_validation_rejects_schedule_date_not_after_today():
+    validator, schedule, _, _ = setup(next_date=date(2026, 10, 5))
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is False
+    assert any(item.code == "NEXT_EVALUATION_DATE_NOT_FUTURE" for item in result.blockers)
+    assert schedule.received_after == date(2026, 10, 5)

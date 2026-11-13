@@ -72,9 +72,8 @@ class ValidateLifecycleCalendarActivation:
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
 
-        next_date = self._schedule.next_evaluation_date(
-            after=as_of.astimezone(CAIRO).date()
-        )
+        after_date = as_of.astimezone(CAIRO).date()
+        next_date = self._schedule.next_evaluation_date(after=after_date)
         blockers: list[CalendarActivationBlocker] = []
         if next_date is None:
             blockers.append(CalendarActivationBlocker(
@@ -83,6 +82,11 @@ class ValidateLifecycleCalendarActivation:
             ))
         elif not isinstance(next_date, date) or isinstance(next_date, datetime):
             raise ValueError("trusted schedule must return a date or None")
+        elif next_date <= after_date:
+            blockers.append(CalendarActivationBlocker(
+                "NEXT_EVALUATION_DATE_NOT_FUTURE", None,
+                "trusted schedule must return a session date strictly after the current Cairo date",
+            ))
 
         stored = self._calendar_store.get_version(calendar_version)
         if stored is None:
