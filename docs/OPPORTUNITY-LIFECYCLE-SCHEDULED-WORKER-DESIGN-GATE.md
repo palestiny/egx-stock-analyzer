@@ -264,3 +264,33 @@ the same materialized-pointer query. Exact-head CI and a repeat of the 10k /
 50k / 100k disk benchmark are pending. No performance improvement is claimed
 until the new artifact is available and compared under the same environment
 and parameters. Worker activation remains out of scope.
+
+
+## 20. Materialized-pointer benchmark result — 2026-11-13
+
+The comparable automated on-disk benchmark completed on head
+`2b72b171a54fe5a2582070c8f15c5d7aff0f8850` (workflow run
+`43476777804`, Python 3.12.16, SQLite 3.45.1). It used the same 10k / 50k /
+100k identity scales, seven warm samples, two warmups, and 250 synthetic writer
+operations as the baseline in Section 18.
+
+| Opportunity identities | Warm P50 | Warm P95 | Writer-pressure P50 | Writer-pressure P95 |
+|---:|---:|---:|---:|---:|
+| 10,000 | 425.7 ms | 488.4 ms | 444.1 ms | 503.9 ms |
+| 50,000 | 2,762.2 ms | 3,341.0 ms | 2,770.8 ms | 3,371.6 ms |
+| 100,000 | 6,477.8 ms | 6,907.2 ms | 6,456.4 ms | 6,921.3 ms |
+
+Compared with Section 18, warm P50 is effectively unchanged at 10k and regresses
+by approximately 14.5% at 50k and 13.0% at 100k. At 100k, warm P95 regresses
+from 5,927.7 ms to 6,907.2 ms. The query plan now scans the projection primary
+key index and performs indexed revision-parent lookups plus primary-key
+lookups for the latest and publication rows; the former grouped aggregation is
+removed, but the full candidate scan and Python materialization remain.
+
+**Decision: MATERIALIZED POINTERS ARE NOT AN ACCEPTED PERFORMANCE FIX.** Keep
+the correctness implementation and migration under regression review, but do
+not claim a latency improvement or use this result as worker-scale acceptance.
+The next diagnostic separates SQLite fetch time from JSON/domain-object
+deserialization and ACTIVE filtering before selecting another optimization.
+The benchmark does not define a production SLO and its synthetic writer is not
+a production workload. Worker remains unwired and disabled.
