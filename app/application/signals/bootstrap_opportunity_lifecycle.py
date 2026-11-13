@@ -211,9 +211,21 @@ class BootstrapOpportunityLifecycle:
                 pending, key=lambda item: str(item[0].signal_id)
             )
         )
-        self._unit_of_work.execute(
-            lambda transaction: transaction.record_bootstrap_batch(batch, bootstrap_records)
-        )
+        def persist(transaction) -> None:
+            for bootstrap_record in bootstrap_records:
+                current = transaction.latest_for_signal(bootstrap_record.signal_id)
+                if current is None or current.signal.status is not SignalStatus.ACTIVE:
+                    raise ValueError("opportunity is no longer active at bootstrap commit time")
+                publication_exists = any(
+                    item.event == bootstrap_record.publication_event
+                    and item.recorded_at == bootstrap_record.publication_recorded_at
+                    for item in transaction.signal_history(bootstrap_record.signal_id)
+                )
+                if not publication_exists:
+                    raise ValueError("publication provenance changed before bootstrap commit")
+            transaction.record_bootstrap_batch(batch, bootstrap_records)
+
+        self._unit_of_work.execute(persist)
         return LifecycleBootstrapResult(
             status="BOOTSTRAPPED",
             batch_id=str(batch_id),
