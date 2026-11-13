@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.application.market_data.session_calendar_store import CalendarActivationEvent
+from app.application.market_data.calendar_source_authenticity import CalendarSourceAuthenticityVerifier
 from app.application.signals.validate_lifecycle_calendar_activation import (
     LifecycleCalendarActivationValidation,
     ValidateLifecycleCalendarActivation,
@@ -70,6 +71,17 @@ class SQLiteLifecycleCalendarActivationCoordinator:
                     raise ValueError(
                         "all activation validation stores and the trusted schedule must share the coordinator SQLite database"
                     )
+            if isinstance(validator._authenticity_verifier, CalendarSourceAuthenticityVerifier):
+                authenticity_stores = (
+                    validator._authenticity_verifier._origins,
+                    validator._authenticity_verifier._records,
+                )
+                for store in authenticity_stores:
+                    store_path = getattr(store, "_database_path", None)
+                    if store_path is None or Path(store_path).resolve() != calendar_path:
+                        raise ValueError(
+                            "source-origin registry and verification audit must share the coordinator SQLite database"
+                        )
         self._calendar_repository = calendar_repository
         self._lifecycle_unit_of_work = lifecycle_unit_of_work
         self._validator = validator
@@ -138,6 +150,13 @@ class SQLiteLifecycleCalendarActivationCoordinator:
             validation = result
             if not result.eligible:
                 raise _ActivationValidationRejected(result)
+
+        if isinstance(self._validator, ValidateLifecycleCalendarActivation):
+            # External-only artifact re-fetch happens before BEGIN IMMEDIATE;
+            # the transaction callback rechecks the persisted proof and trust version.
+            self._validator.preflight_source_authenticity(
+                calendar_version, at=as_of
+            )
 
         try:
             event = self._calendar_repository.change_active_atomically(
