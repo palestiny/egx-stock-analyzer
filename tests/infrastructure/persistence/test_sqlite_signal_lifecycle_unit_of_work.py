@@ -16,7 +16,11 @@ from app.domain.signals.model import (
     Target,
 )
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
-from app.domain.signals.lifecycle import SignalMarketState
+from app.domain.signals.lifecycle import (
+    CompletedDailyBarObservation,
+    SignalMarketState,
+)
+from app.application.signals.lifecycle_unit_of_work import LifecycleObservationRecord
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
@@ -313,3 +317,121 @@ def test_sqlite_lifecycle_rolls_back_at_each_write_boundary(tmp_path, failure_st
     assert history.all_records() == ()
     assert track_record.all() == ()
     assert outbox.pending() == ()
+
+
+def make_completed_bar(*, high="105", observed_hour=16):
+    return CompletedDailyBarObservation(
+        symbol="COMI",
+        provider="attested-provider",
+        timeframe="DAILY",
+        candle_at=datetime(2026, 10, 4, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, 4, observed_hour, tzinfo=timezone.utc),
+        revision="r1",
+        source_reference="https://provider.example/COMI/2026-10-04",
+        finality_attestation="provider-finality-assertion",
+        is_final=True,
+        open=Decimal("100"),
+        high=Decimal(high),
+        low=Decimal("98"),
+        close=Decimal("102"),
+    )
+
+
+def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
+    database = tmp_path / "daily-observations.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    signal = make_signal()
+    history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(
+        history=history,
+        alerts=outbox,
+        track_record=track_record,
+        unit_of_work=unit_of_work,
+    )
+    first_bar = make_completed_bar()
+    first = orchestrator.process_completed_daily_bar(first_bar)
+    assert first is not None and first.changed is False
+
+    reopened_history = SQLiteSignalHistoryStore(database)
+    reopened_track_record = SQLiteTrackRecordStore(database)
+    reopened_outbox = SQLiteAlertOutbox(database)
+    reopened_uow = SQLiteSignalLifecycleUnitOfWork(
+        reopened_history, reopened_track_record, reopened_outbox
+    )
+    reopened = SignalLifecycleOrchestrator(
+        history=reopened_history,
+        alerts=reopened_outbox,
+        track_record=reopened_track_record,
+        unit_of_work=reopened_uow,
+    )
+    replay = reopened.process_completed_daily_bar(
+        make_completed_bar(observed_hour=17)
+    )
+
+    assert replay is not None
+    assert replay.changed is False
+    stored = reopened_uow.execute(
+        lambda transaction: transaction.get_observation(first_bar.identity)
+    )
+    assert stored is not None
+    assert stored.bar.high == Decimal("105")
+    assert stored.resulting_status is SignalStatus.ACTIVE
+    assert reopened_track_record.all() == ()
+    assert reopened_outbox.pending() == ()
+
+
+def test_sqlite_daily_observation_ledger_rolls_back_with_lifecycle_transaction(tmp_path):
+    unit_of_work, history, track_record, outbox = make_unit_of_work(
+        tmp_path / "daily-observation-rollback.db"
+    )
+    signal = make_signal()
+    created = history.record(signal, "PUBLISHED", GENERATED)
+    bar = make_completed_bar()
+
+    def fail_after_observation(transaction):
+        transaction.record_observation(
+            LifecycleObservationRecord(
+                signal_id=created.signal_id,
+                bar=bar,
+                policy_version="dec138-daily-ohlc-v1",
+                resulting_status=SignalStatus.ACTIVE,
+            )
+        )
+        raise RuntimeError("simulated observation transaction failure")
+
+    with pytest.raises(RuntimeError, match="simulated observation"):
+        unit_of_work.execute(fail_after_observation)
+
+    assert unit_of_work.execute(
+        lambda transaction: transaction.get_observation(bar.identity)
+    ) is None
+
+
+def test_sqlite_daily_observation_ledger_is_append_only(tmp_path):
+    unit_of_work, history, track_record, outbox = make_unit_of_work(
+        tmp_path / "daily-observation-append-only.db"
+    )
+    signal = make_signal()
+    created = history.record(signal, "PUBLISHED", GENERATED)
+    bar = make_completed_bar()
+    unit_of_work.execute(
+        lambda transaction: transaction.record_observation(
+            LifecycleObservationRecord(
+                signal_id=created.signal_id,
+                bar=bar,
+                policy_version="dec138-daily-ohlc-v1",
+                resulting_status=SignalStatus.ACTIVE,
+            )
+        )
+    )
+
+    import sqlite3
+
+    connection = sqlite3.connect(str(tmp_path / "daily-observation-append-only.db"))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_lifecycle_daily_observations"
+            )
+    finally:
+        connection.close()
