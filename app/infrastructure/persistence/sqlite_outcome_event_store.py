@@ -89,11 +89,17 @@ class SQLiteOutcomeEventStore:
                 """
             )
 
-    def _execute(self, operation, *, signal_ids: tuple[UUID, ...] | None = None):
+    def _execute(
+        self,
+        operation,
+        *,
+        signal_ids: tuple[UUID, ...] | None = None,
+        read_only: bool = False,
+    ):
         if signal_ids == ():
             return operation(InMemoryOutcomeEventStore(clock=self._clock))
         with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("BEGIN" if read_only else "BEGIN IMMEDIATE")
             query = """
                 SELECT event_id, signal_id, event_kind, recorded_at, actor_id,
                        idempotency_key, outcome_json, supersedes_event_id, decision,
@@ -193,7 +199,7 @@ class SQLiteOutcomeEventStore:
     def outcome_as_of(
         self, signal_id: UUID, *, cutoff: datetime
     ) -> OutcomeEvent | None:
-        return self._execute(lambda store: store.outcome_as_of(signal_id, cutoff=cutoff))
+        return self.outcomes_as_of((signal_id,), cutoff=cutoff).get(signal_id)
 
     def outcomes_as_of(
         self, signal_ids: Iterable[UUID], *, cutoff: datetime
@@ -206,6 +212,7 @@ class SQLiteOutcomeEventStore:
         return self._execute(
             lambda store: store.outcomes_as_of(unique_signal_ids, cutoff=cutoff),
             signal_ids=unique_signal_ids,
+            read_only=True,
         )
 
     def events_for(self, signal_id: UUID) -> tuple[OutcomeEvent, ...]:
