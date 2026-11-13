@@ -32,9 +32,11 @@ class FakeFinalityVerifier:
     def __init__(self, accepted=True):
         self.accepted = accepted
         self.calls = 0
+        self.last_evidence = None
 
     def verify_finality(self, evidence):
         self.calls += 1
+        self.last_evidence = evidence
         return self.accepted
 
 
@@ -174,15 +176,18 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     service, verifier, lifecycle = evaluator(active=make_calendar())
     signal_id = uuid4()
     bar = make_bar()
+    evidence = make_evidence(bar)
     result = service.execute(
         signal_id,
-        make_evidence(bar),
+        evidence,
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
     assert result.accepted is True
     assert result.reason == "EVALUATED"
     assert result.calendar_version == "calendar-v1"
     assert verifier.calls == 1
+    assert verifier.last_evidence is evidence
+    assert verifier.last_evidence.provider_contract_version == "test-contract-v1"
     assert lifecycle.calls == [(signal_id, bar, "dec139-completed-daily-bar-v1", "calendar-v1")]
 
 
