@@ -677,7 +677,7 @@ class SignalLifecycleOrchestrator:
                 raise ValueError("no completed daily observations are available for replay")
 
             rebuilt = publication.signal
-            trace: list[dict[str, str]] = []
+            trace: list[dict[str, object]] = []
             corrected_status: SignalStatus | None = None
             for ordered_observation in ordered:
                 rebuilt = transition_signal_from_completed_daily_bar(rebuilt, ordered_observation.bar)
