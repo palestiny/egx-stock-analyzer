@@ -1,3 +1,22 @@
+## Current verified continuation — 2026-11-13 (post-claim hardening and on-disk projection regression)
+
+**Current PR #515 branch:** `feature/opportunity-lifecycle-completion`. The current implementation supersedes older checklist lines below where they still describe active-opportunity enumeration or durable occurrence claims as missing. PR #515 remains OPEN / DRAFT / NOT MERGED.
+
+- [x] Deterministic SQLite active-published opportunity enumeration is implemented and consumed by lifecycle bootstrap.
+- [x] Durable lifecycle occurrence claims, monotonic fencing tokens, expired-claim reclaim, stale-owner rejection, and atomic claimed execution are implemented.
+- [x] Fenced lease renewal is implemented; exact-expiry renewal and stale owner/token renewal are rejected.
+- [x] Lifecycle Unit of Work explicitly binds the claim store to the same resolved SQLite database and rejects missing/mismatched bindings.
+- [x] Added a disk-backed SQLite regression test covering 240 opportunity identities, terminal filtering, superseded revision exclusion, deterministic order, and database reopen.
+- [ ] Automated performance acceptance remains open: repeatable disk-backed warm/cold P50/P95 measurements, full application deserialization cost, EXPLAIN plan capture, and concurrent reader/writer pressure are not yet implemented.
+- [ ] Worker runtime remains intentionally unwired: scheduler/deployment composition, provider adapter, production finality verifier, outbox dispatch orchestration, operational metrics, and worker-level restart/concurrency/E2E tests remain.
+- [ ] Calendar production authenticity remains blocked by empty trusted-origin registry and absence of independently reviewed real EGX evidence; no activation is authorized.
+- [ ] Provider finality, source coverage, timestamp/session/correction semantics, and commercial rights remain unverified; no provider contact or selection is authorized.
+- [ ] M61 and canonical market-data remediation remain paused; no data repair or eligibility promotion is authorized.
+
+The on-disk regression test is a correctness guard only; it does not establish a production latency SLO. Do not interpret implementation of persistence primitives as authorization to wire or activate the worker.
+
+---
+
 ## Latest verified continuation — 2026-11-13 (Lifecycle gates, provider-neutral contract, and separate data track)
 
 **Verified PR #515 head:** `585cd05948c1736d64b66b3c1612ad6afa767e0b`. Exact-head GitHub Actions run [#43438336057](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43438336057) completed successfully: **6/6 jobs passed**. Python 3.12 unit suite: **1,800 passed, 8 deselected, 89.71% coverage** (85% minimum); lint and type-check passed. One non-failing test warning remains. PR #515 is still OPEN / DRAFT / NOT MERGED.
