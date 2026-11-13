@@ -173,11 +173,11 @@ jobs:
       - name: Run synthetic on-disk SQLite benchmark
         run: |
           mkdir -p reports
-          python -m tools.benchmark_lifecycle_projection \\
-            --sizes 10000 50000 100000 \\
-            --samples 7 \\
-            --warmups 2 \\
-            --writer-operations 250 \\
+          python -m tools.benchmark_lifecycle_projection \
+            --sizes 10000 50000 100000 \
+            --samples 7 \
+            --warmups 2 \
+            --writer-operations 250 \
             --output reports/lifecycle-projection-benchmark.json
       - name: Upload benchmark report
         uses: actions/upload-artifact@v4
