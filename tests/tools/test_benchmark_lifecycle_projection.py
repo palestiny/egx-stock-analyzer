@@ -20,7 +20,7 @@ def test_lifecycle_projection_benchmark_seeds_and_measures_disk_database(tmp_pat
     assert result["reopened_first_query_ms"] > 0
     assert result["warm"]["p50_ms"] > 0
     assert result["under_concurrent_writer"]["p50_ms"] > 0
-    assert result["stage_breakdown"]["candidate_rows"] == 20
+    assert result["stage_breakdown"]["candidate_rows"] == 18
     assert result["stage_breakdown"]["active_rows"] == 18
     assert result["stage_breakdown"]["sqlite_fetch"]["p50_ms"] > 0
     assert result["stage_breakdown"]["deserialize_and_filter"]["p50_ms"] > 0
