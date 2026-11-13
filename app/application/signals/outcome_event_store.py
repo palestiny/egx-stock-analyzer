@@ -42,6 +42,10 @@ class OutcomeEventStore(Protocol):
         self, signal_id: UUID, *, cutoff: datetime
     ) -> OutcomeEvent | None: ...
 
+    def outcomes_as_of(
+        self, signal_ids, *, cutoff: datetime
+    ) -> dict[UUID, OutcomeEvent]: ...
+
     def events_for(self, signal_id: UUID) -> tuple[OutcomeEvent, ...]: ...
 
 
@@ -272,6 +276,18 @@ class InMemoryOutcomeEventStore:
             ):
                 current = correction
         return current
+
+    def outcomes_as_of(
+        self, signal_ids, *, cutoff: datetime
+    ) -> dict[UUID, OutcomeEvent]:
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise ValueError("cutoff must be timezone-aware")
+        resolved: dict[UUID, OutcomeEvent] = {}
+        for signal_id in signal_ids:
+            event = self.outcome_as_of(signal_id, cutoff=cutoff)
+            if event is not None:
+                resolved[signal_id] = event
+        return resolved
 
     def events_for(self, signal_id: UUID) -> tuple[OutcomeEvent, ...]:
         return tuple(event for event in self._events if event.signal_id == signal_id)
