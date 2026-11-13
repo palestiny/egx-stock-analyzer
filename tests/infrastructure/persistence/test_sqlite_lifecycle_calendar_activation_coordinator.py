@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time
 from decimal import Decimal
 from threading import Event
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
