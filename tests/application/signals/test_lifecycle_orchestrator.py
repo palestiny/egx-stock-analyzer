@@ -290,6 +290,84 @@ def make_completed_bar(*, high="105", low="98", observed_hour=16, revision="r1",
     )
 
 
+def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    original = make_completed_bar(high="109")
+    triggered = orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1"
+    )
+    assert triggered is not None and triggered.signal.status is SignalStatus.TRIGGERED
+
+    corrected = CompletedDailyBarObservation(
+        symbol=original.symbol,
+        provider=original.provider,
+        timeframe=original.timeframe,
+        candle_at=original.candle_at,
+        observed_at=original.observed_at + timedelta(hours=1),
+        revision="r2",
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        is_final=True,
+        open=original.open,
+        high=Decimal("105"),
+        low=original.low,
+        close=original.close,
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original.identity,
+        corrected_bar=corrected,
+        operator_id="operator-1",
+        reason="Provider corrected the daily high",
+        calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at,
+    )
+    review = orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1",
+        reason="Corrected high changes the lifecycle result",
+        recorded_at=corrected.observed_at + timedelta(minutes=1),
+    )
+    assert review.decision == "REPLAY_REQUIRED"
+
+    rebuilt = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id,
+        correction.correction_id,
+        operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=2),
+    )
+    assert rebuilt.previous_status is SignalStatus.TRIGGERED
+    assert rebuilt.resulting_status is SignalStatus.ACTIVE
+    assert rebuilt.observation_count == 1
+    assert len(rebuilt.replay_digest) == 64
+    assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+    assert history.history(published.signal_id)[-1].event == "CORRECTION_REPLAY_REBUILT:" + str(correction.correction_id)
+    assert orchestrator.latest_completed_observation(published.signal_id).bar.revision == "r2"
+
+    repeated = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id,
+        correction.correction_id,
+        operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=3),
+    )
+    assert repeated == rebuilt
+
+    later = make_completed_bar(high="109", candle_day=5)
+    next_result = orchestrator.process_completed_daily_bar(
+        published.signal_id, later, calendar_version="calendar-v1"
+    )
+    assert next_result is not None
+    assert next_result.signal.status is SignalStatus.TRIGGERED
+    assert len(orchestrator.lifecycle_corrections(published.signal_id)) == 1
+
+
 def test_completed_daily_bar_records_level_observation_without_assumed_entry_or_outcome():
     history = InMemorySignalHistoryStore()
     alerts = InMemoryAlertPublisher()
