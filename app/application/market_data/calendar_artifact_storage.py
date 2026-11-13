@@ -64,6 +64,11 @@ class CalendarArtifactService:
 
         return self.verify(storage_reference, expected_digest)
 
+    def read_verified(self, storage_reference: str, expected_sha256: str) -> bytes:
+        """Return exact stored bytes only after checking their expected digest."""
+        self.verify(storage_reference, expected_sha256)
+        return self._store.get(storage_reference)
+
     def verify(
         self,
         storage_reference: str,
