@@ -491,6 +491,18 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 "low": str(bar.low),
                 "close": str(bar.close),
             },
+            "provider_evidence": (
+                {
+                    "provider_id": record.provider_evidence.provider_id,
+                    "provider_contract_version": record.provider_evidence.provider_contract_version,
+                    "instrument_symbol": record.provider_evidence.instrument_symbol,
+                    "session_date": record.provider_evidence.session_date.isoformat(),
+                    "source_timestamp": record.provider_evidence.source_timestamp.isoformat(),
+                    "retrieved_at": record.provider_evidence.retrieved_at.isoformat(),
+                }
+                if record.provider_evidence is not None
+                else None
+            ),
         }
         return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
@@ -513,6 +525,20 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             low=Decimal(str(item["low"])),
             close=Decimal(str(item["close"])),
         )
+        evidence_payload = payload.get("provider_evidence")
+        provider_evidence = (
+            ProviderDailyBarEvidence(
+                provider_id=str(evidence_payload["provider_id"]),
+                provider_contract_version=str(evidence_payload["provider_contract_version"]),
+                instrument_symbol=str(evidence_payload["instrument_symbol"]),
+                session_date=date.fromisoformat(str(evidence_payload["session_date"])),
+                source_timestamp=datetime.fromisoformat(str(evidence_payload["source_timestamp"])),
+                retrieved_at=datetime.fromisoformat(str(evidence_payload["retrieved_at"])),
+                bar=bar,
+            )
+            if evidence_payload is not None
+            else None
+        )
         original = payload["original_identity"]
         return LifecycleCorrectionRecord(
             correction_id=UUID(str(payload["correction_id"])),
@@ -530,6 +556,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             calendar_version=str(payload["calendar_version"]),
             recorded_at=datetime.fromisoformat(str(payload["recorded_at"])),
             status=str(payload["status"]),
+            provider_evidence=provider_evidence,
         )
 
     def record_correction_review_decision(self, decision: LifecycleCorrectionReviewDecision) -> None:
