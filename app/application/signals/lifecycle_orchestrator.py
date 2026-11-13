@@ -175,6 +175,7 @@ class SignalLifecycleOrchestrator:
                     and previous.high == bar.high
                     and previous.low == bar.low
                     and previous.close == bar.close
+                    and existing.policy_version == policy_version.strip()
                 )
                 if not same_source_payload or existing.signal_id != latest.signal_id:
                     raise ValueError(
