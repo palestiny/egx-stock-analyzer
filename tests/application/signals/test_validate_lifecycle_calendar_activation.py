@@ -257,8 +257,8 @@ def test_calendar_activation_validation_allows_no_active_opportunities():
     validator, _, publication, _, history = setup()
     history.record_for_signal(
         publication.signal_id,
-        replace(publication.signal, status=SignalStatus.COMPLETED),
-        "COMPLETED",
+        replace(publication.signal, status=SignalStatus.CLOSED),
+        "CLOSED",
         datetime(2026, 10, 5, 16, tzinfo=CAIRO),
     )
     result = validator.execute(
