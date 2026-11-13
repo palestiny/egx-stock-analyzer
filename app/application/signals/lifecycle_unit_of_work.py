@@ -34,7 +34,7 @@ class SignalLifecycleTransaction(Protocol):
     def get_observation(
         self, identity: tuple[str, str, str, datetime, str]
     ) -> LifecycleObservationRecord | None: ...
-    def latest_observation(self, symbol: str) -> LifecycleObservationRecord | None: ...
+    def latest_observation(self, signal_id: UUID) -> LifecycleObservationRecord | None: ...
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
 
 
@@ -70,10 +70,10 @@ class _InMemoryTransaction:
     def get_observation(self, identity):
         return self._observations.get(identity)
 
-    def latest_observation(self, symbol: str):
+    def latest_observation(self, signal_id: UUID):
         matches = [
             record for record in self._observations.values()
-            if record.bar.symbol.strip().upper() == symbol.strip().upper()
+            if record.signal_id == signal_id
         ]
         return max(
             matches,
