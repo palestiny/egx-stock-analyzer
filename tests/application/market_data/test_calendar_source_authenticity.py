@@ -121,10 +121,14 @@ def _trust(**overrides):
     return TrustedCalendarSourceOrigin(**values)
 
 
-def _verifier(retriever=None, trust=None, records=None):
+_DEFAULT_TRUST = object()
+
+
+def _verifier(retriever=None, trust=_DEFAULT_TRUST, records=None):
     records = records or _Records()
+    trust_record = _trust() if trust is _DEFAULT_TRUST else trust
     verifier = CalendarSourceAuthenticityVerifier(
-        origins=_Origins(trust or _trust()),
+        origins=_Origins(trust_record),
         records=records,
         retriever=retriever or _Retriever(),
     )
