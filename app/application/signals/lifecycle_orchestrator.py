@@ -116,6 +116,7 @@ class SignalLifecycleOrchestrator:
                 transitioned,
                 f"STATUS_{transitioned.status.value}",
                 state.observed_at,
+                signal_id=signal_id,
             )
             if outcome is not None:
                 transaction.record_outcome(outcome)
@@ -248,6 +249,7 @@ class SignalLifecycleOrchestrator:
                 transitioned,
                 f"STATUS_{transitioned.status.value}",
                 bar.observed_at,
+                signal_id=latest.signal_id,
             )
             transaction.publish_alert(
                 AlertEvent(
@@ -322,7 +324,10 @@ class SignalLifecycleOrchestrator:
                 signal_snapshot=snapshot_signal(invalidated),
             )
             transaction.record_signal(
-                invalidated, "EVIDENCE_CHANGED_INVALIDATED", observed_at
+                invalidated,
+                "EVIDENCE_CHANGED_INVALIDATED",
+                observed_at,
+                signal_id=latest.signal_id,
             )
             transaction.publish_alert(event)
             return SignalLifecycleResult(
