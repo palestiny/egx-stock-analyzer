@@ -92,7 +92,10 @@ class EvaluateCompletedDailyBar:
             configured_close + self.POST_CLOSE_BUFFER,
             day.closed_at.astimezone(timezone) + self.POST_CLOSE_BUFFER,
         )
-        if evaluated_at.astimezone(timezone) < eligible_at:
+        if (
+            evaluated_at.astimezone(timezone) < eligible_at
+            or bar.observed_at.astimezone(timezone) < eligible_at
+        ):
             return CompletedDailyBarEvaluation(
                 False, "POST_CLOSE_BUFFER_NOT_ELAPSED", active.version
             )
