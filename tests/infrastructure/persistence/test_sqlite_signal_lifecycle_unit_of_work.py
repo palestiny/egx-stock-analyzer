@@ -1,8 +1,8 @@
 from concurrent.futures import ThreadPoolExecutor
-import sqlite3
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import sqlite3
 from uuid import uuid4
 
 import pytest
@@ -29,8 +29,8 @@ from app.application.signals.lifecycle_unit_of_work import (
 from app.domain.signals.outcome import SignalOutcome, SignalOutcomeRecord
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
-from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
     SQLiteSignalLifecycleUnitOfWork,
 )
