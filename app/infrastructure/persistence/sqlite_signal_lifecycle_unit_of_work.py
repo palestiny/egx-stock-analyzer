@@ -10,6 +10,7 @@ from typing import Callable, TypeVar
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo
 
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleBootstrapBatchRecord,
     LifecycleBootstrapRecord,
@@ -490,6 +491,18 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 "low": str(bar.low),
                 "close": str(bar.close),
             },
+            "provider_evidence": (
+                {
+                    "provider_id": record.provider_evidence.provider_id,
+                    "provider_contract_version": record.provider_evidence.provider_contract_version,
+                    "instrument_symbol": record.provider_evidence.instrument_symbol,
+                    "session_date": record.provider_evidence.session_date.isoformat(),
+                    "source_timestamp": record.provider_evidence.source_timestamp.isoformat(),
+                    "retrieved_at": record.provider_evidence.retrieved_at.isoformat(),
+                }
+                if record.provider_evidence is not None
+                else None
+            ),
         }
         return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
@@ -679,12 +692,27 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             low=Decimal(str(item["low"])),
             close=Decimal(str(item["close"])),
         )
+        evidence_payload = payload.get("provider_evidence")
+        provider_evidence = (
+            ProviderDailyBarEvidence(
+                provider_id=str(evidence_payload["provider_id"]),
+                provider_contract_version=str(evidence_payload["provider_contract_version"]),
+                instrument_symbol=str(evidence_payload["instrument_symbol"]),
+                session_date=date.fromisoformat(str(evidence_payload["session_date"])),
+                source_timestamp=datetime.fromisoformat(str(evidence_payload["source_timestamp"])),
+                retrieved_at=datetime.fromisoformat(str(evidence_payload["retrieved_at"])),
+                bar=bar,
+            )
+            if evidence_payload is not None
+            else None
+        )
         return LifecycleObservationRecord(
             signal_id=UUID(str(payload["signal_id"])),
             bar=bar,
             policy_version=str(payload["policy_version"]),
             calendar_version=str(payload["calendar_version"]),
             resulting_status=SignalStatus(str(payload["resulting_status"])),
+            provider_evidence=provider_evidence,
         )
 
     def latest(self, symbol: str) -> SignalRecord | None:
