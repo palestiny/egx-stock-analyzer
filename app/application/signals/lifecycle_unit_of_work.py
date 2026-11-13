@@ -68,6 +68,7 @@ class LifecycleCorrectionRebuildRecord:
     rebuild_id: UUID
     correction_id: UUID
     signal_id: UUID
+    operator_id: str
     previous_status: SignalStatus
     resulting_status: SignalStatus
     observation_count: int

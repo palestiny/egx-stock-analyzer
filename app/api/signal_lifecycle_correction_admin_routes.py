@@ -69,6 +69,22 @@ def _review_payload(record: LifecycleCorrectionReviewDecision) -> dict[str, obje
     }
 
 
+def _rebuild_payload(record) -> dict[str, object]:
+    return {
+        "rebuild_id": str(record.rebuild_id),
+        "correction_id": str(record.correction_id),
+        "signal_id": str(record.signal_id),
+        "operator_id": record.operator_id,
+        "previous_status": record.previous_status.value,
+        "resulting_status": record.resulting_status.value,
+        "observation_count": record.observation_count,
+        "replay_digest": record.replay_digest,
+        "superseded_event_id": str(record.superseded_event_id) if record.superseded_event_id else None,
+        "correction_event_id": str(record.correction_event_id) if record.correction_event_id else None,
+        "recorded_at": record.recorded_at.isoformat(),
+    }
+
+
 def create_signal_lifecycle_correction_admin_router(
     *,
     orchestrator: SignalLifecycleOrchestrator | None,
@@ -92,6 +108,8 @@ def create_signal_lifecycle_correction_admin_router(
         service = configured_orchestrator()
         corrections = service.lifecycle_corrections(signal_id)
         decisions = service.lifecycle_correction_review_decisions(signal_id)
+        rebuilds = service.lifecycle_correction_rebuilds(signal_id)
+        rebuilds_by_correction = {item.correction_id: item for item in rebuilds}
         decisions_by_correction: dict[UUID, list[dict[str, object]]] = {}
         for decision in decisions:
             decisions_by_correction.setdefault(decision.correction_id, []).append(
@@ -105,6 +123,8 @@ def create_signal_lifecycle_correction_admin_router(
                     "review_decisions": decisions_by_correction.get(
                         correction.correction_id, []
                     ),
+                    "rebuild": _rebuild_payload(rebuilds_by_correction[correction.correction_id])
+                    if correction.correction_id in rebuilds_by_correction else None,
                 }
                 for correction in corrections
             ],
@@ -134,6 +154,7 @@ def create_signal_lifecycle_correction_admin_router(
             raise HTTPException(status_code=status_code, detail=message) from error
         return {
             "rebuild_id": str(result.rebuild_id),
+            "operator_id": result.operator_id,
             "correction_id": str(result.correction_id),
             "signal_id": str(result.signal_id),
             "previous_status": result.previous_status.value,

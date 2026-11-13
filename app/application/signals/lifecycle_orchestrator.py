@@ -611,7 +611,11 @@ class SignalLifecycleOrchestrator:
                 raise ValueError("rebuild timestamp cannot precede the current lifecycle history")
 
             observations = transaction.observations(signal_id)
-            if not any(observation_item.bar.identity == correction.original_identity for observation_item in observations):
+            original_observation = next(
+                (observation_item for observation_item in observations if observation_item.bar.identity == correction.original_identity),
+                None,
+            )
+            if original_observation is None:
                 raise ValueError("original observation for correction is missing")
             replaced_originals = {
                 correction_item.original_identity for correction_item in corrections
@@ -621,7 +625,7 @@ class SignalLifecycleOrchestrator:
             effective.append(LifecycleObservationRecord(
                 signal_id=signal_id,
                 bar=correction.corrected_bar,
-                policy_version="dec138-daily-ohlc-v1",
+                policy_version=original_observation.policy_version,
                 calendar_version=correction.calendar_version,
                 resulting_status=SignalStatus.ACTIVE,
             ))
@@ -647,6 +651,14 @@ class SignalLifecycleOrchestrator:
                     "timeframe": ordered_observation.bar.identity[2],
                     "candle_at": ordered_observation.bar.candle_at.isoformat(),
                     "revision": ordered_observation.bar.revision,
+                    "source_reference": ordered_observation.bar.source_reference,
+                    "finality_attestation": ordered_observation.bar.finality_attestation,
+                    "open": str(ordered_observation.bar.open),
+                    "high": str(ordered_observation.bar.high),
+                    "low": str(ordered_observation.bar.low),
+                    "close": str(ordered_observation.bar.close),
+                    "policy_version": ordered_observation.policy_version,
+                    "calendar_version": ordered_observation.calendar_version,
                     "resulting_status": rebuilt.status.value,
                 })
                 if ordered_observation.bar.identity == correction.corrected_bar.identity:
@@ -657,7 +669,7 @@ class SignalLifecycleOrchestrator:
             transaction.record_observation(LifecycleObservationRecord(
                 signal_id=signal_id,
                 bar=correction.corrected_bar,
-                policy_version="dec138-daily-ohlc-v1",
+                policy_version=original_observation.policy_version,
                 calendar_version=correction.calendar_version,
                 resulting_status=corrected_status,
             ))
@@ -679,8 +691,6 @@ class SignalLifecycleOrchestrator:
                             NAMESPACE_URL,
                             f"signal-daily-bar:{signal_id}:{prior_observation.bar.identity!r}:{prior_observation.policy_version}:{prior_observation.calendar_version}",
                         )
-                        if transaction.supersede_alert(reference_event_id, f"superseded by correction replay {correction_id}"):
-                            superseded_event_id = reference_event_id
                 else:
                     reference_event_id = uuid5(
                         NAMESPACE_URL,
@@ -688,6 +698,8 @@ class SignalLifecycleOrchestrator:
                     )
 
                 if reference_event_id is not None:
+                    if transaction.supersede_alert(reference_event_id, f"superseded by correction replay {correction_id}"):
+                        superseded_event_id = reference_event_id
                     recipients = transaction.delivered_recipients(reference_event_id)
                     if recipients:
                         correction_event_id = uuid5(
@@ -727,6 +739,7 @@ class SignalLifecycleOrchestrator:
                 rebuild_id=uuid5(NAMESPACE_URL, f"signal-correction-rebuild:{correction_id}"),
                 correction_id=correction_id,
                 signal_id=signal_id,
+                operator_id=operator_id.strip(),
                 previous_status=previous_status,
                 resulting_status=rebuilt.status,
                 observation_count=len(ordered),
@@ -745,6 +758,13 @@ class SignalLifecycleOrchestrator:
     ) -> tuple[LifecycleCorrectionReviewDecision, ...]:
         return self._unit_of_work.execute(
             lambda transaction: transaction.correction_review_decisions(signal_id)
+        )
+
+    def lifecycle_correction_rebuilds(
+        self, signal_id: UUID
+    ) -> tuple[LifecycleCorrectionRebuildRecord, ...]:
+        return self._unit_of_work.execute(
+            lambda transaction: transaction.correction_rebuilds(signal_id)
         )
 
     def latest_completed_observation(

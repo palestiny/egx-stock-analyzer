@@ -78,7 +78,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
 
     def record_correction_rebuild(self, record: LifecycleCorrectionRebuildRecord) -> None:
         payload = (
-            str(record.rebuild_id), str(record.correction_id), str(record.signal_id),
+            str(record.rebuild_id), str(record.correction_id), str(record.signal_id), record.operator_id,
             record.previous_status.value, record.resulting_status.value,
             record.observation_count, record.replay_digest,
             str(record.superseded_event_id) if record.superseded_event_id else None,
@@ -86,7 +86,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             record.recorded_at.isoformat(),
         )
         existing = self._connection.execute(
-            """SELECT rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+            """SELECT rebuild_id, correction_id, signal_id, operator_id, previous_status, resulting_status,
                       observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
                FROM signal_lifecycle_correction_rebuilds WHERE correction_id = ?""",
             (str(record.correction_id),),
@@ -97,15 +97,15 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             return
         self._connection.execute(
             """INSERT INTO signal_lifecycle_correction_rebuilds(
-                rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+                rebuild_id, correction_id, signal_id, operator_id, previous_status, resulting_status,
                 observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             payload,
         )
 
     def correction_rebuilds(self, signal_id: UUID):
         rows = self._connection.execute(
-            """SELECT rebuild_id, correction_id, signal_id, previous_status, resulting_status,
+            """SELECT rebuild_id, correction_id, signal_id, operator_id, previous_status, resulting_status,
                       observation_count, replay_digest, superseded_event_id, correction_event_id, recorded_at
                FROM signal_lifecycle_correction_rebuilds WHERE signal_id = ?
                ORDER BY recorded_at ASC, rebuild_id ASC""",
@@ -113,11 +113,11 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         ).fetchall()
         return tuple(LifecycleCorrectionRebuildRecord(
             rebuild_id=UUID(str(row[0])), correction_id=UUID(str(row[1])), signal_id=UUID(str(row[2])),
-            previous_status=SignalStatus(str(row[3])), resulting_status=SignalStatus(str(row[4])),
-            observation_count=int(row[5]), replay_digest=str(row[6]),
-            superseded_event_id=UUID(str(row[7])) if row[7] else None,
-            correction_event_id=UUID(str(row[8])) if row[8] else None,
-            recorded_at=datetime.fromisoformat(str(row[9])),
+            operator_id=str(row[3]), previous_status=SignalStatus(str(row[4])), resulting_status=SignalStatus(str(row[5])),
+            observation_count=int(row[6]), replay_digest=str(row[7]),
+            superseded_event_id=UUID(str(row[8])) if row[8] else None,
+            correction_event_id=UUID(str(row[9])) if row[9] else None,
+            recorded_at=datetime.fromisoformat(str(row[10])),
         ) for row in rows)
 
     def delivered_recipients(self, event_id: UUID):
@@ -856,6 +856,7 @@ class SQLiteSignalLifecycleUnitOfWork:
                     rebuild_id TEXT PRIMARY KEY,
                     correction_id TEXT NOT NULL UNIQUE,
                     signal_id TEXT NOT NULL,
+                    operator_id TEXT NOT NULL,
                     previous_status TEXT NOT NULL,
                     resulting_status TEXT NOT NULL,
                     observation_count INTEGER NOT NULL,
