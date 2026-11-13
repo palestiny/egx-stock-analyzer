@@ -59,6 +59,7 @@ class SessionOpportunityLedgerResponse:
                         item.outcome_recorded_at.isoformat()
                         if item.outcome_recorded_at is not None else None
                     ),
+                    "outcome_knowledge_status": item.outcome_knowledge_status.value,
                 }
                 for item in report.opportunities
             ],
