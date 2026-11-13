@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Mapping, Protocol
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.session_calendar_store import SessionCalendarStore
@@ -51,7 +52,7 @@ class EvaluateOpportunityLifecycleSessions:
 
     def execute(
         self,
-        signal_id,
+        signal_id: UUID,
         *,
         through_date: date,
         bars_by_session: Mapping[date, CompletedDailyBarObservation],
