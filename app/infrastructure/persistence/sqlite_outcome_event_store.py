@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 from uuid import UUID
 
 from app.application.signals.outcome_event_store import InMemoryOutcomeEventStore
@@ -194,7 +194,7 @@ class SQLiteOutcomeEventStore:
         return self._execute(lambda store: store.outcome_as_of(signal_id, cutoff=cutoff))
 
     def outcomes_as_of(
-        self, signal_ids, *, cutoff: datetime
+        self, signal_ids: Iterable[UUID], *, cutoff: datetime
     ) -> dict[UUID, OutcomeEvent]:
         unique_signal_ids = tuple(dict.fromkeys(signal_ids))
         if not unique_signal_ids:
