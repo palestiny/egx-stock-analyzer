@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -83,7 +84,6 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 if existing is None:
                     raise ValueError("conflicting lifecycle bootstrap record replay")
                 stored_record = self._deserialize_bootstrap_record(str(existing[0]))
-                from dataclasses import replace
                 if replace(stored_record, recorded_at=record.recorded_at) != record:
                     raise ValueError("conflicting lifecycle bootstrap record replay")
             return
