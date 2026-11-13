@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleCorrectionRecord,
+    LifecycleSessionGapEvent,
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
 )
@@ -61,6 +62,70 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             (str(signal_id),),
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
+
+    def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None:
+        existing = self._connection.execute(
+            """
+            SELECT gap_id, signal_id, session_date, calendar_version, status, reason
+            FROM signal_lifecycle_session_gap_events WHERE event_id = ?
+            """,
+            (str(event.event_id),),
+        ).fetchone()
+        if existing is not None:
+            expected = (
+                str(event.gap_id),
+                str(event.signal_id),
+                event.session_date.isoformat(),
+                event.calendar_version,
+                event.status,
+                event.reason,
+            )
+            if tuple(str(value) for value in existing) != expected:
+                raise ValueError("conflicting lifecycle session-gap event replay")
+            return
+        self._connection.execute(
+            """
+            INSERT INTO signal_lifecycle_session_gap_events(
+                event_id, gap_id, signal_id, session_date,
+                calendar_version, status, reason, recorded_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                str(event.event_id),
+                str(event.gap_id),
+                str(event.signal_id),
+                event.session_date.isoformat(),
+                event.calendar_version,
+                event.status,
+                event.reason,
+                event.recorded_at.isoformat(),
+            ),
+        )
+
+    def session_gap_events(self, signal_id: UUID) -> tuple[LifecycleSessionGapEvent, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT event_id, gap_id, signal_id, session_date,
+                   calendar_version, status, reason, recorded_at
+            FROM signal_lifecycle_session_gap_events
+            WHERE signal_id = ?
+            ORDER BY session_date ASC, recorded_at ASC, event_id ASC
+            """,
+            (str(signal_id),),
+        ).fetchall()
+        return tuple(
+            LifecycleSessionGapEvent(
+                event_id=UUID(str(row[0])),
+                gap_id=UUID(str(row[1])),
+                signal_id=UUID(str(row[2])),
+                session_date=date.fromisoformat(str(row[3])),
+                calendar_version=str(row[4]),
+                status=str(row[5]),
+                reason=str(row[6]),
+                recorded_at=datetime.fromisoformat(str(row[7])),
+            )
+            for row in rows
+        )
 
     def record_correction(self, record: LifecycleCorrectionRecord) -> None:
         original_key = json.dumps(
@@ -542,6 +607,46 @@ class SQLiteSignalLifecycleUnitOfWork:
                 """
                 CREATE INDEX IF NOT EXISTS idx_lifecycle_bar_corrections_signal_time
                 ON signal_lifecycle_daily_bar_corrections(signal_id, recorded_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS signal_lifecycle_session_gap_events (
+                    event_id TEXT PRIMARY KEY,
+                    gap_id TEXT NOT NULL,
+                    signal_id TEXT NOT NULL,
+                    session_date TEXT NOT NULL,
+                    calendar_version TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id),
+                    CHECK(status IN ('STALE', 'RESOLVED'))
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_lifecycle_session_gaps_signal_date
+                ON signal_lifecycle_session_gap_events(signal_id, session_date, recorded_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_session_gaps_no_update
+                BEFORE UPDATE ON signal_lifecycle_session_gap_events
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle session gaps are append-only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS trg_lifecycle_session_gaps_no_delete
+                BEFORE DELETE ON signal_lifecycle_session_gap_events
+                BEGIN
+                    SELECT RAISE(ABORT, 'lifecycle session gaps are append-only');
+                END
                 """
             )
             connection.execute(
