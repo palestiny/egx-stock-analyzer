@@ -69,6 +69,10 @@ class CalendarEvidence:
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field_name} must be non-empty")
+        if self.recorded_by_credential_id is not None and not isinstance(
+            self.recorded_by_credential_id, UUID
+        ):
+            raise ValueError("recorded_by_credential_id must be a UUID")
         for field_name in ("observed_at", "recorded_at"):
             value = getattr(self, field_name)
             if value.tzinfo is None or value.utcoffset() is None:
