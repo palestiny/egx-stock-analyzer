@@ -336,8 +336,8 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         provider_contract_version="contract-v2",
         instrument_symbol="COMI",
         session_date=date(2026, 10, 4),
-        source_timestamp=datetime(2026, 10, 4, 16, 50, tzinfo=timezone.utc),
-        retrieved_at=datetime(2026, 10, 4, 16, 55, tzinfo=timezone.utc),
+        source_timestamp=datetime(2026, 10, 4, 17, 1, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 17, 5, tzinfo=timezone.utc),
         bar=corrected,
     )
     correction = orchestrator.record_daily_bar_correction(
@@ -347,7 +347,7 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         operator_id="operator-1",
         reason="Provider corrected the daily high",
         calendar_version="calendar-v1",
-        recorded_at=corrected.observed_at,
+        recorded_at=corrected.observed_at + timedelta(minutes=10),
         provider_evidence=corrected_evidence,
     )
     review = orchestrator.record_daily_bar_correction_review(
@@ -356,7 +356,7 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         decision="REPLAY_REQUIRED",
         reviewer_id="reviewer-1",
         reason="Corrected high changes the lifecycle result",
-        recorded_at=corrected.observed_at + timedelta(minutes=1),
+        recorded_at=corrected.observed_at + timedelta(minutes=11),
     )
     assert review.decision == "REPLAY_REQUIRED"
 
@@ -364,7 +364,7 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         published.signal_id,
         correction.correction_id,
         operator_id="operator-1",
-        recorded_at=corrected.observed_at + timedelta(minutes=2),
+        recorded_at=corrected.observed_at + timedelta(minutes=12),
     )
     assert rebuilt.previous_status is SignalStatus.TRIGGERED
     assert rebuilt.resulting_status is SignalStatus.ACTIVE
@@ -390,8 +390,8 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
             "provider_contract_version": "contract-v2",
             "instrument_symbol": "COMI",
             "session_date": "2026-10-04",
-            "source_timestamp": "2026-10-04T16:50:00+00:00",
-            "retrieved_at": "2026-10-04T16:55:00+00:00",
+            "source_timestamp": "2026-10-04T17:01:00+00:00",
+            "retrieved_at": "2026-10-04T17:05:00+00:00",
         },
     }]
     expected_payload = json.dumps({
