@@ -110,7 +110,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                    calendar_version, status, reason, recorded_at
             FROM signal_lifecycle_session_gap_events
             WHERE signal_id = ?
-            ORDER BY session_date ASC, recorded_at ASC, event_id ASC
+            ORDER BY session_date ASC, rowid ASC
             """,
             (str(signal_id),),
         ).fetchall()
