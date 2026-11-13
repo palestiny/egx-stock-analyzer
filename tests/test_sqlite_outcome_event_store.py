@@ -117,3 +117,29 @@ def test_sqlite_batched_lookup_executes_one_filtered_select(tmp_path, monkeypatc
     assert set(result) == {first.signal_id, second.signal_id}
     assert len(selects) == 1
     assert "WHERE signal_id IN" in selects[0]
+
+
+def test_sqlite_batched_lookup_falls_back_safely_above_parameter_limit(tmp_path, monkeypatch):
+    from app.infrastructure.persistence import sqlite_outcome_event_store as module
+
+    store = SQLiteOutcomeEventStore(tmp_path / "large-batch.db")
+    statements = []
+    original_connect = module.connect_sqlite
+
+    def traced_connect(path):
+        connection = original_connect(path)
+        connection.set_trace_callback(statements.append)
+        return connection
+
+    monkeypatch.setattr(module, "connect_sqlite", traced_connect)
+    signal_ids = [uuid4() for _ in range(901)]
+
+    assert store.outcomes_as_of(
+        signal_ids, cutoff=dt.datetime(2026, 10, 15, 12, tzinfo=timezone.utc)
+    ) == {}
+    selects = [
+        statement for statement in statements
+        if statement.lstrip().upper().startswith("SELECT")
+    ]
+    assert len(selects) == 1
+    assert "WHERE signal_id IN" not in selects[0]
