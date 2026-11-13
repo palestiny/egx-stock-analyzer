@@ -297,6 +297,8 @@ class SignalLifecycleOrchestrator:
             raise ValueError("recorded_at must be timezone-aware")
         if recorded_at < corrected_bar.observed_at:
             raise ValueError("correction cannot be recorded before corrected evidence")
+        if original_identity[3].tzinfo is None or original_identity[3].utcoffset() is None:
+            raise ValueError("original candle timestamp must be timezone-aware")
         normalized_original = (
             original_identity[0].strip().casefold(),
             original_identity[1].strip().upper(),
