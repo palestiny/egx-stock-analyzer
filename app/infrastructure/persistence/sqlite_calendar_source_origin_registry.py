@@ -227,6 +227,11 @@ class SQLiteCalendarSourceOriginRegistry:
             approved_at=datetime.fromisoformat(row[9]),
         )
 
+    def assert_configured_owner(self, identity: AuthenticatedIdentity) -> None:
+        self._require_owner(identity)
+        with self._connect() as connection:
+            self._require_active_owner_credential(connection, identity)
+
     def list_events(self) -> tuple[dict[str, object], ...]:
         with self._connect() as connection:
             rows = connection.execute(
