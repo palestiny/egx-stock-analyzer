@@ -217,6 +217,8 @@ class CalendarSourceAuthenticityVerifier:
         _require_aware(timestamp, "verification timestamp")
         _require_individual_operator(uploader, "Uploader")
         _require_individual_operator(verifier, "Verifier")
+        assert uploader.user_id is not None and uploader.credential_id is not None
+        assert verifier.user_id is not None and verifier.credential_id is not None
         if (
             uploader.user_id != evidence.recorded_by
             or evidence.recorded_by_credential_id is None
