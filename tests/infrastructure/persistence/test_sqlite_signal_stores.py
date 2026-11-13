@@ -28,6 +28,7 @@ def make_signal(
     *,
     status: SignalStatus = SignalStatus.ACTIVE,
     generated_at: datetime = NOW,
+    confidence: Decimal = Decimal("80"),
 ) -> Signal:
     return Signal(
         symbol="COMI",
@@ -38,7 +39,7 @@ def make_signal(
         entry_zone=PriceZone(Decimal("99"), Decimal("101")),
         invalidation=Decimal("95"),
         targets=(Target(Decimal("105"), "T1"), Target(Decimal("110"), "T2")),
-        confidence=Decimal("80"),
+        confidence=confidence,
         risk_score=Decimal("20"),
         evidence=(
             SignalEvidence("trend", "Uptrend confirmed"),
@@ -194,3 +195,85 @@ def test_sqlite_signal_history_all_records_returns_full_append_only_timeline(tmp
         NOW + timedelta(minutes=2),
     )
     assert store.all_records() == (created, updated)
+
+
+def test_sqlite_signal_history_creates_linked_immutable_revision(tmp_path) -> None:
+    store = SQLiteSignalHistoryStore(tmp_path / "signal-revisions.db")
+    original_signal = make_signal()
+    original = store.record(original_signal, "PUBLISHED", NOW)
+    revised_signal = Signal(
+        **{
+            **original_signal.__dict__,
+            "targets": (Target(Decimal("108"), "T1"), Target(Decimal("112"), "T2")),
+            "evidence": (SignalEvidence("trend", "revised trend confirmation"),),
+        }
+    )
+
+    revision = store.record_revision(
+        revised_signal,
+        "PUBLISHED_VERSION",
+        NOW + timedelta(minutes=5),
+        parent_signal_id=original.signal_id,
+        reason="Material target and evidence change",
+    )
+
+    link = store.revision_link(revision.signal_id)
+    assert revision.signal_id != original.signal_id
+    assert link is not None
+    assert link.parent_signal_id == original.signal_id
+    assert link.revision_number == 2
+    assert link.reason == "Material target and evidence change"
+    assert store.history(original.signal_id) == (original,)
+    assert store.history(revision.signal_id) == (revision,)
+    assert store.latest("COMI") == revision
+
+    triggered = Signal(**{**revised_signal.__dict__, "status": SignalStatus.TRIGGERED})
+    status_record = store.record_for_signal(
+        revision.signal_id,
+        triggered,
+        "STATUS_TRIGGERED",
+        NOW + timedelta(minutes=10),
+    )
+    assert store.get(revision.signal_id) == status_record
+    assert store.get(original.signal_id) == original
+
+
+def test_sqlite_signal_history_does_not_revise_terminal_opportunity(tmp_path) -> None:
+    store = SQLiteSignalHistoryStore(tmp_path / "terminal-signal-revision.db")
+    terminal = store.record(
+        make_signal(status=SignalStatus.TRIGGERED),
+        "PUBLISHED",
+        NOW,
+    )
+    with pytest.raises(ValueError, match="terminal opportunities cannot be revised"):
+        store.record_revision(
+            make_signal(),
+            "PUBLISHED_VERSION",
+            NOW + timedelta(minutes=5),
+            parent_signal_id=terminal.signal_id,
+            reason="Attempted terminal rewrite",
+        )
+
+
+def test_sqlite_signal_revision_links_are_append_only(tmp_path) -> None:
+    import sqlite3
+
+    database = tmp_path / "append-only-signal-revision.db"
+    store = SQLiteSignalHistoryStore(database)
+    original = store.record(make_signal(), "PUBLISHED", NOW)
+    revision = store.record_revision(
+        make_signal(confidence=Decimal("81")),
+        "PUBLISHED_VERSION",
+        NOW + timedelta(minutes=5),
+        parent_signal_id=original.signal_id,
+        reason="Confidence changed",
+    )
+    connection = sqlite3.connect(str(database))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_revision_links WHERE signal_id = ?",
+                (str(revision.signal_id),),
+            )
+    finally:
+        connection.close()
