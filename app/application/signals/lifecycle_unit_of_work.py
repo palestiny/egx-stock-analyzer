@@ -78,6 +78,32 @@ class LifecycleCorrectionRebuildRecord:
     recorded_at: datetime
 
 
+
+@dataclass(frozen=True)
+class LifecycleBootstrapRecord:
+    batch_id: UUID
+    signal_id: UUID
+    baseline_date: date
+    publication_event: str
+    publication_recorded_at: datetime
+    operator_id: str
+    reason: str
+    calendar_version: str
+    recorded_at: datetime
+    idempotency_key: str
+
+
+@dataclass(frozen=True)
+class LifecycleBootstrapBatchRecord:
+    batch_id: UUID
+    calendar_version: str
+    operator_id: str
+    reason: str
+    recorded_at: datetime
+    opportunity_count: int
+    batch_digest: str
+
+
 class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
     def latest_for_identity(
@@ -106,6 +132,9 @@ class SignalLifecycleTransaction(Protocol):
     def correction_review_decisions(self, signal_id: UUID) -> tuple[LifecycleCorrectionReviewDecision, ...]: ...
     def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None: ...
     def session_gap_events(self, signal_id: UUID) -> tuple[LifecycleSessionGapEvent, ...]: ...
+    def record_bootstrap_batch(self, batch: LifecycleBootstrapBatchRecord, records: tuple[LifecycleBootstrapRecord, ...]) -> None: ...
+    def bootstrap_records(self, signal_id: UUID) -> tuple[LifecycleBootstrapRecord, ...]: ...
+    def bootstrap_batches(self) -> tuple[LifecycleBootstrapBatchRecord, ...]: ...
 
 
 class SignalLifecycleUnitOfWork(Protocol):
@@ -123,6 +152,8 @@ class _InMemoryTransaction:
         correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision],
         gap_events: dict[UUID, LifecycleSessionGapEvent],
         rebuilds: dict[UUID, LifecycleCorrectionRebuildRecord],
+        bootstrap_records: dict[str, LifecycleBootstrapRecord],
+        bootstrap_batches: dict[UUID, LifecycleBootstrapBatchRecord],
     ) -> None:
         self._history = history
         self._alerts = alerts
@@ -131,7 +162,48 @@ class _InMemoryTransaction:
         self._corrections = corrections
         self._correction_decisions = correction_decisions
         self._gap_events = gap_events
+
         self._rebuilds = rebuilds
+        self._bootstrap_records = bootstrap_records
+        self._bootstrap_batches = bootstrap_batches
+
+    def record_bootstrap_batch(self, batch: LifecycleBootstrapBatchRecord, records: tuple[LifecycleBootstrapRecord, ...]) -> None:
+        if batch.opportunity_count != len(records) or not records:
+            raise ValueError("bootstrap batch record count mismatch")
+        if not batch.operator_id.strip() or not batch.reason.strip() or not batch.calendar_version.strip() or not batch.batch_digest.strip():
+            raise ValueError("bootstrap batch audit fields are required")
+        if batch.recorded_at.tzinfo is None or batch.recorded_at.utcoffset() is None:
+            raise ValueError("bootstrap batch timestamp must be timezone-aware")
+        existing_batch = self._bootstrap_batches.get(batch.batch_id)
+        if existing_batch is not None:
+            if existing_batch != batch or any(self._bootstrap_records.get(r.idempotency_key) != r for r in records):
+                raise ValueError("conflicting lifecycle bootstrap batch replay")
+            return
+        if len({r.signal_id for r in records}) != len(records):
+            raise ValueError("bootstrap batch contains duplicate opportunity identities")
+        for record in records:
+            if (record.batch_id != batch.batch_id or record.calendar_version != batch.calendar_version
+                or record.operator_id != batch.operator_id or record.reason != batch.reason
+                or not record.publication_event.strip() or not record.idempotency_key.strip()
+                or record.publication_recorded_at.tzinfo is None or record.publication_recorded_at.utcoffset() is None
+                or record.recorded_at.tzinfo is None or record.recorded_at.utcoffset() is None):
+                raise ValueError("invalid lifecycle bootstrap record")
+            existing = self._bootstrap_records.get(record.idempotency_key)
+            if existing is not None and existing != record:
+                raise ValueError("conflicting lifecycle bootstrap record replay")
+            if any(r.signal_id == record.signal_id and r.calendar_version == record.calendar_version
+                   and r.idempotency_key != record.idempotency_key for r in self._bootstrap_records.values()):
+                raise ValueError("opportunity already bootstrapped for this calendar version")
+        for record in records:
+            self._bootstrap_records[record.idempotency_key] = record
+        self._bootstrap_batches[batch.batch_id] = batch
+
+    def bootstrap_records(self, signal_id: UUID) -> tuple[LifecycleBootstrapRecord, ...]:
+        return tuple(sorted((r for r in self._bootstrap_records.values() if r.signal_id == signal_id),
+                            key=lambda r: (r.recorded_at, r.calendar_version)))
+
+    def bootstrap_batches(self) -> tuple[LifecycleBootstrapBatchRecord, ...]:
+        return tuple(sorted(self._bootstrap_batches.values(), key=lambda r: r.recorded_at))
 
     def latest(self, symbol: str) -> SignalRecord | None:
         return self._history.latest(symbol)
@@ -303,6 +375,8 @@ class InMemorySignalLifecycleUnitOfWork:
         self._correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision] = {}
         self._gap_events: dict[UUID, LifecycleSessionGapEvent] = {}
         self._rebuilds: dict[UUID, LifecycleCorrectionRebuildRecord] = {}
+        self._bootstrap_records: dict[str, LifecycleBootstrapRecord] = {}
+        self._bootstrap_batches: dict[UUID, LifecycleBootstrapBatchRecord] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         with self._lock:
@@ -313,6 +387,8 @@ class InMemorySignalLifecycleUnitOfWork:
             correction_decision_snapshot = deepcopy(self._correction_decisions)
             gap_snapshot = deepcopy(self._gap_events)
             rebuild_snapshot = deepcopy(self._rebuilds)
+            bootstrap_records_snapshot = deepcopy(self._bootstrap_records)
+            bootstrap_batches_snapshot = deepcopy(self._bootstrap_batches)
             try:
                 return operation(
                     _InMemoryTransaction(
@@ -322,6 +398,8 @@ class InMemorySignalLifecycleUnitOfWork:
                         self._correction_decisions,
                         self._gap_events,
                         self._rebuilds,
+                        self._bootstrap_records,
+                        self._bootstrap_batches,
                     )
                 )
             except Exception:
@@ -333,4 +411,6 @@ class InMemorySignalLifecycleUnitOfWork:
                 self._correction_decisions = correction_decision_snapshot
                 self._gap_events = gap_snapshot
                 self._rebuilds = rebuild_snapshot
+                self._bootstrap_records = bootstrap_records_snapshot
+                self._bootstrap_batches = bootstrap_batches_snapshot
                 raise
