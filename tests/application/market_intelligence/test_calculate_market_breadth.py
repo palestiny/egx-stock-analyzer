@@ -1,10 +1,15 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
 
 from app.application.market_intelligence.calculate_market_breadth import CalculateMarketBreadth
+from app.domain.market_data.session_calendar import (
+    CalendarDayStatus,
+    EGXCalendarDay,
+    EGXSessionCalendar,
+)
 from app.domain.technical_analysis.momentum import MomentumStatus
 from app.domain.technical_analysis.trend import TrendStatus
 from app.domain.technical_analysis.volume import VolumeStatus
@@ -29,6 +34,46 @@ def record(trend, momentum, volume, analysis_date=None, data_timestamp=None):
                 volume=SimpleNamespace(status=volume),
             )
         )
+    )
+
+
+class ActiveCalendarStore:
+    def __init__(self, calendar=None):
+        self.calendar = calendar
+
+    def get_active(self):
+        if self.calendar is None:
+            return None
+        return SimpleNamespace(version=self.calendar.version, calendar=self.calendar)
+
+
+def make_calendar(*, scheduled_dates=()):
+    start = date(2026, 11, 9)
+    end = date(2026, 11, 11)
+    days = []
+    for offset in range((end - start).days + 1):
+        current = start + timedelta(days=offset)
+        if current in scheduled_dates:
+            days.append(EGXCalendarDay(
+                session_date=current,
+                status=CalendarDayStatus.SCHEDULED,
+                session_open=time(10, 0),
+                session_close=time(14, 30),
+            ))
+        else:
+            days.append(EGXCalendarDay(
+                session_date=current,
+                status=CalendarDayStatus.CLOSED,
+                session_open=time(10, 0),
+                session_close=time(14, 30),
+                closed_at=datetime.combine(current, time(15, 35), tzinfo=timezone(timedelta(hours=2))),
+            ))
+    return EGXSessionCalendar(
+        version="test-calendar-v1",
+        timezone="Africa/Cairo",
+        coverage_start=start,
+        coverage_end=end,
+        days=tuple(days),
     )
 
 
@@ -343,3 +388,121 @@ def test_market_breadth_does_not_trust_naive_source_timestamps():
     assert payload["source_data_date_status"] == "UNKNOWN"
     assert payload["latest_source_data_timestamp"] is None
     assert payload["source_data_age_calendar_days_by_symbol"] == {"AAA": None}
+
+
+
+def test_crash_radar_marks_source_stale_after_one_completed_egx_session():
+    source = datetime(2026, 11, 9, 13, 0, tzinfo=timezone.utc)
+    as_of = datetime(2026, 11, 10, 16, 0, tzinfo=timezone(timedelta(hours=2)))
+    result = record(
+        TrendStatus.DOWNTREND,
+        MomentumStatus.NEGATIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 10),
+        data_timestamp=source,
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result}),
+        ActiveCalendarStore(make_calendar()),
+    ).execute(["AAA"], as_of=as_of).to_dict()
+
+    assert payload["source_data_freshness_by_symbol"] == {"AAA": "STALE"}
+    assert payload["stale_source_data_symbols"] == ["AAA"]
+    assert payload["source_data_freshness_status"] == "STALE"
+    assert payload["freshness_calendar_version"] == "test-calendar-v1"
+    # Freshness is evidence metadata; it does not silently rewrite the legacy heuristic.
+    assert payload["stress_score"] == 100
+
+
+def test_crash_radar_marks_same_completed_session_observation_fresh():
+    source = datetime(2026, 11, 10, 13, 0, tzinfo=timezone.utc)
+    as_of = datetime(2026, 11, 10, 16, 0, tzinfo=timezone(timedelta(hours=2)))
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 10),
+        data_timestamp=source,
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result}),
+        ActiveCalendarStore(make_calendar()),
+    ).execute(["AAA"], as_of=as_of).to_dict()
+
+    assert payload["source_data_freshness_by_symbol"] == {"AAA": "FRESH"}
+    assert payload["source_data_freshness_status"] == "FRESH"
+    assert payload["stale_source_data_symbols"] == []
+
+
+def test_crash_radar_does_not_call_unclosed_scheduled_session_stale():
+    source = datetime(2026, 11, 9, 13, 0, tzinfo=timezone.utc)
+    as_of = datetime(2026, 11, 10, 12, 0, tzinfo=timezone(timedelta(hours=2)))
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 10),
+        data_timestamp=source,
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result}),
+        ActiveCalendarStore(make_calendar(scheduled_dates={date(2026, 11, 10)})),
+    ).execute(["AAA"], as_of=as_of).to_dict()
+
+    assert payload["source_data_freshness_by_symbol"] == {"AAA": "UNKNOWN"}
+    assert payload["unknown_source_data_freshness_symbols"] == ["AAA"]
+    assert payload["source_data_freshness_status"] == "UNKNOWN"
+
+
+def test_crash_radar_keeps_freshness_unknown_without_active_calendar():
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 10),
+        data_timestamp=datetime(2026, 11, 10, 13, 0, tzinfo=timezone.utc),
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result}),
+        ActiveCalendarStore(),
+    ).execute(
+        ["AAA"],
+        as_of=datetime(2026, 11, 10, 16, 0, tzinfo=timezone(timedelta(hours=2))),
+    ).to_dict()
+
+    assert payload["source_data_freshness_by_symbol"] == {"AAA": "UNKNOWN"}
+    assert payload["source_data_freshness_status"] == "UNKNOWN"
+    assert payload["freshness_calendar_version"] is None
+
+
+def test_crash_radar_marks_future_source_timestamp_as_future():
+    result = record(
+        TrendStatus.UPTREND,
+        MomentumStatus.POSITIVE,
+        VolumeStatus.ABOVE_AVERAGE,
+        analysis_date=date(2026, 11, 10),
+        data_timestamp=datetime(2026, 11, 10, 15, 0, tzinfo=timezone.utc),
+    )
+
+    payload = CalculateMarketBreadth(
+        StubStore({"AAA": result}),
+        ActiveCalendarStore(make_calendar()),
+    ).execute(
+        ["AAA"],
+        as_of=datetime(2026, 11, 10, 16, 0, tzinfo=timezone(timedelta(hours=2))),
+    ).to_dict()
+
+    assert payload["source_data_freshness_by_symbol"] == {"AAA": "FUTURE"}
+    assert payload["unknown_source_data_freshness_symbols"] == ["AAA"]
+    assert payload["source_data_freshness_status"] == "UNKNOWN"
+
+
+def test_crash_radar_rejects_naive_freshness_cutoff():
+    with pytest.raises(ValueError, match="as_of must be timezone-aware"):
+        CalculateMarketBreadth(StubStore({})).execute(
+            ["AAA"], as_of=datetime(2026, 11, 10, 16, 0)
+        )
