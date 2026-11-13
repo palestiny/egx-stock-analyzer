@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 
 from app.domain.alerts.model import AlertEvent, AlertEventType
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.domain.signals.model import (
     PriceZone,
     Signal,
@@ -356,7 +357,19 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         unit_of_work=unit_of_work,
     )
     first_bar = make_completed_bar()
-    first = orchestrator.process_completed_daily_bar(published.signal_id, first_bar, calendar_version="calendar-v1")
+    first_evidence = ProviderDailyBarEvidence(
+        provider_id=first_bar.provider,
+        provider_contract_version="contract-v1",
+        instrument_symbol=first_bar.symbol,
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 16, 1, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 10, tzinfo=timezone.utc),
+        bar=first_bar,
+    )
+    first = orchestrator.process_completed_daily_bar(
+        published.signal_id, first_bar, calendar_version="calendar-v1",
+        provider_evidence=first_evidence,
+    )
     assert first is not None and first.changed is False
 
     reopened_history = SQLiteSignalHistoryStore(database)
@@ -371,8 +384,19 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
         track_record=reopened_track_record,
         unit_of_work=reopened_uow,
     )
+    replay_bar = make_completed_bar(observed_hour=17)
+    replay_evidence = ProviderDailyBarEvidence(
+        provider_id=replay_bar.provider,
+        provider_contract_version="contract-v1",
+        instrument_symbol=replay_bar.symbol,
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 16, 1, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 17, 10, tzinfo=timezone.utc),
+        bar=replay_bar,
+    )
     replay = reopened.process_completed_daily_bar(
-        published.signal_id, make_completed_bar(observed_hour=17), calendar_version="calendar-v1"
+        published.signal_id, replay_bar, calendar_version="calendar-v1",
+        provider_evidence=replay_evidence,
     )
 
     assert replay is not None
@@ -383,6 +407,17 @@ def test_sqlite_completed_daily_observation_is_durable_and_idempotent(tmp_path):
     assert stored is not None
     assert stored.bar.high == Decimal("105")
     assert stored.resulting_status is SignalStatus.ACTIVE
+    assert stored.provider_evidence is not None
+    assert stored.provider_evidence.provider_id == "attested-provider"
+    assert stored.provider_evidence.provider_contract_version == "contract-v1"
+    assert stored.provider_evidence.session_date == date(2026, 10, 4)
+    assert stored.provider_evidence.source_timestamp == datetime(
+        2026, 10, 4, 16, 1, tzinfo=timezone.utc
+    )
+    # A later idempotent re-fetch does not rewrite the original immutable evidence.
+    assert stored.provider_evidence.retrieved_at == datetime(
+        2026, 10, 4, 16, 10, tzinfo=timezone.utc
+    )
     assert reopened_track_record.all() == ()
     assert reopened_outbox.pending() == ()
 
