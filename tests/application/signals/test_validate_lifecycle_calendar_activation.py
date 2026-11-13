@@ -1,6 +1,7 @@
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
@@ -14,6 +15,12 @@ from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
 from app.application.signals.validate_lifecycle_calendar_activation import (
     ValidateLifecycleCalendarActivation,
+)
+from app.domain.market_data.calendar_evidence import (
+    CalendarArtifactRetention,
+    CalendarEvidence,
+    CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
 )
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus, EGXCalendarDay, EGXSessionCalendar,
@@ -35,6 +42,76 @@ class FakeCalendarStore:
 
     def get_version(self, version):
         return self.stored if self.stored.version == version else None
+
+
+class FakeCalendarEvidenceStore:
+    def __init__(self, stored):
+        self.stored = stored
+        self.missing = set()
+        self.source_class = CalendarEvidenceSourceClass.A
+        self.conflicting = set()
+
+    def list_for_calendar_day(self, calendar_version, session_date):
+        if calendar_version != self.stored.version:
+            return ()
+        day = self.stored.calendar.day_for(session_date)
+        required = {
+            CalendarDayStatus.NON_TRADING: {CalendarEvidenceKind.CLOSURE},
+            CalendarDayStatus.CANCELLED: {CalendarEvidenceKind.CANCELLATION},
+            CalendarDayStatus.SCHEDULED: {CalendarEvidenceKind.SCHEDULE},
+            CalendarDayStatus.OPEN: {CalendarEvidenceKind.SCHEDULE, CalendarEvidenceKind.OPEN_CONFIRMATION},
+            CalendarDayStatus.CLOSED: {CalendarEvidenceKind.SCHEDULE, CalendarEvidenceKind.CLOSE_CONFIRMATION},
+        }[day.status]
+        if day.exceptional_hours:
+            required.add(CalendarEvidenceKind.EXCEPTIONAL_HOURS)
+        records = []
+        for kind in required:
+            if (session_date, kind) in self.missing:
+                continue
+            source_class = self.source_class
+            publisher = "EGX" if source_class is CalendarEvidenceSourceClass.A else (
+                "FRA" if source_class is CalendarEvidenceSourceClass.A_R else "Broker"
+            )
+            records.append(CalendarEvidence.create(
+                calendar_version=calendar_version,
+                session_date=session_date,
+                evidence_kind=kind,
+                source_type="OFFICIAL_EXCHANGE_NOTICE",
+                source_reference=f"https://example.invalid/{session_date.isoformat()}/{kind.value}",
+                claim=f"Verified {kind.value} for {session_date.isoformat()}",
+                recorded_by=UUID("10000000-0000-0000-0000-000000000001"),
+                observed_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
+                source_class=source_class,
+                source_publisher=publisher,
+                market_scope="EGX_MARKET_WIDE",
+                effective_from=session_date,
+                effective_through=session_date,
+                retrieved_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
+                artifact_sha256="a" * 64,
+                artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+                artifact_not_retained_reason="Fixture retains the official reference only",
+            ))
+            if (session_date, kind) in self.conflicting:
+                records.append(CalendarEvidence.create(
+                    calendar_version=calendar_version,
+                    session_date=session_date,
+                    evidence_kind=kind,
+                    source_type="OFFICIAL_EXCHANGE_NOTICE",
+                    source_reference=f"https://example.invalid/conflict/{session_date.isoformat()}/{kind.value}",
+                    claim=f"Conflicting {kind.value} for {session_date.isoformat()}",
+                    recorded_by=UUID("10000000-0000-0000-0000-000000000001"),
+                    observed_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
+                    source_class=source_class,
+                    source_publisher=publisher,
+                    market_scope="EGX_MARKET_WIDE",
+                    effective_from=session_date,
+                    effective_through=session_date,
+                    retrieved_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
+                    artifact_sha256="b" * 64,
+                    artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+                    artifact_not_retained_reason="Conflicting fixture evidence",
+                ))
+        return tuple(records)
 
 
 class FakeSchedule:
@@ -111,15 +188,16 @@ def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=No
             recorded_at=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
         )
     schedule = FakeSchedule(next_date)
+    evidence_store = FakeCalendarEvidenceStore(stored)
     validator = ValidateLifecycleCalendarActivation(
         history=history, calendar_store=calendar_store,
-        unit_of_work=uow, schedule=schedule,
+        unit_of_work=uow, schedule=schedule, evidence_store=evidence_store,
     )
-    return validator, schedule, publication, uow, history
+    return validator, schedule, publication, uow, history, evidence_store
 
 
 def test_calendar_activation_validation_accepts_complete_bootstrap_and_explicit_coverage():
-    validator, schedule, _, _, _ = setup()
+    validator, schedule, _, _, _, _ = setup()
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -131,7 +209,7 @@ def test_calendar_activation_validation_accepts_complete_bootstrap_and_explicit_
 
 
 def test_calendar_activation_validation_rejects_missing_bootstrap():
-    validator, _, _, _, _ = setup(bootstrap=False)
+    validator, _, _, _, _, _ = setup(bootstrap=False)
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -141,7 +219,7 @@ def test_calendar_activation_validation_rejects_missing_bootstrap():
 
 
 def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
-    validator, _, _, _, _ = setup(end=date(2026, 10, 5), bootstrap_next_date=date(2026, 10, 5))
+    validator, _, _, _, _, _ = setup(end=date(2026, 10, 5), bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -151,7 +229,7 @@ def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
 
 
 def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date():
-    validator, _, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING, bootstrap_next_date=date(2026, 10, 5))
+    validator, _, _, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING, bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -161,7 +239,7 @@ def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date
 
 
 def test_calendar_activation_validation_fails_closed_without_trusted_schedule_date():
-    validator, schedule, _, _, _ = setup()
+    validator, schedule, _, _, _, _ = setup()
     schedule.next_date = None
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -215,7 +293,7 @@ def record_cursor(uow, publication, session_date):
 
 
 def test_calendar_activation_validation_requires_reconciled_cursor_to_be_closed():
-    validator, _, publication, uow, _ = setup()
+    validator, _, publication, uow, _, _ = setup()
     record_cursor(uow, publication, date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -226,7 +304,7 @@ def test_calendar_activation_validation_requires_reconciled_cursor_to_be_closed(
 
 
 def test_calendar_activation_validation_accepts_closed_reconciled_cursor():
-    validator, _, publication, uow, _ = setup(closed_dates={date(2026, 10, 5)})
+    validator, _, publication, uow, _, _ = setup(closed_dates={date(2026, 10, 5)})
     record_cursor(uow, publication, date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -237,7 +315,7 @@ def test_calendar_activation_validation_accepts_closed_reconciled_cursor():
 
 
 def test_rollback_candidate_is_revalidated_against_latest_reconciled_cursor():
-    validator, _, publication, uow, _ = setup(
+    validator, _, publication, uow, _, _ = setup(
         version="calendar-v2",
         closed_dates={date(2026, 10, 5)},
     )
@@ -254,7 +332,7 @@ def test_rollback_candidate_is_revalidated_against_latest_reconciled_cursor():
 
 
 def test_calendar_activation_validation_allows_no_active_opportunities():
-    validator, _, publication, _, history = setup()
+    validator, _, publication, _, history, _ = setup()
     history.record_for_signal(
         publication.signal_id,
         replace(publication.signal, status=SignalStatus.CLOSED),
@@ -295,7 +373,7 @@ def test_calendar_activation_validation_requires_next_evaluation_after_cursor():
 
 
 def test_calendar_activation_validator_uses_caller_owned_lifecycle_transaction(monkeypatch):
-    validator, _, _, uow, _ = setup()
+    validator, _, _, uow, _, _ = setup()
     transaction = uow.execute(lambda tx: tx)
 
     def nested_transaction_is_forbidden(*args, **kwargs):
@@ -310,3 +388,43 @@ def test_calendar_activation_validator_uses_caller_owned_lifecycle_transaction(m
 
     assert result.eligible is True
     assert result.blockers == ()
+
+
+
+def test_calendar_activation_rejects_day_without_linked_evidence():
+    validator, _, _, _, _, evidence_store = setup()
+    evidence_store.missing.add((date(2026, 10, 1), CalendarEvidenceKind.SCHEDULE))
+
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.eligible is False
+    assert any(item.code == "CALENDAR_DAY_EVIDENCE_MISSING" for item in result.blockers)
+
+
+def test_calendar_activation_rejects_conflicting_unsuperseded_day_evidence():
+    validator, _, _, _, _, evidence_store = setup()
+    evidence_store.conflicting.add((date(2026, 10, 1), CalendarEvidenceKind.SCHEDULE))
+
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.eligible is False
+    assert any(item.code == "CALENDAR_DAY_EVIDENCE_CONFLICT" for item in result.blockers)
+
+
+def test_calendar_activation_rejects_non_primary_or_non_egx_day_evidence():
+    validator, _, _, _, _, evidence_store = setup()
+    evidence_store.source_class = CalendarEvidenceSourceClass.A_R
+
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.eligible is False
+    assert any(item.code == "CALENDAR_DAY_PRIMARY_EVIDENCE_MISSING" for item in result.blockers)
