@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import hashlib
 import json
 import platform
@@ -60,11 +61,11 @@ def _signal(status: SignalStatus, generated_at: datetime) -> Signal:
         status=status,
         generated_at=generated_at,
         timeframe="DAILY",
-        entry_zone=PriceZone(lower=__import__("decimal").Decimal("99"), upper=__import__("decimal").Decimal("101")),
-        invalidation=__import__("decimal").Decimal("95"),
-        targets=(Target(price=__import__("decimal").Decimal("109"), label="T1"),),
-        confidence=__import__("decimal").Decimal("80"),
-        risk_score=__import__("decimal").Decimal("20"),
+        entry_zone=PriceZone(lower=Decimal("99"), upper=Decimal("101")),
+        invalidation=Decimal("95"),
+        targets=(Target(price=Decimal("109"), label="T1"),),
+        confidence=Decimal("80"),
+        risk_score=Decimal("20"),
         evidence=(SignalEvidence("benchmark", "Synthetic benchmark fixture"),),
         strategy_id="lifecycle-projection-benchmark",
         strategy_version="1.0",
@@ -192,7 +193,15 @@ def _query_plan(database: Path) -> list[str]:
         connection.close()
 
 
-def _concurrent_writer(database: Path, signal_ids: list[str], operations: int, stop: Event) -> None:
+def _concurrent_writer(
+    database: Path,
+    signal_ids: list[str],
+    operations: int,
+    stop: Event,
+    errors: list[str],
+) -> None:
+    if not signal_ids or operations == 0:
+        return
     connection = sqlite3.connect(database, timeout=30)
     try:
         connection.execute("PRAGMA busy_timeout = 30000")
@@ -222,6 +231,8 @@ def _concurrent_writer(database: Path, signal_ids: list[str], operations: int, s
                         """,
                         (signal_id, f"BENCHMARK_TOUCH_{offset}", recorded_at, str(row[0])),
                     )
+    except Exception as error:
+        errors.append(f"{type(error).__name__}: {error}")
     finally:
         connection.close()
 
@@ -251,9 +262,10 @@ def benchmark_size(
     warm = _measure(store.latest_active_published_opportunities, samples)
 
     stop = Event()
+    writer_errors: list[str] = []
     writer = Thread(
         target=_concurrent_writer,
-        args=(database, signal_ids, writer_operations, stop),
+        args=(database, signal_ids, writer_operations, stop, writer_errors),
         daemon=True,
     )
     writer.start()
@@ -266,6 +278,8 @@ def benchmark_size(
         writer.join(timeout=60)
     if writer.is_alive():
         raise RuntimeError("benchmark writer did not stop within 60 seconds")
+    if writer_errors:
+        raise RuntimeError("concurrent writer failed: " + "; ".join(writer_errors))
 
     # A new store instance approximates process-cold initialization, not an OS page-cache flush.
     reopened = SQLiteSignalHistoryStore(database)
@@ -301,8 +315,8 @@ def main() -> int:
     parser.add_argument("--writer-operations", type=int, default=250)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if any(size < 1 for size in args.sizes):
-        parser.error("all sizes must be positive")
+    if any(size < 2 for size in args.sizes):
+        parser.error("all sizes must be at least 2 so the writer fixture has an active opportunity")
     if args.samples < 2 or args.warmups < 0 or args.writer_operations < 0:
         parser.error("samples must be >= 2; warmups and writer operations must be >= 0")
 
