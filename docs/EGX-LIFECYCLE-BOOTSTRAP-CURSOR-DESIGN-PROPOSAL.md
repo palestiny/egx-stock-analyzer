@@ -107,7 +107,7 @@ The first implementation increment is present on the PR branch:
 - Lifecycle evaluation now rejects an unbootstrapped opportunity, a publication-provenance mismatch, or a superseded parent revision.
 - Tests cover Cairo date conversion, revision independence, retries, calendar coverage failure, unpublished opportunities, and evaluator eligibility guards.
 
-**Verification remains pending:** the latest exact-head GitHub Actions run must pass all jobs before this increment can be accepted. Calendar activation, provider finality, scheduled worker, and production E2E remain separate blockers.
+**Verification: PASS on exact head `f27065858f72035d39c56f1942b4f24cdb89c584` (GitHub Actions run `43412122508`; all six jobs successful: unit tests, integration tests, lint/type-check within unit job, frontend tests, daily-history audit report, dependency audit, and container build).** This accepts the current persistence/application bootstrap increment at code-CI level. It does not accept calendar activation, provider finality, scheduled worker, or production E2E.
 
 ## 8. Risks and rejected alternatives
 
