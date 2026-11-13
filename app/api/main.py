@@ -40,7 +40,10 @@ from app.api.user_opportunity_notification_response import UserOpportunityNotifi
 from app.api.user_opportunity_lifecycle_history_response import UserOpportunityLifecycleHistoryResponse
 from app.application.reporting.get_analysis_history import GetAnalysisHistory
 from app.application.reporting.get_owner_dashboard_overview import GetOwnerDashboardOverview
-from app.application.reporting.session_opportunity_report_store import SessionOpportunityReportStore
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+    SessionOpportunityReportStore,
+)
 from app.application.alerts.dispatch_signal_alert_outbox import DispatchSignalAlertOutbox
 from app.application.alerts.get_user_opportunity_notifications import GetUserOpportunityNotifications
 from app.application.alerts.get_user_opportunity_lifecycle_history import GetUserOpportunityLifecycleHistory
@@ -736,6 +739,7 @@ def create_app(
     def read_session_report(
         session_date: date,
         as_of: datetime | None = None,
+        methodology_version: str | None = None,
         _identity: AuthenticatedIdentity = Depends(require_operator),
     ) -> dict[str, object]:
         if session_opportunity_report_store is None:
@@ -744,7 +748,13 @@ def create_app(
         if cutoff.tzinfo is None or cutoff.utcoffset() is None:
             raise HTTPException(status_code=422, detail="as_of must include a timezone")
         try:
-            report = session_opportunity_report_store.get_latest(session_date, as_of=cutoff)
+            report = session_opportunity_report_store.get_latest(
+                session_date,
+                as_of=cutoff,
+                methodology_version=methodology_version,
+            )
+        except AmbiguousSessionOpportunityReportError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         if report is None:
