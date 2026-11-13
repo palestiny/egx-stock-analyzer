@@ -13,7 +13,6 @@ from app.application.signals.lifecycle_orchestrator import (
     SignalLifecycleResult,
 )
 from app.domain.market_data.session_calendar import CalendarDayStatus, CalendarCoverageError
-from app.domain.signals.lifecycle import CompletedDailyBarObservation
 
 
 class DailyBarFinalityVerifier(Protocol):
