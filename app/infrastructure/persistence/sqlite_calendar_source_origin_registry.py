@@ -99,6 +99,7 @@ class SQLiteCalendarSourceOriginRegistry:
         if source_class == "A-R" and (publisher != "FRA" or market_scope != "FRA_REGULATORY"):
             raise ValueError("Class A-R origin approval is restricted to FRA regulatory scope")
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             self._require_active_owner_credential(connection, owner)
             latest = connection.execute(
                 "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
@@ -154,6 +155,7 @@ class SQLiteCalendarSourceOriginRegistry:
             raise ValueError("Origin revocation timestamp must be timezone-aware")
         timestamp = timestamp.astimezone(timezone.utc)
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             self._require_active_owner_credential(connection, owner)
             latest_event = connection.execute(
                 "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
