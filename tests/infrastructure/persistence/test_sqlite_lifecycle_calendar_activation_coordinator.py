@@ -1,8 +1,8 @@
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time
-from threading import Event
 from decimal import Decimal
+from threading import Event
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -129,7 +129,7 @@ def publish_calendar(repository, version, day):
         published_by=str(actor),
         source_reference=f"official-calendar-{version}",
         reason="atomic activation coordinator test",
-        published_at=datetime(2026, 11, 1, tzinfo=CAIRO),
+        published_at=datetime(2026, 11, 1, 12, tzinfo=CAIRO),
     )
 
 
