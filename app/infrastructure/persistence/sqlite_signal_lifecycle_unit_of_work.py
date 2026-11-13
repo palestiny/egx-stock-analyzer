@@ -81,12 +81,13 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 or record.calendar_version != batch.calendar_version
                 or record.operator_id != batch.operator_id
                 or record.reason != batch.reason
-                or not record.publication_event.strip()
+                or record.publication_event not in {"PUBLISHED", "PUBLISHED_VERSION"}
                 or not record.idempotency_key.strip()
                 or record.publication_recorded_at.tzinfo is None
                 or record.publication_recorded_at.utcoffset() is None
                 or record.recorded_at.tzinfo is None
                 or record.recorded_at.utcoffset() is None
+                or record.recorded_at != batch.recorded_at
             ):
                 raise ValueError("invalid lifecycle bootstrap record")
             payload = self._serialize_bootstrap_record(record)
