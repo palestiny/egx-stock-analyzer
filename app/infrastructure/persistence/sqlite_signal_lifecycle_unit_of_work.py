@@ -491,18 +491,6 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 "low": str(bar.low),
                 "close": str(bar.close),
             },
-            "provider_evidence": (
-                {
-                    "provider_id": record.provider_evidence.provider_id,
-                    "provider_contract_version": record.provider_evidence.provider_contract_version,
-                    "instrument_symbol": record.provider_evidence.instrument_symbol,
-                    "session_date": record.provider_evidence.session_date.isoformat(),
-                    "source_timestamp": record.provider_evidence.source_timestamp.isoformat(),
-                    "retrieved_at": record.provider_evidence.retrieved_at.isoformat(),
-                }
-                if record.provider_evidence is not None
-                else None
-            ),
         }
         return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
@@ -670,6 +658,18 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
                 "low": str(bar.low),
                 "close": str(bar.close),
             },
+            "provider_evidence": (
+                {
+                    "provider_id": record.provider_evidence.provider_id,
+                    "provider_contract_version": record.provider_evidence.provider_contract_version,
+                    "instrument_symbol": record.provider_evidence.instrument_symbol,
+                    "session_date": record.provider_evidence.session_date.isoformat(),
+                    "source_timestamp": record.provider_evidence.source_timestamp.isoformat(),
+                    "retrieved_at": record.provider_evidence.retrieved_at.isoformat(),
+                }
+                if record.provider_evidence is not None
+                else None
+            ),
         }
         return json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
