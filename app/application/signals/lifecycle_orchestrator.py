@@ -180,7 +180,7 @@ class SignalLifecycleOrchestrator:
                 "STATUS_EXPIRED",
                 "STATUS_CLOSED",
                 "EVIDENCE_CHANGED_INVALIDATED",
-            }:
+            } and not latest.event.startswith("CORRECTION_REPLAY_REBUILT:"):
                 return None
             if latest.signal.status is not SignalStatus.ACTIVE:
                 return SignalLifecycleResult(
@@ -559,7 +559,6 @@ class SignalLifecycleOrchestrator:
 
         return self._unit_of_work.execute(persist)
 
-    def lifecycle_correction_review_decisions(
     def rebuild_daily_bar_correction(
         self,
         signal_id: UUID,
@@ -741,6 +740,7 @@ class SignalLifecycleOrchestrator:
 
         return self._unit_of_work.execute(persist)
 
+    def lifecycle_correction_review_decisions(
         self, signal_id: UUID
     ) -> tuple[LifecycleCorrectionReviewDecision, ...]:
         return self._unit_of_work.execute(
