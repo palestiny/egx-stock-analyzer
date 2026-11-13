@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import hashlib
 import json
 import platform
-from pathlib import Path
 import sqlite3
 import statistics
 import tempfile
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from pathlib import Path
 from threading import Event, Thread
 from time import perf_counter
 from uuid import uuid4
