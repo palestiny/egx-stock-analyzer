@@ -213,3 +213,32 @@ def test_outcome_correction_service_requires_a_distinct_active_user_credential()
     assert correction.actor_credential_id == author.credential_id
     assert review.actor_id == reviewer.subject
     assert review.actor_credential_id == reviewer.credential_id
+
+
+def test_batched_outcomes_as_of_preserves_cutoffs_and_omits_unresolved_signals():
+    now = [datetime(2026, 10, 15, 12, tzinfo=timezone.utc)]
+    store = InMemoryOutcomeEventStore(clock=lambda: now[0])
+    first_outcome = make_outcome()
+    second_outcome = make_outcome()
+    first = store.record_initial(
+        first_outcome, actor_id="operator-1", idempotency_key="batch-initial-1"
+    )
+    second = store.record_initial(
+        second_outcome, actor_id="operator-1", idempotency_key="batch-initial-2"
+    )
+    unresolved_signal_id = uuid4()
+
+    before_recording = store.outcomes_as_of(
+        [first.signal_id, second.signal_id, unresolved_signal_id],
+        cutoff=now[0] - timedelta(seconds=1),
+    )
+    at_recording = store.outcomes_as_of(
+        [first.signal_id, second.signal_id, unresolved_signal_id],
+        cutoff=now[0],
+    )
+
+    assert before_recording == {}
+    assert at_recording == {
+        first.signal_id: first,
+        second.signal_id: second,
+    }
