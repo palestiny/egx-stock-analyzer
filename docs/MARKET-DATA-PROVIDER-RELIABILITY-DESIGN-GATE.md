@@ -14,7 +14,7 @@ The accepted DEC-139 policy requires an adapter to attest all of the following b
 - source timestamp;
 - final/complete status.
 
-The generic application port `MarketDataProvider.get_daily_observations(...)` still returns only `RawPriceBarObservation` (stock ID, timeframe, timestamp, OHLC and volume), with no provider identity, finality/completion attestation, provider revision/correction identity, or retrieval timestamp. Separately, PR #515 defines `CompletedDailyBarObservation` at the lifecycle domain boundary with symbol, provider, daily timeframe, candle timestamp, observed-at timestamp, revision, source reference, finality-attestation text, explicit final flag, and OHLC validation. A new provider-neutral `CompletedDailyBarSource` port and `ProviderDailyBarEvidence` envelope now make provider contract version, EGX instrument symbol, explicit Cairo session date, source timestamp, and local retrieval timestamp explicit; focused tests cover mismatches, naive timestamps, and Cairo-vs-UTC date boundaries. `EvaluateCompletedDailyBar` / `EvaluateOpportunityLifecycleSessions` require a `DailyBarFinalityVerifier` protocol. However, there is no provider-specific adapter implementing the source port, the envelope is not yet the persisted lifecycle evidence contract, no production verifier is composed in runtime, and no provider evidence proves the contract fields. The current Yahoo adapter still maps rows into the raw type; requesting `interval="1d"` does not prove finality or commercial rights.
+The generic application port `MarketDataProvider.get_daily_observations(...)` still returns only `RawPriceBarObservation` (stock ID, timeframe, timestamp, OHLC and volume), with no provider identity, finality/completion attestation, provider revision/correction identity, or retrieval timestamp. PR #515 defines `CompletedDailyBarObservation` at the lifecycle domain boundary and a provider-neutral `CompletedDailyBarSource` port plus `ProviderDailyBarEvidence` envelope. Both `EvaluateCompletedDailyBar` and `EvaluateOpportunityLifecycleSessions` now require the complete envelope; bare bars fail closed and the finality-verifier protocol receives the envelope. The envelope is persisted with the lifecycle observation in the same SQLite unit-of-work transaction, including provider ID, contract version, instrument symbol, Cairo session date, source timestamp, and retrieval timestamp. SQLite deserialization reconstructs the typed evidence, while older rows without the field remain readable. Tests verify restart durability and that idempotent re-fetch does not rewrite the original retrieval timestamp. However, no provider-specific adapter implements the new source port, no production verifier is composed in runtime, and no independently verified provider evidence proves the contract fields. The current Yahoo adapter still maps rows into the raw type; requesting `interval="1d"` does not prove finality or commercial rights.
 
 The current `DataQualityAssessor` rejects missing, non-finite/non-positive OHLC, invalid/future timestamps and OHLC inconsistency, and marks duplicate identities as suspect. It does not classify an otherwise valid observation as stale relative to an expected completed EGX session. Therefore the current quality assessment is not the DEC-139 completed-session eligibility gate.
 
@@ -25,9 +25,9 @@ The current `DataQualityAssessor` rejects missing, non-finite/non-positive OHLC,
 | Concern | Current code evidence | What is not proven |
 |---|---|---|
 | Daily interval | Yahoo history client requests `interval="1d"`. | A returned row is final, complete, or immune to later correction. |
-| Source identity | Yahoo adapter exposes class-level `source_name`. | Identity is carried with each persisted observation/evaluation. |
+| Source identity | Yahoo adapter exposes class-level `source_name`; the provider-neutral lifecycle envelope carries provider ID and contract version through evaluation and SQLite observation persistence. | A real provider adapter must establish that the ID/version accurately identify the source contract. |
 | Source timestamp | Raw observation has a timestamp; naive Yahoo timestamps are currently assigned UTC. | Provider timezone semantics for EGX daily bars or a reliable session-date mapping. |
-| Lifecycle contract | `CompletedDailyBarObservation` carries provider/source/revision/finality fields and validates DAILY + `is_final=True`; the evaluator requires a verifier protocol. | No adapter bridges `MarketDataProvider` raw rows to this contract; no production verifier or source evidence exists. |
+| Lifecycle contract | `CompletedDailyBarObservation` plus `ProviderDailyBarEvidence` are wired through both evaluation use cases and the finality-verifier protocol; the complete envelope is durably persisted with each eligible observation. | No adapter bridges `MarketDataProvider` raw rows to the new source port; no production verifier or independent provider evidence exists. |
 | Freshness | Data-quality assessor rejects future timestamps. | Expected-session coverage, STALE classification, or chronological cursor reconciliation. |
 | Corrections | Acquisition records exist separately. | Stable provider candle identity/revision and append-only correction reconciliation at lifecycle boundary. |
 | Commercial rights | Existing gap register records the Yahoo reuse restriction. | Permission for paid/subscriber redistribution or commercial API use. |
@@ -45,7 +45,7 @@ Any provider capable of driving lifecycle transitions must return a typed observ
 7. **Finality attestation:** explicit provider capability/result indicating whether the bar is final/complete, including the basis and relevant contract/version. Unknown must fail closed. The current domain value requires `is_final=True`, but that assertion is only trustworthy once an approved adapter/verifier validates it against provider evidence.
 8. **Revision identity:** stable provider candle key plus revision/correction identifier where the source supports it. The current domain value has a revision string and source reference, but their provider-specific stability/meaning is not established.
 9. **OHLCV payload:** finite and positive OHLC, coherent high/low, non-negative volume, with the existing validation retained.
-10. **Provenance:** durable linkage from evaluation to provider, source timestamp, session date, calendar version, and observation identity.
+10. **Provenance:** durable linkage from evaluation to provider, provider contract version, source timestamp, retrieval timestamp, session date, calendar version, and observation identity. The provider-neutral lifecycle path now persists these envelope fields; provider-specific semantics and authenticity still require external documentation.
 
 Do not add a boolean `is_final=True` merely because a local clock is later than the expected close. A local delay buffer is scheduling policy, not evidence of provider finality.
 
@@ -91,9 +91,9 @@ A provider may be technically eligible for private/local analysis yet commercial
 
 Yahoo Finance/yfinance remains ineligible for subscriber-facing redistribution absent verified applicable terms and written permission. Do not interpret successful API responses or CI tests as commercial authorization.
 
-## 6. Required verification before lifecycle integration
+## 6. Required verification before provider production approval
 
-- Contract tests prove provider identity, timeframe, source timestamp, retrieved-at, session mapping and finality are present and timezone-correct.
+- Provider-neutral contract and evaluation tests prove provider identity, contract version, timeframe, source timestamp, retrieved-at, session mapping and finality are present and timezone-correct; SQLite restart tests prove envelope durability.
 - Unknown/unsupported finality fails closed.
 - A provisional/incomplete bar cannot trigger or invalidate a signal.
 - A stale expected session produces STALE and suppresses transitions.
@@ -111,9 +111,9 @@ This document records requirements and current gaps; it does not select a commer
 
 1. Select a provider only after obtaining its written technical documentation and commercial terms.
 2. Decide whether providers lacking stable correction/revision IDs are rejected or accepted under a weaker, explicitly documented reconciliation policy.
-3. Approve the exact persisted observation envelope and schema migration after the selected provider contract is known.
+3. Confirm the provider-specific mapping into the already-persisted provider-neutral envelope after the selected provider contract is known; any future schema change requires its own migration review.
 4. Approve the calendar activation/coverage policy before connecting session-date eligibility to a live scheduler.
 
 ## 8. Current gate result
 
-**GAP — do not enable lifecycle monitoring, Crash Radar freshness enforcement, or automated signal-state transitions using the current provider port.** The lifecycle-side typed bar boundary, provider-neutral source port/envelope, and verifier protocol exist and have focused contract tests. The provider-specific adapter, durable persistence of the envelope's contract/session/retrieval metadata, production finality verifier, and provider evidence remain open. Continue provider-neutral contract tests only; do not fabricate `is_final=True`. M61 remains paused as explicitly requested.
+**GAP — do not enable lifecycle monitoring, Crash Radar freshness enforcement, or automated signal-state transitions using the current generic provider port.** The provider-neutral evidence envelope is now integrated through both lifecycle evaluation use cases and durably persisted in append-only SQLite observations; restart and idempotent-retrieval behavior are tested. The provider-specific adapter, production finality verifier, independently verified provider finality/correction/timestamp semantics, and commercial-use rights remain open. Continue provider-neutral work only; do not fabricate `is_final=True`. M61 remains paused as explicitly requested.
