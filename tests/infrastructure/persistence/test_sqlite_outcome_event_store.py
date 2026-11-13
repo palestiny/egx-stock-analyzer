@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 from decimal import Decimal
 from uuid import uuid4
 
@@ -109,3 +110,36 @@ def test_sqlite_outcome_event_idempotency_survives_restart(tmp_path):
         outcome, actor_id="operator-1", idempotency_key="initial-1"
     )
     assert replay == first
+
+
+
+def test_sqlite_outcome_event_store_persists_credential_identity(tmp_path):
+    path = tmp_path / "outcomes.db"
+    author_credential = uuid4()
+    reviewer_credential = uuid4()
+    now = [datetime(2026, 10, 15, 12, tzinfo=timezone.utc)]
+    store = SQLiteOutcomeEventStore(path, clock=lambda: now[0])
+    original = store.record_initial(
+        make_outcome(), actor_id="system:signal-lifecycle", idempotency_key="initial-1"
+    )
+    correction = store.submit_correction(
+        make_outcome(original.signal_id, exit_price="96"),
+        supersedes_event_id=original.event_id,
+        actor_id="author-1",
+        actor_credential_id=author_credential,
+        idempotency_key="correction-1",
+    )
+    now[0] += timedelta(minutes=1)
+    review = store.review_correction(
+        correction.event_id,
+        reviewer_id="reviewer-1",
+        reviewer_credential_id=reviewer_credential,
+        decision=OutcomeCorrectionDecision.ACCEPTED,
+        idempotency_key="review-1",
+    )
+
+    reopened = SQLiteOutcomeEventStore(path, clock=lambda: now[0])
+    events = reopened.events_for(original.signal_id)
+    assert events[1].actor_credential_id == author_credential
+    assert events[2].actor_credential_id == reviewer_credential
+    assert reopened.outcome_as_of(original.signal_id, cutoff=now[0]) == correction
