@@ -65,9 +65,9 @@ class HTTPSCalendarSourceArtifactRetriever:
         self._ssl_context = ssl.create_default_context()
 
     def retrieve(self, url: str) -> RetrievedCalendarSourceArtifact:
-        normalize_calendar_source_origin(url)
+        canonical_origin = normalize_calendar_source_origin(url)
         parsed = urlsplit(url)
-        hostname = parsed.hostname
+        hostname = urlsplit(canonical_origin).hostname
         if hostname is None:
             raise CalendarSourceAuthenticityError("Source URL has no hostname")
 
