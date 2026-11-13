@@ -119,6 +119,11 @@ class FakeCalendarEvidenceStore:
         return tuple(records)
 
 
+class FakeAuthenticityVerifier:
+    def revalidate_for_activation(self, evidence, *, at):
+        return True
+
+
 class FakeSchedule:
     def __init__(self, next_date):
         self.next_date = next_date
@@ -197,6 +202,7 @@ def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=No
     validator = ValidateLifecycleCalendarActivation(
         history=history, calendar_store=calendar_store,
         unit_of_work=uow, schedule=schedule, evidence_store=evidence_store,
+        authenticity_verifier=FakeAuthenticityVerifier(),
     )
     return validator, schedule, publication, uow, history, evidence_store
 
