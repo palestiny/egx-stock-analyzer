@@ -99,6 +99,7 @@ class InMemorySignalHistoryStore:
         record = SignalRecord(signal_id, signal, recorded_at, event.strip())
         self._records.setdefault(signal_id, []).append(record)
         self._by_symbol[signal.symbol.strip().upper()] = signal_id
+        self._by_identity[(signal.symbol.strip().upper(), signal.strategy_id, signal.strategy_version, signal.generated_at)] = signal_id
         return record
 
     def record_revision(
