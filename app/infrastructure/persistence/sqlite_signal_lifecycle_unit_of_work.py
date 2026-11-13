@@ -973,6 +973,7 @@ class SQLiteSignalLifecycleUnitOfWork:
         history: SQLiteSignalHistoryStore,
         track_record: SQLiteTrackRecordStore,
         outbox: SQLiteAlertOutbox,
+        occurrence_claim_store: SQLiteLifecycleOccurrenceClaimStore | None = None,
     ) -> None:
         paths = {
             Path(history._database_path).resolve(),
@@ -982,9 +983,14 @@ class SQLiteSignalLifecycleUnitOfWork:
         if len(paths) != 1:
             raise ValueError("lifecycle stores must share one SQLite database")
         self._database_path = str(next(iter(paths)))
+        if occurrence_claim_store is not None and Path(
+            occurrence_claim_store._database_path
+        ).resolve() != Path(self._database_path):
+            raise ValueError("occurrence claim store must share the lifecycle SQLite database")
         self._history = history
         self._track_record = track_record
         self._outbox = outbox
+        self._occurrence_claim_store = occurrence_claim_store
         self._initialize_observation_ledger()
 
     def _initialize_observation_ledger(self) -> None:
@@ -1289,6 +1295,10 @@ class SQLiteSignalLifecycleUnitOfWork:
         both before and after the operation so a lease that expires while the
         operation is running causes the complete transaction to roll back.
         """
+        if self._occurrence_claim_store is None:
+            raise RuntimeError(
+                "execute_claimed requires an occurrence claim store bound to the lifecycle database"
+            )
         connection = connect_sqlite(self._database_path)
         connection.execute("PRAGMA foreign_keys = ON")
         try:
