@@ -196,6 +196,10 @@ def test_lifecycle_session_recovery_stops_at_first_missing_session_and_resumes()
     assert first_run.processed_sessions == (sessions[0],)
     assert first_run.gap_session_date == sessions[1]
     assert history.get(publication.signal_id).signal.status is SignalStatus.ACTIVE
+    stale_events = lifecycle.session_gap_events(publication.signal_id)
+    assert [(event.session_date, event.status) for event in stale_events] == [
+        (sessions[1], "STALE")
+    ]
 
     bars[sessions[1]] = make_bar(sessions[1])
     recovered = service.execute(
@@ -208,6 +212,11 @@ def test_lifecycle_session_recovery_stops_at_first_missing_session_and_resumes()
     assert recovered.status == "EXPIRED"
     assert recovered.processed_sessions == sessions[1:]
     assert history.get(publication.signal_id).signal.status is SignalStatus.EXPIRED
+    recovered_gap_events = lifecycle.session_gap_events(publication.signal_id)
+    assert [(event.session_date, event.status) for event in recovered_gap_events] == [
+        (sessions[1], "STALE"),
+        (sessions[1], "RESOLVED"),
+    ]
     assert track_record.all() == ()
 
 
@@ -230,3 +239,6 @@ def test_lifecycle_session_recovery_does_not_advance_on_unverified_bar():
     assert result.gap_session_date == sessions[1]
     cursor = lifecycle.latest_completed_observation(publication.signal_id)
     assert cursor.bar.candle_at.astimezone(CAIRO).date() == sessions[0]
+    gap_events = lifecycle.session_gap_events(publication.signal_id)
+    assert gap_events[-1].status == "STALE"
+    assert gap_events[-1].reason == "PROVIDER_FINALITY_NOT_VERIFIED"
