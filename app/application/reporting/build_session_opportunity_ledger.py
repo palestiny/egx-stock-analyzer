@@ -4,6 +4,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.application.signals.store import SignalHistoryStore, SignalRecord
 from app.application.signals.track_record import TrackRecordStore
+from app.application.signals.outcome_event_store import OutcomeEventStore
+from app.domain.signals.outcome_event import OutcomeEvent
 from app.domain.signals.outcome import SignalOutcomeRecord
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
@@ -17,6 +19,7 @@ class BuildSessionOpportunityLedger:
         history: SignalHistoryStore,
         track_record: TrackRecordStore,
         *,
+        outcome_events: OutcomeEventStore | None = None,
         exchange_timezone: str = "Africa/Cairo",
         methodology_version: str = "session-opportunity-ledger-v1",
     ) -> None:
@@ -26,6 +29,7 @@ class BuildSessionOpportunityLedger:
             raise ValueError(f"unknown exchange timezone: {exchange_timezone}") from error
         self._history = history
         self._track_record = track_record
+        self._outcome_events = outcome_events
         self._timezone_name = exchange_timezone
         self._methodology_version = methodology_version
 
@@ -46,13 +50,21 @@ class BuildSessionOpportunityLedger:
                 records_by_signal.setdefault(record.signal_id, []).append(record)
 
         outcomes: dict[UUID, SignalOutcomeRecord] = {}
-        for outcome_record in self._track_record.all():
-            if outcome_record.observed_at.tzinfo is None or outcome_record.observed_at.utcoffset() is None:
-                raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
-            if outcome_record.data_timestamp.tzinfo is None or outcome_record.data_timestamp.utcoffset() is None:
-                raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
-            if outcome_record.observed_at <= generated_at:
-                outcomes[outcome_record.signal_id] = outcome_record
+        outcome_events: dict[UUID, OutcomeEvent] = {}
+        if self._outcome_events is not None:
+            for signal_id in records_by_signal:
+                event = self._outcome_events.outcome_as_of(signal_id, cutoff=generated_at)
+                if event is not None and event.outcome is not None:
+                    outcome_events[signal_id] = event
+                    outcomes[signal_id] = event.outcome
+        else:
+            for outcome_record in self._track_record.all():
+                if outcome_record.observed_at.tzinfo is None or outcome_record.observed_at.utcoffset() is None:
+                    raise ValueError("signal outcome observed_at timestamps must be timezone-aware")
+                if outcome_record.data_timestamp.tzinfo is None or outcome_record.data_timestamp.utcoffset() is None:
+                    raise ValueError("signal outcome data_timestamp timestamps must be timezone-aware")
+                if outcome_record.observed_at <= generated_at:
+                    outcomes[outcome_record.signal_id] = outcome_record
         entries: list[SessionOpportunityEntry] = []
         for signal_id, history in records_by_signal.items():
             if not history:
@@ -81,6 +93,7 @@ class BuildSessionOpportunityLedger:
                 continue
 
             outcome = outcomes.get(signal_id)
+            outcome_event = outcome_events.get(signal_id)
             entries.append(SessionOpportunityEntry(
                 signal_id=signal_id,
                 symbol=original.symbol.strip().upper(),
@@ -97,6 +110,8 @@ class BuildSessionOpportunityLedger:
                 outcome_observed_at=outcome.observed_at if outcome is not None else None,
                 source_data_timestamp=original.data_timestamp,
                 outcome_data_timestamp=outcome.data_timestamp if outcome is not None else None,
+                outcome_event_id=outcome_event.event_id if outcome_event is not None else None,
+                outcome_recorded_at=outcome_event.recorded_at if outcome_event is not None else None,
             ))
 
         entries.sort(key=lambda item: (item.publication_time, item.symbol, str(item.signal_id)))
