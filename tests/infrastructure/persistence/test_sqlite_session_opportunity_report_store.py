@@ -11,6 +11,7 @@ from app.application.reporting.session_opportunity_report_store import (
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
+    OutcomeKnowledgeStatus,
 )
 from app.domain.signals.model import SignalStatus
 from app.domain.signals.outcome import SignalOutcome
@@ -180,3 +181,31 @@ def test_session_report_store_uses_latest_unambiguous_cutoff(tmp_path) -> None:
     saved = store.get_latest(date(2026, 10, 26), as_of=later)
     assert saved is not None
     assert saved["methodology_version"] == "method-v2"
+
+
+
+def test_session_report_store_persists_legacy_unknown_outcome_provenance(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    opportunity = SessionOpportunityEntry(
+        signal_id=uuid4(),
+        symbol="EGAL",
+        publication_time=datetime(2026, 10, 26, 8, tzinfo=timezone.utc),
+        original_entry_lower=Decimal("100"),
+        original_entry_upper=Decimal("102"),
+        original_invalidation=Decimal("95"),
+        original_targets=(),
+        current_status=SignalStatus.ACTIVE,
+        current_evidence=(),
+        market_proxy_outcome=None,
+        market_proxy_return=None,
+        market_proxy_r=None,
+        outcome_observed_at=None,
+        outcome_knowledge_status=OutcomeKnowledgeStatus.LEGACY_UNKNOWN,
+    )
+
+    store.save(report(generated, opportunities=(opportunity,), unresolved_count=1))
+    saved = store.get_latest(date(2026, 10, 26), as_of=generated)
+
+    assert saved is not None
+    assert saved["opportunities"][0]["outcome_knowledge_status"] == "LEGACY_UNKNOWN"
