@@ -38,6 +38,8 @@ class CalendarEvidenceAuthenticityGate(Protocol):
 
     def revalidate_for_activation(self, evidence: CalendarEvidence, *, at: datetime) -> object: ...
 
+    def assert_preflight_verification(self, evidence: CalendarEvidence, *, at: datetime) -> object: ...
+
 
 class LifecycleEvaluationSchedule(Protocol):
     """Trusted schedule port; callers cannot submit the next session date."""
@@ -88,6 +90,49 @@ class ValidateLifecycleCalendarActivation:
         self._evidence_store = evidence_store
         self._authenticity_verifier = authenticity_verifier
 
+    def preflight_source_authenticity(
+        self,
+        calendar_version: str,
+        *,
+        at: datetime,
+    ) -> tuple[CalendarActivationBlocker, ...]:
+        """Perform network re-fetch before the coordinator opens its write transaction."""
+        stored = self._calendar_store.get_version(calendar_version)
+        if stored is None:
+            return ()
+        blockers: list[CalendarActivationBlocker] = []
+        for day in stored.calendar.days:
+            linked = self._evidence_store.list_for_calendar_day(
+                calendar_version, day.session_date
+            )
+            superseded_ids = {
+                item.supersedes_evidence_id
+                for item in linked
+                if item.supersedes_evidence_id is not None
+            }
+            for item in linked:
+                if item.evidence_id in superseded_ids or item.source_class not in {
+                    CalendarEvidenceSourceClass.A,
+                    CalendarEvidenceSourceClass.A_R,
+                }:
+                    continue
+                if self._authenticity_verifier is None:
+                    blockers.append(CalendarActivationBlocker(
+                        "CALENDAR_SOURCE_AUTHENTICITY_VERIFIER_NOT_CONFIGURED",
+                        None,
+                        f"{day.session_date.isoformat()} has primary evidence but no source-authenticity verifier is configured",
+                    ))
+                    continue
+                try:
+                    self._authenticity_verifier.revalidate_for_activation(item, at=at)
+                except Exception as error:
+                    blockers.append(CalendarActivationBlocker(
+                        "CALENDAR_SOURCE_AUTHENTICITY_UNVERIFIED",
+                        None,
+                        f"{day.session_date.isoformat()} evidence {item.evidence_id} failed source-authenticity preflight: {error}",
+                    ))
+        return tuple(blockers)
+
     def execute(
         self,
         *,
@@ -102,9 +147,13 @@ class ValidateLifecycleCalendarActivation:
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise ValueError("as_of must be timezone-aware")
 
+        preflight_blockers = (
+            self.preflight_source_authenticity(calendar_version, at=as_of)
+            if transaction is None else ()
+        )
         after_date = as_of.astimezone(CAIRO).date()
         next_date = self._schedule.next_evaluation_date(after=after_date)
-        blockers: list[CalendarActivationBlocker] = []
+        blockers: list[CalendarActivationBlocker] = list(preflight_blockers)
         if next_date is None:
             blockers.append(CalendarActivationBlocker(
                 "NEXT_EVALUATION_DATE_UNAVAILABLE", None,
@@ -170,7 +219,7 @@ class ValidateLifecycleCalendarActivation:
                         ))
                         continue
                     try:
-                        self._authenticity_verifier.revalidate_for_activation(
+                        self._authenticity_verifier.assert_preflight_verification(
                             item, at=as_of
                         )
                     except Exception as error:
