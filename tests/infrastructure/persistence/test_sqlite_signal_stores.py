@@ -281,7 +281,7 @@ def test_sqlite_signal_revision_links_are_append_only(tmp_path) -> None:
 
 
 
-def test_sqlite_active_published_projection_scales_on_disk_and_survives_reopen(tmp_path) -> None:
+def test_sqlite_active_published_projection_scales_on_disk_and_survives_reopen(tmp_path, monkeypatch) -> None:
     database = tmp_path / "active-opportunity-projection.db"
     store = SQLiteSignalHistoryStore(database)
     expected_active_revisions = 0
@@ -319,9 +319,23 @@ def test_sqlite_active_published_projection_scales_on_disk_and_survives_reopen(t
         expected_active_revisions += 1
 
     reopened = SQLiteSignalHistoryStore(database)
+    deserialize_calls = 0
+    original_deserialize = SQLiteSignalHistoryStore._deserialize_signal
+
+    def count_deserialization(payload: str) -> Signal:
+        nonlocal deserialize_calls
+        deserialize_calls += 1
+        return original_deserialize(payload)
+
+    monkeypatch.setattr(
+        SQLiteSignalHistoryStore,
+        "_deserialize_signal",
+        staticmethod(count_deserialization),
+    )
     projected = reopened.latest_active_published_opportunities()
 
     assert len(projected) == expected_active_revisions
+    assert deserialize_calls == expected_active_revisions
     assert all(item.latest.signal.status is SignalStatus.ACTIVE for item in projected)
     assert all(
         item.publication.event in {"PUBLISHED", "PUBLISHED_VERSION"}
