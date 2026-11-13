@@ -574,30 +574,30 @@ class SignalLifecycleOrchestrator:
 
         def persist(transaction: SignalLifecycleTransaction) -> LifecycleCorrectionRebuildRecord:
             corrections = transaction.corrections(signal_id)
-            correction = next((item for item in corrections if item.correction_id == correction_id), None)
+            correction = next((candidate for candidate in corrections if candidate.correction_id == correction_id), None)
             if correction is None:
                 raise ValueError("correction identity does not exist")
             rebuilds = transaction.correction_rebuilds(signal_id)
-            existing = next((item for item in rebuilds if item.correction_id == correction_id), None)
+            existing = next((candidate for candidate in rebuilds if candidate.correction_id == correction_id), None)
             if existing is not None:
                 return existing
 
-            reviews = [item for item in transaction.correction_review_decisions(signal_id) if item.correction_id == correction_id]
+            reviews = [review_item for review_item in transaction.correction_review_decisions(signal_id) if review_item.correction_id == correction_id]
             if not reviews or reviews[-1].decision != "REPLAY_REQUIRED":
                 raise ValueError("correction must have a latest REPLAY_REQUIRED review before replay")
-            completed_ids = {item.correction_id for item in rebuilds}
+            completed_ids = {rebuild_item.correction_id for rebuild_item in rebuilds}
             latest_review_by_id: dict[UUID, LifecycleCorrectionReviewDecision] = {}
-            for item in transaction.correction_review_decisions(signal_id):
-                latest_review_by_id[item.correction_id] = item
-            for item in corrections:
-                if item.correction_id == correction_id:
+            for review_item in transaction.correction_review_decisions(signal_id):
+                latest_review_by_id[review_item.correction_id] = review_item
+            for correction_item in corrections:
+                if correction_item.correction_id == correction_id:
                     continue
-                decision = latest_review_by_id.get(item.correction_id)
-                if decision is None or (decision.decision == "REPLAY_REQUIRED" and item.correction_id not in completed_ids):
+                decision = latest_review_by_id.get(correction_item.correction_id)
+                if decision is None or (decision.decision == "REPLAY_REQUIRED" and correction_item.correction_id not in completed_ids):
                     raise ValueError("another unresolved correction blocks chronological replay")
 
             history = transaction.signal_history(signal_id)
-            publication = next((item for item in history if item.event in {"PUBLISHED", "PUBLISHED_VERSION"}), None)
+            publication = next((history_item for history_item in history if history_item.event in {"PUBLISHED", "PUBLISHED_VERSION"}), None)
             if publication is None:
                 raise ValueError("published opportunity baseline is missing")
             latest = transaction.latest_for_signal(signal_id)
@@ -611,13 +611,13 @@ class SignalLifecycleOrchestrator:
                 raise ValueError("rebuild timestamp cannot precede the current lifecycle history")
 
             observations = transaction.observations(signal_id)
-            if not any(item.bar.identity == correction.original_identity for item in observations):
+            if not any(observation_item.bar.identity == correction.original_identity for observation_item in observations):
                 raise ValueError("original observation for correction is missing")
             replaced_originals = {
-                item.original_identity for item in corrections
-                if item.correction_id in completed_ids or item.correction_id == correction_id
+                correction_item.original_identity for correction_item in corrections
+                if correction_item.correction_id in completed_ids or correction_item.correction_id == correction_id
             }
-            effective = [item for item in observations if item.bar.identity not in replaced_originals]
+            effective = [observation_item for observation_item in observations if observation_item.bar.identity not in replaced_originals]
             effective.append(LifecycleObservationRecord(
                 signal_id=signal_id,
                 bar=correction.corrected_bar,
@@ -626,12 +626,12 @@ class SignalLifecycleOrchestrator:
                 resulting_status=SignalStatus.ACTIVE,
             ))
             by_session: dict[datetime, LifecycleObservationRecord] = {}
-            for item in sorted(effective, key=lambda value: (value.bar.candle_at, value.bar.observed_at, value.bar.revision)):
-                previous = by_session.get(item.bar.candle_at)
-                if previous is not None and previous.bar.provider.strip().casefold() != item.bar.provider.strip().casefold():
+            for observation_item in sorted(effective, key=lambda value: (value.bar.candle_at, value.bar.observed_at, value.bar.revision)):
+                previous_observation = by_session.get(observation_item.bar.candle_at)
+                if previous_observation is not None and previous_observation.bar.provider.strip().casefold() != observation_item.bar.provider.strip().casefold():
                     raise ValueError("multiple providers exist for one replayed session; explicit source reconciliation is required")
-                if previous is None or item.bar.observed_at > previous.bar.observed_at:
-                    by_session[item.bar.candle_at] = item
+                if previous_observation is None or observation_item.bar.observed_at > previous_observation.bar.observed_at:
+                    by_session[observation_item.bar.candle_at] = observation_item
             ordered = tuple(by_session[key] for key in sorted(by_session))
             if not ordered:
                 raise ValueError("no completed daily observations are available for replay")
@@ -639,17 +639,17 @@ class SignalLifecycleOrchestrator:
             rebuilt = publication.signal
             trace: list[dict[str, str]] = []
             corrected_status: SignalStatus | None = None
-            for item in ordered:
-                rebuilt = transition_signal_from_completed_daily_bar(rebuilt, item.bar)
+            for ordered_observation in ordered:
+                rebuilt = transition_signal_from_completed_daily_bar(rebuilt, ordered_observation.bar)
                 trace.append({
-                    "provider": item.bar.identity[0],
-                    "symbol": item.bar.identity[1],
-                    "timeframe": item.bar.identity[2],
-                    "candle_at": item.bar.candle_at.isoformat(),
-                    "revision": item.bar.revision,
+                    "provider": ordered_observation.bar.identity[0],
+                    "symbol": ordered_observation.bar.identity[1],
+                    "timeframe": ordered_observation.bar.identity[2],
+                    "candle_at": ordered_observation.bar.candle_at.isoformat(),
+                    "revision": ordered_observation.bar.revision,
                     "resulting_status": rebuilt.status.value,
                 })
-                if item.bar.identity == correction.corrected_bar.identity:
+                if ordered_observation.bar.identity == correction.corrected_bar.identity:
                     corrected_status = rebuilt.status
             if corrected_status is None:
                 raise ValueError("corrected candle was not included in chronological replay")
