@@ -25,6 +25,12 @@ class SignalRecord:
     event: str
 
 
+@dataclass(frozen=True)
+class PublishedOpportunityRevision:
+    latest: SignalRecord
+    publication: SignalRecord
+
+
 class SignalHistoryStore(Protocol):
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord: ...
     def record_for_signal(
@@ -47,6 +53,7 @@ class SignalHistoryStore(Protocol):
         self, symbol: str, strategy_id: str, strategy_version: str, generated_at: datetime
     ) -> SignalRecord | None: ...
     def all_records(self) -> tuple[SignalRecord, ...]: ...
+    def latest_active_published_opportunities(self) -> tuple[PublishedOpportunityRevision, ...]: ...
 
 
 class InMemorySignalHistoryStore:
@@ -190,3 +197,23 @@ class InMemorySignalHistoryStore:
             for record in history
         ]
         return tuple(sorted(records, key=lambda record: (record.recorded_at, str(record.signal_id))))
+
+    def latest_active_published_opportunities(self) -> tuple[PublishedOpportunityRevision, ...]:
+        signal_ids = {record.signal_id for record in self.all_records()}
+        superseded_ids = {
+            link.parent_signal_id
+            for signal_id in signal_ids
+            if (link := self.revision_link(signal_id)) is not None
+        }
+        candidates: list[PublishedOpportunityRevision] = []
+        for signal_id in sorted(signal_ids - superseded_ids, key=str):
+            latest = self.get(signal_id)
+            if latest is None or latest.signal.status.value != "ACTIVE":
+                continue
+            publication = next(
+                (item for item in self.history(signal_id) if item.event in {"PUBLISHED", "PUBLISHED_VERSION"}),
+                None,
+            )
+            if publication is not None:
+                candidates.append(PublishedOpportunityRevision(latest=latest, publication=publication))
+        return tuple(candidates)
