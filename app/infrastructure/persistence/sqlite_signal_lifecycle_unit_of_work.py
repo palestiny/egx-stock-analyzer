@@ -498,19 +498,19 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         ).fetchone()
         if row is None:
             raise RuntimeError("Signal identity was not persisted")
-        signal_id = str(row[0])
+        resolved_signal_id = str(row[0])
         existing = self._connection.execute(
             """
             SELECT signal_json FROM signal_history
             WHERE signal_id = ? AND event = ? AND recorded_at = ?
             """,
-            (signal_id, event.strip(), recorded_at.isoformat()),
+            (resolved_signal_id, event.strip(), recorded_at.isoformat()),
         ).fetchone()
         if existing is not None:
             if str(existing[0]) != payload:
                 raise ValueError("different signal event already recorded")
             return SignalRecord(
-                signal_id=UUID(signal_id),
+                signal_id=UUID(resolved_signal_id),
                 signal=signal,
                 recorded_at=recorded_at,
                 event=event.strip(),
@@ -520,10 +520,10 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             INSERT INTO signal_history(signal_id, event, recorded_at, signal_json)
             VALUES (?, ?, ?, ?)
             """,
-            (signal_id, event.strip(), recorded_at.isoformat(), payload),
+            (resolved_signal_id, event.strip(), recorded_at.isoformat(), payload),
         )
         return SignalRecord(
-            signal_id=UUID(signal_id),
+            signal_id=UUID(resolved_signal_id),
             signal=signal,
             recorded_at=recorded_at,
             event=event.strip(),
