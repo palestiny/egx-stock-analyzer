@@ -349,3 +349,22 @@ focus on avoiding repeated full domain-object construction for projection
 filtering, while preserving the exact latest-state, revision-exclusion,
 publication-provenance, and ordering semantics. No implementation change is
 authorized by this diagnostic alone. Worker remains unwired and disabled.
+
+
+## 23. SQL-side terminal-state filtering benchmark — 2026-11-13
+
+The follow-up optimization moves the known-terminal-state exclusion into SQLite using the serialized `status` field. The query deliberately keeps ACTIVE rows and also keeps unknown, missing, or JSON-null status values in the candidate set so that domain deserialization still fails closed instead of silently hiding malformed or newly introduced states. Only the known terminal states (TRIGGERED, INVALIDATED, EXPIRED, CLOSED) are filtered before domain-object construction. The benchmark query mirrors the store query.
+
+Exact-head GitHub Actions run [#5757](https://github.com/palestiny/egx-stock-analyzer/actions/runs/43479263348) completed successfully on branch head `2577eca2370830d978f841275707cd2f731ad763`. All seven jobs passed. Python 3.12 unit tests: **1,862 passed, 8 deselected, 89.66% coverage** (85% minimum); lint, type-check, deterministic integration tests, frontend tests, dependency audit, daily-history audit, container build, and the on-disk benchmark passed. Benchmark artifact ID: `14065035961`.
+
+| Identities | Candidates after SQL filter | Active | SQLite fetch P50 | Deserialize/filter P50 | Warm P50 | Warm P95 | Concurrent-writer P50 |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 10,000 | 9,000 | 9,000 | 35.0 ms | 202.2 ms | 398.1 ms | 424.0 ms | 424.4 ms |
+| 50,000 | 45,000 | 45,000 | 229.5 ms | 1,012.9 ms | 2,954.4 ms | 3,193.5 ms | 2,855.4 ms |
+| 100,000 | 90,000 | 90,000 | 506.0 ms | 2,115.1 ms | 6,097.1 ms | 6,245.4 ms | 6,329.5 ms |
+
+The query plan scans the projection primary-key index, performs an indexed correlated lookup on `idx_signal_revision_parent`, and fetches latest/publication history rows by integer primary key. It no longer returns terminal latest-state identities to Python for domain-object construction. The stage diagnostic remains a separate-connection diagnostic, not an additive or exact decomposition of end-to-end latency.
+
+Compared with the immediately preceding materialized-pointer benchmark (Section 22's predecessor run), warm P50 improved by **18.6% at 10k, 7.5% at 50k, and 4.9% at 100k**. Compared with the original pre-materialized-pointer baseline (Section 18), it is **6.2% faster at 10k, 22.5% slower at 50k, and 6.4% slower at 100k**. Thus the SQL-side filter is a measurable improvement over the immediately preceding implementation, but it does not recover the baseline performance at realistic larger sizes. The benchmark is synthetic, on temporary on-disk SQLite, and its reopened-store query is not a physical cold-disk measurement.
+
+**Decision:** correctness and exact-head CI PASSED. Performance acceptance remains **NOT ACCEPTED**. Retain this SQL-side filter as a measured incremental reduction in candidate materialization, but do not claim the projection is performance-ready or enable the worker. The dominant remaining cost is still construction/deserialization of active domain objects (90% of identities in this fixture); the next investigation must avoid constructing full `Signal` objects merely to establish projection eligibility, while preserving fail-closed validation and all publication/revision semantics. No calendar activation, worker/monitoring activation, provider outreach, or merge is authorized.
