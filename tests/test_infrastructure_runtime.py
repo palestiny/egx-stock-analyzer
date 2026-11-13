@@ -602,7 +602,7 @@ def test_runtime_composes_empty_calendar_source_trust_registry_only_when_owner_i
             analysis_database_path=str(tmp_path / "analysis.db"),
             calendar_source_trust_owner_user_id=owner_id,
         ),
-        result_store=InMemoryAnalysisResultStore(),
+        result_store=SQLiteAnalysisResultStore(tmp_path / "analysis.db"),
         retry_policy=RetryPolicy(1),
     )
 
