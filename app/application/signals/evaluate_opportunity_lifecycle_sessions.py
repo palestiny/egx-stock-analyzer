@@ -199,6 +199,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="PROVIDER_EVIDENCE_REQUIRED",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "PROVIDER_EVIDENCE_REQUIRED",
@@ -217,6 +218,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="BAR_SESSION_DATE_MISMATCH",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "BAR_SESSION_DATE_MISMATCH",
@@ -236,6 +238,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="OBSERVATION_FROM_FUTURE",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "OBSERVATION_FROM_FUTURE",
@@ -251,6 +254,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="PROVIDER_FINALITY_NOT_VERIFIED",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "PROVIDER_FINALITY_NOT_VERIFIED",
@@ -268,6 +272,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="SESSION_CLOSE_EVIDENCE_INCOMPLETE",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "SESSION_CLOSE_EVIDENCE_INCOMPLETE",
@@ -331,6 +336,7 @@ class EvaluateOpportunityLifecycleSessions:
                     eligible_sessions=eligible_sessions,
                     calendar_version=active_calendar.version,
                     evaluated_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "EXPIRED" if expired is not None else "TERMINAL",
