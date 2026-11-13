@@ -44,6 +44,17 @@ class LifecycleCorrectionRecord:
 
 
 @dataclass(frozen=True)
+class LifecycleCorrectionReviewDecision:
+    decision_id: UUID
+    correction_id: UUID
+    signal_id: UUID
+    decision: str
+    reviewer_id: str
+    reason: str
+    recorded_at: datetime
+
+
+@dataclass(frozen=True)
 class LifecycleObservationRecord:
     signal_id: UUID
     bar: CompletedDailyBarObservation
@@ -70,6 +81,8 @@ class SignalLifecycleTransaction(Protocol):
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
     def record_correction(self, record: LifecycleCorrectionRecord) -> None: ...
     def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]: ...
+    def record_correction_review_decision(self, decision: LifecycleCorrectionReviewDecision) -> None: ...
+    def correction_review_decisions(self, signal_id: UUID) -> tuple[LifecycleCorrectionReviewDecision, ...]: ...
     def record_session_gap_event(self, event: LifecycleSessionGapEvent) -> None: ...
     def session_gap_events(self, signal_id: UUID) -> tuple[LifecycleSessionGapEvent, ...]: ...
 
@@ -86,6 +99,7 @@ class _InMemoryTransaction:
         track_record: TrackRecordStore,
         observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord],
         corrections: dict[UUID, LifecycleCorrectionRecord],
+        correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision],
         gap_events: dict[UUID, LifecycleSessionGapEvent],
     ) -> None:
         self._history = history
@@ -93,6 +107,7 @@ class _InMemoryTransaction:
         self._track_record = track_record
         self._observations = observations
         self._corrections = corrections
+        self._correction_decisions = correction_decisions
         self._gap_events = gap_events
 
     def latest(self, symbol: str) -> SignalRecord | None:
@@ -178,6 +193,33 @@ class _InMemoryTransaction:
             )
         )
 
+    def record_correction_review_decision(self, decision: LifecycleCorrectionReviewDecision) -> None:
+        if decision.correction_id not in self._corrections:
+            raise ValueError("correction review references a missing correction")
+        existing = self._correction_decisions.get(decision.decision_id)
+        if existing is not None:
+            if existing != decision:
+                raise ValueError("conflicting lifecycle correction review replay")
+            return
+        self._correction_decisions[decision.decision_id] = decision
+
+    def correction_review_decisions(self, signal_id: UUID) -> tuple[LifecycleCorrectionReviewDecision, ...]:
+        correction_ids = {
+            record.correction_id
+            for record in self._corrections.values()
+            if record.signal_id == signal_id
+        }
+        return tuple(
+            sorted(
+                (
+                    decision for decision in self._correction_decisions.values()
+                    if decision.signal_id == signal_id
+                    and decision.correction_id in correction_ids
+                ),
+                key=lambda decision: (decision.recorded_at, str(decision.decision_id)),
+            )
+        )
+
     def record_observation(self, record: LifecycleObservationRecord) -> None:
         identity = (record.signal_id, record.bar.identity)
         existing = self._observations.get(identity)
@@ -203,6 +245,7 @@ class InMemorySignalLifecycleUnitOfWork:
         self._lock = RLock()
         self._observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord] = {}
         self._corrections: dict[UUID, LifecycleCorrectionRecord] = {}
+        self._correction_decisions: dict[UUID, LifecycleCorrectionReviewDecision] = {}
         self._gap_events: dict[UUID, LifecycleSessionGapEvent] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
@@ -211,6 +254,7 @@ class InMemorySignalLifecycleUnitOfWork:
             snapshots = [deepcopy(store.__dict__) for store in stores]
             observation_snapshot = deepcopy(self._observations)
             correction_snapshot = deepcopy(self._corrections)
+            correction_decision_snapshot = deepcopy(self._correction_decisions)
             gap_snapshot = deepcopy(self._gap_events)
             try:
                 return operation(
@@ -218,6 +262,7 @@ class InMemorySignalLifecycleUnitOfWork:
                         self._history, self._alerts, self._track_record,
                         self._observations,
                         self._corrections,
+                        self._correction_decisions,
                         self._gap_events,
                     )
                 )
@@ -227,5 +272,6 @@ class InMemorySignalLifecycleUnitOfWork:
                     store.__dict__.update(snapshot)
                 self._observations = observation_snapshot
                 self._corrections = correction_snapshot
+                self._correction_decisions = correction_decision_snapshot
                 self._gap_events = gap_snapshot
                 raise
