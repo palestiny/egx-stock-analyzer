@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.application.analysis.result_store import InMemoryAnalysisResultStore
 from app.application.execution.retry import RetryPolicy
 from app.application.signals.calendar_backed_lifecycle_evaluation_schedule import (
     CalendarBackedLifecycleEvaluationSchedule,
@@ -64,7 +63,6 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
             analysis_database_path=str(database),
             calendar_source_trust_owner_user_id=owner_id,
         ),
-        result_store=InMemoryAnalysisResultStore(),
         retry_policy=RetryPolicy(1),
     )
 
