@@ -296,7 +296,7 @@ def test_lifecycle_session_recovery_does_not_advance_on_unverified_bar():
 def test_lifecycle_session_recovery_stops_after_target_transition():
     service, history, lifecycle, publication, alerts, track_record = build_service()
     sessions = expected_sessions()[:5]
-    bars = {session: make_bar(session) for session in sessions}
+    bars = {session: make_evidence(make_bar(session)) for session in sessions}
     bars[sessions[0]] = make_evidence(replace(
         bars[sessions[0]].bar,
         high=Decimal("121"),
