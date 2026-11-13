@@ -119,6 +119,8 @@ class SQLiteSessionOpportunityReportStore:
                     "outcome_observed_at": item.outcome_observed_at.isoformat() if item.outcome_observed_at else None,
                     "source_data_timestamp": item.source_data_timestamp.isoformat() if item.source_data_timestamp else None,
                     "outcome_data_timestamp": item.outcome_data_timestamp.isoformat() if item.outcome_data_timestamp else None,
+                    "outcome_event_id": str(item.outcome_event_id) if item.outcome_event_id else None,
+                    "outcome_recorded_at": item.outcome_recorded_at.isoformat() if item.outcome_recorded_at else None,
                 }
                 for item in report.opportunities
             ],
