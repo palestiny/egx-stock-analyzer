@@ -15,6 +15,13 @@ from app.application.signals.validate_lifecycle_calendar_activation import (
     LifecycleCalendarActivationValidation,
     ValidateLifecycleCalendarActivation,
 )
+from app.domain.identity.user import User, UserStatus
+from app.domain.market_data.calendar_evidence import (
+    CalendarArtifactRetention,
+    CalendarEvidence,
+    CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
+)
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXCalendarDay,
@@ -29,6 +36,12 @@ from app.domain.signals.model import (
     Target,
 )
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_calendar_evidence_repository import (
+    SQLiteCalendarEvidenceRepository,
+)
+from app.infrastructure.persistence.sqlite_calendar_publication_unit_of_work import (
+    SQLiteCalendarPublicationUnitOfWork,
+)
 from app.infrastructure.persistence.sqlite_lifecycle_calendar_activation_coordinator import (
     SQLiteLifecycleCalendarActivationCoordinator,
 )
@@ -44,6 +57,7 @@ from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import 
 from app.infrastructure.persistence.sqlite_track_record_store import (
     SQLiteTrackRecordStore,
 )
+from app.infrastructure.persistence.sqlite_user_store import SQLiteUserStore
 
 
 CAIRO = ZoneInfo("Africa/Cairo")
@@ -68,23 +82,51 @@ class StubValidator:
 
 
 def publish_calendar(repository, version, day):
+    session_date = date(2026, 11, day)
     calendar = EGXSessionCalendar(
         version=version,
         timezone="Africa/Cairo",
-        coverage_start=date(2026, 11, day),
-        coverage_end=date(2026, 11, day),
+        coverage_start=session_date,
+        coverage_end=session_date,
         days=(
             EGXCalendarDay(
-                session_date=date(2026, 11, day),
+                session_date=session_date,
                 status=CalendarDayStatus.SCHEDULED,
                 session_open=time(10),
                 session_close=time(14, 30),
             ),
         ),
     )
-    repository.publish(
+    actor = UUID("10000000-0000-0000-0000-000000000001")
+    database = repository._database_path
+    SQLiteUserStore(database).save(User(actor, UserStatus.ACTIVE))
+    evidence_repository = SQLiteCalendarEvidenceRepository(database)
+    evidence = CalendarEvidence.create(
+        calendar_version=version,
+        session_date=session_date,
+        evidence_kind=CalendarEvidenceKind.SCHEDULE,
+        source_type="OFFICIAL_EXCHANGE_NOTICE",
+        source_reference=f"https://example.invalid/calendar/{version}/{session_date.isoformat()}",
+        claim=f"EGX session scheduled on {session_date.isoformat()}",
+        recorded_by=actor,
+        observed_at=datetime(2026, 11, 1, 9, tzinfo=CAIRO),
+        recorded_at=datetime(2026, 11, 1, 10, tzinfo=CAIRO),
+        source_class=CalendarEvidenceSourceClass.A,
+        source_publisher="EGX",
+        market_scope="EGX_MARKET_WIDE",
+        effective_from=session_date,
+        effective_through=session_date,
+        retrieved_at=datetime(2026, 11, 1, 9, 30, tzinfo=CAIRO),
+        artifact_sha256="a" * 64,
+        artifact_retention=CalendarArtifactRetention.EXTERNAL_ONLY,
+        artifact_not_retained_reason="Fixture retains the official reference only",
+    )
+    SQLiteCalendarPublicationUnitOfWork(
+        repository, evidence_repository
+    ).publish(
         calendar,
-        published_by="operator",
+        (evidence,),
+        published_by=str(actor),
         source_reference=f"official-calendar-{version}",
         reason="atomic activation coordinator test",
         published_at=datetime(2026, 11, 1, tzinfo=CAIRO),
@@ -280,11 +322,13 @@ def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path
         calendar_store=calendar_repository,
         candidate_calendar_version="verified-v1",
     )
+    evidence_repository = SQLiteCalendarEvidenceRepository(database)
     validator = ValidateLifecycleCalendarActivation(
         history=history,
         calendar_store=calendar_repository,
         unit_of_work=unit_of_work,
         schedule=schedule,
+        evidence_store=evidence_repository,
     )
     coordinator = SQLiteLifecycleCalendarActivationCoordinator(
         calendar_repository=calendar_repository,
