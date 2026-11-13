@@ -1,6 +1,7 @@
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
@@ -9,6 +10,11 @@ from app.application.signals.evaluate_opportunity_lifecycle_sessions import (
     EvaluateOpportunityLifecycleSessions,
 )
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
+from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleBootstrapBatchRecord,
+    LifecycleBootstrapRecord,
+    InMemorySignalLifecycleUnitOfWork,
+)
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
@@ -132,13 +138,16 @@ def make_bar(session_date):
     )
 
 
-def build_service(*, rejected_dates=()):
+def build_service(*, rejected_dates=(), bootstrap=True):
     calendar_store = FakeCalendarStore(make_calendar())
     verifier = FakeFinalityVerifier(rejected_dates)
     history = InMemorySignalHistoryStore()
     alerts = InMemoryAlertPublisher()
     track_record = InMemoryTrackRecordStore()
-    lifecycle = SignalLifecycleOrchestrator(history, alerts, track_record)
+    unit_of_work = InMemorySignalLifecycleUnitOfWork(history, alerts, track_record)
+    lifecycle = SignalLifecycleOrchestrator(
+        history, alerts, track_record, unit_of_work=unit_of_work
+    )
     service = EvaluateOpportunityLifecycleSessions(
         calendar_store=calendar_store,
         finality_verifier=verifier,
@@ -147,6 +156,30 @@ def build_service(*, rejected_dates=()):
     )
     signal = make_signal()
     publication = history.record(signal, "PUBLISHED", signal.generated_at)
+    if bootstrap:
+        batch_id = uuid4()
+        batch = LifecycleBootstrapBatchRecord(
+            batch_id=batch_id,
+            calendar_version="calendar-v1",
+            operator_id="test-operator",
+            reason="test bootstrap",
+            recorded_at=datetime(2026, 10, 1, 9, tzinfo=CAIRO),
+            opportunity_count=1,
+            batch_digest="c" * 64,
+        )
+        record = LifecycleBootstrapRecord(
+            batch_id=batch_id,
+            signal_id=publication.signal_id,
+            baseline_date=publication.recorded_at.astimezone(CAIRO).date(),
+            publication_event=publication.event,
+            publication_recorded_at=publication.recorded_at,
+            operator_id="test-operator",
+            reason="test bootstrap",
+            calendar_version="calendar-v1",
+            recorded_at=batch.recorded_at,
+            idempotency_key=f"{publication.signal_id}:calendar-v1",
+        )
+        unit_of_work.execute(lambda transaction: transaction.record_bootstrap_batch(batch, (record,)))
     return service, history, lifecycle, publication, alerts, track_record
 
 
@@ -268,3 +301,40 @@ def test_lifecycle_session_recovery_stops_after_target_transition():
     assert history.get(publication.signal_id).signal.status is SignalStatus.TRIGGERED
     assert alerts.events[-1].event_type.value == "SIGNAL_TRIGGERED"
     assert track_record.all() == ()
+
+ 
+ 
+def test_lifecycle_evaluation_requires_a_publication_bootstrap_record():
+    service, history, lifecycle, publication, alerts, track_record = build_service(bootstrap=False)
+
+    result = service.execute(
+        publication.signal_id,
+        through_date=date(2026, 10, 5),
+        bars_by_session={},
+        evaluated_at=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.status == "LIFECYCLE_BOOTSTRAP_REQUIRED"
+    assert lifecycle.latest_completed_observation(publication.signal_id) is None
+
+
+def test_lifecycle_evaluation_rejects_parent_revision_after_newer_revision_exists():
+    service, history, lifecycle, publication, alerts, track_record = build_service()
+    revised = replace(make_signal(), confidence=Decimal("85"))
+    history.record_revision(
+        revised,
+        "PUBLISHED_VERSION",
+        datetime(2026, 10, 2, 11, tzinfo=CAIRO),
+        parent_signal_id=publication.signal_id,
+        reason="material opportunity revision",
+    )
+
+    result = service.execute(
+        publication.signal_id,
+        through_date=date(2026, 10, 5),
+        bars_by_session={},
+        evaluated_at=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.status == "NOT_LATEST_OPPORTUNITY_REVISION"
+    assert lifecycle.latest_completed_observation(publication.signal_id) is None
