@@ -16,7 +16,9 @@ class SQLiteLifecycleOccurrenceClaimStore:
     """Durable, fenced claims for lifecycle calendar/session/opportunity occurrences."""
 
     def __init__(self, database_path: str | Path) -> None:
-        self._database_path = str(Path(database_path).resolve())
+        path = Path(database_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._database_path = str(path.resolve())
         self._initialize()
 
     @staticmethod
