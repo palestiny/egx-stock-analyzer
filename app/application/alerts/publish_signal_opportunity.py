@@ -43,7 +43,12 @@ class PublishSignalOpportunity:
             raise ValueError("recorded_at must be timezone-aware")
 
         snapshot = snapshot_signal(signal)
-        latest = self._history.latest(signal.symbol)
+        latest = self._history.latest_for_identity(
+            signal.symbol,
+            signal.strategy_id,
+            signal.strategy_version,
+            signal.generated_at,
+        )
         same_identity = (
             latest is not None
             and latest.signal.strategy_id == signal.strategy_id
