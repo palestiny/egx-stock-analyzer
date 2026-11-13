@@ -6,6 +6,11 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from app.application.market_data.session_calendar_store import SessionCalendarStore
+from app.domain.market_data.calendar_evidence import (
+    CalendarEvidence,
+    CalendarEvidenceKind,
+    CalendarEvidenceSourceClass,
+)
 from app.application.signals.lifecycle_unit_of_work import (
     LifecycleObservationRecord,
     SignalLifecycleTransaction,
@@ -18,6 +23,14 @@ from app.domain.signals.model import SignalStatus
 
 CAIRO = ZoneInfo("Africa/Cairo")
 _PUBLICATION_EVENTS = frozenset({"PUBLISHED", "PUBLISHED_VERSION"})
+
+
+class CalendarActivationEvidenceStore(Protocol):
+    """Returns hash-verified evidence explicitly linked to a calendar day."""
+
+    def list_for_calendar_day(
+        self, calendar_version: str, session_date: date
+    ) -> tuple[CalendarEvidence, ...]: ...
 
 
 class LifecycleEvaluationSchedule(Protocol):
@@ -59,11 +72,13 @@ class ValidateLifecycleCalendarActivation:
         calendar_store: SessionCalendarStore,
         unit_of_work: SignalLifecycleUnitOfWork,
         schedule: LifecycleEvaluationSchedule,
+        evidence_store: CalendarActivationEvidenceStore,
     ) -> None:
         self._history = history
         self._calendar_store = calendar_store
         self._unit_of_work = unit_of_work
         self._schedule = schedule
+        self._evidence_store = evidence_store
 
     def execute(
         self,
@@ -106,6 +121,72 @@ class ValidateLifecycleCalendarActivation:
             )
 
         calendar = stored.calendar
+        for day in calendar.days:
+            required_kinds = {
+                CalendarDayStatus.NON_TRADING: {CalendarEvidenceKind.CLOSURE},
+                CalendarDayStatus.CANCELLED: {CalendarEvidenceKind.CANCELLATION},
+                CalendarDayStatus.SCHEDULED: {CalendarEvidenceKind.SCHEDULE},
+                CalendarDayStatus.OPEN: {
+                    CalendarEvidenceKind.SCHEDULE,
+                    CalendarEvidenceKind.OPEN_CONFIRMATION,
+                },
+                CalendarDayStatus.CLOSED: {
+                    CalendarEvidenceKind.SCHEDULE,
+                    CalendarEvidenceKind.CLOSE_CONFIRMATION,
+                },
+            }[day.status]
+            if day.exceptional_hours:
+                required_kinds = required_kinds | {CalendarEvidenceKind.EXCEPTIONAL_HOURS}
+            linked_evidence = self._evidence_store.list_for_calendar_day(
+                calendar_version, day.session_date
+            )
+            superseded_ids = {
+                item.supersedes_evidence_id
+                for item in linked_evidence
+                if item.supersedes_evidence_id is not None
+            }
+            current_evidence = tuple(
+                item for item in linked_evidence
+                if item.evidence_id not in superseded_ids
+            )
+            for kind in required_kinds:
+                kind_evidence = tuple(
+                    item for item in current_evidence if item.evidence_kind is kind
+                )
+                if not kind_evidence:
+                    blockers.append(CalendarActivationBlocker(
+                        "CALENDAR_DAY_EVIDENCE_MISSING", None,
+                        f"{day.session_date.isoformat()} lacks linked {kind.value} evidence",
+                    ))
+                    continue
+                if len({item.claim for item in kind_evidence}) > 1:
+                    blockers.append(CalendarActivationBlocker(
+                        "CALENDAR_DAY_EVIDENCE_CONFLICT", None,
+                        f"{day.session_date.isoformat()} has conflicting unsuperseded {kind.value} claims",
+                    ))
+                if not any(
+                    item.source_class is CalendarEvidenceSourceClass.A
+                    and item.source_publisher == "EGX"
+                    and item.market_scope == "EGX_MARKET_WIDE"
+                    and item.effective_from is not None
+                    and item.effective_through is not None
+                    and item.effective_from <= day.session_date <= item.effective_through
+                    for item in kind_evidence
+                ):
+                    blockers.append(CalendarActivationBlocker(
+                        "CALENDAR_DAY_PRIMARY_EVIDENCE_MISSING", None,
+                        f"{day.session_date.isoformat()} lacks Class A EGX-wide primary {kind.value} evidence",
+                    ))
+            if (
+                CalendarEvidenceKind.EXCEPTIONAL_HOURS in {
+                    item.evidence_kind for item in current_evidence
+                }
+                and not day.exceptional_hours
+            ):
+                blockers.append(CalendarActivationBlocker(
+                    "CALENDAR_EXCEPTIONAL_HOURS_EVIDENCE_INVALID", None,
+                    f"{day.session_date.isoformat()} has exceptional-hours evidence without an explicit calendar marker",
+                ))
         if (
             stored.version != calendar_version
             or calendar.version != calendar_version
