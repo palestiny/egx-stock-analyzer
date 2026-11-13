@@ -9,6 +9,15 @@ from app.domain.signals.model import Signal
 
 
 @dataclass(frozen=True)
+class SignalRevisionLink:
+    signal_id: UUID
+    parent_signal_id: UUID
+    revision_number: int
+    reason: str
+    recorded_at: datetime
+
+
+@dataclass(frozen=True)
 class SignalRecord:
     signal_id: UUID
     signal: Signal
@@ -18,6 +27,19 @@ class SignalRecord:
 
 class SignalHistoryStore(Protocol):
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord: ...
+    def record_for_signal(
+        self, signal_id: UUID, signal: Signal, event: str, recorded_at: datetime
+    ) -> SignalRecord: ...
+    def record_revision(
+        self,
+        signal: Signal,
+        event: str,
+        recorded_at: datetime,
+        *,
+        parent_signal_id: UUID,
+        reason: str,
+    ) -> SignalRecord: ...
+    def revision_link(self, signal_id: UUID) -> SignalRevisionLink | None: ...
     def get(self, signal_id: UUID) -> SignalRecord | None: ...
     def history(self, signal_id: UUID) -> tuple[SignalRecord, ...]: ...
     def latest(self, symbol: str) -> SignalRecord | None: ...
@@ -29,6 +51,7 @@ class InMemorySignalHistoryStore:
         self._records: dict[UUID, list[SignalRecord]] = {}
         self._by_symbol: dict[str, UUID] = {}
         self._by_identity: dict[tuple[str, str, str, datetime], UUID] = {}
+        self._revision_links: dict[UUID, SignalRevisionLink] = {}
 
     def record(self, signal: Signal, event: str, recorded_at: datetime) -> SignalRecord:
         if not event.strip():
@@ -43,6 +66,48 @@ class InMemorySignalHistoryStore:
         record = SignalRecord(signal_id, signal, recorded_at, event)
         self._records.setdefault(signal_id, []).append(record)
         return record
+
+    def record_for_signal(
+        self, signal_id: UUID, signal: Signal, event: str, recorded_at: datetime
+    ) -> SignalRecord:
+        if self.get(signal_id) is None:
+            raise ValueError("signal identity does not exist")
+        if not event.strip():
+            raise ValueError("event is required")
+        record = SignalRecord(signal_id, signal, recorded_at, event.strip())
+        self._records.setdefault(signal_id, []).append(record)
+        self._by_symbol[signal.symbol.strip().upper()] = signal_id
+        return record
+
+    def record_revision(
+        self,
+        signal: Signal,
+        event: str,
+        recorded_at: datetime,
+        *,
+        parent_signal_id: UUID,
+        reason: str,
+    ) -> SignalRecord:
+        parent = self.get(parent_signal_id)
+        if parent is None:
+            raise ValueError("parent signal identity does not exist")
+        if parent.signal.status.value != "ACTIVE":
+            raise ValueError("terminal opportunities cannot be revised")
+        if not reason.strip():
+            raise ValueError("revision reason is required")
+        parent_link = self._revision_links.get(parent_signal_id)
+        revision_number = (parent_link.revision_number if parent_link else 1) + 1
+        signal_id = uuid4()
+        self._revision_links[signal_id] = SignalRevisionLink(
+            signal_id, parent_signal_id, revision_number, reason.strip(), recorded_at
+        )
+        record = SignalRecord(signal_id, signal, recorded_at, event.strip())
+        self._records[signal_id] = [record]
+        self._by_symbol[signal.symbol.strip().upper()] = signal_id
+        return record
+
+    def revision_link(self, signal_id: UUID) -> SignalRevisionLink | None:
+        return self._revision_links.get(signal_id)
 
     def get(self, signal_id: UUID) -> SignalRecord | None:
         records = self._records.get(signal_id, [])
