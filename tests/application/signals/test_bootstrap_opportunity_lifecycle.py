@@ -9,7 +9,10 @@ from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.market_data.session_calendar_store import StoredCalendarVersion
 from app.application.signals.bootstrap_opportunity_lifecycle import BootstrapOpportunityLifecycle
 from app.application.signals.lifecycle_unit_of_work import InMemorySignalLifecycleUnitOfWork
-from app.application.signals.store import InMemorySignalHistoryStore
+from app.application.signals.store import (
+    InMemorySignalHistoryStore,
+    SignalPublicationRecord,
+)
 from app.application.signals.track_record import InMemoryTrackRecordStore
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
@@ -268,6 +271,7 @@ def test_sqlite_active_published_projection_is_deterministic_across_revisions_an
     expected = history.latest_active_published_opportunities()
     assert len(expected) == 1
     assert expected[0].latest.signal_id == child.signal_id
+    assert isinstance(expected[0].publication, SignalPublicationRecord)
     assert expected[0].publication.signal_id == child.signal_id
     assert expected[0].publication.event == "PUBLISHED_VERSION"
 
