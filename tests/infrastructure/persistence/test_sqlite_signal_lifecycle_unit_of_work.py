@@ -927,7 +927,9 @@ def test_bootstrap_batch_is_idempotent_and_survives_sqlite_restart(tmp_path):
     record = make_bootstrap_records(published.signal_id, batch_id)
 
     unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
-    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(batch, (record,)))
+    retry_batch = replace(batch, recorded_at=datetime(2026, 10, 4, 11, tzinfo=timezone.utc))
+    retry_record = replace(record, recorded_at=retry_batch.recorded_at)
+    unit_of_work.execute(lambda tx: tx.record_bootstrap_batch(retry_batch, (retry_record,)))
 
     reopened, _, _, _ = make_unit_of_work(database)
     assert reopened.execute(lambda tx: tx.bootstrap_records(published.signal_id)) == (record,)
