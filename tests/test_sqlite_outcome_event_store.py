@@ -73,3 +73,13 @@ def test_sqlite_batched_outcomes_as_of_reads_multiple_signals_and_corrections(tm
         second.signal_id: second,
     }
     assert store.outcomes_as_of([], cutoff=now[0]) == {}
+
+
+def test_sqlite_batched_outcome_lookup_requires_timezone_aware_cutoff(tmp_path):
+    import pytest
+
+    store = SQLiteOutcomeEventStore(tmp_path / "outcomes.db")
+    naive_cutoff = dt.datetime(2026, 10, 15, 12)
+
+    with pytest.raises(ValueError, match="cutoff must be timezone-aware"):
+        store.outcomes_as_of([], cutoff=naive_cutoff)
