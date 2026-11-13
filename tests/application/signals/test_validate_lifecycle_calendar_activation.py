@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -114,11 +115,11 @@ def setup(*, bootstrap=True, next_date=date(2026, 10, 6), bootstrap_next_date=No
         history=history, calendar_store=calendar_store,
         unit_of_work=uow, schedule=schedule,
     )
-    return validator, schedule, publication, uow
+    return validator, schedule, publication, uow, history
 
 
 def test_calendar_activation_validation_accepts_complete_bootstrap_and_explicit_coverage():
-    validator, schedule, _, _ = setup()
+    validator, schedule, _, _, _ = setup()
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -130,7 +131,7 @@ def test_calendar_activation_validation_accepts_complete_bootstrap_and_explicit_
 
 
 def test_calendar_activation_validation_rejects_missing_bootstrap():
-    validator, _, _, _ = setup(bootstrap=False)
+    validator, _, _, _, _ = setup(bootstrap=False)
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -140,7 +141,7 @@ def test_calendar_activation_validation_rejects_missing_bootstrap():
 
 
 def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
-    validator, _, _, _ = setup(end=date(2026, 10, 5), bootstrap_next_date=date(2026, 10, 5))
+    validator, _, _, _, _ = setup(end=date(2026, 10, 5), bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -150,7 +151,7 @@ def test_calendar_activation_validation_rejects_incomplete_candidate_coverage():
 
 
 def test_calendar_activation_validation_rejects_non_trading_next_evaluation_date():
-    validator, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING, bootstrap_next_date=date(2026, 10, 5))
+    validator, _, _, _, _ = setup(next_status=CalendarDayStatus.NON_TRADING, bootstrap_next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -172,7 +173,7 @@ def test_calendar_activation_validation_fails_closed_without_trusted_schedule_da
 
 
 def test_calendar_activation_validation_rejects_schedule_date_not_after_today():
-    validator, schedule, _, _ = setup(next_date=date(2026, 10, 5))
+    validator, schedule, _, _, _ = setup(next_date=date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
         as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
@@ -214,7 +215,7 @@ def record_cursor(uow, publication, session_date):
 
 
 def test_calendar_activation_validation_requires_reconciled_cursor_to_be_closed():
-    validator, _, publication, uow = setup()
+    validator, _, publication, uow, _ = setup()
     record_cursor(uow, publication, date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -225,7 +226,7 @@ def test_calendar_activation_validation_requires_reconciled_cursor_to_be_closed(
 
 
 def test_calendar_activation_validation_accepts_closed_reconciled_cursor():
-    validator, _, publication, uow = setup(closed_dates={date(2026, 10, 5)})
+    validator, _, publication, uow, _ = setup(closed_dates={date(2026, 10, 5)})
     record_cursor(uow, publication, date(2026, 10, 5))
     result = validator.execute(
         calendar_version="calendar-v1",
@@ -249,3 +250,21 @@ def test_rollback_candidate_is_revalidated_against_latest_reconciled_cursor():
     )
     assert result.eligible is True
     assert result.checked_opportunity_count == 1
+
+
+
+def test_calendar_activation_validation_allows_no_active_opportunities():
+    validator, _, publication, _, history = setup()
+    history.record_for_signal(
+        publication.signal_id,
+        replace(publication.signal, status=SignalStatus.COMPLETED),
+        "COMPLETED",
+        datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    result = validator.execute(
+        calendar_version="calendar-v1",
+        as_of=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+    assert result.eligible is True
+    assert result.checked_opportunity_count == 0
+    assert result.blockers == ()
