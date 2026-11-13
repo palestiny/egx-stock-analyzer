@@ -379,3 +379,10 @@ The projection contract now separates the full latest opportunity state from the
 - No persisted schema or historical event data changes. The projection continues to use the existing publication-history pointer and latest-history pointer; publication identity, timestamp, event, latest ACTIVE validation, superseded-parent exclusion, deterministic ordering, and bootstrap revalidation remain intact.
 
 **Verification status:** implementation and regression-test changes are committed on this branch. Exact-head CI and the new 10k/50k/100k on-disk benchmark have not yet been verified for this change. Performance acceptance remains **NOT ACCEPTED** until exact-head correctness checks and benchmark artifacts are reviewed against Section 23. The worker remains unwired and disabled. No calendar activation, provider outreach, market-data changes, or merge is authorized.
+## 25. Publication provenance parity regression — 2026-11-13
+
+- Added an InMemory-store regression assertion that the latest active child revision carries its own `PUBLISHED_VERSION` publication identity, event, and exact Cairo-aware `recorded_at` value in the lightweight `SignalPublicationRecord`.
+- Added a SQLite projection assertion for the same publication timestamp, alongside the existing exact-one-full-Signal-deserialization assertion after reopening the on-disk database.
+- These checks cover the metadata contract required by bootstrap without materializing the publication Signal JSON. They do not establish runtime performance.
+- Latest code commits: `d02d0dae8db77294ca8a5459ac56f76cddf1781b` and `9e9be0434eb7ee8e640452a998b4a9f45bd489f9`. Exact-head CI and the refreshed 10k/50k/100k benchmark remain unverified; do not infer success from earlier workflow runs.
+- Performance acceptance remains **NOT ACCEPTED**. Scheduled worker, monitoring, calendar activation, provider outreach, and merge remain prohibited under the existing owner constraints.
