@@ -383,3 +383,35 @@ def test_completed_daily_bar_rejects_out_of_order_and_conflicting_same_identity(
     assert replay is not None and replay.changed is False
     with pytest.raises(ValueError, match="out-of-order"):
         orchestrator.process_completed_daily_bar(published.signal_id, make_completed_bar(candle_day=3), calendar_version="calendar-v1")
+
+
+def test_same_completed_bar_can_be_evaluated_for_multiple_opportunities_on_one_symbol():
+    from dataclasses import replace
+
+    history = InMemorySignalHistoryStore()
+    alerts = InMemoryAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    first_signal = make_signal()
+    second_signal = replace(
+        make_signal(),
+        strategy_id="range-breakout",
+        targets=(Target(Decimal("120"), "T1"),),
+    )
+    first = history.record(first_signal, "PUBLISHED", first_signal.generated_at)
+    second = history.record(second_signal, "PUBLISHED", second_signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    bar = make_completed_bar(high="109", low="98")
+
+    first_result = orchestrator.process_completed_daily_bar(
+        first.signal_id, bar, calendar_version="calendar-v1"
+    )
+    second_result = orchestrator.process_completed_daily_bar(
+        second.signal_id, bar, calendar_version="calendar-v1"
+    )
+
+    assert first_result is not None
+    assert first_result.signal.status is SignalStatus.TRIGGERED
+    assert second_result is not None
+    assert second_result.signal.status is SignalStatus.ACTIVE
+    assert len(alerts.events) == 1
+    assert outcomes.all() == ()
