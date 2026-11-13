@@ -298,6 +298,7 @@ class EvaluateOpportunityLifecycleSessions:
                 policy_version=self.POLICY_VERSION,
                 calendar_version=active_calendar.version,
                 resolved_gap_session_date=session_date,
+                provider_evidence=evidence,
                 resolved_gap_at=evaluated_at,
             )
             if last_result is None:
