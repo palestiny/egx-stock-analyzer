@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Callable, Protocol
+from typing import Callable, Iterable, Protocol
 from uuid import UUID, uuid4
 
 from app.domain.signals.outcome import SignalOutcomeRecord
@@ -43,7 +43,7 @@ class OutcomeEventStore(Protocol):
     ) -> OutcomeEvent | None: ...
 
     def outcomes_as_of(
-        self, signal_ids, *, cutoff: datetime
+        self, signal_ids: Iterable[UUID], *, cutoff: datetime
     ) -> dict[UUID, OutcomeEvent]: ...
 
     def events_for(self, signal_id: UUID) -> tuple[OutcomeEvent, ...]: ...
