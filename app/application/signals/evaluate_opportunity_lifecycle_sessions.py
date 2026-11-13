@@ -13,6 +13,7 @@ from app.application.signals.lifecycle_orchestrator import (
     SignalLifecycleResult,
 )
 from app.application.signals.store import SignalHistoryStore
+from app.application.signals.lifecycle_unit_of_work import SignalLifecycleTransaction
 from app.domain.market_data.session_calendar import CalendarCoverageError
 from app.domain.signals.model import SignalStatus
 
@@ -57,6 +58,7 @@ class EvaluateOpportunityLifecycleSessions:
         through_date: date,
         bars_by_session: Mapping[date, ProviderDailyBarEvidence],
         evaluated_at: datetime,
+        transaction: SignalLifecycleTransaction | None = None,
     ) -> OpportunitySessionEvaluation:
         if evaluated_at.tzinfo is None or evaluated_at.utcoffset() is None:
             raise ValueError("evaluated_at must be timezone-aware")
@@ -95,7 +97,7 @@ class EvaluateOpportunityLifecycleSessions:
         bootstrap = next(
             (
                 record
-                for record in self._lifecycle.bootstrap_records(signal_id)
+                for record in self._lifecycle.bootstrap_records(signal_id, transaction=transaction)
                 if record.calendar_version == active_calendar.version
             ),
             None,
@@ -133,7 +135,7 @@ class EvaluateOpportunityLifecycleSessions:
                 "NO_NEW_COMPLETED_SESSIONS", active_calendar.version
             )
 
-        cursor = self._lifecycle.latest_completed_observation(signal_id)
+        cursor = self._lifecycle.latest_completed_observation(signal_id, transaction=transaction)
         cursor_date = (
             cursor.bar.candle_at.astimezone(timezone).date()
             if cursor is not None
@@ -160,6 +162,7 @@ class EvaluateOpportunityLifecycleSessions:
                 eligible_sessions=tuple(sessions[: self.EXPIRY_SESSIONS]),
                 calendar_version=active_calendar.version,
                 evaluated_at=evaluated_at,
+                transaction=transaction,
             )
             return OpportunitySessionEvaluation(
                 "EXPIRED" if expired is not None else "TERMINAL",
@@ -179,6 +182,7 @@ class EvaluateOpportunityLifecycleSessions:
                     calendar_version=active_calendar.version,
                     reason="MISSING_ELIGIBLE_BAR",
                     detected_at=evaluated_at,
+                    transaction=transaction,
                 )
                 return OpportunitySessionEvaluation(
                     "STALE_SESSION_DATA_GAP",
@@ -300,6 +304,7 @@ class EvaluateOpportunityLifecycleSessions:
                 resolved_gap_session_date=session_date,
                 provider_evidence=evidence,
                 resolved_gap_at=evaluated_at,
+                transaction=transaction,
             )
             if last_result is None:
                 return OpportunitySessionEvaluation(
