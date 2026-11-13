@@ -9,13 +9,14 @@ from app.application.alerts.get_user_opportunity_notifications import (
 )
 from app.application.alerts.outbox import AlertOutbox
 from app.application.alerts.telegram_delivery_store import SignalAlertDeliveryStore
-from app.application.signals.store import SignalHistoryStore, SignalRecord
+from app.application.signals.store import SignalHistoryStore, SignalRecord, SignalRevisionLink
 
 
 @dataclass(frozen=True)
 class UserOpportunityLifecycleHistory:
     notification: UserOpportunityNotification
     history: tuple[SignalRecord, ...]
+    revision_link: SignalRevisionLink | None
 
     @property
     def current_status(self) -> str:
@@ -77,6 +78,7 @@ class GetUserOpportunityLifecycleHistory:
                     delivery=delivery,
                 ),
                 history=records,
+                revision_link=self._history.revision_link(signal_id),
             )
             existing = items.get(signal_id)
             if (
