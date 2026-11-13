@@ -1,7 +1,7 @@
 # EGX Session Calendar Activation — Design Gate
 
-**Status:** GAP — activation policy is not approved; HTTP activation remains intentionally unavailable  
-**Reviewed:** 2026-11-09  
+**Status:** GAP — bootstrap policy approved (Option 3); cursor contract and activation implementation remain open; HTTP activation remains intentionally unavailable  
+**Reviewed:** 2026-11-13  
 **Related decisions:** DEC-135, DEC-138, DEC-139  
 **Scope:** Preconditions for activating, deactivating, or rolling back an immutable EGX session-calendar version.
 
@@ -29,7 +29,11 @@ Activating a syntactically valid calendar without proving that it covers the dat
 | Full calendar year | Require the candidate to cover the whole calendar year. | Easy to reason about, but can reject valid rolling updates and still does not establish the correct recovery cursor. |
 | Cursor-derived horizon | Require explicit coverage from the durable evaluation cursor through the next scheduled evaluation date. | Matches DEC-139 recovery semantics and avoids an arbitrary day count; requires a durable cursor and an explicit bootstrap rule. |
 
-### Recommendation — proposed, not approved
+### Approved coverage rule — cursor-derived horizon
+
+The owner approved the cursor-derived horizon. The candidate calendar must cover every explicit date after the durable evaluation cursor through the next scheduled evaluation date, without gaps. A previously active calendar version is not automatically safe for rollback; revalidate it against the current cursor.
+
+### Recommendation — approved
 
 Use a cursor-derived horizon rather than a hard-coded 30-day or full-year rule:
 
@@ -41,15 +45,30 @@ Use a cursor-derived horizon rather than a hard-coded 30-day or full-year rule:
 
 This rule ties coverage to the work the runtime must perform. It deliberately does not prescribe a fixed forward buffer.
 
-## 4. Bootstrap decision still required
+## 4. Approved bootstrap decision — Option 3
 
-The cursor-derived rule cannot be used for the first activation until the system has a durable cursor. The owner must select one explicit bootstrap policy:
+**Owner decision (2026-11-13): No activation until a durable cursor exists.** The owner explicitly rejected implicit activation from the machine's current date and unbounded calendar-start backfill.
 
-- **Operator-supplied start date:** the operator supplies the first date from which the system must reconcile; the candidate must cover that date through the next scheduled evaluation.
-- **Calendar-start bootstrap:** the system begins from the candidate's coverage_start; this may create a large historical reconciliation and requires a separately approved initial backfill limit.
-- **No activation until a cursor exists:** activation remains blocked until a controlled bootstrap process writes the first durable cursor.
+Consequences:
 
-Do not silently choose a start date from the machine's current date or assume that all prior dates are irrelevant.
+- Calendar activation remains blocked until a controlled bootstrap process has created the required durable lifecycle evaluation cursor(s).
+- A cursor must have an explicit, auditable provenance and be persisted; an in-memory value, a scheduler timestamp, or the mere existence of an active calendar is not a cursor.
+- Bootstrap must not silently skip prior eligible sessions, declare them reconciled, or imply provider finality. Calendar activation and cursor creation do not attest that market bars are final.
+- Bootstrap must be idempotent, restart-safe, attributable to an individually authenticated operator or approved system principal, and fail closed on missing calendar/source evidence.
+- No date may be inferred from the host clock, weekends, holidays, or a guessed provider availability window.
+
+**Important implementation gap:** the evaluator currently derives its per-opportunity cursor from the latest persisted completed-bar observation and otherwise starts from the immutable publication date. The repository does not yet expose a separate audited bootstrap-cursor record. Before activation can be implemented, the cursor's exact semantics and persistence boundary must be designed so that a bootstrap marker cannot be mistaken for a completed market observation or cause expiry/session counts to skip eligible sessions.
+
+### Required bootstrap design before implementation
+
+1. Define whether the durable cursor is per opportunity (recommended because lifecycle progress is opportunity-specific) and how immutable revisions inherit or reset it.
+2. Define the cursor's semantic position: last fully reconciled eligible session, or an explicit pre-first-session baseline. Never conflate the two.
+3. Define how the bootstrap process proves that every eligible session between the opportunity's lifecycle start and the cursor is reconciled, including how provider-finality failures and missing bars block cursor advancement.
+4. Persist cursor state and append-only bootstrap audit evidence atomically; repeated bootstrap with the same inputs must be idempotent, and conflicting inputs must be rejected or require a new explicit review event.
+5. Make activation validate that every active opportunity has a valid cursor and that the candidate calendar covers the cursor-derived horizon through the next scheduled evaluation date.
+6. Keep activation, scheduled execution, and monitoring disabled until provider finality and the remaining deployment/E2E gates also pass.
+
+No implementation should create a synthetic completed-bar observation, mark old sessions as reconciled without evidence, or use a guessed date to satisfy the activation gate.
 
 ## 5. Activation transaction and API prerequisites
 
@@ -69,7 +88,7 @@ Before adding activation endpoints, implement and test:
 - Candidate containing explicit NON_TRADING, SCHEDULED, OPEN, CLOSED, and CANCELLED records is interpreted according to status; no status is inferred from weekday.
 - A CLOSED date without timezone-aware closed_at, or with confirmation before the configured close, is rejected by the domain model.
 - A rollback target that was previously active but no longer covers the current cursor-derived horizon is rejected.
-- Initial activation is rejected until the approved bootstrap policy is satisfied.
+- Initial activation is rejected until a controlled, durable, audited bootstrap cursor exists for every in-scope active opportunity.
 - Failed activation and rollback preserve the prior active pointer and append no misleading success event.
 - Concurrent activation attempts serialize; the final pointer and audit events remain consistent.
 - Actor identity comes from the authenticated principal, and non-operators receive 403. The publication API test verifies that blank subjects are rejected and client-supplied actor values are forbidden.
@@ -81,7 +100,7 @@ Before adding activation endpoints, implement and test:
 - Immutable calendar persistence, content-hash verification on reads and before activation/rollback, active pointer, and append-only audit-event primitives are implemented. A regression test proves a corrupt version cannot be activated.
 - Authenticated publication and read endpoints merged in PR #467. They derive the actor from the active individual operator principal; the shared legacy operator identity is rejected.
 - No real EGX calendar version is published or active.
-- No durable lifecycle evaluation cursor or scheduler is connected to the calendar.
+- The evaluator derives a per-opportunity cursor from the latest persisted completed-bar observation and otherwise starts from publication date; a separate durable audited bootstrap-cursor record is not implemented. No scheduler is connected to the calendar.
 - Provider finality attestation and per-day source evidence remain open.
 
-**Gate result: do not expose activation/deactivation/rollback over HTTP until the bootstrap and cursor-derived coverage policy are approved and the required persistence/recovery tests pass.**
+**Gate result: Option 3 and cursor-derived coverage are owner-approved. Do not expose activation/deactivation/rollback over HTTP until the separate durable bootstrap-cursor contract is implemented, its persistence/recovery tests pass, and all provider/calendar/deployment gates are satisfied.**
