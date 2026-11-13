@@ -103,8 +103,41 @@ The current per-opportunity evaluator and lifecycle Unit of Work should be reuse
 2. **Worker deployment model:** choose the deployment scheduler/hosting mechanism only after the durable occurrence contract is accepted. The current in-process scheduler is not sufficient.
 3. **Operational retry window:** approve retry/backoff and alerting thresholds after provider rate limits and service-level expectations are known.
 
-## 10. Current result
+## 10. Synthetic query-plan and latency probe — 2026-11-13
 
-**DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is a provider-specific source adapter, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, realistic-volume query-plan/latency verification for the new active-opportunity projection, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
+A reproducible-in-session SQLite probe executed the exact SQL shape used by
+`latest_active_published_opportunities()` against synthetic in-memory databases.
+It used the same relevant indexes: `idx_signal_history_timeline(signal_id, id)`
+and `idx_signal_revision_parent(parent_signal_id)`.
+
+| Synthetic scale | History rows | Opportunity identities | SQL result rows | Median query time |
+|---|---:|---:|---:|---:|
+| Baseline | 155,000 | 55,000 (5,000 superseded parents) | 50,000 | 199.4 ms |
+| Larger | 310,000 | 110,000 (10,000 superseded parents) | 100,000 | 416.6 ms |
+
+The larger-scale run's maximum across five executions was 424.3 ms. The baseline
+median is from seven executions. These are SQL fetch timings only: they exclude
+application deserialization, status filtering, filesystem I/O, concurrent writers,
+and cold-start effects. The databases were in-memory and generated for this probe;
+this is not a production-volume acceptance benchmark and must not be used as a
+production latency SLO.
+
+`EXPLAIN QUERY PLAN` confirmed:
+- `idx_signal_history_timeline` is used as a covering index for latest-history
+  aggregation and for publication lookup by signal identity.
+- `idx_signal_revision_parent` is used as a covering index for superseded-parent
+  exclusion.
+- Primary-key rowid lookups are used for latest and publication rows.
+- SQLite creates a temporary B-tree for the final `ORDER BY`.
+
+The probe confirms intended index selection at these synthetic scales, but the
+temporary sort and the post-query Python ACTIVE-state filter remain measurable
+costs. Before worker-scale adoption, add an automated on-disk benchmark with
+repeatable data generation, warm/cold runs, P50/P95, concurrent reader/writer
+pressure, and application deserialization included.
+
+## 11. Current result
+
+**DESIGN COMPLETE / WORKER NOT WIRED / NOT ACTIVATED.** Existing per-opportunity evaluation, lifecycle persistence, correction/replay, append-only bootstrap, cursor-derived calendar validation, and the provider-neutral SQLite activation coordinator are implemented on PR #515. The remaining worker-specific engineering is a provider-specific source adapter, production finality verifier, durable occurrence/claim store with lease fencing and restart recovery, runtime composition, outbox dispatch orchestration, operational observability, automated on-disk query-plan/latency acceptance benchmark for the active-opportunity projection, and multi-opportunity/concurrency/restart E2E tests. Calendar activation remains unavailable operationally: no real origin/evidence is approved, and provider finality/deployment validation remain blockers. Worker stays disabled.
 
 **External-contact boundary:** no provider outreach, quote request, account request, or credential request is authorized. EGID remains a research candidate only. M61/backtesting remains paused.
