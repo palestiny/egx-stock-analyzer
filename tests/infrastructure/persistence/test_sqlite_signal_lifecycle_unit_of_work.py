@@ -632,6 +632,92 @@ def test_sqlite_session_gap_events_are_durable_and_append_only(tmp_path):
         connection.close()
 
 
+def test_sqlite_correction_rebuild_is_durable_append_only_and_resumes_lifecycle(tmp_path):
+    import sqlite3
+
+    database = tmp_path / "correction-rebuild.db"
+    unit_of_work, history, track_record, outbox = make_unit_of_work(database)
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", GENERATED)
+    orchestrator = SignalLifecycleOrchestrator(history, outbox, track_record, unit_of_work=unit_of_work)
+    original = make_completed_bar(high="109")
+    triggered = orchestrator.process_completed_daily_bar(
+        published.signal_id, original, calendar_version="calendar-v1"
+    )
+    assert triggered is not None and triggered.signal.status is SignalStatus.TRIGGERED
+
+    corrected = replace(
+        original,
+        revision="r2",
+        source_reference=original.source_reference + "/revision-2",
+        finality_attestation="provider-finality-v2",
+        high=Decimal("105"),
+        observed_at=original.observed_at + timedelta(hours=1),
+    )
+    correction = orchestrator.record_daily_bar_correction(
+        published.signal_id,
+        original_identity=original.identity,
+        corrected_bar=corrected,
+        operator_id="operator-1",
+        reason="Provider corrected the high",
+        calendar_version="calendar-v1",
+        recorded_at=corrected.observed_at,
+    )
+    orchestrator.record_daily_bar_correction_review(
+        published.signal_id,
+        correction.correction_id,
+        decision="REPLAY_REQUIRED",
+        reviewer_id="reviewer-1",
+        reason="Corrected evidence changes the prior trigger",
+        recorded_at=corrected.observed_at + timedelta(minutes=1),
+    )
+    rebuild = orchestrator.rebuild_daily_bar_correction(
+        published.signal_id,
+        correction.correction_id,
+        operator_id="operator-1",
+        recorded_at=corrected.observed_at + timedelta(minutes=2),
+    )
+    assert rebuild.previous_status is SignalStatus.TRIGGERED
+    assert rebuild.resulting_status is SignalStatus.ACTIVE
+    assert rebuild.operator_id == "operator-1"
+    assert rebuild.superseded_event_id is not None
+    assert rebuild.correction_event_id is None
+    assert outbox.get(rebuild.superseded_event_id).status.value == "SUPERSEDED"
+
+    reopened_history = SQLiteSignalHistoryStore(database)
+    reopened_track = SQLiteTrackRecordStore(database)
+    reopened_outbox = SQLiteAlertOutbox(database)
+    reopened_uow = SQLiteSignalLifecycleUnitOfWork(reopened_history, reopened_track, reopened_outbox)
+    reopened = SignalLifecycleOrchestrator(
+        reopened_history, reopened_outbox, reopened_track, unit_of_work=reopened_uow
+    )
+    persisted = reopened.lifecycle_correction_rebuilds(published.signal_id)
+    assert persisted == (rebuild,)
+    assert reopened.latest_completed_observation(published.signal_id).bar.revision == "r2"
+    assert reopened_history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
+
+    later = replace(
+        original,
+        candle_at=datetime(2026, 10, 5, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 10, 5, 16, tzinfo=timezone.utc),
+        source_reference="https://provider.example/COMI/2026-10-05",
+    )
+    next_result = reopened.process_completed_daily_bar(
+        published.signal_id, later, calendar_version="calendar-v1"
+    )
+    assert next_result is not None and next_result.signal.status is SignalStatus.TRIGGERED
+
+    connection = sqlite3.connect(str(database))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
+            connection.execute(
+                "DELETE FROM signal_lifecycle_correction_rebuilds WHERE correction_id = ?",
+                (str(correction.correction_id),),
+            )
+    finally:
+        connection.close()
+
+
 def test_sqlite_correction_review_is_durable_append_only_and_gates_lifecycle(tmp_path):
     import sqlite3
 
