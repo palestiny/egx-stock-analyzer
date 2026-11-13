@@ -238,13 +238,6 @@ class EvaluateOpportunityLifecycleSessions:
                     last_result,
                 )
 
-            self._lifecycle.resolve_session_gap(
-                signal_id,
-                session_date=session_date,
-                calendar_version=active_calendar.version,
-                reason="ELIGIBLE_BAR_RECONCILED",
-                resolved_at=evaluated_at,
-            )
             last_result = self._lifecycle.process_completed_daily_bar(
                 signal_id,
                 bar,
@@ -258,6 +251,13 @@ class EvaluateOpportunityLifecycleSessions:
                     tuple(processed),
                     session_date,
                 )
+            self._lifecycle.resolve_session_gap(
+                signal_id,
+                session_date=session_date,
+                calendar_version=active_calendar.version,
+                reason="ELIGIBLE_BAR_RECONCILED",
+                resolved_at=evaluated_at,
+            )
             processed.append(session_date)
 
             if last_result.signal.status is not SignalStatus.ACTIVE:
