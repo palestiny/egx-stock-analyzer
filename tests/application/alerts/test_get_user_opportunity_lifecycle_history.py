@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -54,11 +54,6 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
     other_user_id = uuid4()
     signal = make_signal()
     published = history.record(signal, "PUBLISHED", signal.generated_at)
-    history.record(
-        replace(signal, status=SignalStatus.TRIGGERED),
-        "STATUS_TRIGGERED",
-        NOW,
-    )
     revised_signal = replace(
         signal,
         evidence=(SignalEvidence("trend", "revised trend evidence"),),
@@ -71,10 +66,16 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
         reason="Material evidence change",
     )
     history.record_for_signal(
+        published.signal_id,
+        replace(signal, status=SignalStatus.TRIGGERED),
+        "STATUS_TRIGGERED",
+        NOW + timedelta(minutes=2),
+    )
+    history.record_for_signal(
         revision.signal_id,
         replace(revised_signal, status=SignalStatus.TRIGGERED),
         "STATUS_TRIGGERED",
-        NOW + timedelta(minutes=2),
+        NOW + timedelta(minutes=3),
     )
 
     published_event_id = uuid4()
