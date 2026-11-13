@@ -198,6 +198,8 @@ class SQLiteOutcomeEventStore:
     def outcomes_as_of(
         self, signal_ids: Iterable[UUID], *, cutoff: datetime
     ) -> dict[UUID, OutcomeEvent]:
+        if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+            raise ValueError("cutoff must be timezone-aware")
         unique_signal_ids = tuple(dict.fromkeys(signal_ids))
         if not unique_signal_ids:
             return {}
