@@ -23,7 +23,7 @@ from app.domain.signals.model import (
     SignalStatus,
     Target,
 )
-from app.infrastructure.persistence.lifecycle_test_stores import InMemoryTrackRecordStore
+from app.application.signals.track_record import InMemoryTrackRecordStore
 
 
 CAIRO = ZoneInfo("Africa/Cairo")
