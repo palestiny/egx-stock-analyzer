@@ -21,7 +21,7 @@ def test_lifecycle_projection_benchmark_seeds_and_measures_disk_database(tmp_pat
     assert result["warm"]["p50_ms"] > 0
     assert result["under_concurrent_writer"]["p50_ms"] > 0
     assert any(
-        "idx_signal_history_timeline" in item
+        "signal_opportunity_projection" in item
         for item in result["query_plan"]
     )
     assert any(
