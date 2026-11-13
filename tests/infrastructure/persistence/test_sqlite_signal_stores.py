@@ -226,6 +226,7 @@ def test_sqlite_signal_history_creates_linked_immutable_revision(tmp_path) -> No
     assert store.history(original.signal_id) == (original,)
     assert store.history(revision.signal_id) == (revision,)
     assert store.latest("COMI") == revision
+    assert store.latest_for_identity("COMI", "breakout-trend", "1.0", NOW) == revision
 
     triggered = Signal(**{**revised_signal.__dict__, "status": SignalStatus.TRIGGERED})
     status_record = store.record_for_signal(
