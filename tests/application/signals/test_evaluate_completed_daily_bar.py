@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from types import SimpleNamespace
@@ -181,5 +182,38 @@ def test_daily_bar_rejects_future_observation_timestamp():
         evaluated_at=datetime(2026, 10, 4, 15, 30, tzinfo=CAIRO),
     )
     assert result.reason == "OBSERVATION_FROM_FUTURE"
+    assert verifier.calls == 0
+    assert lifecycle.calls == []
+
+
+def test_daily_bar_must_be_retrieved_after_the_post_close_buffer():
+    service, verifier, lifecycle = evaluator(active=make_calendar())
+    bar = replace(
+        make_bar(),
+        observed_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
+    )
+    result = service.execute(
+        uuid4(),
+        bar,
+        evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
+    )
+    assert result.reason == "POST_CLOSE_BUFFER_NOT_ELAPSED"
+    assert verifier.calls == 0
+    assert lifecycle.calls == []
+
+
+def test_daily_bar_outside_active_calendar_coverage_is_suppressed():
+    service, verifier, lifecycle = evaluator(active=make_calendar())
+    bar = replace(
+        make_bar(),
+        candle_at=datetime(2026, 10, 5, 14, 30, tzinfo=CAIRO),
+        observed_at=datetime(2026, 10, 5, 16, 0, tzinfo=CAIRO),
+    )
+    result = service.execute(
+        uuid4(),
+        bar,
+        evaluated_at=datetime(2026, 10, 5, 16, 0, tzinfo=CAIRO),
+    )
+    assert result.reason == "SESSION_OUTSIDE_CALENDAR_COVERAGE"
     assert verifier.calls == 0
     assert lifecycle.calls == []
