@@ -210,11 +210,11 @@ def test_report_uses_outcome_recorded_at_and_preserves_event_provenance() -> Non
     history = InMemorySignalHistoryStore()
     track = InMemoryTrackRecordStore()
     signal = make_signal()
-    history.record(signal, "PUBLISHED", dt(9))
+    published = history.record(signal, "PUBLISHED", dt(9))
     clock = [dt(11)]
     events = InMemoryOutcomeEventStore(clock=lambda: clock[0])
     outcome = SignalOutcomeRecord(
-        signal_id=signal.id,
+        signal_id=published.signal_id,
         symbol="EGAL",
         outcome=SignalOutcome.INVALIDATED,
         direction=SignalDirection.BUY,
