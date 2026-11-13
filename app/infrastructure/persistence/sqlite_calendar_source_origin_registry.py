@@ -100,6 +100,15 @@ class SQLiteCalendarSourceOriginRegistry:
             raise ValueError("Class A-R origin approval is restricted to FRA regulatory scope")
         with self._connect() as connection:
             self._require_active_owner_credential(connection, owner)
+            latest = connection.execute(
+                "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
+                (canonical_origin,),
+            ).fetchone()
+            if latest is not None:
+                if latest[0] == "APPROVE":
+                    raise ValueError("Origin is already approved; revoke it before creating a new approval")
+                if timestamp < datetime.fromisoformat(latest[1]):
+                    raise ValueError("Origin approval time cannot precede the latest trust event")
             connection.execute(
                 """
                 INSERT INTO egx_calendar_source_origin_events (
@@ -146,6 +155,12 @@ class SQLiteCalendarSourceOriginRegistry:
         timestamp = timestamp.astimezone(timezone.utc)
         with self._connect() as connection:
             self._require_active_owner_credential(connection, owner)
+            latest_event = connection.execute(
+                "SELECT action, occurred_at FROM egx_calendar_source_origin_events WHERE origin = ? ORDER BY event_id DESC LIMIT 1",
+                (canonical_origin,),
+            ).fetchone()
+            if latest_event is not None and timestamp < datetime.fromisoformat(latest_event[1]):
+                raise ValueError("Origin revocation time cannot precede the latest trust event")
             current = connection.execute(
                 """
                 SELECT publisher, source_class, market_scope, trust_basis
