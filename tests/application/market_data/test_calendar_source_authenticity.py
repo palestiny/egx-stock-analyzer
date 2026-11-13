@@ -265,6 +265,35 @@ def test_uploader_cannot_self_verify_and_claim_review_must_be_exact():
 
 
 
+
+def test_independent_reviewer_can_record_a_rejected_claim_with_reason():
+    evidence = _evidence()
+    verifier, records = _verifier()
+    with pytest.raises(
+        CalendarSourceAuthenticityError,
+        match="reason is required",
+    ):
+        verifier.verify_for_activation(
+            evidence,
+            uploader=_identity(UPLOADER_ID, UPLOADER_CREDENTIAL),
+            verifier=_identity(REVIEWER_ID, REVIEWER_CREDENTIAL),
+            reviewed_claim=evidence.claim,
+            claim_supported=False,
+            at=NOW,
+        )
+
+    rejected = verifier.verify_for_activation(
+        evidence,
+        uploader=_identity(UPLOADER_ID, UPLOADER_CREDENTIAL),
+        verifier=_identity(REVIEWER_ID, REVIEWER_CREDENTIAL),
+        reviewed_claim=evidence.claim,
+        claim_supported=False,
+        review_reason="The source bytes do not support the stated calendar claim",
+        at=NOW,
+    )
+    assert rejected.decision.value == "REJECTED"
+    assert records.latest(evidence.evidence_id) == rejected
+
 def test_verification_record_must_match_the_evidence_exact_origin():
     evidence = _evidence()
     verifier, _ = _verifier()
