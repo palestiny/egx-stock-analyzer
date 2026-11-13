@@ -223,3 +223,73 @@ def test_evaluator_denies_expired_or_revoked_explicit_grant_without_plan(tmp_pat
 
     assert decision.allowed is False
     assert decision.reason == "no_eligible_plan"
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        SubscriptionStatus.PENDING,
+        SubscriptionStatus.PAST_DUE,
+        SubscriptionStatus.CANCELLED,
+        SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.REFUNDED,
+    ],
+)
+def test_evaluator_denies_every_non_active_subscription_status(tmp_path, status) -> None:
+    store = SQLiteSubscriptionStore(tmp_path / "subscriptions.db")
+    store.save_plan(plan("plus"))
+    user_id = uuid4()
+    store.create(
+        subscription(user_id, status=status),
+        actor="operator",
+        reason="Non-active entitlement regression fixture",
+    )
+    evaluator = EntitlementEvaluator(store)
+
+    decision = evaluator.evaluate(
+        user_id,
+        "telegram_opportunities",
+        now=NOW + timedelta(days=1),
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "no_eligible_plan"
+
+
+@pytest.mark.parametrize(
+    ("starts_at", "expires_at"),
+    [
+        (NOW + timedelta(seconds=1), NOW + timedelta(days=30)),
+        (NOW - timedelta(days=30), NOW),
+    ],
+)
+def test_evaluator_denies_active_subscription_outside_inclusive_start_exclusive_expiry(
+    tmp_path,
+    starts_at,
+    expires_at,
+) -> None:
+    store = SQLiteSubscriptionStore(tmp_path / "subscriptions.db")
+    store.save_plan(plan("plus"))
+    user_id = uuid4()
+    active = Subscription(
+        subscription_id=uuid4(),
+        user_id=user_id,
+        plan_id="plus",
+        plan_version=1,
+        status=SubscriptionStatus.ACTIVE,
+        created_at=NOW,
+        starts_at=starts_at,
+        expires_at=expires_at,
+        updated_at=NOW,
+    )
+    store.create(active, actor="operator", reason="Boundary entitlement fixture")
+    evaluator = EntitlementEvaluator(store)
+
+    decision = evaluator.evaluate(
+        user_id,
+        "telegram_opportunities",
+        now=NOW,
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "no_eligible_plan"
