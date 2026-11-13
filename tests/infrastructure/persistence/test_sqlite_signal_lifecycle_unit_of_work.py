@@ -32,6 +32,7 @@ from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutb
 from app.infrastructure.notifications.sqlite_signal_alert_delivery_store import SQLiteSignalAlertDeliveryStore
 from app.infrastructure.persistence.sqlite_connection import connect_sqlite
 from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_outcome_event_store import SQLiteOutcomeEventStore
 from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
     SQLiteSignalLifecycleUnitOfWork,
 )
@@ -115,6 +116,10 @@ def test_lifecycle_unit_of_work_commits_history_outcome_and_outbox_together(tmp_
     assert len(history.history(signal_id)) == 2
     assert track_record.get(signal_id) is not None
     assert outbox.get(event_id) is not None
+    outcome_events = SQLiteOutcomeEventStore(database).events_for(signal_id)
+    assert len(outcome_events) == 1
+    assert outcome_events[0].kind.value == "OUTCOME_RECORDED"
+    assert outcome_events[0].recorded_at > OBSERVED
 
 
 def test_lifecycle_unit_of_work_rolls_back_all_writes_on_failure(tmp_path):
@@ -162,6 +167,10 @@ def test_lifecycle_unit_of_work_rolls_back_all_writes_on_failure(tmp_path):
     assert history.all_records() == ()
     assert track_record.all() == ()
     assert outbox.pending() == ()
+    with sqlite3.connect(tmp_path / "analysis.db") as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM signal_outcome_events"
+        ).fetchone()[0] == 0
 
 
 def test_lifecycle_unit_of_work_requires_all_stores_to_share_database(tmp_path):
