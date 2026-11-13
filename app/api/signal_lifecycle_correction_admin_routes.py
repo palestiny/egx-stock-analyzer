@@ -20,7 +20,6 @@ class CorrectionReviewPayload(BaseModel):
 
     decision: Literal["REJECTED", "ACCEPTED_NO_STATE_CHANGE", "REPLAY_REQUIRED"]
     reason: str = Field(min_length=1, max_length=1000)
-    recorded_at: datetime | None = None
 
 
 def _correction_payload(record: LifecycleCorrectionRecord) -> dict[str, object]:
@@ -125,11 +124,8 @@ def create_signal_lifecycle_correction_admin_router(
         reason = payload.reason.strip()
         if not reason:
             raise HTTPException(status_code=422, detail="review reason is required")
-        recorded_at = payload.recorded_at or datetime.now(timezone.utc)
-        if recorded_at.tzinfo is None or recorded_at.utcoffset() is None:
-            raise HTTPException(
-                status_code=422, detail="recorded_at must be timezone-aware"
-            )
+        # Audit time is assigned by the server; clients cannot backdate review events.
+        recorded_at = datetime.now(timezone.utc)
         reviewer_id = identity.subject.strip()
         if not reviewer_id:
             raise HTTPException(status_code=403, detail="Attributable operator identity required")
