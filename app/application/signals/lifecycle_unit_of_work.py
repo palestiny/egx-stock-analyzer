@@ -19,6 +19,17 @@ T = TypeVar("T")
 
 
 @dataclass(frozen=True)
+class LifecycleCorrectionRecord:
+    correction_id: UUID
+    signal_id: UUID
+    original_identity: tuple[str, str, str, datetime, str]
+    corrected_bar: CompletedDailyBarObservation
+    operator_id: str
+    reason: str
+    recorded_at: datetime
+
+
+@dataclass(frozen=True)
 class LifecycleObservationRecord:
     signal_id: UUID
     bar: CompletedDailyBarObservation
@@ -40,6 +51,8 @@ class SignalLifecycleTransaction(Protocol):
     ) -> LifecycleObservationRecord | None: ...
     def latest_observation(self, signal_id: UUID) -> LifecycleObservationRecord | None: ...
     def record_observation(self, record: LifecycleObservationRecord) -> None: ...
+    def record_correction(self, record: LifecycleCorrectionRecord) -> None: ...
+    def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]: ...
 
 
 class SignalLifecycleUnitOfWork(Protocol):
@@ -53,11 +66,13 @@ class _InMemoryTransaction:
         alerts: AlertPublisher,
         track_record: TrackRecordStore,
         observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord],
+        corrections: dict[UUID, LifecycleCorrectionRecord],
     ) -> None:
         self._history = history
         self._alerts = alerts
         self._track_record = track_record
         self._observations = observations
+        self._corrections = corrections
 
     def latest(self, symbol: str) -> SignalRecord | None:
         return self._history.latest(symbol)
@@ -90,6 +105,25 @@ class _InMemoryTransaction:
             default=None,
         )
 
+    def record_correction(self, record: LifecycleCorrectionRecord) -> None:
+        existing = self._corrections.get(record.correction_id)
+        if existing is not None:
+            if existing != record:
+                raise ValueError("conflicting lifecycle correction replay")
+            return
+        self._corrections[record.correction_id] = record
+
+    def corrections(self, signal_id: UUID) -> tuple[LifecycleCorrectionRecord, ...]:
+        return tuple(
+            sorted(
+                (
+                    record for record in self._corrections.values()
+                    if record.signal_id == signal_id
+                ),
+                key=lambda record: (record.recorded_at, str(record.correction_id)),
+            )
+        )
+
     def record_observation(self, record: LifecycleObservationRecord) -> None:
         identity = (record.signal_id, record.bar.identity)
         existing = self._observations.get(identity)
@@ -114,17 +148,20 @@ class InMemorySignalLifecycleUnitOfWork:
         self._track_record = track_record
         self._lock = RLock()
         self._observations: dict[tuple[UUID, tuple[str, str, str, datetime, str]], LifecycleObservationRecord] = {}
+        self._corrections: dict[UUID, LifecycleCorrectionRecord] = {}
 
     def execute(self, operation: Callable[[SignalLifecycleTransaction], T]) -> T:
         with self._lock:
             stores = (self._history, self._alerts, self._track_record)
             snapshots = [deepcopy(store.__dict__) for store in stores]
             observation_snapshot = deepcopy(self._observations)
+            correction_snapshot = deepcopy(self._corrections)
             try:
                 return operation(
                     _InMemoryTransaction(
                         self._history, self._alerts, self._track_record,
                         self._observations,
+                        self._corrections,
                     )
                 )
             except Exception:
@@ -132,4 +169,5 @@ class InMemorySignalLifecycleUnitOfWork:
                     store.__dict__.clear()
                     store.__dict__.update(snapshot)
                 self._observations = observation_snapshot
+                self._corrections = correction_snapshot
                 raise
