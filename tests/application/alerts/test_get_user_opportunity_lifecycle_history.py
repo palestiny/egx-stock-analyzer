@@ -59,6 +59,23 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
         "STATUS_TRIGGERED",
         NOW,
     )
+    revised_signal = replace(
+        signal,
+        evidence=(SignalEvidence("trend", "revised trend evidence"),),
+    )
+    revision = history.record_revision(
+        revised_signal,
+        "PUBLISHED_VERSION",
+        NOW + timedelta(minutes=1),
+        parent_signal_id=published.signal_id,
+        reason="Material evidence change",
+    )
+    history.record_for_signal(
+        revision.signal_id,
+        replace(revised_signal, status=SignalStatus.TRIGGERED),
+        "STATUS_TRIGGERED",
+        NOW + timedelta(minutes=2),
+    )
 
     published_event_id = uuid4()
     outbox.publish(
@@ -73,6 +90,21 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
     )
     deliveries.create_pending(
         published_event_id, user_id, "telegram", now=signal.generated_at
+    )
+
+    revision_event_id = uuid4()
+    outbox.publish(
+        AlertEvent(
+            event_id=revision_event_id,
+            signal_id=revision.signal_id,
+            symbol="COMI",
+            event_type=AlertEventType.SIGNAL_PUBLISHED,
+            occurred_at=NOW + timedelta(minutes=1),
+            message="COMI opportunity revised",
+        )
+    )
+    deliveries.create_pending(
+        revision_event_id, user_id, "telegram", now=NOW + timedelta(minutes=1)
     )
 
     unrelated_event_id = uuid4()
@@ -97,18 +129,30 @@ def test_user_gets_lifecycle_history_for_their_published_opportunity_only(tmp_pa
     user_items = query.execute(user_id)
     other_items = query.execute(other_user_id)
 
-    assert len(user_items) == 1
-    assert user_items[0].notification.event.event.event_type is AlertEventType.SIGNAL_PUBLISHED
-    assert user_items[0].current_status == "TRIGGERED"
-    assert [record.event for record in user_items[0].history] == [
+    assert len(user_items) == 2
+    original_item = next(
+        item for item in user_items
+        if item.notification.event.event.signal_id == published.signal_id
+    )
+    revision_item = next(
+        item for item in user_items
+        if item.notification.event.event.signal_id == revision.signal_id
+    )
+    assert original_item.notification.event.event.event_type is AlertEventType.SIGNAL_PUBLISHED
+    assert original_item.current_status == "TRIGGERED"
+    assert [record.event for record in original_item.history] == [
         "PUBLISHED",
         "STATUS_TRIGGERED",
     ]
+    assert revision_item.current_status == "TRIGGERED"
+    assert revision_item.revision_link is not None
+    assert revision_item.revision_link.parent_signal_id == published.signal_id
     assert other_items == ()
-    response = UserOpportunityLifecycleHistoryResponse.from_item(user_items[0])
+    response = UserOpportunityLifecycleHistoryResponse.from_item(revision_item)
     assert response["current_status"] == "TRIGGERED"
+    assert response["revision"]["parent_signal_id"] == str(published.signal_id)
     assert [item["event"] for item in response["lifecycle_history"]] == [
-        "PUBLISHED",
+        "PUBLISHED_VERSION",
         "STATUS_TRIGGERED",
     ]
 
