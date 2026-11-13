@@ -39,8 +39,8 @@ class FakeLifecycle:
     def __init__(self):
         self.calls = []
 
-    def process_completed_daily_bar(self, bar, *, policy_version):
-        self.calls.append((bar, policy_version))
+    def process_completed_daily_bar(self, bar, *, policy_version, calendar_version):
+        self.calls.append((bar, policy_version, calendar_version))
         return SimpleNamespace(changed=False)
 
 
@@ -162,7 +162,7 @@ def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     assert result.reason == "EVALUATED"
     assert result.calendar_version == "calendar-v1"
     assert verifier.calls == 1
-    assert lifecycle.calls == [(bar, "dec139-completed-daily-bar-v1")]
+    assert lifecycle.calls == [(bar, "dec139-completed-daily-bar-v1", "calendar-v1")]
 
 
 def test_daily_bar_rejects_future_observation_timestamp():
