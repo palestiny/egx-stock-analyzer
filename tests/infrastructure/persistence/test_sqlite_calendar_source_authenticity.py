@@ -32,6 +32,7 @@ from app.infrastructure.persistence.sqlite_calendar_source_origin_registry impor
     SQLiteCalendarSourceOriginRegistry,
 )
 from app.infrastructure.persistence.sqlite_credential_store import SQLiteCredentialStore
+from app.infrastructure.persistence.sqlite_operator_access_store import SQLiteOperatorAccessStore
 from app.infrastructure.persistence.sqlite_session_calendar_repository import (
     SQLiteSessionCalendarRepository,
 )
@@ -60,6 +61,14 @@ def _database(tmp_path):
     users.save(User(actor_ids[1], UserStatus.ACTIVE))
     service = CredentialService(credentials)
     creds = [service.provision(actor_ids[0]), service.provision(actor_ids[1])]
+    operator_access = SQLiteOperatorAccessStore(path)
+    operator_access.bootstrap_first_operator(actor_ids[0], reason="test owner bootstrap")
+    operator_access.grant(
+        actor_ids[1],
+        actor_user_id=actor_ids[0],
+        actor_credential_id=creds[0].id,
+        reason="test independent reviewer",
+    )
     evidence = CalendarEvidence.create(
         calendar_version="auth-v1",
         session_date=date(2026, 11, 13),
