@@ -232,6 +232,37 @@ def test_unpublished_active_signal_is_not_bootstrapped():
 
  
  
+
+def test_sqlite_active_published_projection_is_deterministic_across_revisions_and_restart(tmp_path):
+    database = tmp_path / "history.db"
+    history = SQLiteSignalHistoryStore(database)
+    parent = history.record(
+        make_signal(),
+        "PUBLISHED",
+        datetime(2026, 10, 2, 10, tzinfo=CAIRO),
+    )
+    child = history.record_revision(
+        replace(make_signal(), confidence=Decimal("85")),
+        "PUBLISHED_VERSION",
+        datetime(2026, 10, 5, 11, tzinfo=CAIRO),
+        parent_signal_id=parent.signal_id,
+        reason="material setup revision",
+    )
+    history.record(
+        make_signal("EGAL"),
+        "CREATED",
+        datetime(2026, 10, 3, 10, tzinfo=CAIRO),
+    )
+
+    expected = history.latest_active_published_opportunities()
+    assert len(expected) == 1
+    assert expected[0].latest.signal_id == child.signal_id
+    assert expected[0].publication.signal_id == child.signal_id
+    assert expected[0].publication.event == "PUBLISHED_VERSION"
+
+    reopened = SQLiteSignalHistoryStore(database)
+    assert reopened.latest_active_published_opportunities() == expected
+
 def test_bootstrap_application_persists_through_sqlite_restart(tmp_path):
     database = tmp_path / "analysis.db"
     history = SQLiteSignalHistoryStore(database)
