@@ -107,6 +107,10 @@ class EvaluateOpportunityLifecycleSessions:
             if cursor is not None
             else None
         )
+        if cursor_date is not None and cursor_date > through_date:
+            return OpportunitySessionEvaluation(
+                "NO_NEW_COMPLETED_SESSIONS", active_calendar.version
+            )
         if cursor_date is not None and cursor_date not in sessions:
             return OpportunitySessionEvaluation(
                 "CURSOR_NOT_IN_ACTIVE_CALENDAR", active_calendar.version
