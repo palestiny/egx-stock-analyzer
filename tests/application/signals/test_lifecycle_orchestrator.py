@@ -464,3 +464,37 @@ def test_opportunity_cannot_expire_before_twenty_eligible_sessions():
             calendar_version="calendar-v1",
             evaluated_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
         )
+
+
+def test_gap_resolution_rolls_back_when_alert_publication_fails():
+    class FailingAlertPublisher(InMemoryAlertPublisher):
+        def publish(self, event):
+            raise RuntimeError("simulated outbox failure")
+
+    history = InMemorySignalHistoryStore()
+    alerts = FailingAlertPublisher()
+    outcomes = InMemoryTrackRecordStore()
+    signal = make_signal()
+    published = history.record(signal, "PUBLISHED", signal.generated_at)
+    orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
+    bar = make_completed_bar(high="109")
+
+    gap = orchestrator.mark_session_gap(
+        published.signal_id,
+        session_date=bar.candle_at.date(),
+        calendar_version="calendar-v1",
+        reason="MISSING_ELIGIBLE_BAR",
+        detected_at=bar.observed_at,
+    )
+
+    with pytest.raises(RuntimeError, match="simulated outbox failure"):
+        orchestrator.process_completed_daily_bar(
+            published.signal_id,
+            bar,
+            calendar_version="calendar-v1",
+            resolved_gap_session_date=bar.candle_at.date(),
+        )
+
+    assert orchestrator.session_gap_events(published.signal_id) == (gap,)
+    assert orchestrator.latest_completed_observation(published.signal_id) is None
+    assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
