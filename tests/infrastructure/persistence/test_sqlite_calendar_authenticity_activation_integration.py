@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from uuid import uuid4
 
@@ -12,6 +12,7 @@ from app.application.signals.calendar_backed_lifecycle_evaluation_schedule impor
 from app.application.signals.validate_lifecycle_calendar_activation import (
     ValidateLifecycleCalendarActivation,
 )
+from app.application.stocks.catalog import InMemoryStockCatalog
 from app.domain.identity.user import User, UserStatus
 from app.domain.stocks.stock import Stock
 from app.infrastructure.config import InfrastructureConfig
@@ -22,13 +23,11 @@ from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import 
     SQLiteSignalLifecycleUnitOfWork,
 )
 from app.infrastructure.runtime import create_infrastructure_runtime
-from app.application.stocks.catalog import InMemoryStockCatalog
+from app.main import create_application
 
-from tests.fakes import FakeYFinanceModule
-from tests.test_infrastructure_runtime import InMemoryAnalysisResultStore
-from tests.test_infrastructure_runtime import RetryPolicy
-from tests.test_infrastructure_runtime import Stock
-from tests.test_infrastructure_runtime import InMemoryStockCatalog
+
+class FakeYFinanceModule:
+    pass
 
 
 def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_activation(
@@ -97,9 +96,7 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
         )
 
     runtime.calendar_source_authenticity_verifier._retriever = FakeRetriever()
-    app = __import__("app.main", fromlist=["create_application"]).create_application(
-        runtime, operator_token="legacy-test-token"
-    )
+    app = create_application(runtime, operator_token="legacy-test-token")
 
     with TestClient(app) as client:
         owner_headers = {"Authorization": "Bearer " + owner_credential.secret}
@@ -194,19 +191,19 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
             calendar_store=runtime.session_calendar_store,
             candidate_calendar_version="authenticity-activation-v1",
         )
+        unit_of_work = SQLiteSignalLifecycleUnitOfWork(
+            runtime.signal_history_store,
+            runtime.signal_track_record_store,
+            runtime.signal_alert_outbox,
+        )
         validator = ValidateLifecycleCalendarActivation(
             history=runtime.signal_history_store,
             calendar_store=runtime.session_calendar_store,
-            unit_of_work=SQLiteSignalLifecycleUnitOfWork(
-                runtime.signal_history_store,
-                runtime.signal_track_record_store,
-                runtime.signal_alert_outbox,
-            ),
+            unit_of_work=unit_of_work,
             schedule=schedule,
             evidence_store=runtime.calendar_evidence_repository,
             authenticity_verifier=runtime.calendar_source_authenticity_verifier,
         )
-        unit_of_work = validator._unit_of_work
         coordinator = SQLiteLifecycleCalendarActivationCoordinator(
             calendar_repository=runtime.session_calendar_store,
             lifecycle_unit_of_work=unit_of_work,
@@ -240,8 +237,9 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
         assert accepted.validation.blockers == ()
         assert accepted.event is not None
         assert accepted.event.action == "ACTIVATE"
-        assert runtime.session_calendar_store.get_active() is not None
-        assert runtime.session_calendar_store.get_active().version == "authenticity-activation-v1"
+        active = runtime.session_calendar_store.get_active()
+        assert active is not None
+        assert active.version == "authenticity-activation-v1"
         assert len(runtime.session_calendar_store.list_activation_events()) == 1
 
     assert runtime.closed is True
