@@ -11,6 +11,10 @@ from app.application.signals.bootstrap_opportunity_lifecycle import BootstrapOpp
 from app.application.signals.lifecycle_unit_of_work import InMemorySignalLifecycleUnitOfWork
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
+from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import SQLiteSignalLifecycleUnitOfWork
+from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXCalendarDay,
@@ -225,3 +229,44 @@ def test_unpublished_active_signal_is_not_bootstrapped():
 
     assert result.status == "NO_ELIGIBLE_ACTIVE_OPPORTUNITIES"
     assert unit_of_work.execute(lambda tx: tx.bootstrap_batches()) == ()
+
+ 
+ 
+def test_bootstrap_application_persists_through_sqlite_restart(tmp_path):
+    database = tmp_path / "analysis.db"
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+    calendar_store = FakeCalendarStore(make_calendar())
+    publication = history.record(
+        make_signal(),
+        "PUBLISHED",
+        datetime(2026, 10, 2, 10, tzinfo=CAIRO),
+    )
+    service = BootstrapOpportunityLifecycle(
+        history=history,
+        calendar_store=calendar_store,
+        unit_of_work=unit_of_work,
+    )
+
+    result = service.execute(
+        calendar_version="calendar-v1",
+        operator_id="authenticated-user-7",
+        reason="initial lifecycle bootstrap",
+        next_evaluation_date=date(2026, 10, 6),
+        recorded_at=datetime(2026, 10, 6, 8, tzinfo=CAIRO),
+    )
+
+    reopened_history = SQLiteSignalHistoryStore(database)
+    reopened_track_record = SQLiteTrackRecordStore(database)
+    reopened_outbox = SQLiteAlertOutbox(database)
+    reopened_unit_of_work = SQLiteSignalLifecycleUnitOfWork(
+        reopened_history, reopened_track_record, reopened_outbox
+    )
+    persisted = reopened_unit_of_work.execute(
+        lambda transaction: transaction.bootstrap_records(publication.signal_id)
+    )
+    assert result.status == "BOOTSTRAPPED"
+    assert len(persisted) == 1
+    assert persisted[0].baseline_date == date(2026, 10, 2)
