@@ -566,3 +566,69 @@ def test_legacy_rows_are_blocked_until_audited_operator_recovery(tmp_path):
     ).fetchone()
     audit.close()
     assert recovery == ("operator-1", "approved recovery", "LEGACY_BLOCKED", 1)
+
+
+
+def test_retry_policy_and_next_attempt_survive_store_reopen(tmp_path):
+    database = tmp_path / "retry-restart.db"
+    policy = LifecycleRetryPolicy(max_attempts=3, retry_delays_seconds=(45, 90))
+    store = SQLiteLifecycleOccurrenceClaimStore(database)
+    claim = store.claim(
+        "retry-restart", "worker-a", now=NOW, lease_seconds=60, retry_policy=policy
+    )
+    assert claim is not None
+    failed_at = NOW + timedelta(seconds=5)
+    assert store.mark_failed(claim, failed_at=failed_at, reason="temporary provider error")
+
+    reopened = SQLiteLifecycleOccurrenceClaimStore(database)
+    persisted = reopened.get("retry-restart")
+    assert persisted is not None
+    assert persisted["status"] == "FAILED"
+    assert persisted["retry_policy"] == policy
+    assert persisted["next_attempt_at"] == failed_at + timedelta(seconds=45)
+    assert persisted["attempt"] == 1
+    assert persisted["fencing_token"] == 1
+
+    assert reopened.claim(
+        "retry-restart", "worker-b",
+        now=failed_at + timedelta(seconds=44),
+        lease_seconds=60,
+        retry_policy=policy,
+    ) is None
+    retry = reopened.claim(
+        "retry-restart", "worker-b",
+        now=failed_at + timedelta(seconds=45),
+        lease_seconds=60,
+        retry_policy=policy,
+    )
+    assert retry is not None
+    assert retry.attempt == 2
+    assert retry.fencing_token == 2
+
+
+def test_exhausted_state_survives_store_reopen_and_remains_terminal(tmp_path):
+    database = tmp_path / "exhausted-restart.db"
+    policy = LifecycleRetryPolicy(max_attempts=1, retry_delays_seconds=())
+    store = SQLiteLifecycleOccurrenceClaimStore(database)
+    claim = store.claim(
+        "exhausted-restart", "worker-a", now=NOW, lease_seconds=60, retry_policy=policy
+    )
+    assert claim is not None
+    exhausted_at = NOW + timedelta(seconds=7)
+    assert store.mark_failed(claim, failed_at=exhausted_at, reason="permanent failure")
+
+    reopened = SQLiteLifecycleOccurrenceClaimStore(database)
+    persisted = reopened.get("exhausted-restart")
+    assert persisted is not None
+    assert persisted["status"] == "EXHAUSTED"
+    assert persisted["retry_policy"] == policy
+    assert persisted["exhausted_at"] == exhausted_at
+    assert persisted["next_attempt_at"] is None
+    assert persisted["attempt"] == 1
+    assert persisted["fencing_token"] == 1
+    assert reopened.claim(
+        "exhausted-restart", "worker-b",
+        now=exhausted_at + timedelta(seconds=1),
+        lease_seconds=60,
+        retry_policy=policy,
+    ) is None
