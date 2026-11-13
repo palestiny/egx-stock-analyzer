@@ -306,7 +306,8 @@ class SQLiteSignalLifecycleUnitOfWork:
                     symbol TEXT NOT NULL,
                     candle_at TEXT NOT NULL,
                     observed_at TEXT NOT NULL,
-                    payload_json TEXT NOT NULL
+                    payload_json TEXT NOT NULL,
+                    FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id)
                 )
                 """
             )
