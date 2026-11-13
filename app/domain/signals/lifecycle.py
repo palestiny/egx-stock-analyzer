@@ -34,6 +34,8 @@ class CompletedDailyBarObservation:
     candle_at: datetime
     observed_at: datetime
     revision: str
+    source_reference: str
+    finality_attestation: str
     is_final: bool
     open: Decimal
     high: Decimal
@@ -41,12 +43,14 @@ class CompletedDailyBarObservation:
     close: Decimal
 
     def __post_init__(self) -> None:
-        for name in ("symbol", "provider", "timeframe", "revision"):
+        for name in ("symbol", "provider", "timeframe", "revision", "source_reference", "finality_attestation"):
             value = getattr(self, name)
             if not value or not value.strip():
                 raise ValueError(f"{name} is required")
         if self.timeframe.strip().upper() != "DAILY":
             raise ValueError("lifecycle observation requires DAILY timeframe")
+        if not isinstance(self.is_final, bool):
+            raise ValueError("is_final must be an explicit boolean attestation")
         if not self.is_final:
             raise ValueError("daily candle must be provider-attested final")
         for name, value in (
