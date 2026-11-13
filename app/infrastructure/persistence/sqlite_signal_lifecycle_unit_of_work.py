@@ -132,19 +132,27 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             return ()
         return tuple(UUID(str(row[0])) for row in rows)
 
-    def supersede_alert(self, event_id: UUID, reason: str) -> bool:
+    def supersede_alert(self, event_id: UUID, reason: str, *, now: datetime) -> bool:
         if not reason.strip():
             raise ValueError("supersede reason is required")
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError("supersede timestamp must be timezone-aware")
         try:
-            unsafe = self._connection.execute(
-                """SELECT 1 FROM signal_alert_deliveries WHERE event_id = ?
-                   AND status IN ('DELIVERED', 'CLAIMED', 'SENDING', 'DELIVERY_UNKNOWN') LIMIT 1""",
+            sending = self._connection.execute(
+                "SELECT 1 FROM signal_alert_deliveries WHERE event_id = ? AND status = 'SENDING' LIMIT 1",
                 (str(event_id),),
             ).fetchone()
+            if sending is not None:
+                raise ValueError("correction replay must wait for an in-flight original alert delivery")
+            self._connection.execute(
+                """UPDATE signal_alert_deliveries
+                   SET status = 'SUPERSEDED', updated_at = ?, last_error = ?,
+                       claim_token = NULL, lease_until = NULL, next_attempt_at = NULL
+                   WHERE event_id = ? AND status IN ('PENDING', 'FAILED', 'CLAIMED')""",
+                (now.isoformat(), reason.strip(), str(event_id)),
+            )
         except sqlite3.OperationalError:
-            unsafe = None
-        if unsafe is not None:
-            return False
+            pass
         cursor = self._connection.execute(
             """UPDATE signal_alert_outbox SET status = 'SUPERSEDED', last_error = ?, delivered_at = NULL
                WHERE event_id = ? AND status IN ('PENDING', 'FAILED')""",

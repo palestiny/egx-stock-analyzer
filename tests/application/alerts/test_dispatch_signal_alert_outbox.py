@@ -236,6 +236,7 @@ def test_correction_dispatch_targets_only_confirmed_original_recipients_and_bypa
     assert persisted is not None
     assert persisted.event.recipient_user_ids == (delivered_user,)
     assert deliveries.get(original_event.event_id, unknown_user, "telegram").status is SignalAlertDeliveryStatus.DELIVERY_UNKNOWN
+    assert deliveries.get(original_event.event_id, never_received_user, "telegram") is None
 
 
 def test_dispatch_sends_only_to_entitled_linked_recipients(tmp_path) -> None:

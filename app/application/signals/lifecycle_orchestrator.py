@@ -698,7 +698,7 @@ class SignalLifecycleOrchestrator:
                     )
 
                 if reference_event_id is not None:
-                    if transaction.supersede_alert(reference_event_id, f"superseded by correction replay {correction_id}"):
+                    if transaction.supersede_alert(reference_event_id, f"superseded by correction replay {correction_id}", now=recorded_at):
                         superseded_event_id = reference_event_id
                     recipients = transaction.delivered_recipients(reference_event_id)
                     if recipients:
