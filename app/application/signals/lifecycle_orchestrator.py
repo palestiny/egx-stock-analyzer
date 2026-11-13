@@ -11,6 +11,7 @@ from app.application.alerts.in_memory import InMemoryAlertPublisher
 from app.application.alerts.ports import AlertPublisher
 from app.application.alerts.signal_snapshot import snapshot_signal
 from app.application.signals.lifecycle_unit_of_work import (
+    LifecycleBootstrapRecord,
     LifecycleCorrectionRecord,
     LifecycleCorrectionReviewDecision,
     LifecycleCorrectionRebuildRecord,
@@ -67,7 +68,7 @@ class SignalLifecycleOrchestrator:
             )
         self._unit_of_work = unit_of_work
 
-    def bootstrap_records(self, signal_id: UUID):
+    def bootstrap_records(self, signal_id: UUID) -> tuple[LifecycleBootstrapRecord, ...]:
         return self._unit_of_work.execute(
             lambda transaction: transaction.bootstrap_records(signal_id)
         )
