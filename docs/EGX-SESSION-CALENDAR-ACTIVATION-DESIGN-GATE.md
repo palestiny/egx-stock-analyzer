@@ -1,6 +1,6 @@
 # EGX Session Calendar Activation — Design Gate
 
-**Status:** GAP — bootstrap policy approved (Option 3); cursor contract and activation implementation remain open; HTTP activation remains intentionally unavailable  
+**Status:** IMPLEMENTATION SLICE COMPLETE — bootstrap and atomic activation coordinator exist; operational activation remains blocked; no HTTP activation route  
 **Reviewed:** 2026-11-13  
 **Related decisions:** DEC-135, DEC-138, DEC-139  
 **Scope:** Preconditions for activating, deactivating, or rolling back an immutable EGX session-calendar version.
@@ -57,18 +57,20 @@ Consequences:
 - Bootstrap must be idempotent, restart-safe, attributable to an individually authenticated operator or approved system principal, and fail closed on missing calendar/source evidence.
 - No date may be inferred from the host clock, weekends, holidays, or a guessed provider availability window.
 
-**Important implementation gap:** the evaluator currently derives its per-opportunity cursor from the latest persisted completed-bar observation and otherwise starts from the immutable publication date. The repository does not yet expose a separate audited bootstrap-cursor record. Before activation can be implemented, the cursor's exact semantics and persistence boundary must be designed so that a bootstrap marker cannot be mistaken for a completed market observation or cause expiry/session counts to skip eligible sessions.
+**Superseded implementation note:** the original cursor gap described below was closed by the approved PUBLICATION_BASELINE / RECONCILED_SESSION design and its implementation on PR #515. The evaluator now requires persisted bootstrap evidence for the exact opportunity revision and calendar version; the baseline is derived from immutable publication history and remains distinct from completed-bar observations. The effective reconciled cursor still comes only from committed, finality-verified observations. The baseline is not counted toward expiry.
 
-### Required bootstrap design before implementation
+### Implemented bootstrap contract
 
-Detailed technical proposal: `docs/EGX-LIFECYCLE-BOOTSTRAP-CURSOR-DESIGN-PROPOSAL.md`. It proposes a per-opportunity append-only publication baseline distinct from a finality-verified reconciled-session cursor. This implementation detail still requires owner approval.
+The owner-approved proposal is implemented on PR #515. See `docs/EGX-LIFECYCLE-BOOTSTRAP-CURSOR-DESIGN-PROPOSAL.md` and `docs/EGX-LIFECYCLE-BOOTSTRAP-CURSOR-OWNER-DECISION.md` for the decision and implementation record.
 
-1. Define whether the durable cursor is per opportunity (recommended because lifecycle progress is opportunity-specific) and how immutable revisions inherit or reset it.
-2. Define the cursor's semantic position: last fully reconciled eligible session, or an explicit pre-first-session baseline. Never conflate the two.
-3. Define how the bootstrap process proves that every eligible session between the opportunity's lifecycle start and the cursor is reconciled, including how provider-finality failures and missing bars block cursor advancement.
-4. Persist cursor state and append-only bootstrap audit evidence atomically; repeated bootstrap with the same inputs must be idempotent, and conflicting inputs must be rejected or require a new explicit review event.
-5. Make activation validate that every active opportunity has a valid cursor and that the candidate calendar covers the cursor-derived horizon through the next scheduled evaluation date.
-6. Keep activation, scheduled execution, and monitoring disabled until provider finality and the remaining deployment/E2E gates also pass.
+- `PUBLICATION_BASELINE` and `RECONCILED_SESSION` remain distinct; no synthetic bar is created.
+- Bootstrap is per immutable opportunity revision, append-only, idempotent, and persisted in an all-or-nothing batch.
+- The baseline and publication provenance are derived from immutable publication history in `Africa/Cairo`.
+- Candidate calendar coverage is checked explicitly through a trusted next-evaluation date; the request cannot supply that date.
+- The activation validator checks candidate publication/integrity, active latest revisions, bootstrap batch/record integrity, explicit coverage, next-session status, and reconciled-cursor compatibility.
+- A calendar-backed evaluation-schedule adapter and SQLite activation coordinator serialize validation, active-pointer mutation, and append-only activation audit in one SQLite transaction.
+
+These are code capabilities only. They do not approve a real source origin, publish/activate a production calendar, or authorize worker/monitoring enablement.
 
 No implementation should create a synthetic completed-bar observation, mark old sessions as reconciled without evidence, or use a guessed date to satisfy the activation gate.
 
@@ -102,7 +104,7 @@ Before adding activation endpoints, implement and test:
 - Immutable calendar persistence, content-hash verification on reads and before activation/rollback, active pointer, and append-only audit-event primitives are implemented. A regression test proves a corrupt version cannot be activated.
 - Authenticated publication and read endpoints merged in PR #467. They derive the actor from the active individual operator principal; the shared legacy operator identity is rejected.
 - No real EGX calendar version is published or active.
-- The evaluator derives a per-opportunity cursor from the latest persisted completed-bar observation and otherwise starts from publication date; a separate durable audited bootstrap-cursor record is not implemented. No scheduler is connected to the calendar.
+- The evaluator requires a persisted append-only bootstrap record for each active latest opportunity revision and uses the latest committed completed-bar observation as the reconciled cursor when one exists. No real EGX calendar is active and no scheduled worker is connected.
 - Provider finality attestation and per-day source evidence remain open.
 
-**Gate result: Option 3 and cursor-derived coverage are owner-approved. Do not expose activation/deactivation/rollback over HTTP until the separate durable bootstrap-cursor contract is implemented, its persistence/recovery tests pass, and all provider/calendar/deployment gates are satisfied.**
+**Gate result: bootstrap persistence, cursor-derived validation, and the provider-neutral atomic SQLite activation coordinator are implemented on PR #515. Operational calendar activation remains BLOCKED: there is no approved exact source origin, no independently reviewed real EGX evidence, no production deployment validation/backup-restore proof, and no accepted provider finality. No HTTP activation endpoint or operational activation command is exposed. Do not activate, wire the worker, enable monitoring, or merge PR #515 until all independent gates pass and the owner explicitly authorizes the action.**
