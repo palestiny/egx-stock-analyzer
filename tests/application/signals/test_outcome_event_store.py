@@ -167,3 +167,49 @@ def test_correction_review_requires_distinct_authenticated_credential():
     )
     assert correction.actor_credential_id == author_credential
     assert review.actor_credential_id == reviewer_credential
+
+
+
+def test_outcome_correction_service_requires_a_distinct_active_user_credential():
+    from uuid import uuid4
+
+    from app.application.security.identity import AuthenticatedIdentity
+    from app.application.signals.outcome_correction_service import OutcomeCorrectionService
+
+    store = InMemoryOutcomeEventStore()
+    service = OutcomeCorrectionService(store)
+    signal_id = uuid4()
+    original = store.record_initial(
+        make_outcome(signal_id), actor_id="system:signal-lifecycle",
+        idempotency_key="initial-service",
+    )
+    author = AuthenticatedIdentity.user(uuid4(), credential_id=uuid4())
+    reviewer = AuthenticatedIdentity.user(uuid4(), credential_id=uuid4())
+    correction = service.submit_correction(
+        signal_id,
+        make_outcome(signal_id, exit_price="96"),
+        supersedes_event_id=original.event_id,
+        identity=author,
+        idempotency_key="correction-service",
+    )
+
+    with pytest.raises(ValueError, match="cannot review their own"):
+        service.review_correction(
+            signal_id,
+            correction.event_id,
+            identity=author,
+            decision=OutcomeCorrectionDecision.ACCEPTED,
+            idempotency_key="same-user-review",
+        )
+
+    review = service.review_correction(
+        signal_id,
+        correction.event_id,
+        identity=reviewer,
+        decision=OutcomeCorrectionDecision.ACCEPTED,
+        idempotency_key="independent-user-review",
+    )
+    assert correction.actor_id == author.subject
+    assert correction.actor_credential_id == author.credential_id
+    assert review.actor_id == reviewer.subject
+    assert review.actor_credential_id == reviewer.credential_id
