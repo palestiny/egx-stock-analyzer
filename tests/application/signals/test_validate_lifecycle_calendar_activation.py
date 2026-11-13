@@ -72,6 +72,11 @@ class FakeCalendarEvidenceStore:
             publisher = "EGX" if source_class is CalendarEvidenceSourceClass.A else (
                 "FRA" if source_class is CalendarEvidenceSourceClass.A_R else "Broker"
             )
+            market_scope = (
+                "FRA_REGULATORY"
+                if source_class is CalendarEvidenceSourceClass.A_R
+                else "EGX_MARKET_WIDE"
+            )
             records.append(CalendarEvidence.create(
                 calendar_version=calendar_version,
                 session_date=session_date,
@@ -83,7 +88,7 @@ class FakeCalendarEvidenceStore:
                 observed_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
                 source_class=source_class,
                 source_publisher=publisher,
-                market_scope="EGX_MARKET_WIDE",
+                market_scope=market_scope,
                 effective_from=session_date,
                 effective_through=session_date,
                 retrieved_at=datetime.combine(session_date, time(9), tzinfo=CAIRO),
