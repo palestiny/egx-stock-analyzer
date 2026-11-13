@@ -61,6 +61,8 @@ Consequences:
 
 ### Required bootstrap design before implementation
 
+Detailed technical proposal: `docs/EGX-LIFECYCLE-BOOTSTRAP-CURSOR-DESIGN-PROPOSAL.md`. It proposes a per-opportunity append-only publication baseline distinct from a finality-verified reconciled-session cursor. This implementation detail still requires owner approval.
+
 1. Define whether the durable cursor is per opportunity (recommended because lifecycle progress is opportunity-specific) and how immutable revisions inherit or reset it.
 2. Define the cursor's semantic position: last fully reconciled eligible session, or an explicit pre-first-session baseline. Never conflate the two.
 3. Define how the bootstrap process proves that every eligible session between the opportunity's lifecycle start and the cursor is reconciled, including how provider-finality failures and missing bars block cursor advancement.
