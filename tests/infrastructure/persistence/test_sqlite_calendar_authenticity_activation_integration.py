@@ -126,6 +126,20 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
                 "content": content_by_url["https://calendar.example.test/notices/closure"],
             },
             {
+                "session_date": "2026-11-14",
+                "evidence_kind": "CLOSURE",
+                "source_reference": "https://calendar.example.test/notices/closure",
+                "claim": "EGX is closed on 2026-11-14",
+                "content": content_by_url["https://calendar.example.test/notices/closure"],
+            },
+            {
+                "session_date": "2026-11-15",
+                "evidence_kind": "CLOSURE",
+                "source_reference": "https://calendar.example.test/notices/closure",
+                "claim": "EGX is closed on 2026-11-15",
+                "content": content_by_url["https://calendar.example.test/notices/closure"],
+            },
+            {
                 "session_date": "2026-11-16",
                 "evidence_kind": "SCHEDULE",
                 "source_reference": "https://calendar.example.test/notices/session",
@@ -143,6 +157,8 @@ def test_real_sqlite_authenticity_gate_blocks_and_then_allows_atomic_calendar_ac
                 "coverage_end": "2026-11-16",
                 "days": [
                     {"date": "2026-11-13", "status": "NON_TRADING"},
+                    {"date": "2026-11-14", "status": "NON_TRADING"},
+                    {"date": "2026-11-15", "status": "NON_TRADING"},
                     {
                         "date": "2026-11-16",
                         "status": "SCHEDULED",
