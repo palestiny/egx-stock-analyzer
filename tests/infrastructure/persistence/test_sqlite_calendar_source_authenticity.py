@@ -222,6 +222,25 @@ def test_origin_registry_rejects_duplicate_approval_and_out_of_order_trust_event
             owner=owner,
             occurred_at=datetime(2026, 11, 12, tzinfo=timezone.utc),
         )
+    registry.revoke_origin(
+        "https://official.example.test",
+        reason="Rotate trust basis",
+        registry_version="v2",
+        owner=owner,
+        occurred_at=datetime(2026, 11, 14, tzinfo=timezone.utc),
+    )
+    with pytest.raises(ValueError, match="must be unique"):
+        registry.approve_origin(
+            "https://official.example.test",
+            publisher="EGX",
+            source_class="A",
+            market_scope="EGX_MARKET_WIDE",
+            trust_basis="Attempt to reuse historical trust version",
+            registry_version="v1",
+            owner=owner,
+            occurred_at=datetime(2026, 11, 15, tzinfo=timezone.utc),
+        )
+
 
 def test_verification_records_are_append_only_and_latest_is_durable(tmp_path):
     path, actor_ids, creds, evidence = _database(tmp_path)
