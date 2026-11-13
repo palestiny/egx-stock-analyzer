@@ -48,6 +48,7 @@ def _evidence(**overrides):
         source_reference=URL,
         claim="The notice confirms the scheduled EGX session for 2026-11-13",
         recorded_by=UPLOADER_ID,
+        recorded_by_credential_id=UPLOADER_CREDENTIAL,
         observed_at=NOW,
         recorded_at=NOW,
         source_class=CalendarEvidenceSourceClass.A,
