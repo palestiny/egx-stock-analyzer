@@ -30,6 +30,7 @@ class InfrastructureConfig:
     crash_radar_universe_version: str | None = None
     calendar_artifact_storage_path: str | None = None
     calendar_artifact_max_bytes: int = 20 * 1024 * 1024
+    calendar_source_trust_owner_user_id: UUID | None = None
 
     @classmethod
     def from_environment(cls) -> InfrastructureConfig:
@@ -56,6 +57,19 @@ class InfrastructureConfig:
             raise ValueError("EGX_CALENDAR_ARTIFACT_MAX_BYTES must be a positive integer") from error
         if calendar_artifact_max_bytes <= 0:
             raise ValueError("EGX_CALENDAR_ARTIFACT_MAX_BYTES must be a positive integer")
+
+        raw_calendar_source_trust_owner = (
+            os.getenv("EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID") or ""
+        ).strip()
+        try:
+            calendar_source_trust_owner_user_id = (
+                UUID(raw_calendar_source_trust_owner)
+                if raw_calendar_source_trust_owner else None
+            )
+        except ValueError as error:
+            raise ValueError(
+                "EGX_CALENDAR_SOURCE_TRUST_OWNER_USER_ID must be a valid UUID"
+            ) from error
 
         return cls(
             analysis_database_path=os.getenv(
@@ -99,6 +113,7 @@ class InfrastructureConfig:
             crash_radar_universe_version=crash_radar_universe_version,
             calendar_artifact_storage_path=calendar_artifact_storage_path,
             calendar_artifact_max_bytes=calendar_artifact_max_bytes,
+            calendar_source_trust_owner_user_id=calendar_source_trust_owner_user_id,
         )
 
 
