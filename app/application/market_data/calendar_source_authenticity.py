@@ -295,7 +295,7 @@ class CalendarSourceAuthenticityVerifier:
         *,
         at: datetime | None = None,
     ) -> CalendarEvidenceVerificationRecord:
-        """Re-check trust, persisted verification, and EXTERNAL_ONLY bytes at decision time."""
+        """Preflight the source immediately before an activation transaction."""
         timestamp = at or datetime.now(timezone.utc)
         _require_aware(timestamp, "activation verification timestamp")
         prior = self._records.latest(evidence.evidence_id)
@@ -306,17 +306,10 @@ class CalendarSourceAuthenticityVerifier:
             or prior.reviewed_claim_sha256 != _claim_digest(evidence)
             or prior.method_version != self.METHOD_VERSION
         ):
-            raise CalendarSourceAuthenticityError("No current matching independent verification record exists")
+            raise CalendarSourceAuthenticityError("No matching independent verification record exists")
         trust = self._origins.get_exact_origin(prior.source_origin, at=timestamp)
-        if (
-            trust is None
-            or not trust.is_active_at(timestamp)
-            or trust.registry_version != prior.registry_version
-            or trust.publisher != evidence.source_publisher
-            or trust.source_class != (evidence.source_class.value if evidence.source_class else None)
-            or trust.market_scope != evidence.market_scope
-        ):
-            raise CalendarSourceAuthenticityError("The source origin trust approval is missing, revoked, or changed")
+        self._assert_trust_matches(trust, evidence, prior, timestamp)
+
         if evidence.artifact_retention is CalendarArtifactRetention.EXTERNAL_ONLY:
             retrieved = self._retriever.retrieve(evidence.source_reference)
             self._validate_retrieval(retrieved, evidence.source_reference, prior.source_origin)
@@ -328,12 +321,78 @@ class CalendarSourceAuthenticityVerifier:
         elif evidence.artifact_retention is CalendarArtifactRetention.ARCHIVED:
             if self._artifact_service is None or not evidence.artifact_storage_reference:
                 raise CalendarSourceAuthenticityError("Archived evidence storage is unavailable")
-            self._artifact_service.verify(
+            self._artifact_service.read_verified(
                 evidence.artifact_storage_reference, evidence.artifact_sha256 or ""
             )
         else:
             raise CalendarSourceAuthenticityError("Unsupported artifact retention mode")
-        return prior
+
+        refreshed = CalendarEvidenceVerificationRecord(
+            evidence_id=prior.evidence_id,
+            decision=prior.decision,
+            source_origin=prior.source_origin,
+            registry_version=prior.registry_version,
+            artifact_sha256=prior.artifact_sha256,
+            verifier_user_id=prior.verifier_user_id,
+            verifier_credential_id=prior.verifier_credential_id,
+            uploader_user_id=prior.uploader_user_id,
+            uploader_credential_id=prior.uploader_credential_id,
+            reviewed_claim_sha256=prior.reviewed_claim_sha256,
+            method_version=prior.method_version,
+            verified_at=timestamp,
+            reason=(
+                "Activation preflight revalidated the approved origin and exact artifact bytes; "
+                "the independent claim review remains bound to the same immutable evidence"
+            ),
+        )
+        self._records.append(refreshed)
+        return refreshed
+
+    def assert_preflight_verification(
+        self,
+        evidence: CalendarEvidence,
+        *,
+        at: datetime,
+    ) -> CalendarEvidenceVerificationRecord:
+        """Check the preflight record inside the DB transaction without network I/O."""
+        _require_aware(at, "activation verification timestamp")
+        record = self._records.latest(evidence.evidence_id)
+        if (
+            record is None
+            or record.decision is not CalendarSourceVerificationDecision.VERIFIED
+            or record.verified_at != at
+            or record.artifact_sha256 != evidence.artifact_sha256
+            or record.reviewed_claim_sha256 != _claim_digest(evidence)
+            or record.method_version != self.METHOD_VERSION
+        ):
+            raise CalendarSourceAuthenticityError(
+                "A matching source-authenticity preflight record for this activation decision is required"
+            )
+        trust = self._origins.get_exact_origin(record.source_origin, at=at)
+        self._assert_trust_matches(trust, evidence, record, at)
+        if evidence.artifact_retention is CalendarArtifactRetention.ARCHIVED:
+            if self._artifact_service is None or not evidence.artifact_storage_reference:
+                raise CalendarSourceAuthenticityError("Archived evidence storage is unavailable")
+            self._artifact_service.read_verified(
+                evidence.artifact_storage_reference, evidence.artifact_sha256 or ""
+            )
+        elif evidence.artifact_retention is not CalendarArtifactRetention.EXTERNAL_ONLY:
+            raise CalendarSourceAuthenticityError("Unsupported artifact retention mode")
+        return record
+
+    @staticmethod
+    def _assert_trust_matches(trust, evidence, record, at: datetime) -> None:
+        if (
+            trust is None
+            or not trust.is_active_at(at)
+            or trust.registry_version != record.registry_version
+            or trust.publisher != evidence.source_publisher
+            or trust.source_class != (evidence.source_class.value if evidence.source_class else None)
+            or trust.market_scope != evidence.market_scope
+        ):
+            raise CalendarSourceAuthenticityError(
+                "The source origin trust approval is missing, revoked, or inconsistent with evidence"
+            )
 
     @staticmethod
     def _validate_retrieval(
