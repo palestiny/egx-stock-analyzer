@@ -38,14 +38,14 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         self._track_record = track_record
         self._outbox = outbox
 
-    def get_observation(self, identity):
+    def get_observation(self, signal_id: UUID, identity):
         key = json.dumps(
             [identity[0], identity[1], identity[2], identity[3].isoformat(), identity[4]],
             separators=(",", ":"),
         )
         row = self._connection.execute(
-            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ?",
-            (key,),
+            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ? AND signal_id = ?",
+            (key, str(signal_id)),
         ).fetchone()
         return self._deserialize_observation(str(row[0])) if row else None
 
@@ -69,8 +69,8 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         )
         payload = self._serialize_observation(record)
         existing = self._connection.execute(
-            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ?",
-            (identity_key,),
+            "SELECT payload_json FROM signal_lifecycle_daily_observations WHERE identity_key = ? AND signal_id = ?",
+            (identity_key, str(record.signal_id)),
         ).fetchone()
         if existing is not None:
             if str(existing[0]) != payload:
@@ -159,6 +159,19 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             LIMIT 1
             """,
             (normalized,),
+        ).fetchone()
+        return self._history._to_record(row) if row else None
+
+    def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None:
+        row = self._connection.execute(
+            """
+            SELECT signal_id, event, recorded_at, signal_json
+            FROM signal_history
+            WHERE signal_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (str(signal_id),),
         ).fetchone()
         return self._history._to_record(row) if row else None
 
@@ -303,12 +316,13 @@ class SQLiteSignalLifecycleUnitOfWork:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS signal_lifecycle_daily_observations (
-                    identity_key TEXT PRIMARY KEY,
+                    identity_key TEXT NOT NULL,
                     signal_id TEXT NOT NULL,
                     symbol TEXT NOT NULL,
                     candle_at TEXT NOT NULL,
                     observed_at TEXT NOT NULL,
                     payload_json TEXT NOT NULL,
+                    PRIMARY KEY(identity_key, signal_id),
                     FOREIGN KEY(signal_id) REFERENCES signal_identities(signal_id)
                 )
                 """
