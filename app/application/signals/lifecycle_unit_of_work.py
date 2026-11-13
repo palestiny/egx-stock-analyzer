@@ -31,7 +31,7 @@ class SignalLifecycleTransaction(Protocol):
     def latest(self, symbol: str) -> SignalRecord | None: ...
     def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None: ...
     def record_signal(
-        self, signal: Signal, event: str, recorded_at: datetime
+        self, signal: Signal, event: str, recorded_at: datetime, *, signal_id: UUID | None = None
     ) -> SignalRecord: ...
     def record_outcome(self, outcome: SignalOutcomeRecord) -> None: ...
     def publish_alert(self, event: AlertEvent) -> None: ...
@@ -65,7 +65,9 @@ class _InMemoryTransaction:
     def latest_for_signal(self, signal_id: UUID) -> SignalRecord | None:
         return self._history.get(signal_id)
 
-    def record_signal(self, signal: Signal, event: str, recorded_at):
+    def record_signal(self, signal: Signal, event: str, recorded_at, *, signal_id=None):
+        if signal_id is not None:
+            return self._history.record_for_signal(signal_id, signal, event, recorded_at)
         return self._history.record(signal, event, recorded_at)
 
     def record_outcome(self, outcome: SignalOutcomeRecord) -> None:
