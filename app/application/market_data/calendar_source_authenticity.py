@@ -239,7 +239,7 @@ class CalendarSourceAuthenticityVerifier:
             )
         if reviewed_claim != evidence.claim:
             raise CalendarSourceAuthenticityError(
-                "Independent reviewer must review the exact immutable evidence claim"
+                "Independent reviewer did not confirm the exact evidence claim"
             )
         if review_reason is not None and not review_reason.strip():
             raise CalendarSourceAuthenticityError("Review reason cannot be blank")
