@@ -1,10 +1,13 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+import hashlib
+import json
 from uuid import uuid4
 
 import pytest
 
 from app.application.alerts.in_memory import InMemoryAlertPublisher
+from app.application.market_data.completed_daily_bar_source import ProviderDailyBarEvidence
 from app.application.signals.lifecycle_orchestrator import SignalLifecycleOrchestrator
 from app.application.signals.store import InMemorySignalHistoryStore
 from app.application.signals.track_record import InMemoryTrackRecordStore
@@ -298,8 +301,18 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
     published = history.record(signal, "PUBLISHED", signal.generated_at)
     orchestrator = SignalLifecycleOrchestrator(history, alerts, outcomes)
     original = make_completed_bar(high="109")
+    original_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v1",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 15, 55, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 10, tzinfo=timezone.utc),
+        bar=original,
+    )
     triggered = orchestrator.process_completed_daily_bar(
-        published.signal_id, original, calendar_version="calendar-v1"
+        published.signal_id, original, calendar_version="calendar-v1",
+        provider_evidence=original_evidence,
     )
     assert triggered is not None and triggered.signal.status is SignalStatus.TRIGGERED
 
@@ -318,6 +331,15 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         low=original.low,
         close=original.close,
     )
+    corrected_evidence = ProviderDailyBarEvidence(
+        provider_id="attested-provider",
+        provider_contract_version="contract-v2",
+        instrument_symbol="COMI",
+        session_date=date(2026, 10, 4),
+        source_timestamp=datetime(2026, 10, 4, 16, 50, tzinfo=timezone.utc),
+        retrieved_at=datetime(2026, 10, 4, 16, 55, tzinfo=timezone.utc),
+        bar=corrected,
+    )
     correction = orchestrator.record_daily_bar_correction(
         published.signal_id,
         original_identity=original.identity,
@@ -326,6 +348,7 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
         reason="Provider corrected the daily high",
         calendar_version="calendar-v1",
         recorded_at=corrected.observed_at,
+        provider_evidence=corrected_evidence,
     )
     review = orchestrator.record_daily_bar_correction_review(
         published.signal_id,
@@ -347,6 +370,40 @@ def test_correction_replay_rebuilds_chronology_and_unblocks_later_sessions():
     assert rebuilt.resulting_status is SignalStatus.ACTIVE
     assert rebuilt.observation_count == 1
     assert len(rebuilt.replay_digest) == 64
+    expected_trace = [{
+        "provider": "attested-provider",
+        "symbol": "COMI",
+        "timeframe": "DAILY",
+        "candle_at": "2026-10-04T00:00:00+00:00",
+        "revision": "r2",
+        "source_reference": corrected.source_reference,
+        "finality_attestation": "provider-finality-v2",
+        "open": "100",
+        "high": "105",
+        "low": "98",
+        "close": "102",
+        "policy_version": "dec138-daily-ohlc-v1",
+        "calendar_version": "calendar-v1",
+        "resulting_status": "ACTIVE",
+        "provider_evidence": {
+            "provider_id": "attested-provider",
+            "provider_contract_version": "contract-v2",
+            "instrument_symbol": "COMI",
+            "session_date": "2026-10-04",
+            "source_timestamp": "2026-10-04T16:50:00+00:00",
+            "retrieved_at": "2026-10-04T16:55:00+00:00",
+        },
+    }]
+    expected_payload = json.dumps({
+        "signal_id": str(published.signal_id),
+        "correction_id": str(correction.correction_id),
+        "policy_versions": ["dec138-daily-ohlc-v1"],
+        "calendar_versions": ["calendar-v1"],
+        "trace": expected_trace,
+    }, sort_keys=True, separators=(",", ":"))
+    assert rebuilt.replay_digest == hashlib.sha256(expected_payload.encode("utf-8")).hexdigest()
+    latest_observation = orchestrator.latest_completed_observation(published.signal_id)
+    assert latest_observation.provider_evidence == corrected_evidence
     assert history.get(published.signal_id).signal.status is SignalStatus.ACTIVE
     assert history.history(published.signal_id)[-1].event == "CORRECTION_REPLAY_REBUILT:" + str(correction.correction_id)
     assert orchestrator.latest_completed_observation(published.signal_id).bar.revision == "r2"
