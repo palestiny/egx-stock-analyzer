@@ -138,7 +138,7 @@ def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
     )
     result = service.execute(
         uuid4(),
-        make_bar(),
+        make_evidence(make_bar()),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
     assert result.reason == "SESSION_NOT_EXPLICITLY_CLOSED"
@@ -150,7 +150,7 @@ def test_daily_bar_requires_post_close_plus_sixty_minutes():
     service, verifier, lifecycle = evaluator(active=make_calendar())
     result = service.execute(
         uuid4(),
-        make_bar(),
+        make_evidence(make_bar()),
         evaluated_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
     )
     assert result.reason == "POST_CLOSE_BUFFER_NOT_ELAPSED"
@@ -162,7 +162,7 @@ def test_daily_bar_requires_provider_finality_verification():
     service, verifier, lifecycle = evaluator(active=make_calendar(), verified=False)
     result = service.execute(
         uuid4(),
-        make_bar(),
+        make_evidence(make_bar()),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
     assert result.reason == "PROVIDER_FINALITY_NOT_VERIFIED"
@@ -191,17 +191,17 @@ def test_daily_bar_rejects_future_observation_timestamp():
     bar = make_bar()
     result = service.execute(
         uuid4(),
-        bar,
+        make_evidence(bar),
         evaluated_at=datetime(2026, 10, 4, 15, 30, tzinfo=CAIRO),
     )
-    assert result.reason == "OBSERVATION_FROM_FUTURE"
+    assert result.reason == "PROVIDER_EVIDENCE_FROM_FUTURE"
     assert verifier.calls == 0
     assert lifecycle.calls == []
 
 
 def test_daily_bar_must_be_retrieved_after_the_post_close_buffer():
     service, verifier, lifecycle = evaluator(active=make_calendar())
-    bar = replace(
+    bar = make_evidence(replace(
         make_bar(),
         observed_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
     ))
@@ -217,11 +217,11 @@ def test_daily_bar_must_be_retrieved_after_the_post_close_buffer():
 
 def test_daily_bar_outside_active_calendar_coverage_is_suppressed():
     service, verifier, lifecycle = evaluator(active=make_calendar())
-    bar = replace(
+    bar = make_evidence(replace(
         make_bar(),
         candle_at=datetime(2026, 10, 5, 14, 30, tzinfo=CAIRO),
         observed_at=datetime(2026, 10, 5, 16, 0, tzinfo=CAIRO),
-    )
+    ))
     result = service.execute(
         uuid4(),
         bar,
