@@ -41,7 +41,8 @@ class CalendarEvidence:
     source_reference: str
     claim: str
     recorded_by: UUID
-    observed_at: datetime
+    recorded_by_credential_id: UUID | None = None
+    observed_at: datetime = None
     recorded_at: datetime
     source_published_at: datetime | None = None
     supersedes_evidence_id: UUID | None = None
@@ -144,6 +145,7 @@ class CalendarEvidence:
         supersession_reason: str | None = None,
         evidence_id: UUID | None = None,
         recorded_at: datetime | None = None,
+        recorded_by_credential_id: UUID | None = None,
         source_class: CalendarEvidenceSourceClass | None = None,
         source_publisher: str | None = None,
         market_scope: str | None = None,
@@ -164,6 +166,7 @@ class CalendarEvidence:
             source_reference=source_reference,
             claim=claim,
             recorded_by=recorded_by,
+            recorded_by_credential_id=recorded_by_credential_id,
             observed_at=observed_at,
             recorded_at=recorded_at or datetime.now(timezone.utc),
             source_published_at=source_published_at,
