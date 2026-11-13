@@ -326,6 +326,13 @@ def test_completed_daily_bar_triggers_and_publishes_without_performance_accounti
     assert result.alert_published is True
     assert outcomes.all() == ()
     assert len(alerts.events) == 1
+    replay = orchestrator.process_completed_daily_bar(
+        published.signal_id,
+        make_completed_bar(high="109", low="98"),
+        calendar_version="calendar-v1",
+    )
+    assert replay is not None and replay.changed is False
+    assert len(alerts.events) == 1
 
 
 def test_completed_daily_bar_replay_is_idempotent_even_if_retrieved_again_later():
