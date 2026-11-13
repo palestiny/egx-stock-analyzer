@@ -43,6 +43,11 @@ class LifecycleCorrectionRecord:
     calendar_version: str
     recorded_at: datetime
     status: str = "RECORDED_NOT_REEVALUATED"
+    provider_evidence: ProviderDailyBarEvidence | None = None
+
+    def __post_init__(self) -> None:
+        if self.provider_evidence is not None and self.provider_evidence.bar != self.corrected_bar:
+            raise ValueError("provider evidence bar must match the corrected lifecycle bar")
 
 
 @dataclass(frozen=True)
