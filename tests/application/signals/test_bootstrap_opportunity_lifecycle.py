@@ -1,6 +1,6 @@
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
-from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -134,13 +134,7 @@ def test_bootstrap_selects_only_latest_active_revision_with_own_baseline():
         "PUBLISHED",
         datetime(2026, 10, 2, 10, tzinfo=CAIRO),
     )
-    child_signal = replace_signal = make_signal()
-    child_signal = Signal(
-        **{
-            **child_signal.__dict__,
-            "confidence": Decimal("85"),
-        }
-    )
+    child_signal = replace(make_signal(), confidence=Decimal("85"))
     child = history.record_revision(
         child_signal,
         "PUBLISHED_VERSION",
