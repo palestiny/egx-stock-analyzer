@@ -704,7 +704,7 @@ def test_sqlite_correction_review_is_durable_append_only_and_gates_lifecycle(tmp
         reopened.process_completed_daily_bar(
             published.signal_id, later, calendar_version="calendar-v1"
         )
-    accepted = reopened.record_daily_bar_correction_review(
+    reopened.record_daily_bar_correction_review(
         published.signal_id,
         correction.correction_id,
         decision="ACCEPTED_NO_STATE_CHANGE",
