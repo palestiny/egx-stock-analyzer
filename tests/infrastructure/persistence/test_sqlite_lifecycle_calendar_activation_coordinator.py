@@ -1,16 +1,30 @@
 import sqlite3
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
 
+from app.application.signals.bootstrap_opportunity_lifecycle import BootstrapOpportunityLifecycle
+from app.application.signals.calendar_backed_lifecycle_evaluation_schedule import (
+    CalendarBackedLifecycleEvaluationSchedule,
+)
 from app.application.signals.validate_lifecycle_calendar_activation import (
     LifecycleCalendarActivationValidation,
+    ValidateLifecycleCalendarActivation,
 )
 from app.domain.market_data.session_calendar import (
     CalendarDayStatus,
     EGXCalendarDay,
     EGXSessionCalendar,
+)
+from app.domain.signals.model import (
+    PriceZone,
+    Signal,
+    SignalDirection,
+    SignalEvidence,
+    SignalStatus,
+    Target,
 )
 from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
 from app.infrastructure.persistence.sqlite_lifecycle_calendar_activation_coordinator import (
@@ -191,3 +205,102 @@ def test_coordinator_rejects_stores_on_different_database_files(tmp_path):
             lifecycle_unit_of_work=unit_of_work,
             validator=StubValidator(),
         )
+
+
+
+def test_real_sqlite_validator_and_coordinator_activate_after_bootstrap(tmp_path):
+    database = tmp_path / "real-validation.db"
+    calendar_repository = SQLiteSessionCalendarRepository(database)
+    history = SQLiteSignalHistoryStore(database)
+    track_record = SQLiteTrackRecordStore(database)
+    outbox = SQLiteAlertOutbox(database)
+    unit_of_work = SQLiteSignalLifecycleUnitOfWork(history, track_record, outbox)
+
+    calendar_days = tuple(
+        EGXCalendarDay(
+            session_date=session_date,
+            status=CalendarDayStatus.SCHEDULED,
+            session_open=time(10),
+            session_close=time(14, 30),
+        )
+        for session_date in (
+            date(2026, 11, 2),
+            date(2026, 11, 3),
+            date(2026, 11, 4),
+        )
+    )
+    calendar = EGXSessionCalendar(
+        version="verified-v1",
+        timezone="Africa/Cairo",
+        coverage_start=date(2026, 11, 2),
+        coverage_end=date(2026, 11, 4),
+        days=calendar_days,
+    )
+    calendar_repository.publish(
+        calendar,
+        published_by="operator",
+        source_reference="calendar-evidence-2026-11",
+        reason="verified schedule fixture",
+        published_at=datetime(2026, 11, 1, 12, tzinfo=CAIRO),
+    )
+
+    published_at = datetime(2026, 11, 2, 9, tzinfo=CAIRO)
+    signal = Signal(
+        symbol="COMI",
+        direction=SignalDirection.BUY,
+        status=SignalStatus.ACTIVE,
+        generated_at=published_at,
+        timeframe="DAILY",
+        entry_zone=PriceZone(Decimal("99"), Decimal("101")),
+        invalidation=Decimal("95"),
+        targets=(Target(Decimal("120"), "T1"),),
+        confidence=Decimal("80"),
+        risk_score=Decimal("20"),
+        evidence=(SignalEvidence("trend", "trend evidence"),),
+        strategy_id="breakout",
+        strategy_version="1",
+        data_timestamp=published_at,
+    )
+    history.record(signal, "PUBLISHED", published_at)
+    BootstrapOpportunityLifecycle(
+        history=history,
+        calendar_store=calendar_repository,
+        unit_of_work=unit_of_work,
+    ).execute(
+        calendar_version="verified-v1",
+        operator_id="operator-1",
+        reason="bootstrap before first activation",
+        next_evaluation_date=date(2026, 11, 3),
+        recorded_at=datetime(2026, 11, 2, 16, tzinfo=CAIRO),
+    )
+
+    schedule = CalendarBackedLifecycleEvaluationSchedule(
+        calendar_store=calendar_repository,
+        candidate_calendar_version="verified-v1",
+    )
+    validator = ValidateLifecycleCalendarActivation(
+        history=history,
+        calendar_store=calendar_repository,
+        unit_of_work=unit_of_work,
+        schedule=schedule,
+    )
+    coordinator = SQLiteLifecycleCalendarActivationCoordinator(
+        calendar_repository=calendar_repository,
+        lifecycle_unit_of_work=unit_of_work,
+        validator=validator,
+    )
+
+    attempt = coordinator.activate(
+        "verified-v1",
+        performed_by="admin-1",
+        reason="activate after real lifecycle validation",
+        as_of=datetime(2026, 11, 2, 16, tzinfo=CAIRO),
+    )
+
+    assert attempt.validation.eligible is True
+    assert attempt.validation.checked_opportunity_count == 1
+    assert attempt.validation.next_evaluation_date == date(2026, 11, 3)
+    assert attempt.validation.blockers == ()
+    assert attempt.event is not None
+    assert calendar_repository.get_active().version == "verified-v1"
+    assert len(calendar_repository.list_activation_events()) == 1
