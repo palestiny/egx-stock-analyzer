@@ -270,3 +270,24 @@ def test_bootstrap_application_persists_through_sqlite_restart(tmp_path):
     assert result.status == "BOOTSTRAPPED"
     assert len(persisted) == 1
     assert persisted[0].baseline_date == date(2026, 10, 2)
+
+ 
+ 
+def test_bootstrap_rejects_non_session_next_evaluation_date():
+    service, history, unit_of_work, _ = build_service()
+    publication = history.record(
+        make_signal(),
+        "PUBLISHED",
+        datetime(2026, 10, 2, 10, tzinfo=CAIRO),
+    )
+
+    with pytest.raises(ValueError, match="not a scheduled EGX session"):
+        service.execute(
+            calendar_version="calendar-v1",
+            operator_id="authenticated-user-7",
+            reason="initial lifecycle bootstrap",
+            next_evaluation_date=date(2026, 10, 3),
+            recorded_at=datetime(2026, 10, 6, 8, tzinfo=CAIRO),
+        )
+
+    assert unit_of_work.execute(lambda tx: tx.bootstrap_records(publication.signal_id)) == ()
