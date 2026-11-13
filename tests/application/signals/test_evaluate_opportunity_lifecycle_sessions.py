@@ -205,6 +205,8 @@ def test_lifecycle_session_recovery_processes_twenty_closed_sessions_then_expire
 
     assert result.status == "EXPIRED"
     assert result.processed_sessions == sessions
+    assert publication.recorded_at.astimezone(CAIRO).date() not in result.processed_sessions
+    assert len(result.processed_sessions) == 20
     assert result.lifecycle_result.signal.status is SignalStatus.EXPIRED
     assert history.get(publication.signal_id).signal.status is SignalStatus.EXPIRED
     assert alerts.events[-1].event_type.value == "SIGNAL_EXPIRED"
@@ -337,4 +339,27 @@ def test_lifecycle_evaluation_rejects_parent_revision_after_newer_revision_exist
     )
 
     assert result.status == "NOT_LATEST_OPPORTUNITY_REVISION"
+    assert lifecycle.latest_completed_observation(publication.signal_id) is None
+
+
+
+def test_lifecycle_evaluation_requires_bootstrap_for_the_active_calendar_version():
+    service, _, lifecycle, publication, _, _ = build_service()
+    calendar_store = service._calendar_store
+    current = calendar_store.active
+    replacement_calendar = replace(current.calendar, version="calendar-v2")
+    calendar_store.active = replace(
+        current,
+        version="calendar-v2",
+        calendar=replacement_calendar,
+    )
+
+    result = service.execute(
+        publication.signal_id,
+        through_date=date(2026, 10, 5),
+        bars_by_session={},
+        evaluated_at=datetime(2026, 10, 5, 16, tzinfo=CAIRO),
+    )
+
+    assert result.status == "LIFECYCLE_BOOTSTRAP_REQUIRED"
     assert lifecycle.latest_completed_observation(publication.signal_id) is None
