@@ -98,6 +98,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
         payload = {
             "signal_id": str(record.signal_id),
             "policy_version": record.policy_version,
+            "calendar_version": record.calendar_version,
             "resulting_status": record.resulting_status.value,
             "bar": {
                 "symbol": bar.symbol.strip().upper(),
@@ -140,6 +141,7 @@ class _SQLiteSignalLifecycleTransaction(SignalLifecycleTransaction):
             signal_id=UUID(str(payload["signal_id"])),
             bar=bar,
             policy_version=str(payload["policy_version"]),
+            calendar_version=str(payload["calendar_version"]),
             resulting_status=SignalStatus(str(payload["resulting_status"])),
         )
 
