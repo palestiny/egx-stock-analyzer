@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from threading import RLock
 from typing import Callable, Protocol, TypeVar
+from uuid import UUID
 
 from app.application.alerts.ports import AlertPublisher
 from app.application.signals.store import SignalHistoryStore, SignalRecord
