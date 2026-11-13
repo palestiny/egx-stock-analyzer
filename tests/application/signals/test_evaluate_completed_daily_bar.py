@@ -135,6 +135,7 @@ def test_daily_bar_requires_explicit_closed_session_and_calendar_coverage():
 def test_daily_bar_requires_post_close_plus_sixty_minutes():
     service, verifier, lifecycle = evaluator(active=make_calendar())
     result = service.execute(
+        uuid4(),
         make_bar(),
         evaluated_at=datetime(2026, 10, 4, 15, 20, tzinfo=CAIRO),
     )
@@ -146,6 +147,7 @@ def test_daily_bar_requires_post_close_plus_sixty_minutes():
 def test_daily_bar_requires_provider_finality_verification():
     service, verifier, lifecycle = evaluator(active=make_calendar(), verified=False)
     result = service.execute(
+        uuid4(),
         make_bar(),
         evaluated_at=datetime(2026, 10, 4, 16, 0, tzinfo=CAIRO),
     )
@@ -156,6 +158,7 @@ def test_daily_bar_requires_provider_finality_verification():
 
 def test_daily_bar_evaluates_only_after_calendar_and_finality_gates_pass():
     service, verifier, lifecycle = evaluator(active=make_calendar())
+    signal_id = uuid4()
     bar = make_bar()
     result = service.execute(
         signal_id,
@@ -173,6 +176,7 @@ def test_daily_bar_rejects_future_observation_timestamp():
     service, verifier, lifecycle = evaluator(active=make_calendar())
     bar = make_bar()
     result = service.execute(
+        uuid4(),
         bar,
         evaluated_at=datetime(2026, 10, 4, 15, 30, tzinfo=CAIRO),
     )
