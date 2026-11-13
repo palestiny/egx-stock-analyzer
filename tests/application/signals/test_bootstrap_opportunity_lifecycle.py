@@ -150,6 +150,13 @@ def test_bootstrap_selects_only_latest_active_revision_with_own_baseline():
         reason="material setup revision",
     )
 
+    projection = history.latest_active_published_opportunities()
+    assert len(projection) == 1
+    assert projection[0].latest.signal_id == child.signal_id
+    assert projection[0].publication.signal_id == child.signal_id
+    assert projection[0].publication.event == "PUBLISHED_VERSION"
+    assert projection[0].publication.recorded_at == datetime(2026, 10, 5, 11, tzinfo=CAIRO)
+
     result = service.execute(
         calendar_version="calendar-v1",
         operator_id="authenticated-user-7",
