@@ -32,6 +32,16 @@ from app.domain.signals.model import (
     Target,
 )
 from app.application.signals.track_record import InMemoryTrackRecordStore
+from app.infrastructure.notifications.sqlite_alert_outbox import SQLiteAlertOutbox
+from app.infrastructure.persistence.sqlite_lifecycle_occurrence_claim_store import (
+    SQLiteLifecycleOccurrenceClaimStore,
+    StaleLifecycleOccurrenceClaimError,
+)
+from app.infrastructure.persistence.sqlite_signal_history_store import SQLiteSignalHistoryStore
+from app.infrastructure.persistence.sqlite_signal_lifecycle_unit_of_work import (
+    SQLiteSignalLifecycleUnitOfWork,
+)
+from app.infrastructure.persistence.sqlite_track_record_store import SQLiteTrackRecordStore
 
 
 CAIRO = ZoneInfo("Africa/Cairo")
@@ -151,13 +161,28 @@ def make_evidence(bar):
     )
 
 
-def build_service(*, rejected_dates=(), bootstrap=True, active_calendar_version="calendar-v1"):
+def build_service(
+    *,
+    rejected_dates=(),
+    bootstrap=True,
+    active_calendar_version="calendar-v1",
+    database=None,
+):
     calendar_store = FakeCalendarStore(make_calendar(active_calendar_version))
     verifier = FakeFinalityVerifier(rejected_dates)
-    history = InMemorySignalHistoryStore()
-    alerts = InMemoryAlertPublisher()
-    track_record = InMemoryTrackRecordStore()
-    unit_of_work = InMemorySignalLifecycleUnitOfWork(history, alerts, track_record)
+    if database is None:
+        history = InMemorySignalHistoryStore()
+        alerts = InMemoryAlertPublisher()
+        track_record = InMemoryTrackRecordStore()
+        unit_of_work = InMemorySignalLifecycleUnitOfWork(history, alerts, track_record)
+    else:
+        history = SQLiteSignalHistoryStore(database)
+        alerts = SQLiteAlertOutbox(database)
+        track_record = SQLiteTrackRecordStore(database)
+        claim_store = SQLiteLifecycleOccurrenceClaimStore(database)
+        unit_of_work = SQLiteSignalLifecycleUnitOfWork(
+            history, track_record, alerts, occurrence_claim_store=claim_store
+        )
     lifecycle = SignalLifecycleOrchestrator(
         history, alerts, track_record, unit_of_work=unit_of_work
     )
@@ -416,3 +441,58 @@ def test_session_evaluator_uses_caller_owned_transaction_for_gap_and_recovery():
     assert history.get(publication.signal_id).signal.status is SignalStatus.ACTIVE
     assert len(alerts.events) == 0
     assert track_record.all() == ()
+
+
+
+def test_sqlite_claim_fence_rolls_back_real_session_evaluator_effects(tmp_path):
+    database = tmp_path / "lifecycle-claim-atomicity.db"
+    service, history, lifecycle, publication, alerts, track_record = build_service(
+        database=database
+    )
+    unit_of_work = lifecycle._unit_of_work
+    claim_store = SQLiteLifecycleOccurrenceClaimStore(database)
+    claim_time = datetime(2026, 10, 2, 16, tzinfo=CAIRO)
+    claim = claim_store.claim(
+        "sqlite-session-evaluator-atomicity",
+        "worker-a",
+        now=claim_time,
+        lease_seconds=10,
+    )
+    assert claim is not None
+
+    session = expected_sessions()[0]
+    target_bar = replace(
+        make_bar(session),
+        high=Decimal("121"),
+        close=Decimal("110"),
+        source_reference="https://provider.example/COMI/atomicity-target-hit",
+    )
+    clock_values = iter((
+        claim_time + timedelta(seconds=1),
+        claim_time + timedelta(seconds=11),
+    ))
+
+    with pytest.raises(StaleLifecycleOccurrenceClaimError):
+        unit_of_work.execute_claimed(
+            claim,
+            lambda transaction: service.execute(
+                publication.signal_id,
+                through_date=session,
+                bars_by_session={session: make_evidence(target_bar)},
+                evaluated_at=claim_time,
+                transaction=transaction,
+            ),
+            clock=lambda: next(clock_values),
+        )
+
+    # The evaluator really attempted an observation, status transition and
+    # outbox write, but expiry at the commit fence must roll all of them back.
+    assert len(history.history(publication.signal_id)) == 1
+    assert history.get(publication.signal_id).signal.status is SignalStatus.ACTIVE
+    assert lifecycle.latest_completed_observation(publication.signal_id) is None
+    assert lifecycle.session_gap_events(publication.signal_id) == ()
+    assert alerts.pending() == ()
+    assert track_record.all() == ()
+    persisted_claim = claim_store.get("sqlite-session-evaluator-atomicity")
+    assert persisted_claim is not None
+    assert persisted_claim["status"] == "CLAIMED"
