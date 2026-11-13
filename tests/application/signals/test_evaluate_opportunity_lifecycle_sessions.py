@@ -305,7 +305,7 @@ def test_lifecycle_session_recovery_stops_after_target_transition():
  
  
 def test_lifecycle_evaluation_requires_a_publication_bootstrap_record():
-    service, history, lifecycle, publication, alerts, track_record = build_service(bootstrap=False)
+    service, _, lifecycle, publication, _, _ = build_service(bootstrap=False)
 
     result = service.execute(
         publication.signal_id,
@@ -319,7 +319,7 @@ def test_lifecycle_evaluation_requires_a_publication_bootstrap_record():
 
 
 def test_lifecycle_evaluation_rejects_parent_revision_after_newer_revision_exists():
-    service, history, lifecycle, publication, alerts, track_record = build_service()
+    service, history, lifecycle, publication, _, _ = build_service()
     revised = replace(make_signal(), confidence=Decimal("85"))
     history.record_revision(
         revised,
