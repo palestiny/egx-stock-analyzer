@@ -5,6 +5,9 @@ from uuid import uuid4
 
 import pytest
 
+from app.application.reporting.session_opportunity_report_store import (
+    AmbiguousSessionOpportunityReportError,
+)
 from app.domain.reporting.session_opportunity_ledger import (
     SessionOpportunityEntry,
     SessionOpportunityLedgerReport,
@@ -21,13 +24,14 @@ def report(
     *,
     unresolved_count: int = 0,
     opportunities: tuple[SessionOpportunityEntry, ...] = (),
+    methodology_version: str = "session-opportunity-ledger-v1",
 ) -> SessionOpportunityLedgerReport:
     items = tuple(opportunities)
     return SessionOpportunityLedgerReport(
         session_date=date(2026, 10, 26),
         generated_at=generated_at,
         exchange_timezone="Africa/Cairo",
-        methodology_version="session-opportunity-ledger-v1",
+        methodology_version=methodology_version,
         opportunities=items,
         unresolved_count=unresolved_count,
         resolved_proxy_count=sum(
@@ -140,3 +144,39 @@ def test_session_report_store_persists_source_and_outcome_data_timestamps(tmp_pa
     saved_opportunity = saved["opportunities"][0]
     assert saved_opportunity["source_data_timestamp"] == source_timestamp.isoformat()
     assert saved_opportunity["outcome_data_timestamp"] == outcome_timestamp.isoformat()
+
+
+
+def test_session_report_store_requires_methodology_when_latest_cutoff_is_ambiguous(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    generated = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    assert store.save(report(generated, methodology_version="method-v1")) is True
+    assert store.save(report(generated, methodology_version="method-v2")) is True
+
+    with pytest.raises(AmbiguousSessionOpportunityReportError, match="specify methodology_version"):
+        store.get_latest(date(2026, 10, 26), as_of=generated)
+
+    v1 = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="method-v1",
+    )
+    v2 = store.get_latest(
+        date(2026, 10, 26),
+        as_of=generated,
+        methodology_version="method-v2",
+    )
+    assert v1 is not None and v1["methodology_version"] == "method-v1"
+    assert v2 is not None and v2["methodology_version"] == "method-v2"
+
+
+def test_session_report_store_uses_latest_unambiguous_cutoff(tmp_path) -> None:
+    store = SQLiteSessionOpportunityReportStore(tmp_path / "reports.db")
+    earlier = datetime(2026, 10, 26, 14, tzinfo=timezone.utc)
+    later = datetime(2026, 10, 26, 15, tzinfo=timezone.utc)
+    store.save(report(earlier, methodology_version="method-v1"))
+    store.save(report(later, methodology_version="method-v2"))
+
+    saved = store.get_latest(date(2026, 10, 26), as_of=later)
+    assert saved is not None
+    assert saved["methodology_version"] == "method-v2"
