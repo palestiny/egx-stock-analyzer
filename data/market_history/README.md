@@ -357,3 +357,36 @@ The remaining 18 rows pass basic OHLC geometry. Geometry checks do not independe
 - The requested legacy EGAL source file `data/market_history/egal_daily_2026-09-28_to-2026-10-28.csv` was not found on `main` or this collection branch (both exact-path fetches failed). The 22 existing EGAL seed rows remain preserved, but row-for-row equivalence to the unavailable original CSV remains unverified. No original file was deleted.
 - Coverage remains partial, provider latency and licensing/reuse rights have not been independently established, and source authenticity is not independently verified.
 - M61 and backtesting: not performed.
+
+## Daily collection: 2026-11-17
+
+Added 23 source-reported daily historical rows for the Tuesday 2026-11-17 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+
+Collection timestamp recorded in every new row: `2026-11-17T19:26:04+02:00` (Africa/Cairo, UTC+02:00). All 23 observations were taken from Investing.com daily historical tables after the session close; no intraday observations were mixed into the daily archive. Investing.com remains the sole market-price archive provider for this append. Each row links to its instrument-specific daily historical-data page. Exact quote latency is not stated consistently, so `delay_status` records that limitation.
+
+Provider-displayed K/M volumes were normalized to thousands in `volume_thousands_reported`; the original displayed quantity and unit are retained in `notes`. The EGREAL historical row did not report volume and remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-security values were not supplied. Index-page volumes are retained as provider-reported context only; their comparability to share volume is not independently verified.
+
+### Data-quality exceptions retained transparently
+
+- `EGX30`: the selected historical row reports open=52,199.83 above high=52,191.27.
+- `EGX30CAP`: the selected historical row reports open=64,710.57 above high=64,676.93.
+- `SHARIAH`: the selected historical row reports open=6,345.73 above high=6,341.14.
+- `EGX70EWI`: the selected historical row reports open=18,028.42 above high=18,024.82.
+- `EGX100EWI`: the selected historical row reports open=24,023.77 above high=24,004.24.
+
+The five index records preserve the raw Investing.com table values and are marked `ohlc_inconsistency_review`; no open/high values were substituted, averaged or repaired. The other 18 records pass the basic OHLC geometry check. Geometry checks do not independently authenticate source accuracy. No buy/sell flow was inferred from OHLCV.
+
+### Historical coverage status (as of 2026-11-17)
+
+- Total records after the 2026-11-17 collection: 370.
+- Records for 2026-11-17: 23 (17 equities and six indices).
+- The archive contains 36 distinct session dates and 61 distinct instrument symbols after this append.
+- New rows flagged for OHLC geometry: `EGX30`, `EGX30CAP`, `SHARIAH`, `EGX70EWI`, and `EGX100EWI`; all five remain review-required.
+- The other 18 new rows pass basic OHLC geometry; this does not independently certify provider accuracy.
+- No duplicate `(session_date, symbol)` keys or malformed CSV row lengths were introduced by this append.
+- `traded_value_egp` and `executions_count` remain blank where verified per-instrument values are unavailable. `EGREAL` has blank volume because the historical row did not report it.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file `data/market_history/egal_daily_2026-09-28_to_2026-10-28.csv` remains absent from both `main` and this collection branch. The 22 existing EGAL seed rows remain preserved, but row-for-row equivalence to the unavailable original CSV remains unverified. No original file was deleted.
+- Coverage remains partial, provider latency and licensing/reuse rights have not been independently established, and source authenticity is not independently verified.
+- M61 and backtesting: not performed.
+
