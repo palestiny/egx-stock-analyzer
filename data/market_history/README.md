@@ -390,3 +390,30 @@ The five index records preserve the raw Investing.com table values and are marke
 - Coverage remains partial, provider latency and licensing/reuse rights have not been independently established, and source authenticity is not independently verified.
 - M61 and backtesting: not performed.
 
+## Daily collection: 2026-11-18
+
+Added 23 source-reported daily historical rows for the Wednesday 2026-11-18 EGX session to the canonical CSV: 17 equities (`ABUK`, `ACAP`, `ADIB`, `CCAP`, `COMI`, `EGAL`, `EFID`, `ELEC`, `ETEL`, `FWRY`, `HDBK`, `HELI`, `ORAS`, `PHDC`, `RACC`, `RAYA`, `TMGH`) and six indices (`EGX30`, `EGX30CAP`, `EGREAL`, `SHARIAH`, `EGX70EWI`, `EGX100EWI`).
+
+Collection timestamp recorded in every new row: `2026-11-18T19:46:59+02:00` (Africa/Cairo, UTC+02:00). All 23 observations were taken from Investing.com daily historical tables for 2026-11-18; no intraday observations were mixed into the daily archive. Investing.com remains the sole market-price archive provider for this append. Each row links to its instrument-specific historical-data page. Exact quote latency is not stated consistently, so `delay_status` records that limitation.
+
+Provider-displayed K/M volumes were normalized to thousands in `volume_thousands_reported`; the original displayed quantity and unit are retained in `notes`. The EGREAL historical row did not report volume and remains blank. `traded_value_egp` and `executions_count` remain blank because verified per-instrument values were not supplied. Index-page volumes are retained as provider-reported context only; their comparability to share volume is not independently verified.
+
+### Data-quality review
+
+- All 23 selected rows pass basic OHLC geometry (`low <= open/close <= high` and `low <= high`).
+- No same-page source discrepancy was identified in the selected English historical tables during this collection. This is not independent source authentication and does not rule out provider revisions or differences across localized pages.
+- All 23 records retain `source_reported`; no value was averaged, reconstructed or silently repaired.
+- No buy/sell flow was inferred from OHLCV.
+
+### Historical coverage status (as of 2026-11-18)
+
+- Total records after the 2026-11-18 collection: 393.
+- Records for 2026-11-18: 23 (17 equities and six indices).
+- Records through 2026-11-17: 370.
+- The archive contains 37 distinct session dates and 61 distinct instrument symbols after this append.
+- No duplicate `(session_date, symbol)` keys or malformed CSV row widths were introduced by this append.
+- `traded_value_egp` and `executions_count` remain blank where verified per-instrument values are unavailable. `EGREAL` volume remains blank because the selected historical row did not report it.
+- Application database ingestion: not established by this archive alone.
+- The requested legacy EGAL source file `data/market_history/egal_daily_2026-09-28_to_2026-10-28.csv` remains absent from both `main` and this collection branch. The 22 existing EGAL seed rows remain preserved, but row-for-row equivalence to the unavailable original CSV remains unverified. No original file was deleted.
+- Coverage remains partial, provider latency and licensing/reuse rights have not been independently established, and source authenticity is not independently verified.
+- M61 and backtesting: not performed.
